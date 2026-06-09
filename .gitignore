@@ -47,3 +47,9 @@ test-output/
 
 # Specstory (claude/cursor session metadata)
 .specstory/
+
+# Backup / archive
+*.zip
+*.tar.gz
+*.rar
+*.7z
