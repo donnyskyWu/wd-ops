@@ -1,0 +1,41 @@
+package cn.iocoder.yudao.module.oa.api.dto.system;
+
+import cn.iocoder.yudao.module.oa.framework.dict.InDict;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+import java.util.List;
+
+@Data
+public class UserCreateReq {
+
+    @NotBlank
+    @Size(min = 3, max = 32)
+    private String username;
+
+    @NotBlank
+    @Size(max = 64)
+    private String nickname;
+
+    @Size(max = 128)
+    private String email;
+
+    @Size(max = 11)
+    private String phone;
+
+    @InDict("dict_position")
+    private String position;
+
+    private Long ipGroupId;
+
+    @InDict("dict_user_status")
+    private String status;
+
+    @NotEmpty
+    private List<Long> roleIds;
+
+    @Size(max = 512)
+    private String remark;
+}

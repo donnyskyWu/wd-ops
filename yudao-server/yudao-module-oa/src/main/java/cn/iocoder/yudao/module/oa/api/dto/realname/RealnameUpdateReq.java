@@ -1,0 +1,38 @@
+package cn.iocoder.yudao.module.oa.api.dto.realname;
+
+import cn.iocoder.yudao.module.oa.framework.dict.InDict;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+@Data
+public class RealnameUpdateReq {
+
+    @NotNull
+    private Long id;
+
+    private Long companyId;
+
+    @Size(max = 64)
+    private String realName;
+
+    @InDict("dict_id_type")
+    private String idType;
+
+    @Pattern(regexp = "^[1-9]\\d{5}(19|20)\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\d{3}[\\dXx]$",
+            message = "身份证号格式不正确")
+    private String idCard;
+
+    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
+    private String phone;
+
+    @Size(max = 64)
+    private String wechat;
+
+    @InDict("dict_gender")
+    private String gender;
+
+    @InDict("dict_realname_status")
+    private String status;
+}

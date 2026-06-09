@@ -1,0 +1,49 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.cursor/
+.cursorindexingignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+target/
+build/
+out/
+*.class
+*.jar
+*.war
+
+# Node
+node_modules/
+dist/
+.vite/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Logs / reports
+*.dumpstream
+hs_err_pid*.log
+surefire-reports/
+test-output/
+
+# Specstory (claude/cursor session metadata)
+.specstory/

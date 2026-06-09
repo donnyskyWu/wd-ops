@@ -1,0 +1,282 @@
+<template>
+  <div class="simcard-page">
+    <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="ICCID">
+        <el-input v-model="searchForm.keyword" placeholder="搜索ICCID" clearable />
+      </el-form-item>
+      <el-form-item label="运营商">
+        <DictSelect v-model="searchForm.operator" dict-type="dict_sim_operator" placeholder="全部" clearable />
+      </el-form-item>
+    </TableSearch>
+
+    <div class="action-bar">
+      <el-button type="primary" @click="handleAdd">
+        <el-icon><Plus /></el-icon>
+        新增手机卡
+      </el-button>
+      <span class="total-info">共 {{ total }} 条</span>
+    </div>
+
+    <el-table :data="list" v-loading="loading" stripe>
+      <el-table-column prop="iccidMasked" label="ICCID" width="160">
+        <template #default="{ row }">
+          <span class="masked-text">{{ row.iccidMasked || '--' }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="phoneNumberMasked" label="手机号" width="130">
+        <template #default="{ row }">
+          <span class="masked-text">{{ row.phoneNumberMasked || '--' }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="operator" label="运营商" width="100">
+        <template #default="{ row }">{{ OPERATOR_MAP[row.operator] || row.operator }}</template>
+      </el-table-column>
+      <el-table-column prop="packageName" label="套餐" width="120" />
+      <el-table-column prop="totalLinkedAccounts" label="关联账号" width="100" align="center">
+        <template #default="{ row }">
+          <el-button link type="primary" @click="handleLinked(row)">
+            {{ row.totalLinkedAccounts ?? 0 }}
+          </el-button>
+        </template>
+      </el-table-column>
+      <el-table-column prop="assignedUserName" label="归属人" width="100" />
+      <el-table-column prop="status" label="状态" width="80" align="center">
+        <template #default="{ row }">
+          <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" size="small">
+            {{ row.status === 'ENABLED' ? '在用' : '停用' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="200" fixed="right">
+        <template #default="{ row }">
+          <el-button link type="warning" @click="handleLinked(row)">跨平台查询</el-button>
+          <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+          <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <el-pagination
+      :current-page="searchForm.pageNo"
+      :page-size="searchForm.pageSize"
+      :total="total"
+      :page-sizes="[10, 20, 50]"
+      layout="total, sizes, prev, pager, next"
+      class="pagination"
+      @update:current-page="(val) => searchForm.pageNo = val"
+      @update:page-size="(val) => { searchForm.pageSize = val; handleSearch() }"
+      @current-change="handleSearch"
+      @size-change="handleSearch"
+    />
+
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
+      <el-form :model="formData" ref="formRef" :rules="formRules" label-width="100px">
+        <el-form-item label="手机号" prop="phoneNumber">
+          <el-input v-model="formData.phoneNumber" placeholder="11位手机号" maxlength="11" />
+        </el-form-item>
+        <el-form-item label="ICCID" prop="iccid">
+          <el-input v-model="formData.iccid" placeholder="ICCID编码" maxlength="30" />
+        </el-form-item>
+        <el-form-item label="运营商" prop="operator">
+          <DictSelect v-model="formData.operator" dict-type="dict_sim_operator" placeholder="请选择" />
+        </el-form-item>
+        <el-form-item label="主卡">
+          <DictSelect v-model="formData.isPrimary" dict-type="dict_yes_no" />
+        </el-form-item>
+        <el-form-item label="套餐">
+          <el-input v-model="formData.packageName" placeholder="套餐名称" />
+        </el-form-item>
+        <el-form-item label="归属人ID" prop="assignedUserId">
+          <el-input-number v-model="formData.assignedUserId" :min="1" />
+          <span class="form-tip">Dev 环境默认 seed 用户 1001</span>
+        </el-form-item>
+        <el-form-item label="状态">
+          <DictSelect v-model="formData.status" dict-type="dict_sim_status" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmit">保存</el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
+import TableSearch from '@/components/TableSearch.vue'
+import DictSelect from '@/components/DictSelect.vue'
+import {
+  createSimCard,
+  deleteSimCard,
+  getSimCardPage,
+  updateSimCard,
+  type SimCardVO,
+} from '@/api/simcard'
+
+const OPERATOR_MAP: Record<string, string> = {
+  MOBILE: '中国移动',
+  UNICOM: '中国联通',
+  TELECOM: '中国电信',
+}
+
+const loading = ref(false)
+const list = ref<SimCardVO[]>([])
+const total = ref(0)
+const router = useRouter()
+
+const searchForm = reactive({
+  pageNo: 1,
+  pageSize: 20,
+  keyword: undefined as string | undefined,
+  operator: undefined as string | undefined,
+})
+
+const loadList = async () => {
+  loading.value = true
+  try {
+    const res = await getSimCardPage({
+      iccid: searchForm.keyword,
+      operator: searchForm.operator,
+      pageNo: searchForm.pageNo,
+      pageSize: searchForm.pageSize,
+    })
+    list.value = res.list || []
+    total.value = res.total ?? 0
+  } catch {
+    list.value = []
+    total.value = 0
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleSearch = () => loadList()
+const handleReset = () => {
+  searchForm.keyword = undefined
+  searchForm.operator = undefined
+  searchForm.pageNo = 1
+  loadList()
+}
+
+const handleLinked = (row: SimCardVO) => {
+  router.push(`/simcard/${row.id}/linked`)
+}
+
+const dialogVisible = ref(false)
+const dialogTitle = ref('新增手机卡')
+const formRef = ref()
+
+const formData = reactive({
+  id: undefined as number | undefined,
+  phoneNumber: '',
+  iccid: '',
+  operator: '',
+  isPrimary: 'YES',
+  packageName: '',
+  assignedUserId: 1001,
+  status: 'ENABLED',
+})
+
+const formRules = {
+  phoneNumber: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的 11 位手机号', trigger: 'blur' },
+  ],
+  iccid: [{ required: true, message: '请输入 ICCID', trigger: 'blur' }],
+  operator: [{ required: true, message: '请选择运营商', trigger: 'change' }],
+  assignedUserId: [{ required: true, message: '请指定归属人', trigger: 'blur' }],
+}
+
+const resetForm = () => {
+  Object.assign(formData, {
+    id: undefined,
+    phoneNumber: '',
+    iccid: '',
+    operator: '',
+    isPrimary: 'YES',
+    packageName: '',
+    assignedUserId: 1001,
+    status: 'ENABLED',
+  })
+}
+
+const handleAdd = () => {
+  dialogTitle.value = '新增手机卡'
+  resetForm()
+  dialogVisible.value = true
+}
+
+const handleEdit = (row: SimCardVO) => {
+  dialogTitle.value = '编辑手机卡'
+  Object.assign(formData, {
+    id: row.id,
+    phoneNumber: '',
+    iccid: '',
+    operator: row.operator || '',
+    isPrimary: row.isPrimary || 'YES',
+    packageName: row.packageName || '',
+    assignedUserId: row.assignedUserId ?? 1001,
+    status: row.status || 'ENABLED',
+  })
+  dialogVisible.value = true
+}
+
+const handleSubmit = async () => {
+  if (!formRef.value) return
+  await formRef.value.validate(async (valid: boolean) => {
+    if (!valid) return
+    try {
+      const payload = {
+        operator: formData.operator,
+        isPrimary: formData.isPrimary,
+        packageName: formData.packageName || undefined,
+        assignedUserId: formData.assignedUserId,
+        status: formData.status,
+      }
+      if (formData.id) {
+        const updatePayload: Record<string, unknown> = { id: formData.id, ...payload }
+        if (formData.phoneNumber) updatePayload.phoneNumber = formData.phoneNumber
+        if (formData.iccid) updatePayload.iccid = formData.iccid
+        await updateSimCard(updatePayload as any)
+      } else {
+        await createSimCard({
+          ...payload,
+          phoneNumber: formData.phoneNumber,
+          iccid: formData.iccid,
+        })
+      }
+      ElMessage.success('保存成功')
+      dialogVisible.value = false
+      loadList()
+    } catch {
+      /* 拦截器已提示 */
+    }
+  })
+}
+
+const handleDelete = async (row: SimCardVO) => {
+  try {
+    await ElMessageBox.confirm('确认删除该手机卡？', '提示', { type: 'warning' })
+    await deleteSimCard(row.id)
+    ElMessage.success('删除成功')
+    loadList()
+  } catch {
+    /* 取消或错误 */
+  }
+}
+
+onMounted(() => loadList())
+</script>
+
+<style scoped>
+.simcard-page { padding: 20px; }
+.action-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.total-info { color: #909399; font-size: 14px; }
+.pagination { margin-top: 16px; display: flex; justify-content: flex-end; }
+.masked-text { font-family: monospace; }
+.form-tip { margin-left: 8px; color: #909399; font-size: 12px; }
+</style>
