@@ -117,4 +117,46 @@ class M11DictS01IT extends OaITBase {
         }
         assertThat(found).as("/dict/types 必须含 dict_author_type").isTrue();
     }
+
+    // S-R2-Phase2: 补 time_dimension 字典（spec: API-M1-运营管理 §4.2）
+    @Test
+    @DisplayName("S-R2-Phase2: dict_time_dimension 含 DAY / WEEK / MONTH")
+    void timeDimensionFullCoverage() throws Exception {
+        MvcResult result = mockMvc.perform(get("/admin-api/oa/dict/data")
+                        .param("type", "dict_time_dimension")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andReturn();
+        JsonNode list = objectMapper.readTree(result.getResponse().getContentAsString()).get("data").get("list");
+        java.util.Set<String> values = new java.util.HashSet<>();
+        for (JsonNode item : list) {
+            values.add(item.get("value").asText());
+        }
+        assertThat(values).contains("DAY", "WEEK", "MONTH");
+    }
+
+    // S-R6-TODO4：补个微 WECHAT_PERSONAL（spec: PRD-M1-运营管理 §4.3 TAB-001）
+    @Test
+    @DisplayName("S-R6-TODO4: dict_platform_type 含 6 老平台 + WECHAT_PERSONAL")
+    void platformTypeIncludesPersonalWechat() throws Exception {
+        MvcResult result = mockMvc.perform(get("/admin-api/oa/dict/data")
+                        .param("type", "dict_platform_type")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andReturn();
+        JsonNode list = objectMapper.readTree(result.getResponse().getContentAsString()).get("data").get("list");
+        java.util.Set<String> values = new java.util.HashSet<>();
+        for (JsonNode item : list) {
+            values.add(item.get("value").asText());
+        }
+        // 6 个老平台 + V30 新增个微
+        assertThat(values).contains(
+                "WECHAT_OFFICIAL", "DOUYIN", "WEWORK", "WECHAT_VIDEO", "KUAISHOU", "XIAOHONGSHU",
+                "WECHAT_PERSONAL"
+        );
+    }
 }

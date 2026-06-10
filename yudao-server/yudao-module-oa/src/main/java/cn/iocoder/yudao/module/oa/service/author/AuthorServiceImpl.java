@@ -14,11 +14,15 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.author.AuthorDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.operations.ContentDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.operations.FollowerDailyDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.operations.OpsAnchorRelDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.author.AuthorMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.OpsAnchorRelMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -27,7 +31,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +52,8 @@ public class AuthorServiceImpl implements AuthorService {
     private final AccountMapper accountMapper;
     private final SysUserMapper sysUserMapper;
     private final OpsAnchorRelMapper opsAnchorRelMapper;
+    private final FollowerDailyMapper followerDailyMapper;
+    private final ContentMapper contentMapper;
 
     @Override
     public PageResult<AuthorVO> list(Long ipGroupId, String keyword, Integer status, Integer pageNo, Integer pageSize) {
@@ -144,6 +152,56 @@ public class AuthorServiceImpl implements AuthorService {
                 }
             }
             vo.setIpGroupName(parentName == null ? group.getGroupName() : parentName + "/" + group.getGroupName());
+        }
+        // S-R4 修复：作者 KPI 真实填充（spec §4.2.3 §5 "作者数据自动从 oa_follower_daily / oa_content 聚合"）
+        // 限制：DB 中 oa_follower_daily / oa_content 仅按 accountId 关联，未直接关联 authorId。
+        // 因此按 spec §4.2.5 "一个作者可关联一个主推号" 走 primaryAccountId 聚合（1:1）。
+        // 若主推号为空：KPI 全 0、trend 空表（前端空状态）。
+        Long accountId = author.getPrimaryAccountId();
+        if (accountId != null) {
+            // 1) 粉丝数：取最新一日 oa_follower_daily
+            FollowerDailyDO latestFollower = followerDailyMapper.selectOne(
+                    new LambdaQueryWrapper<FollowerDailyDO>()
+                            .eq(FollowerDailyDO::getTenantId, author.getTenantId())
+                            .eq(FollowerDailyDO::getAccountId, accountId)
+                            .orderByDesc(FollowerDailyDO::getStatDate)
+                            .last("LIMIT 1")
+            );
+            long totalFollowers = latestFollower != null && latestFollower.getFollowerCount() != null
+                    ? latestFollower.getFollowerCount() : 0L;
+            vo.setFollowerCount(totalFollowers);
+
+            // 2) 30 日粉丝趋势（按 statDate 升序）
+            List<FollowerDailyDO> trend30 = followerDailyMapper.selectList(
+                    new LambdaQueryWrapper<FollowerDailyDO>()
+                            .eq(FollowerDailyDO::getTenantId, author.getTenantId())
+                            .eq(FollowerDailyDO::getAccountId, accountId)
+                            .ge(FollowerDailyDO::getStatDate, LocalDate.now().minusDays(30))
+                            .orderByAsc(FollowerDailyDO::getStatDate)
+            );
+            List<AuthorDashboardVO.FollowerTrendPoint> trendList = new ArrayList<>();
+            for (FollowerDailyDO d : trend30) {
+                trendList.add(new AuthorDashboardVO.FollowerTrendPoint(d.getStatDate(), d.getFollowerCount()));
+            }
+            vo.setFollowerTrend(trendList);
+
+            // 3) 内容数：oa_content 中 accountId 计数
+            long contentTotal = contentMapper.selectCount(
+                    new LambdaQueryWrapper<ContentDO>()
+                            .eq(ContentDO::getTenantId, author.getTenantId())
+                            .eq(ContentDO::getAccountId, accountId)
+            );
+            long contentHit = contentMapper.selectCount(
+                    new LambdaQueryWrapper<ContentDO>()
+                            .eq(ContentDO::getTenantId, author.getTenantId())
+                            .eq(ContentDO::getAccountId, accountId)
+                            .eq(ContentDO::getIsHit, 1)
+            );
+            vo.getContentStats().setTotalCount((int) contentTotal);
+            vo.getContentStats().setHitCount((int) contentHit);
+
+            // 4) 直播 / ROI：DB schema 无 author↔live / author↔order 关联字段，留 0 + 标注 "spec gap"
+            // TODO S-R5: 补 oa_live_session.authorId + oa_order_attribution.authorId 后再算
         }
         return vo;
     }

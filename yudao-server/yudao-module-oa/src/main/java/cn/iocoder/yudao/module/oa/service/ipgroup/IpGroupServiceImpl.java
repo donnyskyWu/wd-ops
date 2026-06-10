@@ -194,9 +194,33 @@ public class IpGroupServiceImpl implements IpGroupService {
     @AuditLog(module = "M1-ip-group", action = "update")
     public void update(IpGroupUpdateReq req) {
         IpGroupDO existing = requireGroup(req.getId());
+        // P-GATE-UNMOCK S-E: parentId 修改支持（spec 漏字段，已补 IpGroupUpdateReq.parentId）
+        // 仅小组可改 parentId；防自引用与子孙引用（防死循环）
+        boolean parentIdChanged = false;
+        if (req.getParentId() != null && !req.getParentId().equals(existing.getParentId())) {
+            if (!Objects.equals(existing.getGroupType(), 2)) {
+                throw new ServiceException(OaErrorCodes.IP_GROUP_PARENT_INVALID);
+            }
+            if (req.getParentId().equals(existing.getId())) {
+                throw new ServiceException(OaErrorCodes.IP_GROUP_PARENT_INVALID);
+            }
+            validateGroupTypeAndParent(existing.getTenantId(), 2, req.getParentId());
+            if (isDescendant(req.getParentId(), existing.getId())) {
+                throw new ServiceException(OaErrorCodes.IP_GROUP_PARENT_INVALID);
+            }
+            // 父组变化后重检 name 唯一性（新 parentId 范围下不允许重名）
+            if (StrUtil.isNotBlank(req.getGroupName())) {
+                assertNameUnique(existing.getTenantId(), req.getParentId(), req.getGroupName(), existing.getId());
+            }
+            existing.setParentId(req.getParentId());
+            parentIdChanged = true;
+        }
         if (StrUtil.isNotBlank(req.getGroupName())) {
             validateGroupName(req.getGroupName());
-            assertNameUnique(existing.getTenantId(), existing.getParentId(), req.getGroupName(), existing.getId());
+            // parentId 未变时校验当前 parentId 下唯一性；parentId 刚改过则跳过（已在上面校验）
+            if (!parentIdChanged) {
+                assertNameUnique(existing.getTenantId(), existing.getParentId(), req.getGroupName(), existing.getId());
+            }
             existing.setGroupName(req.getGroupName().trim());
         }
         Long leaderUserId = resolveLeaderUserId(req.getLeaderId(), req.getLeaderUserId());
@@ -608,6 +632,31 @@ public class IpGroupServiceImpl implements IpGroupService {
             return Set.of(entity.getId());
         }
         return children.stream().map(IpGroupDO::getId).collect(Collectors.toSet());
+    }
+
+    /**
+     * P-GATE-UNMOCK S-E: 判断 candidateId 是否为 ancestorId 的子孙节点（防 parentId 循环引用）。
+     * 沿 candidateId.parentId 链上溯最多 100 层（防止病态数据死循环）。
+     */
+    private boolean isDescendant(Long candidateId, Long ancestorId) {
+        if (candidateId == null || ancestorId == null) {
+            return false;
+        }
+        Long cursor = candidateId;
+        for (int i = 0; i < 100; i++) {
+            IpGroupDO node = ipGroupMapper.selectById(cursor);
+            if (node == null) {
+                return false;
+            }
+            if (Objects.equals(node.getParentId(), ancestorId)) {
+                return true;
+            }
+            if (node.getParentId() == null) {
+                return false;
+            }
+            cursor = node.getParentId();
+        }
+        return false;
     }
 
     private int sumCounts(Set<Long> ids, Map<Long, Integer> counts) {

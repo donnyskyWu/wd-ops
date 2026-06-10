@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.oa.controller.operations;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.operations.ContentImportVO;
+import cn.iocoder.yudao.module.oa.api.dto.operations.ContentTrendDetailVO;
 import cn.iocoder.yudao.module.oa.api.dto.operations.ImportContentDataReq;
 import cn.iocoder.yudao.module.oa.api.dto.operations.ImportReviewReq;
 import cn.iocoder.yudao.module.oa.api.dto.operations.InternalContentVO;
@@ -31,9 +32,14 @@ public class InternalContentController {
     public CommonResult<PageResult<InternalContentVO>> list(
             @RequestParam(required = false) String platformType,
             @RequestParam(required = false) String dataSource,
+            // S-R7-Bug4：补 4 个筛选项（之前 Spring 忽略）
+            @RequestParam(required = false) Long ipGroupId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer size) {
-        return CommonResult.success(internalContentService.list(platformType, dataSource, page, size));
+        return CommonResult.success(internalContentService.list(platformType, dataSource, ipGroupId, keyword, startDate, endDate, page, size));
     }
 
     @PostMapping("/import")
@@ -53,5 +59,11 @@ public class InternalContentController {
     public CommonResult<Boolean> reviewImport(@PathVariable Long id, @Valid @RequestBody ImportReviewReq req) {
         internalContentService.reviewImport(id, req);
         return CommonResult.success(true);
+    }
+
+    // P-GATE-UNMOCK-R S-R2-Fix-3：内容趋势详情（spec: API-M1-运营管理 §4.5）
+    @GetMapping("/{id}/trend")
+    public CommonResult<ContentTrendDetailVO> trend(@PathVariable Long id) {
+        return CommonResult.success(internalContentService.trend(id));
     }
 }
