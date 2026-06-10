@@ -21,13 +21,14 @@ test.describe('自定义查询测试 @regression', () => {
     await expect(select).toBeVisible()
   })
 
-  test('QUERY-003: 字段选择复选框', async ({ page }) => {
-    const checkboxes = page.locator('.el-checkbox')
-    await expect(checkboxes.first()).toBeVisible()
+  test('QUERY-003: 新建查询按钮', async ({ page }) => {
+    // L-α 走查后 CustomQuery 改为 SQL 编辑器模式，故按钮文案改为"新建查询"+"执行选中"
+    const newQueryButton = page.locator('button:has-text("新建查询")')
+    await expect(newQueryButton).toBeVisible()
   })
 
-  test('QUERY-004: 执行查询按钮', async ({ page }) => {
-    const executeButton = page.locator('button:has-text("执行查询")')
+  test('QUERY-004: 执行选中按钮', async ({ page }) => {
+    const executeButton = page.locator('button:has-text("执行选中")')
     await expect(executeButton).toBeVisible()
   })
 })

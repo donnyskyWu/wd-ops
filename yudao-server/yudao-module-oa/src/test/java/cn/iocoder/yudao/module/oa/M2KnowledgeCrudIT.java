@@ -155,7 +155,7 @@ class M2KnowledgeCrudIT extends OaITBase {
     }
 
     @Test
-    @DisplayName("P0-1: POST /oa/knowledge/like action 非法 → 1500")
+    @DisplayName("P0-1: POST /oa/knowledge/like action 非法 → 1400")
     void likeInvalidAction() throws Exception {
         Long id = createOne();
         Map<String, Object> body = new HashMap<>();
@@ -166,6 +166,6 @@ class M2KnowledgeCrudIT extends OaITBase {
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsString(body)))
-                .andExpect(jsonPath("$.code").value(1500));
+                .andExpect(jsonPath("$.code").value(1400));
     }
 }

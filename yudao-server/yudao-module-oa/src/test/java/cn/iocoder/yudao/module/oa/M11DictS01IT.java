@@ -69,13 +69,13 @@ class M11DictS01IT extends OaITBase {
     }
 
     @Test
-    @DisplayName("M11-S-01: 缺失 type 参数 → 1500")
-    void missingTypeReturns1500() throws Exception {
+    @DisplayName("M11-S-01: 缺失 type 参数 → 1400")
+    void missingTypeReturns1400() throws Exception {
         mockMvc.perform(get("/admin-api/oa/dict/data")
                         .header("Authorization", ADMIN)
                         .header("X-Tenant-Id", TENANT))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(1500));
+                .andExpect(jsonPath("$.code").value(1400));
     }
 
     @Test

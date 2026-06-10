@@ -61,7 +61,7 @@ class M4PhoneS04IT extends OaITBase {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(2006));
+                .andExpect(jsonPath("$.code").value(2021));
     }
 
     @Test

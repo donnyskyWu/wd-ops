@@ -56,7 +56,7 @@ class M3PerfRecordS03IT extends OaITBase {
                                   "periodEnd": "2026-05-31"
                                 }
                                 """))
-                .andExpect(jsonPath("$.code").value(2008));
+                .andExpect(jsonPath("$.code").value(2025));
     }
 
     @Test
@@ -108,7 +108,7 @@ class M3PerfRecordS03IT extends OaITBase {
                                   "manualAdjustment": %.2f
                                 }
                                 """.formatted(itemRecordId, score.doubleValue() * 0.5)))
-                .andExpect(jsonPath("$.code").value(2009));
+                .andExpect(jsonPath("$.code").value(2026));
 
         mockMvc.perform(post("/admin-api/oa/perf/record/confirm")
                         .header("Authorization", ADMIN)

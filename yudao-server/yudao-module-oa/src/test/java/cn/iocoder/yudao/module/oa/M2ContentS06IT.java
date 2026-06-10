@@ -91,7 +91,7 @@ class M2ContentS06IT extends OaITBase {
                                   "body": "正文"
                                 }
                                 """))
-                .andExpect(jsonPath("$.code").value(2006));
+                .andExpect(jsonPath("$.code").value(2022));
     }
 
     @Test

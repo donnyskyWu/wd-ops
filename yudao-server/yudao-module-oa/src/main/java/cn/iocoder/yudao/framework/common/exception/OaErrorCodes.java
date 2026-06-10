@@ -15,7 +15,7 @@ public final class OaErrorCodes {
     public static final ErrorCode TENANT_FORBIDDEN = ErrorCode.of(1504, "跨租户访问禁止");
 
     /** 业务唯一性冲突（手机号/账号 ID 等） */
-    public static final ErrorCode DUPLICATE_ENTITY = ErrorCode.of(2006, "数据已存在，不可重复");
+    public static final ErrorCode DUPLICATE_ENTITY = ErrorCode.of(2021, "数据已存在，不可重复");
 
     /** M1 IP 组 */
     public static final ErrorCode IP_GROUP_NAME_INVALID = ErrorCode.of(1001, "IP 组名称不合法（1-50 字符）");
@@ -45,15 +45,15 @@ public final class OaErrorCodes {
     public static final ErrorCode SOP_REVIEWER_ROLE_MISSING = ErrorCode.of(2003, "need_review=1 但 reviewer_role 缺失");
     public static final ErrorCode SOP_PREDECESSOR_NOT_DONE = ErrorCode.of(2004, "前置节点未完成");
     public static final ErrorCode SOP_TEMPLATE_NO_NODES = ErrorCode.of(2005, "模板无节点，无法启用");
-    public static final ErrorCode CONTENT_PLATFORM_MISMATCH = ErrorCode.of(2006, "账号平台类型与内容平台类型不匹配");
+    public static final ErrorCode CONTENT_PLATFORM_MISMATCH = ErrorCode.of(2022, "账号平台类型与内容平台类型不匹配");
     public static final ErrorCode REVIEWER_POSITION_MISMATCH = ErrorCode.of(2007, "审核人岗位不匹配");
-    public static final ErrorCode TASK_STATUS_INVALID = ErrorCode.of(2008, "任务状态不允许此操作");
-    public static final ErrorCode TASK_ASSIGNEE_MISMATCH = ErrorCode.of(2009, "非任务执行人，无权操作");
+    public static final ErrorCode TASK_STATUS_INVALID = ErrorCode.of(2023, "任务状态不允许此操作");
+    public static final ErrorCode TASK_ASSIGNEE_MISMATCH = ErrorCode.of(2024, "非任务执行人，无权操作");
     public static final ErrorCode CONTENT_STATUS_INVALID = ErrorCode.of(2010, "内容状态不允许此操作");
 
     /** M3 绩效核算 */
-    public static final ErrorCode PERF_DUPLICATE_PERIOD = ErrorCode.of(2008, "周期内已有考核记录");
-    public static final ErrorCode PERF_ADJUST_LIMIT = ErrorCode.of(2009, "人工调整幅度超过 ±20%");
+    public static final ErrorCode PERF_DUPLICATE_PERIOD = ErrorCode.of(2025, "周期内已有考核记录");
+    public static final ErrorCode PERF_ADJUST_LIMIT = ErrorCode.of(2026, "人工调整幅度超过 ±20%");
     public static final ErrorCode PERF_WEIGHT_NOT_100 = ErrorCode.of(3001, "权重合计不等于 100%");
     public static final ErrorCode PERF_RANGE_GAP = ErrorCode.of(2011, "评分区间存在 gap");
     public static final ErrorCode PERF_RANGE_OVERLAP = ErrorCode.of(2012, "评分区间重叠");
@@ -73,7 +73,7 @@ public final class OaErrorCodes {
 
     /** M11 字典 */
     public static final ErrorCode DICT_TYPE_NOT_FOUND = ErrorCode.of(2020, "字典 type 不存在");
-    public static final ErrorCode BAD_REQUEST = ErrorCode.of(1500, "请求参数不合法");
+    public static final ErrorCode BAD_REQUEST = ErrorCode.of(1400, "请求参数不合法");
 
     public static final ErrorCode UNAUTHORIZED = ErrorCode.of(401, "未登录或 Token 无效");
     public static final ErrorCode FORBIDDEN = ErrorCode.of(403, "无权限访问");

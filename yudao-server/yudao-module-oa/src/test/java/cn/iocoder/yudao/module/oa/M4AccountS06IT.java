@@ -83,7 +83,7 @@ class M4AccountS06IT extends OaITBase {
                                   "status": "NORMAL"
                                 }
                                 """, assets.companyId(), assets.realnameId())))
-                .andExpect(jsonPath("$.code").value(2006));
+                .andExpect(jsonPath("$.code").value(2021));
     }
 
     @Test

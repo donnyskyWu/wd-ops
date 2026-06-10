@@ -76,7 +76,7 @@ class M4SimCardS05IT extends OaITBase {
                                   "status": "ENABLED"
                                 }
                                 """))
-                .andExpect(jsonPath("$.code").value(2006));
+                .andExpect(jsonPath("$.code").value(2021));
     }
 
     @Test

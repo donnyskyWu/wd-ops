@@ -62,7 +62,7 @@ class M9UserRoleS01IT extends OaITBase {
                                   "roleIds": [%d]
                                 }
                                 """, roleId)))
-                .andExpect(jsonPath("$.code").value(2006));
+                .andExpect(jsonPath("$.code").value(2021));
     }
 
     @Test
