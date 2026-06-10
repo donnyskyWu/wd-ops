@@ -257,7 +257,8 @@
 
 | 控件 ID | 类型 | 文案 | 状态 | 关联 FR/AC |
 |---------|------|------|------|------------|
-| TAB-001 | Tab | 公众号/视频号/抖音/快手/小红书/服务号/企微/个微/全部 | active 时下划线 | FR-M1-003 |
+| TAB-001 | Tab | 公众号/视频号/抖音/快手/小红书/企微/**个微**/全部 | active 时下划线 | FR-M1-003 |
+> 注：服务号不是平台（属于 dict_account_type）。**个微**：`dict_platform_type.个微=WECHAT_PERSONAL`（S-R6 同步 V30 迁移补入）|
 | F-IP | Select | IP 组筛选 | default | FR-M1-003 |
 | F-KEY | Input | 账号名/ID 模糊 | default | FR-M1-003 |
 | F-STATUS | Select | 账号状态 | default | FR-M1-003 |
@@ -297,7 +298,7 @@
 
 **AC-M1-004-2**（导出）
 - When 点击"导出"
-- Then 异步下载 `follower_analysis_{yyyyMMddHHmmss}.xlsx`
+- Then 异步下载 `follower_analysis_{yyyyMMddHHmmss}.csv`（**S-R6 同步：原 spec 写 xlsx，因 yudao-module-oa 未引入 POI 依赖，暂以 UTF-8 BOM CSV 输出兼容 Excel；后续 M10/slice 引入 easyexcel 后升级为 xlsx**）
 
 ---
 
@@ -374,16 +375,18 @@
 
 | 页面 ID | 名称 | 路由 | 关联 FR |
 |---------|------|------|---------|
-| P-M1-001 | IP 组管理（树形） | `/ops/ip-group` | FR-M1-001 |
-| P-M1-002 | 作者管理 | `/ops/author` | FR-M1-002 |
-| P-M1-003 | 账号分析 | `/ops/account-analysis` | FR-M1-003 |
-| P-M1-004 | 粉丝分析 | `/ops/follower-analysis` | FR-M1-004 |
-| P-M1-005 | 作品分析 | `/ops/content-analysis` | FR-M1-005 |
-| P-M1-006 | 内部内容分析 | `/ops/internal-content` | FR-M1-006 |
-| P-M1-007 | 人效盘点 | `/ops/productivity` | FR-M1-007 |
+| P-M1-001 | IP 组管理（树形） | `/ip-group` | FR-M1-001 |
+| P-M1-002 | 作者管理 | `/author` | FR-M1-002 |
+| P-M1-003 | 账号分析 | `/account-analysis` | FR-M1-003 |
+| P-M1-004 | 粉丝分析 | `/fans-analysis` | FR-M1-004 |
+| P-M1-005 | 作品分析 | `/works-analysis` | FR-M1-005 |
+| P-M1-006 | 内部内容分析 | `/internal-content` | FR-M1-006 |
+| P-M1-007 | 人效盘点 | `/efficiency` | FR-M1-007 |
 | D-M1-001 | IP 组新建/编辑弹窗 | - | FR-M1-001 |
 | D-M1-002 | 作者新建/编辑弹窗 | - | FR-M1-002 |
 | D-M1-003 | 补录弹窗 | - | FR-M1-006 |
+
+> **S-R4 注**：上述路由已与代码 router/index.ts 对齐（之前 S-R3 留 TODO）。M1 模块全部页面均无 `/ops/` 前缀。
 
 ### 5.2 关键状态（统一约定）
 

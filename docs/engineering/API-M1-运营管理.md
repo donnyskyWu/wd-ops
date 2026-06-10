@@ -118,7 +118,27 @@
 
 修改 IP 组基本信息（不修改成员/账号/主播关系）。
 
-**请求体** `IpGroupUpdateReq`：与 create 类似，含 `id` 字段
+**请求体** `IpGroupUpdateReq`：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `id` | Long | ✅ | IP 组 ID |
+| `groupName` | String | ❌ | 组名（不传则不改） |
+| `parentId` | Long | ❌ | 上级组 ID（**仅小组可改**，大组必须为 null，不能是自己/子孙/非大组/跨租户） |
+| `leaderId` | Long | ❌ | 组长 ID |
+| `leaderUserId` | Long | ❌ | 组长用户 ID（与 `leaderId` 等价，优先用此字段） |
+| `sortOrder` | Integer | ❌ | 排序 |
+| `status` | Integer | ❌ | 状态（0/1） |
+| `remark` | String | ❌ | 备注 |
+
+**校验**：
+- 仅 `groupType=2`（小组）可改 `parentId`
+- `parentId` 不能等于自己
+- `parentId` 不能是该节点的子孙（防死循环）
+- `parentId` 必须存在 / 同租户 / `groupType=1`（大组）
+- `groupName` 在新 `parentId` 范围内不重复（1002）
+
+> P-GATE-UNMOCK S-E (2026-06-09)：原 spec 漏 `parentId` 字段，导致编辑时改上级组不生效。已补字段 + 校验 + 5 个 IT。
 
 **响应**：`Boolean`
 
