@@ -49,6 +49,7 @@ import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
 import { getAccountStatusTrend, getAccountStatusSummary, getAccountStatusLog } from '@/api/report'
+import { unwrapApiData, pickListPage } from '@/utils'
 
 const loading = ref(false)
 const filter = reactive({ accountId: undefined as number | undefined, dateRange: [] as string[] })
@@ -81,13 +82,12 @@ const loadData = async () => {
       getAccountStatusSummary({ accountId: filter.accountId, startDate: q.startDate, endDate: q.endDate }),
       getAccountStatusLog(q),
     ])
-    const t = (trendRes as any)?.data ?? trendRes
+    const t = unwrapApiData(trendRes)
     drawTrend(Array.isArray(t) ? t : [])
-    const s = (sumRes as any)?.data ?? sumRes
-    Object.assign(summary, s)
-    const l = (logRes as any)?.data ?? logRes
-    logList.value = l?.list ?? l?.records ?? []
-    total.value = l?.total ?? logList.value.length
+    Object.assign(summary, unwrapApiData(sumRes))
+    const l = pickListPage(unwrapApiData(logRes))
+    logList.value = l.list
+    total.value = l.total
   } catch (e) { console.error(e); logList.value = [] }
   finally { loading.value = false }
 }

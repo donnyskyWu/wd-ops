@@ -41,6 +41,7 @@ import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { getLiveDurationList, getLiveDurationTrend } from '@/api/report'
+import { unwrapApiData, pickListPage } from '@/utils'
 
 const loading = ref(false)
 const filter = reactive({ ipGroupId: undefined as number | undefined, dateRange: [] as string[] })
@@ -66,10 +67,10 @@ const loadData = async () => {
       getLiveDurationList(q),
       getLiveDurationTrend({ ipGroupId: filter.ipGroupId, startDate: q.startDate, endDate: q.endDate }),
     ])
-    const l = (listRes as any)?.data ?? listRes
-    list.value = l?.list ?? l?.records ?? []
-    total.value = l?.total ?? list.value.length
-    const t = (trendRes as any)?.data ?? trendRes
+    const l = pickListPage(unwrapApiData(listRes))
+    list.value = l.list
+    total.value = l.total
+    const t = unwrapApiData(trendRes)
     drawTrend(Array.isArray(t) ? t : [])
   } catch (e) {
     console.error(e); list.value = []

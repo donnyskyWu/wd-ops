@@ -64,7 +64,7 @@ import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { getRoiAnalysis, getRoiTrend, getRoiBreakdown, exportRoi } from '@/api/finance'
-import { exportToExcel } from '@/utils'
+import { exportToExcel, unwrapApiData } from '@/utils'
 
 const loading = ref(false)
 const queryForm = reactive({
@@ -98,10 +98,10 @@ const loadData = async () => {
       getRoiTrend({ startDate: q.startDate, endDate: q.endDate, ipGroupId: q.ipGroupId }),
       getRoiBreakdown({ startDate: q.startDate, endDate: q.endDate, ipGroupId: q.ipGroupId }),
     ])
-    analysis.value = (aRes as any)?.data ?? aRes
-    const t = (tRes as any)?.data ?? tRes
+    analysis.value = unwrapApiData(aRes)
+    const t = unwrapApiData(tRes) as { points?: unknown[]; trend?: unknown[] }
     drawTrend(t?.points ?? t?.trend ?? [])
-    const b = (bRes as any)?.data ?? bRes
+    const b = unwrapApiData(bRes) as { rows?: unknown[]; items?: unknown[] }
     breakdownRows.value = b?.rows ?? b?.items ?? []
   } catch (e) {
     console.error(e)

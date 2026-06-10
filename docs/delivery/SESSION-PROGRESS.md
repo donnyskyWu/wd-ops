@@ -617,7 +617,33 @@ L-γ 走查完成。
 
 #### Wave-2 待办
 - Mike：S-R27-Mike（B-8）
-- Donny：S-R21-Donny（效率页 KPI UI）→ S-R25-Donny（P-3/P-4）
+- Donny：~~S-R21-Donny~~ ✅ · ~~S-R25-Donny~~ ✅ → **P-2** PW 全量
+
+### 2026-06-10 · S-R25-Donny 前端工程债（P-3 + P-4）
+
+#### 完成
+- ✅ `utils/index.ts`：新增 `unwrapApiData` / `pickListPage` 统一 API 响应解包
+- ✅ L-α 报表 5 页 + `FinancialAnalysis.vue`：移除 `(res as any)?.data ?? res` 模式
+- ✅ `Efficiency.vue`：`ProductivityReviewQuery` 强类型；`sop/index.vue`：`SopTemplateQuery` 去 `as any`
+- ✅ `PerfRecordDetail` / `PerfUserTrend`：标签映射改 `Record<>` 常量
+- ✅ Playwright `p2-modules.spec.ts`：SYSTEM-001~003 去 skip，对齐 UserManage（新增用户 / 搜索分页）**3/3 绿**
+
+#### 验证
+- `npx playwright test tests/p2-modules.spec.ts --grep "系统管理"` → 3 passed
+
+### 2026-06-10 · S-R21-Donny 效率页 KPI UI 闭环（D-1 前端）
+
+#### 完成
+- ✅ `Efficiency.vue`：移除 3 处 ADR-008 占位文案；内容/视频/互动卡片展示 `contentOutput`/`avgRead`/`avgPlay`/`hitCount` 真值
+- ✅ 零值时显示「该周期暂无…」而非 schema drift 提示
+- ✅ 短视频互动卡：修正误用 `avgRead` 当「总点赞」→ 改为平均阅读 + 爆款数
+- ✅ 导出降级：`exportToExcel` 参数修正 + 补 4 列内容 KPI
+- ✅ `types/productivity.ts` 注释对齐 ADR-008 方案 A（author_id 聚合）
+- ✅ D-1 / B-3 全闭环：MASTER §15 · TASK-PROGRESS 三张表已更新
+
+#### 验证
+- 6 字段对照：api `getProductivityList` ↔ `/oa/productivity-review/list` ↔ VO 字段一致
+- Playwright meta P2-#19（functional ref）未破坏
 
 ### 2026-06-10 · S-R24 B-7 exportToExcel 5 页接通
 

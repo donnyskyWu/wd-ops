@@ -71,7 +71,7 @@
 |----|------|------|------|------|
 | L1 | ~~导出格式 xlsx（spec）vs csv（实现）~~ | ✅ 已对齐 | S-R19 自查：`excel-export.ts` 用 XLSX 库生成 .xlsx，PRD 未明确格式 | 原 P1 backlog 误判，已 close |
 | L2 | ~~30+ 文件 enum literal 清理~~ | ✅ 设计内 | S-R19 自查：`enum-alias.ts` 工具已规范高风险面，剩余为类型声明/mock 历史值（合理） | 永久方案非 P1 backlog |
-| L3 | **ADR-008 oa_content 加 author_id** | 🟡 后端 ✅ / 前端待闭环 | S-R21-Mike 已实施方案 A | Donny：S-R21-Donny 效率页去占位 + 真 KPI |
+| L3 | ~~ADR-008 oa_content 加 author_id~~ | ✅ 全闭环 | S-R21-Mike + S-R21-Donny 方案 A | author_id 聚合 · 效率页真 KPI |
 | L4 | ~~SOP `pageNum` 不匹配~~ | ✅ 已修 | S-R11 走查已修（pageNo→pageNum） | OVERVIEW 老状态，已 close |
 | L5 | seed V18-V23 CJK 截断（PowerShell 终端显示） | 0（DB 存的是真中文） | 浏览器显示正常 | 仅显示问题 |
 | L6 | **4 个 error code 冲突修复** | ✅ 已修 | S-R19 自查发现：1500/2006/2008/2009 重复 | 修 OaErrorCodes + 11 IT，250/250 全绿 |

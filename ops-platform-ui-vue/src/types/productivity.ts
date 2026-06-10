@@ -5,7 +5,7 @@
  *   userId, userName, position, ipGroupId, ipGroupName,
  *   taskTotal, taskCompleted, taskInProgress, taskOverdue, completionRate,
  *   costAmount, revenue, roi, orderCount,
- *   contentOutput, avgRead, avgPlay, hitCount
+ *   contentOutput, avgRead, avgPlay, hitCount（author_id 聚合，S-R21-Mike）
  */
 
 export type TimeDimension = 'WEEK' | 'MONTH'
@@ -30,7 +30,7 @@ export interface ProductivityReviewVO {
   roi: number
   orderCount: number
 
-  // 内容 KPI（ContentDO 无 user 关联 → 全 0，详见 ADR-008）
+  // 内容 KPI（S-R21 / ADR-008 方案 A：按 oa_content.author_id 聚合）
   contentOutput: number
   avgRead: number
   avgPlay: number

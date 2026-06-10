@@ -3,6 +3,20 @@
  */
 import { ElMessage } from 'element-plus'
 
+/** 兼容 axios 直返与 { data } 包装两种响应形态 */
+export function unwrapApiData<T>(response: T | { data?: T }): T {
+  if (response !== null && typeof response === 'object' && 'data' in response) {
+    return (response as { data?: T }).data as T
+  }
+  return response as T
+}
+
+/** 从分页响应中提取 list/records 与 total */
+export function pickListPage<T>(page: { list?: T[]; records?: T[]; total?: number } | null | undefined) {
+  const list = page?.list ?? page?.records ?? []
+  return { list, total: page?.total ?? list.length }
+}
+
 /**
  * 导出表格数据为Excel文件（使用Blob）
  * @param data 表格数据数组

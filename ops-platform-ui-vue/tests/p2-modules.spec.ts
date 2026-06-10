@@ -114,29 +114,24 @@ test.describe('配置管理测试 @regression', () => {
 })
 
 test.describe('系统管理测试 @regression', () => {
-  test.skip('SYSTEM-001: 用户管理列表（页面路由待修复）', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
     await page.goto('/system-user')
     await page.waitForLoadState('networkidle')
-    const table = page.locator('.el-table')
-    await expect(table).toBeVisible()
   })
 
-  test.skip('SYSTEM-002: 新增按钮（页面路由待修复）', async ({ page }) => {
-    await page.goto('/system-user')
-    await page.waitForLoadState('networkidle')
-    const addButton = page.locator('button:has-text("新增")').first()
+  test('SYSTEM-001: 用户管理列表', async ({ page }) => {
+    await expect(page.locator('.user-manage')).toBeVisible()
+    await expect(page.locator('.user-manage .el-table')).toBeVisible()
+  })
+
+  test('SYSTEM-002: 新增用户按钮', async ({ page }) => {
+    const addButton = page.locator('.user-manage button:has-text("新增用户")')
     await expect(addButton).toBeVisible()
   })
 
-  test.skip('SYSTEM-003: Tab切换（页面路由待修复）', async ({ page }) => {
-    await page.goto('/system-user')
-    await page.waitForLoadState('networkidle')
-    const tabs = page.locator('.el-tabs__item')
-    if (await tabs.count() > 0) {
-      const roleTab = page.locator('.el-tabs__item:has-text("角色管理")')
-      await roleTab.click()
-      await page.waitForTimeout(300)
-    }
-    await expect(page.locator('.el-table')).toBeVisible()
+  test('SYSTEM-003: 搜索与分页', async ({ page }) => {
+    await expect(page.locator('.user-manage .el-form')).toBeVisible()
+    await expect(page.locator('.user-manage button:has-text("查询")')).toBeVisible()
+    await expect(page.locator('.user-manage .el-pagination')).toBeVisible()
   })
 })
