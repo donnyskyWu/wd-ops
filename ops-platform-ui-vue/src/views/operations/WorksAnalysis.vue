@@ -12,29 +12,27 @@
       </div>
     </div>
 
-    <!-- 筛选区 + 导出按钮 -->
-    <div class="search-row">
-      <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset" class="search-form">
-        <el-form-item label="IP组">
-          <IpGroupTreeSelect v-model="searchForm.ipGroupId" />
-        </el-form-item>
-        <el-form-item label="平台">
-          <DictSelect v-model="searchForm.platformType" dict-type="dict_platform_type" placeholder="全部" clearable />
-        </el-form-item>
-        <el-form-item label="内容类型">
-          <DictSelect v-model="searchForm.contentType" dict-type="dict_content_type" placeholder="全部" clearable />
-        </el-form-item>
-        <el-form-item label="关键词">
-          <el-input v-model="searchForm.keyword" placeholder="作品标题" clearable maxlength="50" />
-        </el-form-item>
-      </TableSearch>
-      <div class="export-btn">
+    <!-- 筛选区（导出与搜索同行） -->
+    <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="IP组">
+        <IpGroupTreeSelect v-model="searchForm.ipGroupId" />
+      </el-form-item>
+      <el-form-item label="平台">
+        <DictSelect v-model="searchForm.platformType" dict-type="dict_platform_type" placeholder="全部" clearable />
+      </el-form-item>
+      <el-form-item label="内容类型">
+        <DictSelect v-model="searchForm.contentType" dict-type="dict_content_type" placeholder="全部" clearable />
+      </el-form-item>
+      <el-form-item label="关键词">
+        <el-input v-model="searchForm.keyword" placeholder="作品标题" clearable maxlength="50" />
+      </el-form-item>
+      <el-form-item label=" ">
         <el-button type="success" @click="handleExport">
           <el-icon><Download /></el-icon>
           导出
         </el-button>
-      </div>
-    </div>
+      </el-form-item>
+    </TableSearch>
 
     <!-- 内容区 -->
     <ContentWrap>
@@ -79,8 +77,25 @@
     </ContentWrap>
 
     <!-- 详情对话框 -->
-    <el-dialog v-model="detailDialogVisible" :title="`作品详情 - ${currentContent.title}`" width="900px">
-      <div ref="trendChartRef" style="height: 350px;"></div>
+    <el-dialog v-model="detailDialogVisible" :title="`作品详情 - ${currentContent.title || ''}`" width="900px">
+      <el-descriptions :column="2" border size="small" style="margin-bottom: 16px;">
+        <el-descriptions-item label="标题" :span="2">{{ currentContent.title || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="账号">{{ currentContent.accountName || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="IP组">{{ currentContent.ipGroupName || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="类型">{{ currentContent.contentType || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="发布时间">{{ currentContent.publishTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="阅读量">{{ formatNumber(currentContent.readCount) }}</el-descriptions-item>
+        <el-descriptions-item label="点赞">{{ formatNumber(currentContent.likeCount) }}</el-descriptions-item>
+        <el-descriptions-item label="评论">{{ formatNumber(currentContent.commentCount) }}</el-descriptions-item>
+        <el-descriptions-item label="转发">{{ formatNumber(currentContent.forwardCount) }}</el-descriptions-item>
+        <el-descriptions-item label="爆款">{{ currentContent.isHit ? '是' : '否' }}</el-descriptions-item>
+        <el-descriptions-item label="数据来源">{{ currentContent.dataSource || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="内容摘要" :span="2">
+          {{ currentContent.summary || currentContent.description || '（正文未单独采集，展示标题与互动指标）' }}
+        </el-descriptions-item>
+      </el-descriptions>
+      <el-divider content-position="left">互动趋势</el-divider>
+      <div ref="trendChartRef" style="height: 320px;"></div>
     </el-dialog>
   </div>
 </template>
@@ -348,20 +363,6 @@ onMounted(() => {
     }
   }
 
-  .search-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    margin-bottom: 16px;
-
-    .search-form {
-      flex: 1;
-    }
-
-    .export-btn {
-      padding-top: 6px;
-    }
-  }
 }
 
 .viral-tag {

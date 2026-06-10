@@ -48,7 +48,7 @@
 
 ## 1. 全局进度总表
 
-> **最后更新**：2026-06-10 · **当前阶段**：S7 ✅ + 23 走查/补丁切片 · **协作**：Mike + Donny 双人并行（见 [TASK-PROGRESS-MASTER](./TASK-PROGRESS-MASTER.md)）· **进入「上线前补强 + 持续走查 + Phase 2 决策」三轨并行阶段**
+> **最后更新**：2026-06-10 · **当前阶段**：S7 ✅ + 走查/补丁切片 · **执行**：单人全栈（见 [TASK-PROGRESS-MASTER](./TASK-PROGRESS-MASTER.md)）· **进入「上线前补强 + 持续走查 + Phase 2 决策」阶段**
 
 | Gate | 阶段 | 周次 | 模块 / 横切 | 开发 | 测试 | Seed | Gate | 通过日期 | 负责人 | 备注 |
 |------|------|------|------------|------|------|------|------|---------|--------|------|
@@ -559,14 +559,14 @@ curl http://localhost:8080/oa/...
 | B-5 | L5 seed V18-V23 CJK 终端显示 | 终端 | ✅ 仅显示问题 |
 | B-6 | B19 M8/M9 路径 prefix 一致性 | M8/M9 | ✅ S-R23：`/oa/system/*` 规范 + 旧别名兼容 |
 | B-7 | 5 个 L-α/β/γ 页面补 exportToExcel | 前端 | ✅ S-R24：Efficiency / content / AccountCost / Financial / Metric + Fans 降级 |
-| B-8 | L-β 5 个详情页 follow-up：assignee/userOwner 字段补全 | M3/M4 | 🟡 S-R27a M3 ✅ · S-R27b/c + Donny 前端待办 |
+| B-8 | L-β 5 个详情页 follow-up：assignee/userOwner 字段补全 | M3/M4 | 🟡 S-R27·27a ✅ · 27b~27d 全栈待办 |
 
 ### 15.3 P2 体验/工程债
 
 | ID | 任务 | 现状 |
 |----|------|------|
 | P-1 | 25+ mock 文件清理（types/*.ts enum literal） | 不强制 |
-| P-2 | 前端 console 0 error 重测（Playwright 全量） | E2E 已 180/183 |
+| P-2 | 前端 console 0 error 重测（Playwright 全量） | ✅ 183/183（DASH-006 修后全绿） |
 | P-3 | `as any` 临时类型映射清理 | ✅ S-R25：unwrapApiData + 11 文件首批 |
 | P-4 | Playwright 3 个 skip 测试补全 | ✅ S-R25：SYSTEM-001~003 3/3 绿 |
 
@@ -588,87 +588,50 @@ curl http://localhost:8080/oa/...
 
 ---
 
-## 16. 多成员分工协作（S-R20 沉淀 · 2026-06-10 升级为 Mike + Donny）
+## 16. 执行模式（2026-06-10 起：单人全栈）
 
-> **任务进度 SSOT**：[TASK-PROGRESS-MASTER.md](./TASK-PROGRESS-MASTER.md) · [Mike](./TASK-PROGRESS-MIKE.md) · [Donny](./TASK-PROGRESS-DONNY.md)
+> **任务 SSOT**：[TASK-PROGRESS-MASTER.md](./TASK-PROGRESS-MASTER.md)（唯一维护）  
+> 原双人个人表已归档：[Mike](./TASK-PROGRESS-MIKE.md) · [Donny](./TASK-PROGRESS-DONNY.md)（只读）
 
-### 16.1 当前双人协作
+### 16.1 模式变更
 
-| 项 | 配置 |
-|----|------|
-| **成员** | **Mike**（后端 TL + 实现）+ **Donny**（产品/架构/前端验收）|
-| **并行** | 2 个 slice，**文件域不重叠**（见个人任务表「文件锁」）|
-| **工期** | Wave-2~4 约 **7 个工作日** → S-R26 集成 → 上线决策 |
-| **同步** | 每日 stand-up（Donny 主持）+ 每 slice 完成更新三张任务表 + SESSION-PROGRESS |
+| 项 | 原（废止） | 现（生效） |
+|----|-----------|-----------|
+| 人员 | Mike 后端 + Donny 前端，文件域互锁 | **一人**前后端同 slice 交付 |
+| 并行 | 2 slice 并行，防冲突 | **顺序**执行，无 pull 合并负担 |
+| 命名 | `S-R{N}-Mike` / `S-R{N}-Donny` | `S-R{N}` + 子项编号（如 S-R27·27b） |
+| 同步 | 三张表 + stand-up | **一张表** + SESSION-PROGRESS |
 
-### 16.2 角色与文件域
+### 16.2 单人 slice 流程
 
-| 角色 | 成员 | 主责 | 文件域 |
-|------|------|------|--------|
-| 后端 TL | **Mike** | Mapper · Service · Controller · IT · Flyway | `yudao-server/**` |
-| 产品/架构 | **Donny** | PRD · OQ · ADR 决策 · Gate 签字 | `docs/product/**` · `docs/adr/**` |
-| 前端验收 | **Donny** | api · types · vue · Playwright | `ops-platform-ui-vue/**` |
+1. **一片一会话** — 不跨 slice
+2. **全栈闭环** — 后端 VO/IT → 前端 types/vue/PW → 文档
+3. **自测** — `mvn test`（相关 IT）+ Playwright 子集
+4. **提交** — `git pull` → commit `S-R{N}: 简述` → push
 
-### 16.3 切片分配原则（OVERVIEW §4.2）
+### 16.3 当前 Slice 队列
 
-1. **每人 1 个 slice，互不重叠文件范围**
-2. **slice 标题 = S-R{N}-{人名缩写}**（如 `S-R21-Mike`）
-3. **文件范围在 todo list 第一项写明**
-4. **改后端必跑 mvn test 全套**（`mvn test -Dtest='Mike*IT'`）
-5. **改前端必浏览器复测**（agent-browser + Playwright）
-6. **完成写报告 + 更新 SESSION-PROGRESS**
+| Slice | 范围 | 状态 |
+|-------|------|------|
+| S-R21~R25 | D-1 / D-7 / B-6 / B-7 / P-3 / P-4 | ✅ |
+| **S-R27** | B-8 详情页（27a 后端 ✅ · 27b~27d 全栈） | 🔵 |
+| P-2 | Playwright 全量 0 error | ⬜ |
+| S-R26 | 集成回归 + Gate | ⬜ |
+| D-2~D-6 | M9 Phase 2 决策 | ⬜ |
 
-### 16.4 Slice 分配（Wave-1 ✅ · Wave-2 起）
+### 16.4 Wave 顺序（单人）
 
-| Slice | 负责人 | 范围 | 状态 |
-|-------|--------|------|------|
-| S-R21-Mike | Mike | D-1 author_id 后端 | ✅ |
-| S-R22-Mike | Mike | D-7 Content delete | ✅ |
-| S-R23-Mike | Mike | B-6 M9 路径 | ✅ |
-| S-R24-Mike | Mike | B-7 exportToExcel | ✅ |
-| S-R21-Donny | Donny | D-1 效率页 KPI UI 闭环 | ✅ |
-| S-R25-Donny | Donny | P-3 + P-4 前端工程债 | ✅ |
-| S-R27-Mike | Mike | B-8 详情页字段 | ⬜ |
-| S-R26 | Mike+Donny | 集成回归 + 上线决策 | ⬜ |
+| Wave | 内容 | 状态 |
+|------|------|------|
+| Wave-1 | S-R21~R24 补强 | ✅ |
+| Wave-2 | S-R25 工程债 | ✅ |
+| **Wave-3** | S-R27 + P-2 | 🔵 |
+| Wave-4 | S-R26 + 上线决策 | ⬜ |
 
-### 16.5 Wave 并行方案（当前）
+### 16.5 不变量（仍适用）
 
-| Wave | Mike | Donny | 同步点 |
-|------|------|-------|--------|
-| **Wave-1** ✅ | S-R21~R24 | S-R20 规划 | 已合入待 push |
-| **Wave-2** 🔵 | S-R27 B-8 | ~~S-R21-Donny~~ ✅ · ~~S-R25~~ ✅ → P-2 | 每日 pull |
-| **Wave-3** | mvn verify | P-2 PW 全量 | SESSION-PROGRESS |
-| **Wave-4** | S-R26 后端 | S-R26 前端 + Gate | 上线决策 |
-
-**同步点**：每日 stand-up（Donny 主持）+ 5 阶段结束点合并回归
-
-### 16.6 Mike 5 大铁律 quick start
-
-```
-D1 读 PHASE-DEV-METHOD.md + walkthrough-methodology.mdc（1 小时）
-D1 读 SESSION-PROGRESS.md（15 分钟）
-D2 接手 S-R21-Mike（看分配文档 + S-R21 计划）
-D2-3 按 5 段式 prompt 写：DTO → Mapper(@Select/@Update) → Service → Controller → IT
-D4 mvn test -Dtest=Mike*IT
-D5 浏览器 dev 复测（iwr / agent-browser）
-D5 写 S-R21-Mike-报告 + 同步 SESSION-PROGRESS + 通知 CA
-```
-
-### 16.7 冲突解决（OVERVIEW §4.3）
-
-| 情况 | 处理 |
-|------|------|
-| 2 人改同一文件 | 后改的合并，先改的先 commit + 写明 API 变化 |
-| 后端 API 字段新增 | 必同步：VO + DTO + Mapper + IT + types + 组件 + ADR |
-| 前端 enum 改名 | 必同步：types + 5+ 处使用 + enum-alias.ts + ADR |
-| schema drift | **写 ADR** + 走"工作流 6"（OVERVIEW §3.2）|
-
-### 16.8 不变量
-
-- **5 段式 Prompt 模板**（AI-IMPL-GUIDE.md）
-- **6 字段对照表**（S-R15 升级版）
-- **自查 7 条**（S-R10 沉淀）
-- **PowerShell 编码坑**（S-R19 §3.4 教训）—— 批量替换走 Python
-- **MASTER-EXECUTION-TRACKER.md §1.1** 必更新（19→N 条）
-- **SESSION-PROGRESS.md** 必同步
-- **OVERVIEW §4.5 文档同步规则**必守
+- **5 大铁律**（选择器 / @InDict / tenant_id / AES / 错码 1500–1504）
+- **5 段式 Prompt**（AI-IMPL-GUIDE.md）
+- **6 字段对照表**（S-R15）
+- **PowerShell 编码坑**（S-R19）— 批量改中文走 Python UTF-8
+- **MASTER §1.1 + SESSION-PROGRESS** 每 slice 必同步

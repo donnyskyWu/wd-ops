@@ -1,11 +1,11 @@
-# 运营数据平台·开发总览（2026-06-10 · 多人协作版）
+# 运营数据平台·开发总览（2026-06-10 · 单人全栈版）
 
 > **性质**：本期交付与当前进度 SSOT · 含 3 部分
 > 1. **现状进度**：已交付 + 验证 + 遗留
 > 2. **总计划执行对照**：v1.0 计划 vs 实际
 > 3. **开发方法论 + 自查方法**：可直接复制给新协作者
 
-**最后更新**：2026-06-10 · **协作**：Mike（后端）+ Donny（产品/架构）· **任务表**：[TASK-PROGRESS-MASTER](./delivery/TASK-PROGRESS-MASTER.md)
+**最后更新**：2026-06-10 · **执行**：单人全栈 · **任务表**：[TASK-PROGRESS-MASTER](./delivery/TASK-PROGRESS-MASTER.md)
 
 ---
 
@@ -295,33 +295,31 @@ vo 加全字段（占位 0）
 
 ---
 
-## 四、协作指引（多人团队）
+## 四、执行指引（单人全栈）
 
-### 4.1 分工建议（5 人 team）
+> 2026-06-10 起废止 Mike/Donny 双人并行；前后端由同一人按 slice 顺序交付。
 
-| 角色 | 职责 | SSOT |
+### 4.1 角色（一人兼）
+
+| 职责 | 范围 | SSOT |
 |------|------|------|
-| **架构师** | ADR 起草 / Spec 修订 / Gate 验收 | PHASE-DEV-METHOD.md |
-| **后端 TL** | Mapper / Service / Controller / IT | API-M*.md |
-| **前端 TL** | api/*.ts + types/*.ts + *.vue | UX-M*.md |
-| **QA** | IT 编写 + E2E 走查 | TESTCASES-M*.md + walkthrough-methodology.mdc |
-| **产品** | PRD 维护 / OQ 决策 / UAT 签字 | PRD-M*.md + ADR |
+| 全栈实现 | Mapper → Controller → IT → api/types/vue → PW | API-M*.md · UX-M*.md |
+| 产品/架构 | PRD · OQ · ADR · Gate 签字 | PRD-M*.md · PHASE-DEV-METHOD.md |
+| 验收 | mvn test + Playwright + 走查 | TESTCASES-M*.md · walkthrough-methodology.mdc |
 
-### 4.2 切片分配（避免冲突）
+### 4.2 切片执行
 
-每人 1 个 slice，**互不重叠文件范围**：
-- slice 标题：`S-R{N}-{Mike|Donny}`
-- **个人任务表**：`docs/delivery/TASK-PROGRESS-MIKE.md` · `TASK-PROGRESS-DONNY.md`
-- **总表**：`docs/delivery/TASK-PROGRESS-MASTER.md`（每完成 1 项必更新）
-- 改后端必跑 mvn test 全套；改前端必 Playwright/浏览器复测
-- 完成写报告 + 更新 SESSION-PROGRESS + `git pull` → commit → push
+- slice 命名：`S-R{N}`（子项如 S-R27·27b）
+- **唯一任务表**：`docs/delivery/TASK-PROGRESS-MASTER.md`
+- 每个 slice：**后端 → 前端 → 测试 → 文档** 一气呵成
+- 完成：更新 SESSION-PROGRESS + `git pull` → commit → push
 
-### 4.3 冲突解决
+### 4.3 变更同步（单人仍须遵守）
 
 | 情况 | 处理 |
 |------|------|
-| 2 人改同一文件 | 后改的合并，先改的先 commit + 写明 API 变化 |
-| 后端 API 字段新增 | 必须同步：VO + DTO + Mapper + IT + types + 组件 + ADR |
+| 后端 API 字段新增 | 同 slice 内同步：VO + DTO + Mapper + IT + types + vue + ADR |
+| 前端 enum 改名 | 同步 types + enum-alias.ts + 使用处 + ADR |
 | 前端 enum 改名 | 必须同步：types + 5+ 处使用 + enum-alias.ts + ADR |
 | schema drift | **写 ADR** + 走"工作流 6" |
 
@@ -405,9 +403,9 @@ docs/
 
 1. **先读** [PHASE-DEV-METHOD.md](./engineering/PHASE-DEV-METHOD.md) + [walkthrough-methodology.mdc](../.cursor/rules/walkthrough-methodology.mdc)（2 份文档共 1 小时读完）
 2. **再读** [SESSION-PROGRESS.md](./delivery/SESSION-PROGRESS.md)（15 分钟）
-3. **接手 1 个 S-R{N}**（找 Donny 分配）
+3. **从 [TASK-PROGRESS-MASTER](./delivery/TASK-PROGRESS-MASTER.md) 取下一个 S-R{N}**
 4. **每步遵循 6 大工作流**（3.2 节）
 5. **每改一处自查 7 条**（3.3 节）
 6. **完成写报告 + 同步文档**（3.4 / 3.5 节）
 
-**有问题随时问。** Donny + Mike 按 [TASK-PROGRESS-MASTER](./delivery/TASK-PROGRESS-MASTER.md) 并行协作。
+按 [TASK-PROGRESS-MASTER](./delivery/TASK-PROGRESS-MASTER.md) 顺序执行即可。

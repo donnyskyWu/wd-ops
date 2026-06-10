@@ -247,7 +247,7 @@ import {
 } from '@element-plus/icons-vue'
 import LogicFlow, { CircleNode, CircleNodeModel, RectNode, RectNodeModel } from '@logicflow/core'
 import '@logicflow/core/dist/index.css'
-import { mockGetSopNodes, mockValidateDag } from '@/mock/sop'
+import { getSopNodeList, validateDag } from '@/api/sop'
 import type { SopNodeVO } from '@/types/sop'
 
 const route = useRoute()
@@ -720,7 +720,7 @@ const calculateNodeLevels = (nodeList: SopNodeVO[]): Record<number, number> => {
 const loadNodes = async () => {
   loading.value = true
   try {
-    const data = mockGetSopNodes(templateId.value)
+    const data = await getSopNodeList(templateId.value)
     
     if (!data || data.length === 0) {
       ElMessage.warning('该模板暂无节点数据，请添加节点')
@@ -923,7 +923,7 @@ const handleValidateDag = async () => {
       })),
     }
 
-    const validationResult = await mockValidateDag(dagData.nodes)
+    const validationResult = await validateDag(dagData)
 
     if (validationResult.valid) {
       ElMessage.success('✅ DAG校验通过：无循环依赖，流程有效')
@@ -955,7 +955,7 @@ const handleSave = async () => {
       })),
     }
 
-    const validationResult = await mockValidateDag(dagData.nodes)
+    const validationResult = await validateDag(dagData)
 
     if (!validationResult.valid) {
       ElMessage.error(`DAG校验失败：${validationResult.message}`)
@@ -977,8 +977,13 @@ const handleBack = () => {
 // ==================== 生命周期 ====================
 
 onMounted(() => {
+  if (!templateId.value || Number.isNaN(templateId.value)) {
+    ElMessage.error('无效的模板 ID')
+    router.push('/sop')
+    return
+  }
   loadNodes()
-  
+
   // 监听快捷键
   window.addEventListener('keydown', handleKeyDown)
 })

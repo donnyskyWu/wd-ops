@@ -607,6 +607,27 @@ L-γ 走查完成。
 - ✅ 写 [S-R19-报告-20260610.md](./gates/S-R19-报告-20260610.md)
 - ✅ OVERVIEW §1.5 同步：L1/L2/L4 → ✅；L3 保留 P0；新增 L6 ✅
 
+### 2026-06-10 · P-2 Playwright 全量复测 183/183
+
+#### 完成
+- ✅ 修 `DASH-006`：快捷入口定位收紧（`.quick-access .quick-label`）+ SPA `waitUntil: 'commit'`
+- ✅ `Dashboard.vue`：`navigateTo` 改 `await router.push` + `role="link"`
+- ✅ `npx playwright test` → **183 passed**（0 failed · 0 skipped · 2.2m）
+
+### 2026-06-10 · 执行模式变更：双人协作 → 单人全栈
+
+#### 决策
+- 废止 Mike + Donny 双人并行、文件域互锁、三张任务表同步机制
+- **唯一 SSOT**：[TASK-PROGRESS-MASTER.md](./TASK-PROGRESS-MASTER.md)（单人全栈版）
+- [TASK-PROGRESS-MIKE.md](./TASK-PROGRESS-MIKE.md) / [TASK-PROGRESS-DONNY.md](./TASK-PROGRESS-DONNY.md) → 归档只读
+- MASTER §16 重写为「单人全栈执行」
+
+#### 合并后的待办（一人顺序执行）
+1. **S-R27·27b** — 绩效详情/趋势前端接线（原 Donny）
+2. **S-R27·27c** — 公司详情全栈（原 Mike 后端 + 前端）
+3. **S-R27·27d** — 平台账号统计全栈（原 Mike 后端 + 前端）
+4. **P-2** → **S-R26** → D-2~D-6 决策
+
 ### 2026-06-10 · S-R27a-Mike M3 绩效详情 + 趋势 userInfo
 
 #### 完成
@@ -615,9 +636,9 @@ L-γ 走查完成。
 - ✅ `M3PerfDetailEnrichIT` 3 用例
 - ✅ API-M3 §2.5 / §3.2 同步
 
-#### 待办
-- Mike：S-R27b/c（公司详情 + 平台账号统计）
-- Donny：S-R27-Donny 前端接线 `PerfRecordDetail` / `PerfUserTrend`
+#### 待办（已并入 S-R27 单人队列）
+- S-R27·27b：前端接线 `PerfRecordDetail` / `PerfUserTrend`
+- S-R27·27c/27d：公司详情 + 平台账号统计全栈
 
 ### 2026-06-10 · 协作机制：Mike + Donny 双人任务表
 

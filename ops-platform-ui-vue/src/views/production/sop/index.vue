@@ -22,8 +22,8 @@
           <el-select v-model="searchForm.contentType" placeholder="请选择" clearable>
             <el-option label="全部" value="ALL" />
             <el-option label="文章" value="ARTICLE" />
-            <el-option label="短视频" value="VIDEO" />
-            <el-option label="直播" value="LIVE" />
+            <el-option label="短视频" value="SHORT_VIDEO" />
+            <el-option label="视频" value="VIDEO" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
@@ -190,16 +190,18 @@
           <el-select v-model="createForm.contentType" placeholder="请选择">
             <el-option label="全部" value="ALL" />
             <el-option label="文章" value="ARTICLE" />
-            <el-option label="短视频" value="VIDEO" />
-            <el-option label="直播" value="LIVE" />
+            <el-option label="短视频" value="SHORT_VIDEO" />
+            <el-option label="视频" value="VIDEO" />
           </el-select>
         </el-form-item>
         <el-form-item label="适用平台">
           <el-select v-model="createForm.platformType" placeholder="请选择">
             <el-option label="全部" value="ALL" />
-            <el-option label="公众号" value="WECHAT_MP" />
+            <el-option label="公众号" value="WECHAT_OFFICIAL" />
+            <el-option label="视频号" value="WECHAT_VIDEO" />
             <el-option label="抖音" value="DOUYIN" />
             <el-option label="快手" value="KUAISHOU" />
+            <el-option label="小红书" value="XIAOHONGSHU" />
           </el-select>
         </el-form-item>
         <el-form-item label="模板描述">
@@ -466,7 +468,10 @@ const handleCreateSubmit = async () => {
     loadTemplateList()
     
     // 跳转到DAG编辑页
-    router.push(`/sop/${result.id}/edit`)
+    const newId = typeof result === 'number' ? result : (result as { id?: number })?.id
+    if (newId) {
+      router.push(`/sop/${newId}/edit`)
+    }
   } catch (error: any) {
     if (error.response?.status === 409) {
       ElMessage.error('模板名称已存在')

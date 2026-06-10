@@ -86,11 +86,18 @@ test.describe('首页仪表盘测试 @smoke @regression', () => {
   })
 
   test('DASH-006: 快捷入口可点击跳转', async ({ page }) => {
-    // 点击IP组管理快捷入口
-    await page.locator('.quick-item').filter({ hasText: 'IP组管理' }).click()
-    
-    // 验证跳转到IP组管理页面
-    await page.waitForURL('**/ip-group')
+    const ipGroupEntry = page.locator('.quick-access .quick-item').filter({
+      has: page.locator('.quick-label', { hasText: 'IP组管理' }),
+    })
+    await expect(ipGroupEntry).toBeVisible()
+    await ipGroupEntry.scrollIntoViewIfNeeded()
+
+    // Vue Router 为 SPA 导航，用 commit 而非默认 load
+    await Promise.all([
+      page.waitForURL(/\/ip-group(?:\?.*)?$/, { waitUntil: 'commit' }),
+      ipGroupEntry.click(),
+    ])
+    await expect(page).toHaveURL(/\/ip-group(?:\?.*)?$/)
   })
 
   test('DASH-007: 图表区域渲染', async ({ page }) => {

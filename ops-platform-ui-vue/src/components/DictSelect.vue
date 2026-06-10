@@ -6,7 +6,6 @@
     :filterable="filterable"
     :loading="loading"
     :style="{ width: '100%' }"
-  >"
   >
     <el-option
       v-for="opt in options"

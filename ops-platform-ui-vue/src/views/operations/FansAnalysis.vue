@@ -36,38 +36,14 @@
       </el-form-item>
     </TableSearch>
 
-    <!-- 统计卡片 -->
+    <!-- 统计卡片（等高对齐） -->
     <el-row :gutter="16" class="stats-cards">
-      <el-col :span="6">
-        <el-card shadow="hover">
+      <el-col v-for="card in statCards" :key="card.label" :span="6">
+        <el-card shadow="hover" class="stat-card-wrap">
           <div class="stat-card">
-            <div class="stat-label">粉丝总数</div>
-            <div class="stat-value">{{ formatNumber(stats.totalFollowers) }}</div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <div class="stat-label">新增粉丝</div>
-            <div class="stat-value text-success">+{{ formatNumber(stats.newFollowers) }}</div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <div class="stat-label">取消关注</div>
-            <div class="stat-value text-danger">-{{ formatNumber(stats.unfollowers) }}</div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <div class="stat-label">净增粉丝</div>
-            <div class="stat-value text-primary">+{{ formatNumber(stats.netFollowers) }}</div>
-            <div class="stat-rate">增长率 {{ (stats.growthRate || 0).toFixed(2) }}%</div>
+            <div class="stat-label">{{ card.label }}</div>
+            <div class="stat-value" :class="card.valueClass">{{ card.value }}</div>
+            <div class="stat-rate">{{ card.sub }}</div>
           </div>
         </el-card>
       </el-col>
@@ -132,7 +108,7 @@
 
 <script setup lang="ts">
 // P-GATE-UNMOCK-R S-R2-C：粉丝分析接真 API，去 mock
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
@@ -160,6 +136,18 @@ const searchForm = reactive({
 
 // 初始化为空（real-or-empty 策略）
 const stats = ref<FollowerStats>({ totalFollowers: 0, newFollowers: 0, unfollowers: 0, netFollowers: 0, growthRate: 0 })
+
+const statCards = computed(() => [
+  { label: '粉丝总数', value: formatNumber(stats.value.totalFollowers), valueClass: '', sub: ' ' },
+  { label: '新增粉丝', value: `+${formatNumber(stats.value.newFollowers)}`, valueClass: 'text-success', sub: ' ' },
+  { label: '取消关注', value: `-${formatNumber(stats.value.unfollowers)}`, valueClass: 'text-danger', sub: ' ' },
+  {
+    label: '净增粉丝',
+    value: `+${formatNumber(stats.value.netFollowers)}`,
+    valueClass: 'text-primary',
+    sub: `增长率 ${(stats.value.growthRate || 0).toFixed(2)}%`,
+  },
+])
 
 const loading = ref(false)
 const tableData = ref<any[]>([])
@@ -365,8 +353,16 @@ onMounted(() => {
   .stats-cards {
     margin-bottom: 16px;
 
+    .stat-card-wrap {
+      height: 100%;
+    }
+
     .stat-card {
       text-align: center;
+      min-height: 96px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
 
       .stat-label {
         font-size: 14px;
@@ -377,12 +373,14 @@ onMounted(() => {
       .stat-value {
         font-size: 24px;
         font-weight: bold;
-        margin-bottom: 4px;
+        line-height: 1.2;
       }
 
       .stat-rate {
         font-size: 12px;
         color: #909399;
+        min-height: 18px;
+        margin-top: 6px;
       }
     }
   }

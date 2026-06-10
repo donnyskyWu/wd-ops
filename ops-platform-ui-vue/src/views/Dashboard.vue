@@ -36,7 +36,7 @@
       </template>
       <el-row :gutter="16">
         <el-col :xs="12" :sm="8" :md="6" :lg="4" v-for="(item, index) in quickAccess" :key="index">
-          <div class="quick-item" @click="navigateTo(item.route)">
+          <div class="quick-item" role="link" tabindex="0" @click="navigateTo(item.route)" @keydown.enter="navigateTo(item.route)">
             <div class="quick-icon">
               <el-icon :size="28"><component :is="item.icon" /></el-icon>
             </div>
@@ -360,8 +360,8 @@ const initContentChart = () => {
 }
 
 // 路由跳转
-const navigateTo = (route: string) => {
-  router.push(route)
+const navigateTo = async (route: string) => {
+  await router.push(route)
 }
 
 // 格式化数字（千分位）

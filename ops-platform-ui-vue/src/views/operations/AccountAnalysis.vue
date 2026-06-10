@@ -32,7 +32,7 @@
         <el-icon><Download /></el-icon>
         导出
       </el-button>
-      <el-button type="primary" @click="trendDialogVisible = true">
+      <el-button type="primary" :disabled="!selectedRows.length" @click="trendDialogVisible = true">
         <el-icon><TrendCharts /></el-icon>
         趋势对比
       </el-button>
@@ -40,7 +40,7 @@
 
     <!-- 内容区 -->
     <ContentWrap>
-      <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%">
+      <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="50" align="center" />
         <el-table-column prop="accountName" label="账号名称" min-width="150" show-overflow-tooltip />
         <el-table-column prop="platformName" label="平台" width="90" align="center">
@@ -90,14 +90,30 @@
     </ContentWrap>
 
     <!-- 趋势对比对话框 -->
-    <el-dialog v-model="trendDialogVisible" title="趋势对比" width="900px">
+    <el-dialog v-model="trendDialogVisible" title="趋势对比" width="900px" @opened="renderTrendChart">
       <el-alert
-        title="选择多个账号进行粉丝/内容趋势对比"
-        type="info"
+        :title="trendHint"
+        :type="selectedRows.length ? 'info' : 'warning'"
         :closable="false"
         show-icon
         style="margin-bottom: 16px;"
       />
+      <el-form inline style="margin-bottom: 12px;">
+        <el-form-item label="日期范围">
+          <el-date-picker
+            v-model="trendDateRange"
+            type="daterange"
+            value-format="YYYY-MM-DD"
+            range-separator="至"
+            start-placeholder="开始"
+            end-placeholder="结束"
+            style="width: 260px"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="renderTrendChart">刷新图表</el-button>
+        </el-form-item>
+      </el-form>
       <div ref="trendChartRef" style="height: 400px;"></div>
     </el-dialog>
   </div>
@@ -105,7 +121,7 @@
 
 <script setup lang="ts">
 // P-GATE-UNMOCK-R S-R2-B：去 mock + 跳真实详情
-import { ref, reactive, onMounted, nextTick, watch } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { Download, TrendCharts } from '@element-plus/icons-vue'
@@ -143,6 +159,25 @@ const tableData = ref<any[]>([])
 const pagination = reactive({ pageNo: 1, pageSize: 10, total: 0 })
 const trendDialogVisible = ref(false)
 const trendChartRef = ref<HTMLElement>()
+const selectedRows = ref<any[]>([])
+const trendDateRange = ref<string[]>(getDefaultTrendRange())
+
+function getDefaultTrendRange(): string[] {
+  const end = new Date()
+  const start = new Date()
+  start.setDate(start.getDate() - 29)
+  return [start.toISOString().split('T')[0], end.toISOString().split('T')[0]]
+}
+
+const trendHint = computed(() =>
+  selectedRows.length
+    ? `已选 ${selectedRows.length} 个账号，对比粉丝净增趋势（请在列表勾选账号）`
+    : '请先在列表勾选 1~5 个账号，再打开趋势对比'
+)
+
+const handleSelectionChange = (rows: any[]) => {
+  selectedRows.value = rows
+}
 
 // ==================== 方法 ====================
 
@@ -252,39 +287,57 @@ const renderTrendChart = async () => {
   const chart = echarts.init(trendChartRef.value)
   trendChart = chart
 
-  // P-GATE-UNMOCK-R S-R2-C：真粉丝趋势（不再用 mock）
-  const trendData = await getFollowerTrend({
-    startDate: '', endDate: '',
-  } as any).catch(() => [])
+  const accounts = selectedRows.value.slice(0, 5)
+  if (!accounts.length) {
+    chart.setOption({
+      title: { text: '请先在列表勾选账号', left: 'center', top: 'middle', textStyle: { color: '#909399', fontSize: 14 } },
+    })
+    return
+  }
 
+  const [startDate, endDate] = trendDateRange.value?.length === 2 ? trendDateRange.value : getDefaultTrendRange()
+  const palette = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399']
+
+  const seriesList = await Promise.all(
+    accounts.map(async (row, idx) => {
+      const accountId = row.accountId ?? row.id
+      const trendData = await getFollowerTrend({
+        startDate,
+        endDate,
+        accountId,
+        ipGroupId: searchForm.ipGroupId,
+        platformType: normalizePlatform(activePlatform.value),
+      } as any).catch(() => [] as any[])
+      const pointMap = new Map<string, number>()
+      trendData.forEach((d: any) => {
+        const key = d.timePeriod || d.date
+        if (key) pointMap.set(key, Number(d.netGrowth ?? d.newFollower ?? 0))
+      })
+      return {
+        name: row.accountName || `账号${accountId}`,
+        color: palette[idx % palette.length],
+        pointMap,
+      }
+    })
+  )
+
+  const dates = Array.from(new Set(seriesList.flatMap(s => [...s.pointMap.keys()]))).sort()
   const option = {
     tooltip: { trigger: 'axis' },
-    legend: { data: ['粉丝数', '新增粉丝'] },
-    xAxis: {
-      type: 'category',
-      data: trendData.map(d => d.date),
-    },
-    yAxis: [
-      { type: 'value', name: '粉丝数' },
-      { type: 'value', name: '新增粉丝' },
-    ],
-    series: [
-      {
-        name: '粉丝数',
-        type: 'line',
-        data: trendData.map((d: any) => d.followerCount ?? 0),
-        smooth: true,
-      },
-      {
-        name: '新增粉丝',
-        type: 'bar',
-        yAxisIndex: 1,
-        data: trendData.map((d: any) => d.newFollower ?? d.newFollowers ?? 0),
-      },
-    ],
+    legend: { data: seriesList.map(s => s.name), top: 0 },
+    grid: { left: 48, right: 24, top: 40, bottom: 32 },
+    xAxis: { type: 'category', data: dates },
+    yAxis: { type: 'value', name: '净增粉丝' },
+    series: seriesList.map(s => ({
+      name: s.name,
+      type: 'line',
+      smooth: true,
+      itemStyle: { color: s.color },
+      data: dates.map(d => s.pointMap.get(d) ?? 0),
+    })),
   }
-  
-  chart.setOption(option)
+
+  chart.setOption(option, true)
 }
 
 // ==================== 生命周期 ====================
@@ -293,12 +346,8 @@ onMounted(() => {
   loadData()
 })
 
-// 监听对话框打开
 watch(trendDialogVisible, async (val) => {
-  if (val) {
-    await nextTick()
-    renderTrendChart()
-  }
+  if (val) await nextTick()
 })
 </script>
 
