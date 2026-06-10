@@ -48,7 +48,7 @@
 
 ## 1. 全局进度总表
 
-> **最后更新**：2026-06-10 · **当前阶段**：S7 完成（GATE-S7 ✅）+ 11 走查切片 + 2 补丁 Gate · **整体进度**：8/8 Gate · 2 补丁 Gate · 11 走查 · **进入上线前补强 + 持续走查阶段**
+> **最后更新**：2026-06-10 20:30 · **当前阶段**：S7 完成（GATE-S7 ✅）+ 19 走查切片 + 2 补丁 Gate · **整体进度**：8/8 Gate · 2 补丁 Gate · 19 走查 · **进入「上线前补强 + 持续走查 + Phase 2 决策」三轨并行阶段**
 
 | Gate | 阶段 | 周次 | 模块 / 横切 | 开发 | 测试 | Seed | Gate | 通过日期 | 负责人 | 备注 |
 |------|------|------|------------|------|------|------|------|---------|--------|------|
@@ -80,8 +80,19 @@
 | 走查 | **S-R8** | 作品分析（6 bug 修 5） | ✅ | [S-R8-20260610.md](./gates/S-R8-报告-20260610.md) |
 | 走查 | **S-R9** | 效率分析（9 bug 全量修） | ✅ | [S-R9-报告-20260610.md](./gates/S-R9-报告-20260610.md) |
 | 走查 | **S-R10** | 效率分析复测（S-R9 漏改 2 项） | ✅ | [S-R10-报告-20260610.md](./gates/S-R10-报告-20260610.md) |
+| 走查 | **S-R11** | SOP 走查（3P0+5P1+5P2） | ✅ | [S-R11-报告-20260610.md](./gates/S-R11-报告-20260610.md) |
+| 走查 | S-R11-Fix | SOP 修复 9 bug + 4 IT | ✅ | [S-R11-Fix-报告-20260610.md](./gates/S-R11-Fix-报告-20260610.md) |
+| 走查 | **S-R12** | IP 组走查（4P0+1P1+3P2 + 漏 /list 端点） | ✅ | [S-R12-报告-20260610.md](./gates/S-R12-报告-20260610.md) |
+| 走查 | **S-R13** | 账号分析详情走查（0P0+3P2 低 bug 密度） | ✅ | [S-R13-报告-20260610.md](./gates/S-R13-报告-20260610.md) |
+| 走查 | **S-R14** | 知识库走查（4P0+2P1+3P2 全字段名错位） | ✅ | [S-R14-报告-20260610.md](./gates/S-R14-报告-20260610.md) |
+| 走查 | **S-R15** | L-α 系统走查（M5/M6/M7 19 页） | ✅ | [S-R15-报告-20260610.md](./gates/S-R15-报告-20260610.md) |
+| 走查 | **S-R16** | L-β 系统走查（M3/M4 18 页） | ✅ | [S-R16-报告-20260610.md](./gates/S-R16-报告-20260610.md) |
+| 走查 | **S-R17** | L-γ 系统走查（M8/M9 15 页） | ✅ | [S-R17-报告-20260610.md](./gates/S-R17-报告-20260610.md) |
+| 走查 | **S-R18** | 上线前 E2E 全量回归（250 IT + 180/183 PW） | ✅ | [S-R18-报告-20260610.md](./gates/S-R18-报告-20260610.md) |
+| 走查 | **S-R19** | 全量功能自查 + OVERVIEW backlog 复核（4 错码修） | ✅ | [S-R19-报告-20260610.md](./gates/S-R19-报告-20260610.md) |
+| 走查 | **S-R20** | 进度表整理 + 全页自查待办 + 多成员分工 | ✅ | [S-R20-报告-20260610.md](./gates/S-R20-报告-20260610.md) |
 
-**累计走查发现并修复**：50+ 个真 bug（mock 数据 13 处、enum 不对齐 6+、KPI 聚合 8 处、分页契约 6 处、UI render bug 5 处、跨模块 9 处、schema drift 4 处）
+**累计走查发现并修复**：70+ 个真 bug（mock 数据 13 处、enum 不对齐 6+、KPI 聚合 8 处、分页契约 6 处、UI render bug 5 处、跨模块 9 处、schema drift 4 处、字段名错位 10 处、错码冲突 4 处、5 selector mock 切换 7 处）
 
 **详细总览文档**：[deliverable-OVERVIEW-20260610.md](./deliverable-OVERVIEW-20260610.md)
 
@@ -513,3 +524,144 @@ curl http://localhost:8080/oa/...
 ---
 
 *维护说明：每完成一个 Gate，更新 §1 进度表 + §12 Sign-off + 归档 Gate 报告。禁止在 Gate 未通过时修改下一阶段状态为「开发中」。*
+
+---
+
+## 15. 全页自查待办（S-R20 沉淀，2026-06-10）
+
+> **背景**：S-R15~R17 系统走查 89 页 → 100% 覆盖。但**未来 P0 决策补后端（5 个 L-γ spec gap）、前端 mock 兜底补 API、B22 补 delete 端点、跨租户 + 权限 audit 重测**等仍待办。
+
+### 15.1 P0 待产品决策（不阻塞上线）
+
+| ID | 任务 | 模块 | 决策点 | 现状 |
+|----|------|------|--------|------|
+| D-1 | **oa_content 加 author_id**（schema drift） | M1/M2 | ADR-008 方案 A/B/C | 效率页 KPI 0 + ADR 提示 |
+| D-2 | **B13 ParamManage 后端 sys_param**（基础/采集/AI/通知） | M9 | 是否 Phase 2 落地 | 前端 placeholder |
+| D-3 | **B14 DictManage 后端 sys_dict CRUD** | M9 | 是否本期补 | 前端 placeholder |
+| D-4 | **B15 LogManage 后端 sys_operation_log** | M9 | 是否本期补 | 前端 placeholder |
+| D-5 | **B16 LoginLog 后端 sys_login_log** | M9 | 是否本期补 | 前端 placeholder |
+| D-6 | **B17 MessageManage 后端 sys_message** | M9/M10 | 是否本期补（涉 M10） | 前端 placeholder |
+| D-7 | **B22 ContentController 补 delete 端点** | M2 | content/index.vue mock 兜底 | 前端 mock |
+
+### 15.2 P1 业务待办（上线后 1 个月内）
+
+| ID | 任务 | 模块 | 现状 |
+|----|------|------|------|
+| B-1 | L1 导出 xlsx 确认 + 多 Sheet 模板 | M1-M7 | ✅ 已对齐 .xlsx |
+| B-2 | L2 enum literal 全量清理 | 前端 | ✅ enum-alias 工具已规范 |
+| B-3 | L3 ADR-008 待 D-1 决策 | M1/M2 | 同 D-1 |
+| B-4 | L4 SOP pageNum | M2 | ✅ S-R11 已修 |
+| B-5 | L5 seed V18-V23 CJK 终端显示 | 终端 | ✅ 仅显示问题 |
+| B-6 | B19 M8/M9 路径 prefix 一致性 | M8/M9 | `/admin-api/system/...` vs `/admin-api/oa/...` |
+| B-7 | 5 个 L-α/β/γ 页面补 exportToExcel | 前端 | 5 页（relaxed to 5） |
+| B-8 | L-β 5 个详情页 follow-up：assignee/userOwner 字段补全 | M3/M4 | 走查留 P2 |
+
+### 15.3 P2 体验/工程债
+
+| ID | 任务 | 现状 |
+|----|------|------|
+| P-1 | 25+ mock 文件清理（types/*.ts enum literal） | 不强制 |
+| P-2 | 前端 console 0 error 重测（Playwright 全量） | E2E 已 180/183 |
+| P-3 | `as any` 临时类型映射清理 | 多处 |
+| P-4 | Playwright 3 个 skip 测试补全 | 动态路由 |
+
+### 15.4 横切（合规 / 安全 / 鉴权）
+
+| ID | 任务 | 状态 | 来源 |
+|----|------|------|------|
+| X-1 | 5 大铁律独立审计 | ✅ S-R19 | S-R19 §4 |
+| X-2 | 跨租户隔离全量回归 | ✅ GateS7E2EIT | GATE-S7 |
+| X-3 | 错误码冲突修复（4 个） | ✅ S-R19 | S-R19 §3 |
+| X-4 | 敏感字段 AES-256 加密 | ✅ M4 走查 | S-R3 + S-R17 |
+| X-5 | 字典值 @InDict 校验 | ✅ 6 字段对照表 | S-R12 升级 |
+
+### 15.5 状态统计
+
+| 类型 | 总数 | P0 | P1 | P2 | 已 ✅ |
+|------|------|----|----|----|----|
+| 待办 | **24 项** | 7 | 8 | 4 | 5（横切） |
+
+---
+
+## 16. 多成员分工协作（S-R20 沉淀，2026-06-10）
+
+### 16.1 当前状态 vs 加 1 人
+
+| 项 | 现状 | 加 1 人（建议 Mike 后端 TL）|
+|----|------|-----------------------------|
+| 人员 | Cursor Agent（前端） + Donny（产品/架构）| + Mike（后端 TL）|
+| 并行 | 1 个 slice | **2 个 slice 并行** |
+| 工期 | v1.0 后 24 项 × 1-2 天 = 4-6 周 | **2-3 周**（Mike 后端 + CA 前端并行）|
+
+### 16.2 4 人 team 角色
+
+| 角色 | 主责 | 占用率 |
+|------|------|--------|
+| 架构师（Donny 兼顾）| ADR · Spec · Gate 验收 | 20% |
+| **后端 TL（Mike 新人）**| Mapper · Service · Controller · IT | 100% |
+| 前端 TL（Cursor Agent）| api/*.ts · types/*.ts · *.vue · Playwright | 100% |
+| QA（待招）| IT 编写 · E2E 走查 · 5 大铁律审计 | 100% |
+| 产品（Donny 兼顾）| PRD · OQ 决策 · UAT | 20% |
+
+### 16.3 切片分配原则（OVERVIEW §4.2）
+
+1. **每人 1 个 slice，互不重叠文件范围**
+2. **slice 标题 = S-R{N}-{人名缩写}**（如 `S-R21-Mike`）
+3. **文件范围在 todo list 第一项写明**
+4. **改后端必跑 mvn test 全套**（`mvn test -Dtest='Mike*IT'`）
+5. **改前端必浏览器复测**（agent-browser + Playwright）
+6. **完成写报告 + 更新 SESSION-PROGRESS**
+
+### 16.4 Mike 加 1 人分工建议（基于 §15 待办）
+
+| Slice | 负责人 | 范围 | 工时 |
+|-------|--------|------|------|
+| S-R21-Mike | Mike | D-1 ADR-008 oa_content author_id 后端（方案 A）| 1-2 天 |
+| S-R22-Mike | Mike | D-7 B22 ContentController.delete + IT | 0.5 天 |
+| S-R23-Mike | Mike | B-6 B19 M8/M9 路径 prefix 重构 | 1 天 |
+| S-R21-CA | CA | D-1 前端 oa_content author_id 接入 + 效率页 KPI 启用 | 1 天 |
+| S-R24-CA | CA | B-7 5 个 L-α/β/γ 页面补 exportToExcel | 0.5 天 |
+| S-R25-CA | CA | P-3 `as any` 清理 + P-4 Playwright skip 补全 | 1 天 |
+
+### 16.5 5 阶段并行方案
+
+| 时段 | Mike（后端）| Cursor Agent（前端）| Donny（产品/架构）|
+|------|-------------|---------------------|-------------------|
+| **D1-2** | S-R21-Mike：D-1 schema migration + DAO | S-R21-CA：D-1 前端字段接入 | 5 大铁律复核 |
+| **D2-3** | S-R22-Mike：D-7 ContentController.delete | S-R24-CA：B-7 exportToExcel 5 页 | 验收 D-1 |
+| **D3-4** | S-R23-Mike：B-19 路径重构 | S-R25-CA：P-3 + P-4 cleanup | 验收 D-7 + B-7 |
+| **D4-5** | Mike 整合 mvn verify | CA Playwright 复测 | 验收 B-19 |
+| **D5** | 两人合并 → **S-R26 集成测试** | | ✅ 上线决策 |
+
+**同步点**：每日 stand-up（Donny 主持）+ 5 阶段结束点合并回归
+
+### 16.6 Mike 5 大铁律 quick start
+
+```
+D1 读 PHASE-DEV-METHOD.md + walkthrough-methodology.mdc（1 小时）
+D1 读 SESSION-PROGRESS.md（15 分钟）
+D2 接手 S-R21-Mike（看分配文档 + S-R21 计划）
+D2-3 按 5 段式 prompt 写：DTO → Mapper(@Select/@Update) → Service → Controller → IT
+D4 mvn test -Dtest=Mike*IT
+D5 浏览器 dev 复测（iwr / agent-browser）
+D5 写 S-R21-Mike-报告 + 同步 SESSION-PROGRESS + 通知 CA
+```
+
+### 16.7 冲突解决（OVERVIEW §4.3）
+
+| 情况 | 处理 |
+|------|------|
+| 2 人改同一文件 | 后改的合并，先改的先 commit + 写明 API 变化 |
+| 后端 API 字段新增 | 必同步：VO + DTO + Mapper + IT + types + 组件 + ADR |
+| 前端 enum 改名 | 必同步：types + 5+ 处使用 + enum-alias.ts + ADR |
+| schema drift | **写 ADR** + 走"工作流 6"（OVERVIEW §3.2）|
+
+### 16.8 不变量
+
+- **5 段式 Prompt 模板**（AI-IMPL-GUIDE.md）
+- **6 字段对照表**（S-R15 升级版）
+- **自查 7 条**（S-R10 沉淀）
+- **PowerShell 编码坑**（S-R19 §3.4 教训）—— 批量替换走 Python
+- **MASTER-EXECUTION-TRACKER.md §1.1** 必更新（19→N 条）
+- **SESSION-PROGRESS.md** 必同步
+- **OVERVIEW §4.5 文档同步规则**必守

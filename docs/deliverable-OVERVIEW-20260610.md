@@ -65,15 +65,16 @@
 | **数据库** | H2 (IT) + MySQL (dev) | `application-test.yml` |
 | **种子数据** | sys_user 5 / ip_group 5 / task 18 / content 26 / order 12 | `SeedVerificationIT` |
 
-### 1.5 当前遗留 / 待办（4 项）
+### 1.5 当前遗留 / 待办（S-R19 自查后 2026-06-10 19:50 更新）
 
-| ID | 任务 | 状态 | 影响 |
-|----|------|------|------|
-| L1 | **导出格式 xlsx**（spec）vs csv（实现） | P1 backlog | yudao-module-oa 无 POI 依赖 |
-| L2 | **30+ 文件 enum literal 清理** | P1 backlog | 由 `enum-alias.ts` 临时维持 |
-| L3 | **ADR-008 oa_content 加 author_id** | P0 待产品决策 | S-R9 走查发现 schema drift |
-| L4 | **SOP `pageNum` 不匹配**（前端 pageNo） | P2 待 SOP 走查 | API spec §1.1 故意定义 pageNum |
-| L5 | seed V18-V23 CJK 截断（PowerShell 终端显示） | 0（DB 存的是真中文） | 浏览器显示正常 |
+| ID | 任务 | 状态 | 影响 | 备注 |
+|----|------|------|------|------|
+| L1 | ~~导出格式 xlsx（spec）vs csv（实现）~~ | ✅ 已对齐 | S-R19 自查：`excel-export.ts` 用 XLSX 库生成 .xlsx，PRD 未明确格式 | 原 P1 backlog 误判，已 close |
+| L2 | ~~30+ 文件 enum literal 清理~~ | ✅ 设计内 | S-R19 自查：`enum-alias.ts` 工具已规范高风险面，剩余为类型声明/mock 历史值（合理） | 永久方案非 P1 backlog |
+| L3 | **ADR-008 oa_content 加 author_id** | P0 待产品决策 | S-R9 走查发现 schema drift | ADR-008 方案 A/B/C 已定，效率页 KPI 0 + ADR 提示已优雅降级 |
+| L4 | ~~SOP `pageNum` 不匹配~~ | ✅ 已修 | S-R11 走查已修（pageNo→pageNum） | OVERVIEW 老状态，已 close |
+| L5 | seed V18-V23 CJK 截断（PowerShell 终端显示） | 0（DB 存的是真中文） | 浏览器显示正常 | 仅显示问题 |
+| L6 | **4 个 error code 冲突修复** | ✅ 已修 | S-R19 自查发现：1500/2006/2008/2009 重复 | 修 OaErrorCodes + 11 IT，250/250 全绿 |
 
 ---
 

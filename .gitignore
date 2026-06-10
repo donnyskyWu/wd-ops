@@ -53,3 +53,13 @@ test-output/
 *.tar.gz
 *.rar
 *.7z
+
+# Playwright / runtime reports
+playwright-report/
+test-results/
+
+# Crash / error logs
+*.err
+*.out
+*.dumpstream
+hs_err_pid*.log
