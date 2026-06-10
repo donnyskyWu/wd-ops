@@ -20,6 +20,27 @@ export function getAccountList(params: AccountQuery): Promise<PageResult<Account
   return request.get({ url: '/oa/account/list', params }) as unknown as Promise<PageResult<AccountVO>>
 }
 
+/**
+ * 平台账号列表（与 getAccountList 同源，独立命名便于 M4 详情页引用）
+ */
+export function getPlatformAccountList(params: Record<string, unknown>) {
+  return request.get({ url: '/oa/account/list', params })
+}
+
+/**
+ * 平台账号详情
+ */
+export function getPlatformAccountDetail(id: number) {
+  return request.get({ url: '/oa/account/get', params: { id } })
+}
+
+/**
+ * 平台账号更新
+ */
+export function updatePlatformAccount(data: Record<string, unknown>) {
+  return request.put({ url: '/oa/account/update', data })
+}
+
 // ==================== 趋势数据 ====================
 
 /**

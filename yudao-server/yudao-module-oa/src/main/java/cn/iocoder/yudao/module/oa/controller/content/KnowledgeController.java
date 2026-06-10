@@ -32,9 +32,11 @@ public class KnowledgeController {
     public CommonResult<PageResult<KnowledgeVO>> list(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String tags,
+            @RequestParam(required = false) Integer isPublic,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
-        return CommonResult.success(knowledgeBaseService.list(title, category, pageNum, pageSize));
+        return CommonResult.success(knowledgeBaseService.list(title, category, tags, isPublic, pageNum, pageSize));
     }
 
     @GetMapping("/{id}")

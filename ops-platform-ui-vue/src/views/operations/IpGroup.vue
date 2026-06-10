@@ -72,7 +72,7 @@
                 <el-divider direction="vertical" />
                 <span>上级：{{ currentNode.parentName || '顶级' }}</span>
                 <el-divider direction="vertical" />
-                <span>创建于：{{ currentNode.createdAt || '-' }}</span>
+                <span>创建于：{{ currentNode.createTime || '-' }}</span>
               </p>
             </div>
             <div class="actions">
@@ -105,7 +105,7 @@
                 </el-descriptions-item>
                 <el-descriptions-item label="排序">{{ currentNode.sortOrder || 0 }}</el-descriptions-item>
                 <el-descriptions-item label="备注" :span="2">{{ currentNode.remark || '-' }}</el-descriptions-item>
-                <el-descriptions-item label="创建时间">{{ currentNode.createdAt || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="创建时间">{{ currentNode.createTime || '-' }}</el-descriptions-item>
                 <el-descriptions-item label="更新时间">{{ currentNode.updatedAt || '-' }}</el-descriptions-item>
               </el-descriptions>
             </el-tab-pane>
@@ -361,6 +361,7 @@ import {
   deleteIpGroup,
   updateIpGroupStatus,
   getIpGroupStats,
+  getIpGroupDetail,  // S-R12 B2/B3 修复
   getIpGroupMembers,
   addIpGroupMember,
   deleteIpGroupMember,
@@ -543,20 +544,26 @@ const handleCreateChild = () => {
   dialogVisible.value = true
 }
 
-const handleEdit = () => {
+const handleEdit = async () => {
   if (!currentNode.value) return
-  dialogMode.value = 'edit'
-  Object.assign(formData, {
-    id: currentNode.value.id,
-    groupName: currentNode.value.groupName,
-    groupType: currentNode.value.groupType,
-    parentId: currentNode.value.parentId,
-    leaderId: currentNode.value.leaderId,
-    sortOrder: currentNode.value.sortOrder || 0,
-    status: currentNode.value.status,
-    remark: currentNode.value.remark || '',
-  })
-  dialogVisible.value = true
+  // S-R12 B2/B3 修复：TreeVO 没有 sortOrder/remark，先调 detail 拿全字段
+  try {
+    const detail = await getIpGroupDetail(currentNode.value.id)
+    dialogMode.value = 'edit'
+    Object.assign(formData, {
+      id: detail.id,
+      groupName: detail.groupName,
+      groupType: detail.groupType,
+      parentId: detail.parentId,
+      leaderId: detail.leaderId,
+      sortOrder: detail.sortOrder || 0,
+      status: detail.status,
+      remark: detail.remark || '',
+    })
+    dialogVisible.value = true
+  } catch (e: any) {
+    ElMessage.error(e?.message || '加载 IP 组详情失败')
+  }
 }
 
 const handleSubmit = async () => {

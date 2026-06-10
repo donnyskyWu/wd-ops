@@ -139,6 +139,30 @@ export interface IpGroupPageRespVO {
   list: IpGroupListVO[]
 }
 
+// ==================== 详情信息类型 ====================
+
+/**
+ * S-R12 B2/B3 修复：IP组详情（对齐后端 IpGroupDetailVO）
+ * 用于"编辑"对话框回填（包含 sortOrder/remark 等 TreeVO 没有的字段）
+ */
+export interface IpGroupDetailVO {
+  id: number
+  groupName: string
+  groupType: IpGroupType
+  parentId: number | null
+  parentName: string | null
+  leaderId: number | null
+  leaderName: string | null
+  sortOrder: number
+  status: IpGroupStatus
+  remark: string
+  memberCount: number
+  accountCount: number
+  anchorCount: number
+  createTime: string
+  updateTime: string
+}
+
 // ==================== 统计信息类型 ====================
 
 /**

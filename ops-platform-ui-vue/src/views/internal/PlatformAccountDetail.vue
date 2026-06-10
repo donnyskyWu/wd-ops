@@ -124,7 +124,10 @@ import DictSelect from '@/components/DictSelect.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import RealNameSelect from '@/components/selectors/RealNameSelect.vue'
 import PhoneSelect from '@/components/selectors/PhoneSelect.vue'
-import { getPlatformAccount, updatePlatformAccount } from '@/api/platform-account'
+import {
+  getPlatformAccountDetail,
+  updatePlatformAccount as updatePlatformAccountV2,
+} from '@/api/account'
 
 const route = useRoute()
 const router = useRouter()
@@ -138,38 +141,38 @@ const contentChartRef = ref<HTMLDivElement | null>(null)
 let followerChart: echarts.ECharts | null = null
 let contentChart: echarts.ECharts | null = null
 
-const initFollowerChart = () => {
+const initFollowerChart = (dates: string[] = [], vals: number[] = []) => {
   if (!followerChartRef.value) return
   const el = followerChartRef.value
   if (el.getBoundingClientRect().width === 0) {
-    setTimeout(initFollowerChart, 100)
+    setTimeout(() => initFollowerChart(dates, vals), 100)
     return
   }
   if (!followerChart) followerChart = echarts.init(el)
-  const dates = Array.from({ length: 30 }, (_, i) => `${i + 1}日`)
-  const data = dates.map(() => 1000 + Math.floor(Math.random() * 200))
+  const xs = dates.length > 0 ? dates : Array.from({ length: 30 }, (_, i) => `${i + 1}日`)
+  const data = vals.length > 0 ? vals : xs.map(() => 0)
   followerChart.setOption({
     tooltip: { trigger: 'axis' },
     grid: { left: 30, right: 16, top: 20, bottom: 30 },
-    xAxis: { type: 'category', data: dates, axisLabel: { fontSize: 10 } },
+    xAxis: { type: 'category', data: xs, axisLabel: { fontSize: 10 } },
     yAxis: { type: 'value' },
     series: [{ type: 'line', smooth: true, areaStyle: {}, data, itemStyle: { color: '#409eff' } }],
   })
 }
-const initContentChart = () => {
+const initContentChart = (dates: string[] = [], vals: number[] = []) => {
   if (!contentChartRef.value) return
   const el = contentChartRef.value
   if (el.getBoundingClientRect().width === 0) {
-    setTimeout(initContentChart, 100)
+    setTimeout(() => initContentChart(dates, vals), 100)
     return
   }
   if (!contentChart) contentChart = echarts.init(el)
-  const dates = Array.from({ length: 30 }, (_, i) => `${i + 1}日`)
-  const data = dates.map(() => Math.floor(Math.random() * 5))
+  const xs = dates.length > 0 ? dates : Array.from({ length: 30 }, (_, i) => `${i + 1}日`)
+  const data = vals.length > 0 ? vals : xs.map(() => 0)
   contentChart.setOption({
     tooltip: { trigger: 'axis' },
     grid: { left: 30, right: 16, top: 20, bottom: 30 },
-    xAxis: { type: 'category', data: dates, axisLabel: { fontSize: 10 } },
+    xAxis: { type: 'category', data: xs, axisLabel: { fontSize: 10 } },
     yAxis: { type: 'value' },
     series: [{ type: 'bar', data, itemStyle: { color: '#67c23a', borderRadius: [4, 4, 0, 0] } }],
   })
@@ -179,14 +182,14 @@ const loadDetail = async () => {
   loading.value = true
   try {
     const id = Number(route.params.id)
-    const a = await getPlatformAccount(id)
+    const a: any = await getPlatformAccountDetail(id)
     detail.value = {
       ...a,
-      platformName: a.platformType,
+      platformName: a.platformType || a.platformName,
       platformAccountId: a.externalAccountId,
       ipGroupName: a.ipGroupId ? `IP组#${a.ipGroupId}` : '-',
-      followerCount: 0,
-      workCount: 0,
+      followerCount: a.followerCount || 0,
+      workCount: a.workCount || 0,
     }
     Object.assign(form, {
       accountName: a.accountName,
@@ -196,22 +199,34 @@ const loadDetail = async () => {
       phoneId: a.phoneId,
       status: a.status,
     })
+    // 趋势图：尝试调 getFollowerTrend/getContentTrend
+    try {
+      const fts: any = await (await import('@/api/account')).getFollowerTrend(id)
+      const dates = (fts || []).map((p: any) => p.date || p.day || '')
+      const vals = (fts || []).map((p: any) => p.followerCount || p.value || 0)
+      initFollowerChart(dates, vals)
+    } catch {
+      initFollowerChart()
+    }
+    try {
+      const cts: any = await (await import('@/api/account')).getContentTrend(id)
+      const dates = (cts || []).map((p: any) => p.date || p.day || '')
+      const vals = (cts || []).map((p: any) => p.workCount || p.value || 0)
+      initContentChart(dates, vals)
+    } catch {
+      initContentChart()
+    }
   } catch {
     detail.value = null
   } finally {
     loading.value = false
-    await nextTick()
-    setTimeout(() => {
-      initFollowerChart()
-      initContentChart()
-    }, 100)
   }
 }
 const submit = async () => {
   if (!detail.value?.id) return
   submitting.value = true
   try {
-    await updatePlatformAccount({
+    await updatePlatformAccountV2({
       id: detail.value.id,
       accountName: form.accountName,
       ipGroupId: form.ipGroupId,
@@ -222,6 +237,8 @@ const submit = async () => {
     await loadDetail()
     editMode.value = false
     ElMessage.success('保存成功')
+  } catch {
+    // 错误已拦截
   } finally {
     submitting.value = false
   }

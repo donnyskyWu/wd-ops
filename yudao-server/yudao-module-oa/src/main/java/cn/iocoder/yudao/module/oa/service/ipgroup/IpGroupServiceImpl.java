@@ -4,12 +4,14 @@ import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupAccountBindReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupAccountVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupAnchorBindReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupAnchorVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupDetailVO;
+import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupListVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberVO;
@@ -79,6 +81,51 @@ public class IpGroupServiceImpl implements IpGroupService {
                 .filter(g -> g.getParentId() == null)
                 .map(root -> toTreeNode(root, nameMap, leaderNameMap, memberCounts, accountCounts, anchorCounts, childrenMap))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResult<IpGroupListVO> listPage(
+            String groupName, Integer groupType, Integer status,
+            Integer pageNum, Integer pageSize) {
+        Long tenantId = requireTenantId();
+        LambdaQueryWrapper<IpGroupDO> wrapper = new LambdaQueryWrapper<IpGroupDO>()
+                .eq(IpGroupDO::getTenantId, tenantId)
+                .like(StrUtil.isNotBlank(groupName), IpGroupDO::getGroupName, groupName)
+                .eq(groupType != null, IpGroupDO::getGroupType, groupType)
+                .eq(status != null, IpGroupDO::getStatus, status)
+                .orderByAsc(IpGroupDO::getSortOrder)
+                .orderByDesc(IpGroupDO::getId);
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<IpGroupDO> page = ipGroupMapper.selectPage(
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(
+                        pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize),
+                wrapper);
+        List<IpGroupDO> records = page.getRecords();
+
+        // 批量取 parentName + leaderName
+        Set<Long> parentIds = records.stream().map(IpGroupDO::getParentId)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, String> parentNameMap = parentIds.isEmpty() ? Collections.emptyMap() :
+                ipGroupMapper.selectBatchIds(parentIds).stream()
+                        .filter(p -> tenantId.equals(p.getTenantId()))
+                        .collect(Collectors.toMap(IpGroupDO::getId, IpGroupDO::getGroupName, (a, b) -> a));
+        Map<Long, String> leaderNameMap = loadLeaderNames(records);
+
+        List<IpGroupListVO> list = records.stream().map(d -> {
+            IpGroupListVO vo = new IpGroupListVO();
+            vo.setId(d.getId());
+            vo.setGroupName(d.getGroupName());
+            vo.setGroupType(d.getGroupType());
+            vo.setParentId(d.getParentId());
+            vo.setParentName(d.getParentId() == null ? null : parentNameMap.get(d.getParentId()));
+            vo.setLeaderName(d.getLeaderUserId() == null ? null : leaderNameMap.get(d.getLeaderUserId()));
+            vo.setStatus(d.getStatus());
+            vo.setCreateTime(d.getCreateTime());
+            vo.setMemberCount(0);
+            vo.setAccountCount(0);
+            vo.setAnchorCount(0);
+            return vo;
+        }).collect(Collectors.toList());
+        return new PageResult<>(list, page.getTotal());
     }
 
     @Override

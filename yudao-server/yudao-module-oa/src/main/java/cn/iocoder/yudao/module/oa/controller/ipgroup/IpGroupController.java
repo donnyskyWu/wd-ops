@@ -1,12 +1,14 @@
 package cn.iocoder.yudao.module.oa.controller.ipgroup;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupAccountBindReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupAccountVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupAnchorBindReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupAnchorVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupDetailVO;
+import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupListVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberVO;
@@ -41,6 +43,20 @@ public class IpGroupController {
     @GetMapping("/tree")
     public CommonResult<List<IpGroupTreeVO>> tree() {
         return CommonResult.success(ipGroupService.getTree());
+    }
+
+    /**
+     * S-R12 修复：补 /list 端点（spec API-M1 §2.2 定义，但 controller 漏实现）
+     * 注意：必须排在 /{id} 之前，否则 Spring 会把 "list" 当 id
+     */
+    @GetMapping("/list")
+    public CommonResult<PageResult<IpGroupListVO>> list(
+            @RequestParam(required = false) String groupName,
+            @RequestParam(required = false) Integer groupType,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "20") Integer pageSize) {
+        return CommonResult.success(ipGroupService.listPage(groupName, groupType, status, pageNum, pageSize));
     }
 
     @GetMapping("/{id}")

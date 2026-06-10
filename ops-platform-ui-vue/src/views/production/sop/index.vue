@@ -135,21 +135,21 @@
           style="width: 100%"
           :empty-text="'暂无审核任务'"
         >
-          <el-table-column prop="taskName" label="任务名称" width="150" />
+          <el-table-column prop="planName" label="任务名称" width="150" />
           <el-table-column prop="nodeName" label="节点名称" width="120" />
-          <el-table-column prop="executorName" label="执行人" width="100" />
-          <el-table-column prop="reviewStatus" label="状态" width="100" align="center">
+          <el-table-column prop="reviewerRole" label="执行人岗位" width="120" />
+          <el-table-column prop="status" label="状态" width="100" align="center">
             <template #default="{ row }">
-              <el-tag :type="getReviewStatusType(row.reviewStatus)">
-                {{ getReviewStatusText(row.reviewStatus) }}
+              <el-tag :type="getReviewStatusType(row.status)">
+                {{ getReviewStatusText(row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="submitTime" label="提交时间" width="160" align="center" />
+          <el-table-column prop="createTime" label="提交时间" width="160" align="center" />
           <el-table-column label="操作" width="200" align="center" fixed="right">
             <template #default="{ row }">
               <el-button
-                v-if="row.reviewStatus === 'PENDING'"
+                v-if="row.status === 'PENDING'"
                 link
                 type="success"
                 @click="handleApprove(row)"
@@ -157,7 +157,7 @@
                 审核通过
               </el-button>
               <el-button
-                v-if="row.reviewStatus === 'PENDING'"
+                v-if="row.status === 'PENDING'"
                 link
                 type="danger"
                 @click="handleReject(row)"
@@ -268,7 +268,7 @@ import {
   createSopTemplate,
   updateSopTemplateStatus,
   deleteSopTemplate,
-  getSopReviewList,
+  getSopReviewPending,
   approveReview,
   rejectReview,
 } from '@/api/sop'
@@ -375,11 +375,12 @@ const loadTemplateList = async () => {
   loading.value = true
   try {
     // P-GATE-UNMOCK-R S-R2-G：去 mock 接真 API
+    // S-R11 B1: 后端 SopTemplateController.list 收 pageNum，spec API-M2 §1.1 显式定义 pageNum
     const result: any = await getSopTemplateList({
       templateName: searchForm.templateName || undefined,
       contentType: searchForm.contentType as any,
       status: searchForm.status as any,
-      pageNo: pagination.pageNo,
+      pageNum: pagination.pageNo,
       pageSize: pagination.pageSize,
     } as any)
     
@@ -402,21 +403,17 @@ const loadTemplateList = async () => {
 const loadReviewList = async () => {
   reviewLoading.value = true
   try {
-    // P-GATE-UNMOCK-R S-R2-G：去 mock 接真 API
-    const result: any = await getSopReviewList({
-      templateId: reviewSearchForm.templateId,
-      reviewStatus: reviewSearchForm.reviewStatus as any,
-      pageNo: reviewPagination.pageNo,
-      pageSize: reviewPagination.pageSize,
-    } as any)
+    // S-R11 B2/B3 修复：后端只有 /pending（返回 List 不分页），前端不再调不存在的 /list
+    // S-R11 B8 修复：字段名对齐后端 SopReviewVO（id / status / createTime）
+    const result: any = await getSopReviewPending()
     
     console.log('获取到的审核数据:', result)
     
-    reviewTableData.value = result.list || []
-    reviewPagination.total = result.total || 0
+    reviewTableData.value = result || []
+    reviewPagination.total = (result || []).length
     
     // 计算待审核数
-    pendingCount.value = (result.list || []).filter((item: SopReviewVO) => item.reviewStatus === 'PENDING').length
+    pendingCount.value = (result || []).filter((item: SopReviewVO) => item.status === 'PENDING').length
   } catch (error) {
     console.error('加载审核列表失败:', error)
     ElMessage.error('数据加载失败，请重试')
@@ -469,11 +466,11 @@ const handleCreateSubmit = async () => {
     
     // 跳转到DAG编辑页
     router.push(`/sop/${result.id}/edit`)
-  } catch (error: unknown) {
+  } catch (error: any) {
     if (error.response?.status === 409) {
       ElMessage.error('模板名称已存在')
     } else {
-      ElMessage.error('创建失败，请重试')
+      ElMessage.error(error?.response?.data?.msg || '创建失败，请重试')
     }
   }
 }
@@ -486,33 +483,30 @@ const handleEdit = (row: SopTemplateVO) => {
 // 删除模板
 const handleDelete = async (row: SopTemplateVO) => {
   try {
-    await deleteSopTemplate(row.id).catch(() => {
-      // Mock删除
-      return Promise.resolve()
-    })
+    await deleteSopTemplate(row.id)
     ElMessage.success('删除成功')
     loadTemplateList()
-  } catch (error) {
-    ElMessage.error('该模板下存在执行中的任务，无法删除')
+  } catch (error: any) {
+    // S-R11 B9 修复：不再静默吞错，让真实错误透传给用户
+    const msg = error?.response?.data?.msg || '删除失败'
+    ElMessage.error(msg.includes('任务') ? msg : `${msg}，可能该模板下存在执行中的任务`)
   }
 }
 
 // 状态切换
 const handleStatusChange = async (row: any) => {
   try {
-    await updateSopTemplateStatus(row.id, row.status).catch(() => {
-      return Promise.resolve()
-    })
+    await updateSopTemplateStatus(row.id, row.status)
     ElMessage.success('状态更新成功')
-  } catch (error) {
-    ElMessage.error('状态更新失败')
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.msg || '状态更新失败')
     row.status = row.status === 1 ? 0 : 1 // 恢复原状态
   }
 }
 
 // 审核通过
 const handleApprove = (row: any) => {
-  approveForm.reviewId = row.reviewId
+  approveForm.reviewId = row.id  // S-R11 B8 修复：后端 SopReviewVO 字段是 id
   approveForm.comment = ''
   approveDialogVisible.value = true
 }
@@ -525,21 +519,19 @@ const handleApproveSubmit = async () => {
       comment: approveForm.comment,
     }
 
-    await approveReview(data).catch(() => {
-      return Promise.resolve()
-    })
+    await approveReview(data)
     
     ElMessage.success('审核通过')
     approveDialogVisible.value = false
     loadReviewList()
-  } catch (error) {
-    ElMessage.error('审核失败，请重试')
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.msg || '审核失败，请重试')
   }
 }
 
 // 审核驳回
 const handleReject = (row: any) => {
-  rejectForm.reviewId = row.reviewId
+  rejectForm.reviewId = row.id  // S-R11 B8 修复
   rejectForm.comment = ''
   rejectDialogVisible.value = true
 }
@@ -554,15 +546,13 @@ const handleRejectSubmit = async () => {
       comment: rejectForm.comment,
     }
 
-    await rejectReview(data).catch(() => {
-      return Promise.resolve()
-    })
+    await rejectReview(data)
     
     ElMessage.success('已驳回')
     rejectDialogVisible.value = false
     loadReviewList()
-  } catch (error) {
-    ElMessage.error('驳回失败，请重试')
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.msg || '驳回失败，请重试')
   }
 }
 

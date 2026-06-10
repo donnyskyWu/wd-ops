@@ -44,14 +44,13 @@ export interface SopTemplateVO {
   nodeCount: number
   /** 状态 */
   status: SopStatus
-  /** 状态文本 */
-  statusText: string
   /** 创建时间 */
   createTime: string
 }
 
 /**
  * SOP模板查询参数
+ * S-R11 B1: 后端 spec API-M2 §1.1 显式定义 pageNum（不是 pageNo）
  */
 export interface SopTemplateQuery {
   /** 模板名称 */
@@ -60,8 +59,8 @@ export interface SopTemplateQuery {
   contentType?: ContentType
   /** 状态 */
   status?: SopStatus
-  /** 页码 */
-  pageNo: number
+  /** 页码（后端契约名） */
+  pageNum: number
   /** 每页条数 */
   pageSize: number
 }
@@ -144,35 +143,39 @@ export interface DagValidateResponse {
 // ==================== 审核任务类型 ====================
 
 /**
- * 审核任务
+ * 审核任务（S-R11 B8 修复：字段名对齐后端 SopReviewVO）
+ * 后端字段：id / taskId / planName / nodeName / reviewerId / reviewerRole / status / comment / createTime
  */
 export interface SopReviewVO {
   /** 审核ID */
-  reviewId: number
-  /** 任务名称 */
-  taskName: string
+  id: number
+  /** 任务ID */
+  taskId: number
+  /** 计划名称 */
+  planName: string
   /** 节点名称 */
   nodeName: string
-  /** 执行人 */
-  executorName: string
-  /** 审核状态 */
-  reviewStatus: ReviewStatus
-  /** 提交时间 */
-  submitTime: string
+  /** 审核人ID */
+  reviewerId: number
+  /** 审核人岗位 */
+  reviewerRole: string
+  /** 审核状态（后端字段名 status） */
+  status: ReviewStatus
+  /** 审核意见 */
+  comment: string
+  /** 创建时间（后端字段名 createTime） */
+  createTime: string
 }
 
 /**
  * 审核任务查询参数
+ * S-R11 B7 修复：后端 /pending 不分页；这里类型保留供后续扩展
  */
 export interface SopReviewQuery {
   /** 模板ID */
   templateId?: number
   /** 审核状态 */
   reviewStatus?: ReviewStatus
-  /** 页码 */
-  pageNo: number
-  /** 每页条数 */
-  pageSize: number
 }
 
 /**

@@ -1,5 +1,8 @@
 /**
- * SOP管理 - API（GATE-S4 真实 API）
+ * SOP管理 - API（GATE-S4 真实 API + S-R11 修复）
+ *
+ * S-R11 B2/B3 修复：后端只有 /pending（不分页），前端不再调不存在的 /list
+ * S-R11 B5 修复：补 updateSopTemplateStatus
  */
 import { request } from '@/utils/request'
 import type {
@@ -24,6 +27,14 @@ export function createSopTemplate(data: CreateSopTemplateReq): Promise<number> {
 
 export function updateSopTemplate(data: CreateSopTemplateReq & { id: number }): Promise<boolean> {
   return request.put({ url: '/oa/sop/template/update', data })
+}
+
+/**
+ * S-R11 B5 修复：补导出。前端用 row.id + 新 status 调此端点切换模板启/停用。
+ * 后端通过 PUT /update 接收 status 字段；这里走 update 端点。
+ */
+export function updateSopTemplateStatus(id: number, status: 0 | 1): Promise<boolean> {
+  return request.put({ url: '/oa/sop/template/update', data: { id, status } })
 }
 
 export function deleteSopTemplate(id: number): Promise<boolean> {
@@ -62,6 +73,7 @@ export default {
   getSopTemplateList,
   createSopTemplate,
   updateSopTemplate,
+  updateSopTemplateStatus,
   deleteSopTemplate,
   getSopNodeList,
   createSopNode,

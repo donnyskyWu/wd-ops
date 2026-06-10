@@ -8,7 +8,12 @@ import cn.iocoder.yudao.module.oa.api.dto.content.KnowledgeVO;
 
 public interface KnowledgeBaseService {
 
-    PageResult<KnowledgeVO> list(String title, String category, Integer pageNum, Integer pageSize);
+    /**
+     * S-R14 修复：补 tags / isPublic 过滤
+     * @param tags 逗号分隔的 tag 列表（如 "运营,SOP"），service 内部 LIKE 任一
+     */
+    PageResult<KnowledgeVO> list(String title, String category, String tags, Integer isPublic,
+                                 Integer pageNum, Integer pageSize);
 
     KnowledgeVO getById(Long id);
 

@@ -197,8 +197,11 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import ContentWrap from '@/components/ContentWrap.vue'
-import { mockCompanyList } from '@/mock/selectors'
-import { mockAccountList } from '@/mock/selectors'
+import {
+  getCompanyPage,
+  expandCompany,
+} from '@/api/company'
+import { getPlatformAccountList } from '@/api/account'
 
 const route = useRoute()
 const router = useRouter()
@@ -215,30 +218,46 @@ const expandForm = reactive({ delta: 5, reason: '' })
 
 const loadDetail = async () => {
   loading.value = true
-  const id = Number(route.params.id)
-  // TODO: GET /admin-api/oa/company/{id}
-  await new Promise((r) => setTimeout(r, 300))
-  const c = mockCompanyList.find((x) => x.id === id) || mockCompanyList[0]
-  detail.value = {
-    ...c,
-    creditCode: '91110000MA01ABCD' + id,
-    industry: '新媒体',
-    phone: '021-6688' + String(id).padStart(4, '0'),
-    email: `contact${id}@example.com`,
-    address: '上海市浦东新区世纪大道 100 号',
-    remark: '核心合作公司,签约 3 年',
-    totalQuota: 20,
-    usedQuota: 8,
-    createdAt: '2025-01-15 10:00:00',
-    updatedAt: '2026-05-20 14:30:00',
+  try {
+    const id = Number(route.params.id)
+    // 后端暂未提供 company/{id} 单独 detail 端点；使用 list 过滤 + mp-stats 拼装
+    const listRes: any = await getCompanyPage({ pageNo: 1, pageSize: 200 })
+    const found = (listRes.list || []).find((x: any) => x.id === id)
+    if (found) {
+      detail.value = {
+        ...found,
+        creditCode: found.creditCode || '',
+        industry: found.industry || '',
+        legalPerson: found.legalName || '',
+        totalQuota: found.mpCapacityStandard ?? 0,
+        usedQuota: found.mpRegisteredCount ?? 0,
+        status: found.status === 'ENABLED' ? 1 : 0,
+        createdAt: found.createTime || '',
+        updatedAt: found.createTime || '',
+      }
+    }
+    // 关联账号通过 /account/list 过滤
+    try {
+      const accRes: any = await getPlatformAccountList({ companyId: id, pageNo: 1, pageSize: 50 })
+      accounts.value = (accRes.list || []).map((a: any) => ({
+        id: a.id,
+        accountName: a.accountName,
+        platformName: a.platformName || a.platform,
+        ipGroupName: a.ipGroupName || '',
+        followerCount: a.followerCount || 0,
+        status: a.status === 'ENABLED' ? 1 : 0,
+        createdAt: a.createTime || '',
+      }))
+    } catch {
+      accounts.value = []
+    }
+    // 扩容历史后端暂未提供独立端点，留空
+    expansionHistory.value = []
+  } catch {
+    detail.value = null
+  } finally {
+    loading.value = false
   }
-  expansionHistory.value = [
-    { time: '2026-05-20 14:30:00', action: '扩容', delta: '+10', type: 'success', operator: 'admin', reason: '业务增长,需扩大公众号储备' },
-    { time: '2025-09-10 09:00:00', action: '扩容', delta: '+5', type: 'success', operator: 'admin', reason: '618 大促准备' },
-    { time: '2025-01-15 10:00:00', action: '初始注册', delta: '5', type: 'info', operator: 'admin', reason: '新公司初始化' },
-  ]
-  accounts.value = mockAccountList.filter((_, idx) => idx < 5).map((a) => ({ ...a, createdAt: '2025-02-10 10:00:00' }))
-  loading.value = false
 }
 
 const handleEdit = () => {
@@ -250,24 +269,31 @@ const handleExpand = () => {
   expandDialogVisible.value = true
 }
 const submitExpand = async () => {
+  if (!detail.value) return
   if (!expandForm.reason.trim()) {
     ElMessage.warning('请填写扩容原因')
     return
   }
   expandSubmitting.value = true
-  await new Promise((r) => setTimeout(r, 400))
-  detail.value.totalQuota += expandForm.delta
-  expansionHistory.value.unshift({
-    time: new Date().toLocaleString('zh-CN'),
-    action: '扩容',
-    delta: `+${expandForm.delta}`,
-    type: 'success',
-    operator: '当前用户',
-    reason: expandForm.reason,
-  })
-  expandSubmitting.value = false
-  expandDialogVisible.value = false
-  ElMessage.success(`已扩容 +${expandForm.delta} 个,共 ${detail.value.totalQuota} 个`)
+  try {
+    const newCapacity = (detail.value.totalQuota || 0) + expandForm.delta
+    await expandCompany(detail.value.id, { newCapacity, reason: expandForm.reason })
+    detail.value.totalQuota = newCapacity
+    expansionHistory.value.unshift({
+      time: new Date().toLocaleString('zh-CN'),
+      action: '扩容',
+      delta: `+${expandForm.delta}`,
+      type: 'success',
+      operator: '当前用户',
+      reason: expandForm.reason,
+    })
+    ElMessage.success(`已扩容 +${expandForm.delta} 个,共 ${detail.value.totalQuota} 个`)
+    expandDialogVisible.value = false
+  } catch {
+    // 错误已拦截
+  } finally {
+    expandSubmitting.value = false
+  }
 }
 
 onMounted(loadDetail)

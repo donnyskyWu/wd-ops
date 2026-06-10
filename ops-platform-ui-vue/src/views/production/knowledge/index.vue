@@ -97,13 +97,13 @@
 
     <!-- 分页 -->
     <el-pagination
-      :current-page="searchForm.pageNo"
+      :current-page="searchForm.pageNum"
       :page-size="searchForm.pageSize"
       :total="total"
       :page-sizes="[10, 20, 50]"
       layout="total, sizes, prev, pager, next, jumper"
       class="pagination"
-      @update:current-page="(val) => searchForm.pageNo = val"
+      @update:current-page="(val) => searchForm.pageNum = val"
       @update:page-size="(val) => { searchForm.pageSize = val; handleSearch() }"
       @current-change="handleSearch"
       @size-change="handleSearch"
@@ -285,7 +285,8 @@ const adaptVO = (raw: any): KnowledgeVO => ({
 })
 
 const searchForm = reactive({
-  pageNo: 1,
+  // S-R14 B4 修复：分页参数用 pageNum（后端契约名），非 pageNo
+  pageNum: 1,
   pageSize: 20,
   keyword: undefined as string | undefined,
   category: undefined as string | undefined,
@@ -298,7 +299,18 @@ const loadList = async () => {
   loading.value = true
   try {
     // P-GATE-UNMOCK-R S-R1 P0-1：移除 mock 降级，API 失败显式提示
-    const res = await getKnowledgeList(searchForm)
+    // S-R14 B1/B2/B3/B4 修复：searchForm 字段 → 后端契约
+    //   keyword (前端) → title (后端)
+    //   isPublic (前端 boolean) → 0/1 (后端 Integer)
+    //   tags (前端 string[]) → 逗号分隔 String
+    //   pageNo (前端) → pageNum (后端)
+    const queryParams: any = {
+      ...searchForm,
+      title: searchForm.keyword,
+      isPublic: searchForm.isPublic === undefined ? undefined : (searchForm.isPublic ? 1 : 0),
+    }
+    delete queryParams.keyword
+    const res = await getKnowledgeList(queryParams)
     knowledgeList.value = (res.list || []).map(adaptVO)
     total.value = res.total || 0
   } catch (err) {
@@ -311,7 +323,7 @@ const loadList = async () => {
 }
 
 const handleSearch = () => {
-  searchForm.pageNo = 1
+  searchForm.pageNum = 1
   loadList()
 }
 

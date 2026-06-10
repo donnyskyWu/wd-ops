@@ -30,6 +30,7 @@ export const CATEGORY_LABELS: Record<KnowledgeCategory, string> = {
 
 /**
  * 知识列表项
+ * S-R14 修复：tags 后端是逗号分隔 String，前端按 string[] 渲染
  */
 export interface KnowledgeVO {
   /** 知识ID */
@@ -38,9 +39,9 @@ export interface KnowledgeVO {
   title: string
   /** 分类 */
   category: KnowledgeCategory
-  /** 标签列表 */
+  /** 标签列表（前端按 string[] 渲染；后端返回逗号分隔 String，由 adaptVO 拆分） */
   tags: string[]
-  /** 是否公开 */
+  /** 是否公开（后端 Integer 0/1，前端由 adaptVO 转 boolean） */
   isPublic: boolean
   /** 创建者姓名 */
   creatorName: string
@@ -66,20 +67,21 @@ export interface KnowledgeDetailVO extends KnowledgeVO {
 
 /**
  * 知识查询参数
+ * S-R14 修复：字段名对齐后端 controller @RequestParam（pageNum + title）
  */
 export interface KnowledgeQuery {
-  /** 页码 */
-  pageNo: number
+  /** 页码（后端契约名 pageNum） */
+  pageNum: number
   /** 每页条数 */
   pageSize: number
-  /** 关键词全文搜索 */
+  /** 关键词全文搜索（前端用 keyword 字段；传给后端时映射为 title） */
   keyword?: string
   /** 分类筛选 */
   category?: KnowledgeCategory
   /** 标签筛选（多选） */
   tags?: string[]
-  /** 是否公开 */
-  isPublic?: boolean
+  /** 是否公开（后端 Integer 0/1） */
+  isPublic?: 0 | 1
   /** 创建者ID */
   creatorUserId?: number
 }

@@ -29,12 +29,18 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
     private final KnowledgeBaseMapper knowledgeBaseMapper;
 
     @Override
-    public PageResult<KnowledgeVO> list(String title, String category, Integer pageNum, Integer pageSize) {
+    public PageResult<KnowledgeVO> list(String title, String category, String tags,
+                                        Integer isPublic, Integer pageNum, Integer pageSize) {
         Long tenantId = requireTenantId();
         LambdaQueryWrapper<KnowledgeBaseDO> wrapper = new LambdaQueryWrapper<KnowledgeBaseDO>()
                 .eq(KnowledgeBaseDO::getTenantId, tenantId)
                 .like(StrUtil.isNotBlank(title), KnowledgeBaseDO::getTitle, title)
                 .eq(StrUtil.isNotBlank(category), KnowledgeBaseDO::getCategory, category)
+                // S-R14 修复：tags 逗号分隔，LIKE 任一
+                .apply(StrUtil.isNotBlank(tags),
+                        "tags LIKE {0} OR tags LIKE {1} OR tags = {2}",
+                        "%," + tags + "%", "%" + tags + "%,%", tags)
+                .eq(isPublic != null, KnowledgeBaseDO::getIsPublic, isPublic)
                 .orderByDesc(KnowledgeBaseDO::getId);
         Page<KnowledgeBaseDO> page = knowledgeBaseMapper.selectPage(
                 new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize), wrapper);

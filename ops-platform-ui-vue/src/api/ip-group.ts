@@ -10,6 +10,7 @@ import type {
   IpGroupPageReqVO,
   IpGroupPageRespVO,
   IpGroupSaveReqVO,
+  IpGroupDetailVO,
   IpGroupStatsVO,
   IpGroupMemberVO,
   IpGroupMemberSaveReqVO,
@@ -68,6 +69,14 @@ export function updateIpGroupStatus(id: number, status: 0 | 1): Promise<boolean>
  */
 export function getIpGroupStats(id: number): Promise<IpGroupStatsVO> {
   return request.get<IpGroupStatsVO>({ url: `/oa/ip-group/${id}/stats` })
+}
+
+/**
+ * S-R12 B2/B3 修复：获取 IP 组详情（包含 sortOrder/remark 等 TreeVO 没有的字段）
+ * 用于"编辑"对话框回填，避免 TreeVO 字段缺失
+ */
+export function getIpGroupDetail(id: number): Promise<IpGroupDetailVO> {
+  return request.get<IpGroupDetailVO>({ url: `/oa/ip-group/${id}` })
 }
 
 // ==================== 成员管理 ====================
@@ -165,6 +174,7 @@ export default {
   deleteIpGroup,
   updateIpGroupStatus,
   getIpGroupStats,
+  getIpGroupDetail,
   // 成员管理
   getIpGroupMembers,
   addIpGroupMember,
