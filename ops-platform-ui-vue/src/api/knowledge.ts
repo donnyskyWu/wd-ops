@@ -2,7 +2,7 @@
  * 内容知识库 - API接口封装
  */
 
-import axios from 'axios'
+import { request } from '@/utils/request'
 import type {
   KnowledgeVO,
   KnowledgeDetailVO,
@@ -12,11 +12,8 @@ import type {
   LikeAction,
 } from '@/types/knowledge'
 
-// 创建axios实例
-const request = axios.create({
-  baseURL: '/admin-api/oa',
-  timeout: 10000,
-})
+// P-GATE-UNMOCK S-C: 已迁移到 @/utils/request，自动注入 dev token 和 tenantId
+// P-GATE-UNMOCK-R S-R1 P0-2 (2026-06-09)：URL 前补 /oa/ 段（与后端 RequestMapping 对齐）
 
 // ==================== 知识列表 ====================
 
@@ -24,7 +21,7 @@ const request = axios.create({
  * 获取知识列表（分页）
  */
 export function getKnowledgeList(params: KnowledgeQuery): Promise<PageResult<KnowledgeVO>> {
-  return request.get('/knowledge/list', { params }).then(res => res.data)
+  return request.get<PageResult<KnowledgeVO>>({ url: '/oa/knowledge/list', params }).then((res) => res as unknown as PageResult<KnowledgeVO>)
 }
 
 // ==================== 知识详情 ====================
@@ -33,7 +30,7 @@ export function getKnowledgeList(params: KnowledgeQuery): Promise<PageResult<Kno
  * 获取知识详情
  */
 export function getKnowledgeDetail(id: number): Promise<KnowledgeDetailVO> {
-  return request.get(`/knowledge/${id}`).then(res => res.data)
+  return request.get<KnowledgeDetailVO>({ url: `/oa/knowledge/${id}` }).then((res) => res as unknown as KnowledgeDetailVO)
 }
 
 // ==================== 新增知识 ====================
@@ -42,7 +39,7 @@ export function getKnowledgeDetail(id: number): Promise<KnowledgeDetailVO> {
  * 新增知识
  */
 export function createKnowledge(data: KnowledgeFormData): Promise<number> {
-  return request.post('/knowledge/create', data).then(res => res.data)
+  return request.post<number>({ url: '/oa/knowledge/create', data }).then((res) => res as unknown as number)
 }
 
 // ==================== 编辑知识 ====================
@@ -51,7 +48,7 @@ export function createKnowledge(data: KnowledgeFormData): Promise<number> {
  * 编辑知识
  */
 export function updateKnowledge(data: KnowledgeFormData): Promise<void> {
-  return request.put('/knowledge/update', data).then(res => res.data)
+  return request.put<void>({ url: '/oa/knowledge/update', data }).then(() => undefined)
 }
 
 // ==================== 删除知识 ====================
@@ -60,7 +57,7 @@ export function updateKnowledge(data: KnowledgeFormData): Promise<void> {
  * 删除知识
  */
 export function deleteKnowledge(id: number): Promise<void> {
-  return request.delete('/knowledge/delete', { params: { id } }).then(res => res.data)
+  return request.delete<void>({ url: '/oa/knowledge/delete', params: { id } }).then(() => undefined)
 }
 
 // ==================== 收藏/取消收藏 ====================
@@ -69,5 +66,5 @@ export function deleteKnowledge(id: number): Promise<void> {
  * 收藏/取消收藏
  */
 export function toggleLike(data: LikeAction): Promise<void> {
-  return request.post('/knowledge/like', data).then(res => res.data)
+  return request.post<void>({ url: '/oa/knowledge/like', data }).then(() => undefined)
 }

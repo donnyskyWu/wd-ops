@@ -282,11 +282,12 @@ const dialogTitle = computed(() => '新建自定义漏斗')
 
 const funnelChartRef = ref<HTMLElement>()
 
-const formatCount = (count: number) => {
-  if (count >= 1000) {
-    return (count / 1000).toFixed(1) + 'K'
+const formatCount = (count: any) => {
+  const v = typeof count === 'number' && !isNaN(count) ? count : 0
+  if (v >= 1000) {
+    return (v / 1000).toFixed(1) + 'K'
   }
-  return count.toString()
+  return v.toString()
 }
 
 const handleQuery = () => {

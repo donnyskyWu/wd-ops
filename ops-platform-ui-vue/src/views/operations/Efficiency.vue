@@ -2,13 +2,19 @@
   <div class="efficiency-page">
     <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
       <el-form-item label="统计周期">
-        <DictSelect v-model="searchForm.period" dict-type="dict_time_dimension" style="width: 120px" />
+        <DictSelect v-model="searchForm.timeDimension" dict-type="dict_time_dimension" style="width: 120px" />
       </el-form-item>
       <el-form-item label="统计日期">
         <el-date-picker v-model="searchForm.statDate" type="month" placeholder="选择月份" style="width: 160px" />
       </el-form-item>
+      <el-form-item label="IP组">
+        <IpGroupTreeSelect v-model="searchForm.ipGroupId" />
+      </el-form-item>
       <el-form-item label="岗位">
-        <DictSelect v-model="searchForm.position" dict-type="dict_position_type" placeholder="全部岗位" clearable style="width: 160px" />
+        <DictSelect v-model="searchForm.position" dict-type="dict_position" placeholder="全部岗位" clearable style="width: 160px" />
+      </el-form-item>
+      <el-form-item label="关键词">
+        <el-input v-model="searchForm.keyword" placeholder="经办人姓名" clearable maxlength="50" />
       </el-form-item>
     </TableSearch>
 
@@ -25,7 +31,7 @@
       <el-tabs v-model="activeTab" class="main-tabs">
         <!-- 公众号运营数据 -->
         <el-tab-pane label="公众号运营数据统计" name="wechat">
-          <el-table :data="wechatList" v-loading="loading" border stripe row-key="rank">
+          <el-table :data="wechatList" v-loading="loading" border stripe row-key="userId" @expand-change="handleExpand">
             <el-table-column type="expand" width="50">
               <template #default="{ row }">
                 <div class="expand-content">
@@ -34,9 +40,9 @@
                       <el-card shadow="hover" body-style="padding: 16px">
                         <div class="expand-card">
                           <div class="expand-title"><el-icon color="#409eff"><Document /></el-icon> 任务完成情况</div>
-                          <div class="expand-row"><span>已完成任务: <b>{{ row.taskCompleted }}</b></span><span>完成率: <b>{{ row.taskRate }}%</b></span></div>
-                          <el-progress :percentage="row.taskRate" :stroke-width="6" />
-                          <div class="expand-desc">原创文章{{ row.originalCount }}篇 | 审核通过{{ row.approvedCount }}篇 | 退回{{ row.rejectedCount }}篇</div>
+                          <div class="expand-row"><span>已完成任务: <b>{{ row.taskCompleted }}</b></span><span>完成率: <b>{{ formatPct(row.completionRate) }}</b></span></div>
+                          <el-progress :percentage="row.completionRate || 0" :stroke-width="6" />
+                          <div class="expand-desc">总任务: {{ row.taskTotal }} | 进行中: {{ row.taskInProgress }} | 超时: {{ row.taskOverdue }}</div>
                         </div>
                       </el-card>
                     </el-col>
@@ -44,8 +50,8 @@
                       <el-card shadow="hover" body-style="padding: 16px">
                         <div class="expand-card">
                           <div class="expand-title"><el-icon color="#e6a23c"><Coin /></el-icon> 财务指标</div>
-                          <div class="expand-row"><span>投入成本: <b>¥{{ row.inputCost.toLocaleString() }}</b></span><span>产出价值: <b style="color: #67c23a">¥{{ row.outputValue.toLocaleString() }}</b></span></div>
-                          <div class="expand-row"><span>ROI: <b style="color: #67c23a">{{ row.roi }}%</b></span><span>人效: <b :class="getEfficiencyClass(row.efficiency)">{{ row.efficiency }}</b></span></div>
+                          <div class="expand-row"><span>投入成本: <b>¥{{ formatNumber(row.costAmount) }}</b></span><span>产出价值: <b style="color: #67c23a">¥{{ formatNumber(row.revenue) }}</b></span></div>
+                          <div class="expand-row"><span>ROI: <b style="color: #67c23a">{{ formatPct(row.roi) }}</b></span><span>人效: <b :class="getEfficiencyClass(row.completionRate)">{{ getEfficiency(row.completionRate) }}</b></span></div>
                         </div>
                       </el-card>
                     </el-col>
@@ -53,8 +59,9 @@
                       <el-card shadow="hover" body-style="padding: 16px">
                         <div class="expand-card">
                           <div class="expand-title"><el-icon color="#409eff"><Document /></el-icon> 内容产出</div>
-                          <div class="expand-row"><span>发布作品: <b>{{ row.publishCount }}篇</b></span><span>平均阅读: <b style="color: #409eff">{{ row.avgReading.toLocaleString() }}</b></span></div>
-                          <div class="expand-row"><span>爆款率: <b>{{ row.hotRate }}%</b></span><span>互动率: <b>{{ row.engagement }}%</b></span></div>
+                          <div class="expand-row"><span>发布作品: <b>{{ row.contentOutput }}</b></span><span>平均阅读: <b style="color: #409eff">{{ formatNumber(row.avgRead) }}</b></span></div>
+                          <div class="expand-row"><span>爆款数: <b>{{ row.hitCount }}</b></span></div>
+                          <div class="expand-desc">注：ContentDO 无 user 关联，详见 ADR-008</div>
                         </div>
                       </el-card>
                     </el-col>
@@ -62,8 +69,8 @@
                       <el-card shadow="hover" body-style="padding: 16px">
                         <div class="expand-card">
                           <div class="expand-title"><el-icon color="#f56c6c"><TrendCharts /></el-icon> 时间趋势</div>
-                          <div class="expand-desc">近30天人效趋势</div>
-                          <div class="mini-chart" :ref="el => setWechatChartRef(el, row.rank)"></div>
+                          <div class="expand-desc">近 30 天营收 / 任务完成</div>
+                          <div class="mini-chart" :ref="el => setWechatChartRef(el, row.userId)"></div>
                         </div>
                       </el-card>
                     </el-col>
@@ -71,39 +78,30 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="rank" label="排名" width="80" align="center">
-              <template #default="{ row }">
-                <span :class="['rank-badge', getRankClass(row.rank)]">{{ row.rank }}</span>
-              </template>
+            <el-table-column prop="userName" label="经办人" min-width="100" />
+            <el-table-column prop="position" label="岗位" width="100" />
+            <el-table-column prop="ipGroupName" label="IP组" min-width="120" />
+            <el-table-column prop="taskTotal" label="任务总数" width="100" align="right" />
+            <el-table-column prop="taskCompleted" label="已完成" width="90" align="right" />
+            <el-table-column prop="completionRate" label="完成率" width="100" align="right">
+              <template #default="{ row }">{{ formatPct(row.completionRate) }}</template>
             </el-table-column>
-            <el-table-column prop="period" label="统计周期" width="100" />
-            <el-table-column prop="ipName" label="IP（主播）" width="120" />
-            <el-table-column prop="accountName" label="公众号名称" width="120" />
-            <el-table-column prop="handler" label="经办人" width="80" />
-            <el-table-column prop="totalFollowers" label="粉丝总数" width="100" align="right">
-              <template #default="{ row }">{{ row.totalFollowers.toLocaleString() }}</template>
+            <el-table-column prop="costAmount" label="账号成本" width="120" align="right">
+              <template #default="{ row }">¥{{ formatNumber(row.costAmount) }}</template>
             </el-table-column>
-            <el-table-column prop="newFollowers" label="新增关注" width="100" align="right">
-              <template #default="{ row }">{{ row.newFollowers.toLocaleString() }}</template>
+            <el-table-column prop="revenue" label="营收" width="120" align="right">
+              <template #default="{ row }">¥{{ formatNumber(row.revenue) }}</template>
             </el-table-column>
-            <el-table-column prop="unfollowCount" label="取关数" width="80" align="right" />
-            <el-table-column prop="netGrowth" label="净增数" width="100" align="right">
-              <template #default="{ row }">
-                <span :class="row.netGrowth >= 0 ? 'text-success' : 'text-danger'">+{{ row.netGrowth.toLocaleString() }}</span>
-              </template>
+            <el-table-column prop="roi" label="ROI" width="100" align="right">
+              <template #default="{ row }">{{ formatPct(row.roi) }}</template>
             </el-table-column>
-            <el-table-column prop="platformNetGrowth" label="平台净增" width="100" align="right" />
-            <el-table-column prop="platformFollowers" label="平台粉丝" width="100" align="right" />
-            <el-table-column prop="platformNewFollowers" label="平台新增" width="100" align="right" />
-            <el-table-column prop="conversionRate" label="转化率" width="100" align="right">
-              <template #default="{ row }">{{ row.conversionRate }}%</template>
-            </el-table-column>
+            <el-table-column prop="orderCount" label="订单数" width="90" align="right" />
           </el-table>
         </el-tab-pane>
 
-        <!-- 短视频运营数据 -->
+        <!-- 短视频运营数据（同 VO 字段，仅展示侧不同） -->
         <el-tab-pane label="短视频运营数据统计" name="video">
-          <el-table :data="videoList" v-loading="loading" border stripe row-key="rank">
+          <el-table :data="productivityList" v-loading="loading" border stripe row-key="userId" @expand-change="handleExpand">
             <el-table-column type="expand" width="50">
               <template #default="{ row }">
                 <div class="expand-content">
@@ -112,8 +110,8 @@
                       <el-card shadow="hover" body-style="padding: 16px">
                         <div class="expand-card">
                           <div class="expand-title"><el-icon color="#409eff"><VideoCamera /></el-icon> 视频产出</div>
-                          <div class="expand-row"><span>发布视频: <b>{{ row.videoCount }}个</b></span><span>平均播放: <b style="color: #409eff">{{ row.avgViews.toLocaleString() }}</b></span></div>
-                          <div class="expand-row"><span>爆款率: <b>{{ row.hotRate }}%</b></span><span>完播率: <b>{{ row.completionRate }}%</b></span></div>
+                          <div class="expand-row"><span>发布视频: <b>{{ row.contentOutput }}</b></span><span>平均播放: <b style="color: #409eff">{{ formatNumber(row.avgPlay) }}</b></span></div>
+                          <div class="expand-desc">注：ContentDO 无 user 关联，详见 ADR-008</div>
                         </div>
                       </el-card>
                     </el-col>
@@ -121,8 +119,8 @@
                       <el-card shadow="hover" body-style="padding: 16px">
                         <div class="expand-card">
                           <div class="expand-title"><el-icon color="#e6a23c"><Star /></el-icon> 互动指标</div>
-                          <div class="expand-row"><span>总点赞: <b>{{ row.likes.toLocaleString() }}</b></span><span>总评论: <b>{{ row.comments.toLocaleString() }}</b></span></div>
-                          <div class="expand-row"><span>总分享: <b>{{ row.shares.toLocaleString() }}</b></span><span>互动率: <b>{{ row.engagement }}%</b></span></div>
+                          <div class="expand-row"><span>总点赞: <b>{{ formatNumber(row.avgRead) }}</b></span><span>总评论: <b>-</b></span></div>
+                          <div class="expand-desc">注：ContentDO 无 user 关联，详见 ADR-008</div>
                         </div>
                       </el-card>
                     </el-col>
@@ -130,8 +128,8 @@
                       <el-card shadow="hover" body-style="padding: 16px">
                         <div class="expand-card">
                           <div class="expand-title"><el-icon color="#67c23a"><User /></el-icon> 粉丝增长</div>
-                          <div class="expand-row"><span>新增粉丝: <b>{{ row.newFollowers.toLocaleString() }}</b></span><span>转化率: <b>{{ row.conversionRate }}%</b></span></div>
-                          <div class="expand-row"><span>粉丝ROI: <b style="color: #67c23a">{{ row.fansRoi }}%</b></span></div>
+                          <div class="expand-row"><span>营收: <b style="color: #67c23a">¥{{ formatNumber(row.revenue) }}</b></span></div>
+                          <div class="expand-row"><span>粉丝 ROI: <b>{{ formatPct(row.roi) }}</b></span></div>
                         </div>
                       </el-card>
                     </el-col>
@@ -139,8 +137,8 @@
                       <el-card shadow="hover" body-style="padding: 16px">
                         <div class="expand-card">
                           <div class="expand-title"><el-icon color="#f56c6c"><TrendCharts /></el-icon> 时间趋势</div>
-                          <div class="expand-desc">近30天视频趋势</div>
-                          <div class="mini-chart" :ref="el => setVideoChartRef(el, row.rank)"></div>
+                          <div class="expand-desc">近 30 天营收</div>
+                          <div class="mini-chart" :ref="el => setVideoChartRef(el, row.userId)"></div>
                         </div>
                       </el-card>
                     </el-col>
@@ -148,83 +146,54 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="rank" label="排名" width="80" align="center">
-              <template #default="{ row }">
-                <span :class="['rank-badge', getRankClass(row.rank)]">{{ row.rank }}</span>
-              </template>
+            <el-table-column prop="userName" label="经办人" min-width="100" />
+            <el-table-column prop="position" label="岗位" width="100" />
+            <el-table-column prop="ipGroupName" label="IP组" min-width="120" />
+            <el-table-column prop="contentOutput" label="发布数" width="100" align="right" />
+            <el-table-column prop="avgPlay" label="平均播放" width="120" align="right">
+              <template #default="{ row }">{{ formatNumber(row.avgPlay) }}</template>
             </el-table-column>
-            <el-table-column prop="ipName" label="IP（主播）" min-width="120" />
-            <el-table-column prop="platform" label="平台" width="100">
-              <template #default="{ row }"><el-tag>{{ row.platform }}</el-tag></template>
+            <el-table-column prop="revenue" label="营收" width="120" align="right">
+              <template #default="{ row }">¥{{ formatNumber(row.revenue) }}</template>
             </el-table-column>
-            <el-table-column prop="handler" label="经办人" width="80" />
-            <el-table-column prop="followers" label="粉丝数" width="120" align="right">
-              <template #default="{ row }">{{ row.followers.toLocaleString() }}</template>
-            </el-table-column>
-            <el-table-column prop="newFollowers" label="新增粉丝" width="100" align="right">
-              <template #default="{ row }"><span :class="row.newFollowers >= 0 ? 'text-success' : 'text-danger'">+{{ row.newFollowers.toLocaleString() }}</span></template>
-            </el-table-column>
-            <el-table-column prop="views" label="总播放" width="120" align="right">
-              <template #default="{ row }">{{ row.views.toLocaleString() }}</template>
-            </el-table-column>
-            <el-table-column prop="likes" label="点赞数" width="100" align="right">
-              <template #default="{ row }">{{ row.likes.toLocaleString() }}</template>
-            </el-table-column>
-            <el-table-column prop="engagement" label="互动率" width="80" align="right">
-              <template #default="{ row }">{{ row.engagement }}%</template>
+            <el-table-column prop="roi" label="ROI" width="100" align="right">
+              <template #default="{ row }">{{ formatPct(row.roi) }}</template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
 
-        <!-- 个人管理账号的粉丝情况 -->
+        <!-- 个人管理账号的粉丝情况（暂无 oa_user_account 关联表 → 用 task 替代） -->
         <el-tab-pane label="个人管理账号的粉丝情况" name="fans">
           <el-table :data="fansList" v-loading="loading" border stripe>
-            <el-table-column prop="handler" label="经办人" width="100" />
-            <el-table-column prop="accountCount" label="管理账号数" width="120" align="right" />
-            <el-table-column prop="totalFollowers" label="粉丝总数" width="120" align="right">
-              <template #default="{ row }">{{ row.totalFollowers.toLocaleString() }}</template>
+            <el-table-column prop="userName" label="经办人" min-width="100" />
+            <el-table-column prop="ipGroupName" label="IP组" min-width="120" />
+            <el-table-column prop="orderCount" label="订单数" width="120" align="right" />
+            <el-table-column prop="revenue" label="营收" width="120" align="right">
+              <template #default="{ row }">¥{{ formatNumber(row.revenue) }}</template>
             </el-table-column>
-            <el-table-column prop="avgFollowers" label="账号均粉丝" width="120" align="right">
-              <template #default="{ row }">{{ row.avgFollowers.toLocaleString() }}</template>
-            </el-table-column>
-            <el-table-column prop="growthRate" label="增长率" width="100" align="right">
-              <template #default="{ row }">
-                <span :class="row.growthRate >= 0 ? 'text-success' : 'text-danger'">+{{ row.growthRate }}%</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="activeRate" label="活跃率" width="100" align="right">
-              <template #default="{ row }">{{ row.activeRate }}%</template>
+            <el-table-column prop="taskCompleted" label="完成任务" width="120" align="right" />
+            <el-table-column prop="completionRate" label="完成率" width="120" align="right">
+              <template #default="{ row }">{{ formatPct(row.completionRate) }}</template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
 
-        <!-- 个人管理的会员情况 -->
+        <!-- 个人管理的会员情况（用 oa_order + oa_task 替代） -->
         <el-tab-pane label="个人管理的会员情况" name="vip">
           <el-table :data="vipList" v-loading="loading" border stripe>
-            <el-table-column prop="rank" label="排名" width="80" align="center">
-              <template #default="{ row }">
-                <span :class="['rank-badge', getRankClass(row.rank)]">{{ row.rank }}</span>
-              </template>
+            <el-table-column prop="userName" label="经办人" min-width="100" />
+            <el-table-column prop="ipGroupName" label="IP组" min-width="120" />
+            <el-table-column prop="orderCount" label="订单数" width="100" align="right" />
+            <el-table-column prop="revenue" label="营收" width="120" align="right">
+              <template #default="{ row }">¥{{ formatNumber(row.revenue) }}</template>
             </el-table-column>
-            <el-table-column prop="handler" label="经办人" width="100" />
-            <el-table-column prop="vipCount" label="会员数" width="100" align="right">
-              <template #default="{ row }">{{ row.vipCount.toLocaleString() }}</template>
+            <el-table-column prop="costAmount" label="成本" width="120" align="right">
+              <template #default="{ row }">¥{{ formatNumber(row.costAmount) }}</template>
             </el-table-column>
-            <el-table-column prop="newVipCount" label="新增会员" width="100" align="right">
-              <template #default="{ row }"><span class="text-success">+{{ row.newVipCount.toLocaleString() }}</span></template>
+            <el-table-column prop="roi" label="ROI" width="100" align="right">
+              <template #default="{ row }">{{ formatPct(row.roi) }}</template>
             </el-table-column>
-            <el-table-column prop="vipRetention" label="会员留存" width="100" align="right">
-              <template #default="{ row }">{{ row.vipRetention }}%</template>
-            </el-table-column>
-            <el-table-column prop="vipRevenue" label="会员收入" width="120" align="right">
-              <template #default="{ row }">¥{{ row.vipRevenue.toLocaleString() }}</template>
-            </el-table-column>
-            <el-table-column prop="avgConsumption" label="人均消费" width="100" align="right">
-              <template #default="{ row }">¥{{ row.avgConsumption.toLocaleString() }}</template>
-            </el-table-column>
-            <el-table-column prop="vipRate" label="会员占比" width="100" align="right">
-              <template #default="{ row }">{{ row.vipRate }}%</template>
-            </el-table-column>
+            <el-table-column prop="taskTotal" label="任务总数" width="100" align="right" />
           </el-table>
         </el-tab-pane>
       </el-tabs>
@@ -233,114 +202,192 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick } from 'vue'
+// S-R9: 4 tab 全部接真 VO 字段，移除 × 系数假数据 + Math.random mini-chart
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
+import { getProductivityList, exportProductivityCsv, getProductivityDetail } from '@/api/productivity'
+import type { ProductivityReviewVO } from '@/types/productivity'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
-import { exportToExcel } from '@/utils'
+import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { Download, Document, Coin, TrendCharts, VideoCamera, Star, User } from '@element-plus/icons-vue'
 
 const activeTab = ref('wechat')
 const loading = ref(false)
-const totalCount = ref(25)
+const totalCount = ref(0)
 const searchForm = reactive({
-  period: 'monthly',
-  statDate: '2026-05',
+  timeDimension: 'WEEK',
+  statDate: undefined as string | undefined,
+  ipGroupId: undefined as number | undefined,
   position: undefined as string | undefined,
   keyword: undefined as string | undefined,
 })
+const productivityList = ref<ProductivityReviewVO[]>([])
+
+// 4 tab 共享同一份 VO 数据，展示侧不同
+const wechatList = computed(() => productivityList.value)
+const videoList = computed(() => productivityList.value)
+const fansList = computed(() => productivityList.value)
+const vipList = computed(() => productivityList.value)
+
+// mini-chart 容器引用
 const wechatChartRefs = reactive<Record<number, HTMLElement | null>>({})
 const videoChartRefs = reactive<Record<number, HTMLElement | null>>({})
 const wechatCharts: Record<number, echarts.ECharts> = {}
 const videoCharts: Record<number, echarts.ECharts> = {}
+const setWechatChartRef = (el: any, userId: number) => { if (el) wechatChartRefs[userId] = el as HTMLElement }
+const setVideoChartRef = (el: any, userId: number) => { if (el) videoChartRefs[userId] = el as HTMLElement }
 
-const setWechatChartRef = (el: any, rank: number) => {
-  if (el) wechatChartRefs[rank] = el as HTMLElement
+// ==================== 工具 ====================
+const formatNumber = (num?: number | null) => {
+  if (num == null || isNaN(num)) return '0'
+  return num.toLocaleString('zh-CN')
 }
-const setVideoChartRef = (el: any, rank: number) => {
-  if (el) videoChartRefs[rank] = el as HTMLElement
+const formatPct = (val?: number | null) => {
+  if (val == null || isNaN(val)) return '0%'
+  return val.toFixed(2) + '%'
 }
+const getEfficiency = (rate?: number) => (rate ?? 0) >= 80 ? 'A+' : (rate ?? 0) >= 60 ? 'A' : 'B+'
+const getEfficiencyClass = (rate?: number) => (rate ?? 0) >= 60 ? 'text-success' : 'text-warning'
 
-// 公众号运营数据
-const wechatList = ref([
-  { rank: 1, period: '2026-05', ipName: '体育解说A', accountName: 'XX体育', handler: '张三', totalFollowers: 15230, newFollowers: 520, unfollowCount: 80, netGrowth: 440, platformNetGrowth: 380, platformFollowers: 8500, platformNewFollowers: 380, conversionRate: 73.1, taskCompleted: 24, taskRate: 85.7, originalCount: 12, approvedCount: 11, rejectedCount: 1, inputCost: 3200, outputValue: 8500, roi: 265.6, efficiency: 'A+', publishCount: 18, avgReading: 5420, hotRate: 16.7, engagement: 4.2 },
-  { rank: 2, period: '2026-05', ipName: '财经观察B', accountName: '财经洞察', handler: '李四', totalFollowers: 12800, newFollowers: 480, unfollowCount: 100, netGrowth: 380, platformNetGrowth: 320, platformFollowers: 7200, platformNewFollowers: 320, conversionRate: 66.7, taskCompleted: 22, taskRate: 78.6, originalCount: 10, approvedCount: 9, rejectedCount: 1, inputCost: 2800, outputValue: 7200, roi: 257.1, efficiency: 'A', publishCount: 15, avgReading: 4800, hotRate: 13.3, engagement: 3.8 },
-  { rank: 3, period: '2026-05', ipName: '美食探店C', accountName: '吃货联盟', handler: '王五', totalFollowers: 9800, newFollowers: 380, unfollowCount: 60, netGrowth: 320, platformNetGrowth: 280, platformFollowers: 5600, platformNewFollowers: 280, conversionRate: 73.7, taskCompleted: 20, taskRate: 71.4, originalCount: 8, approvedCount: 7, rejectedCount: 1, inputCost: 2500, outputValue: 5600, roi: 224.0, efficiency: 'B+', publishCount: 12, avgReading: 4200, hotRate: 8.3, engagement: 3.2 },
-])
-
-// 短视频运营数据
-const videoList = ref([
-  { rank: 1, ipName: '科技小达人', platform: '抖音', handler: '赵六', followers: 5200000, newFollowers: 52000, views: 45600000, likes: 3200000, engagement: 7.0, videoCount: 28, avgViews: 180000, hotRate: 17.9, completionRate: 45.2, comments: 456000, shares: 234000, conversionRate: 1.1, fansRoi: 890.0 },
-  { rank: 2, ipName: '美食探索家', platform: '抖音', handler: '钱七', followers: 3800000, newFollowers: 38000, views: 32000000, likes: 2200000, engagement: 6.9, videoCount: 22, avgViews: 150000, hotRate: 13.6, completionRate: 42.8, comments: 320000, shares: 180000, conversionRate: 1.2, fansRoi: 820.0 },
-  { rank: 3, ipName: '旅行摄影师', platform: '视频号', handler: '孙八', followers: 1200000, newFollowers: 18000, views: 8500000, likes: 580000, engagement: 6.8, videoCount: 15, avgViews: 120000, hotRate: 6.7, completionRate: 38.5, comments: 85000, shares: 42000, conversionRate: 2.1, fansRoi: 680.0 },
-])
-
-// 粉丝情况
-const fansList = ref([
-  { handler: '张三', accountCount: 8, totalFollowers: 125000, avgFollowers: 15625, growthRate: 5.2, activeRate: 68.5 },
-  { handler: '李四', accountCount: 6, totalFollowers: 98000, avgFollowers: 16333, growthRate: 4.8, activeRate: 72.3 },
-  { handler: '王五', accountCount: 5, totalFollowers: 72000, avgFollowers: 14400, growthRate: 3.2, activeRate: 65.8 },
-])
-
-// 会员情况
-const vipList = ref([
-  { rank: 1, handler: '张三', vipCount: 1250, newVipCount: 85, vipRetention: 92.5, vipRevenue: 85000, avgConsumption: 68, vipRate: 1.0 },
-  { rank: 2, handler: '李四', vipCount: 980, newVipCount: 62, vipRetention: 91.2, vipRevenue: 68000, avgConsumption: 69, vipRate: 1.0 },
-  { rank: 3, handler: '王五', vipCount: 720, newVipCount: 48, vipRetention: 89.8, vipRevenue: 52000, avgConsumption: 72, vipRate: 1.0 },
-])
-
-const getRankClass = (rank: number) => rank <= 3 ? 'rank-top' : ''
-const getEfficiencyClass = (eff: string) => eff.startsWith('A') ? 'text-success' : eff.startsWith('B') ? '' : 'text-warning'
-
-const handleSearch = () => { console.log('搜索') }
-const handleReset = () => { searchForm.position = undefined; searchForm.keyword = undefined }
-const handleExport = () => {
-  const columns = [
-    { key: 'rank', label: '排名' },
-    { key: 'period', label: '统计周期' },
-    { key: 'accountName', label: '账号' },
-    { key: 'position', label: '岗位' },
-    { key: 'ipGroupName', label: 'IP组' },
-    { key: 'score', label: '效率分' },
-  ]
-  const dataSource = activeTab.value === 'wechat' ? wechatList.value
-    : activeTab.value === 'video' ? videoList.value
-    : fansList.value
-  const tabName = activeTab.value === 'wechat' ? '公众号' : activeTab.value === 'video' ? '短视频' : '粉丝'
-  exportToExcel(dataSource, columns, `运营效率_${tabName}`)
+// ==================== 操作 ====================
+const handleSearch = () => { loadData() }
+const handleReset = () => {
+  searchForm.timeDimension = 'WEEK'
+  searchForm.statDate = undefined
+  searchForm.ipGroupId = undefined
+  searchForm.position = undefined
+  searchForm.keyword = undefined
+  loadData()
+}
+const handleExport = async () => {
+  try {
+    await exportProductivityCsv({
+      startDate: statDateToRange('start'),
+      endDate: statDateToRange('end'),
+      timeDimension: searchForm.timeDimension,
+      ipGroupId: searchForm.ipGroupId,
+      userId: undefined,
+      position: searchForm.position,
+      keyword: searchForm.keyword,
+    })
+    ElMessage.success('导出任务已提交')
+  } catch (e) {
+    console.error('[Efficiency] 导出失败:', e)
+    ElMessage.error('导出失败，请重试')
+  }
 }
 
-// 渲染迷你趋势图（使用已保存的 ref）
-const renderMiniChart = (el: HTMLElement, data: number[], chartStore: Record<number, echarts.ECharts>, rank: number) => {
+// statDate ('2026-05') 转为 start/end LocalDate 范围
+const statDateToRange = (kind: 'start' | 'end'): string => {
+  const [y, m] = (searchForm.statDate || '2026-05').split('-').map(Number)
+  if (kind === 'start') {
+    return `${y}-${String(m).padStart(2, '0')}-01`
+  } else {
+    const lastDay = new Date(y, m, 0).getDate()
+    return `${y}-${String(m).padStart(2, '0')}-${lastDay}`
+  }
+}
+
+const loadData = async () => {
+  loading.value = true
+  try {
+    const params: any = {
+      timeDimension: searchForm.timeDimension,
+      ipGroupId: searchForm.ipGroupId,
+      position: searchForm.position,
+      keyword: searchForm.keyword,
+      page: 1,
+      size: 50,
+    }
+    // 只有 statDate 设置时才传 start/end（避免空 statDate 传 1970-01-01）
+    if (searchForm.statDate) {
+      params.startDate = statDateToRange('start')
+      params.endDate = statDateToRange('end')
+    }
+    const res: any = await getProductivityList(params)
+    productivityList.value = res?.list || []
+    totalCount.value = res?.total ?? 0
+  } catch (e) {
+    console.error('[Efficiency] 加载失败:', e)
+    ElMessage.error('人效数据加载失败：' + (e instanceof Error ? e.message : String(e)))
+    productivityList.value = []
+    totalCount.value = 0
+  } finally {
+    loading.value = false
+  }
+}
+
+// mini-chart 渲染（基于后端 detail 接口返回的趋势，按需加载）
+const renderMiniChart = (el: HTMLElement, data: { date: string; revenue: number; orderCount: number }[], chartStore: Record<number, echarts.ECharts>, userId: number) => {
   if (!el || el.clientWidth === 0) {
-    setTimeout(() => renderMiniChart(el, data, chartStore, rank), 100)
+    setTimeout(() => renderMiniChart(el, data, chartStore, userId), 100)
     return
   }
-  if (chartStore[rank]) chartStore[rank].dispose()
+  if (chartStore[userId]) chartStore[userId].dispose()
   const chart = echarts.init(el)
-  chartStore[rank] = chart
+  chartStore[userId] = chart
+  // 空数据时显示 placeholder
+  if (data.length === 0) {
+    chart.setOption({
+      grid: { left: 0, right: 0, top: 0, bottom: 0 },
+      xAxis: { type: 'category', show: false, data: [] },
+      yAxis: { type: 'value', show: false, min: 0, max: 1 },
+      series: [{ type: 'bar', data: [], itemStyle: { color: '#909399' } }],
+      title: { text: '暂无趋势数据', textStyle: { color: '#909399', fontSize: 11 }, left: 'center', top: 'middle' },
+    })
+    return
+  }
   chart.setOption({
     grid: { left: 0, right: 0, top: 0, bottom: 0 },
-    xAxis: { type: 'category', show: false, data: Array.from({ length: 10 }, (_, i) => i) },
+    tooltip: { trigger: 'axis', formatter: (params: any) => `${params[0].axisValue}<br/>营收: ¥${params[0].value.toLocaleString()}` },
+    xAxis: { type: 'category', show: false, data: data.map(d => d.date) },
     yAxis: { type: 'value', show: false },
-    series: [{ type: 'bar', data: data.map(v => Math.max(v, 10)), itemStyle: { color: '#67c23a', borderRadius: [2, 2, 0, 0] }, barWidth: '60%' }],
+    series: [{ type: 'bar', data: data.map(d => Math.max(d.revenue, 1)), itemStyle: { color: '#67c23a', borderRadius: [2, 2, 0, 0] }, barWidth: '60%' }],
   })
+}
+
+// 按需加载趋势（S-R10 补 B10：展开行时调 detail 接口拿 trend 数据）
+const expandedUserIds = new Set<number>()
+const handleExpand = async (row: ProductivityReviewVO, expandedRows: ProductivityReviewVO[]) => {
+  const userId = row.userId
+  if (expandedRows.find(r => r.userId === userId) && !expandedUserIds.has(userId)) {
+    // 展开时拉数据
+    expandedUserIds.add(userId)
+    try {
+      const detail = await getProductivityDetail(userId, {})
+      const trend = detail.trend || []
+      await nextTick()
+      const we = wechatChartRefs[userId]
+      const ve = videoChartRefs[userId]
+      if (we) renderMiniChart(we, trend, wechatCharts, userId)
+      if (ve) renderMiniChart(ve, trend, videoCharts, userId)
+    } catch (e) {
+      console.error('[Efficiency] 加载趋势失败:', e)
+      // 失败时渲染空
+      await nextTick()
+      const we = wechatChartRefs[userId]
+      const ve = videoChartRefs[userId]
+      if (we) renderMiniChart(we, [], wechatCharts, userId)
+      if (ve) renderMiniChart(ve, [], videoCharts, userId)
+    }
+  } else if (!expandedRows.find(r => r.userId === userId)) {
+    // 折叠时清理
+    expandedUserIds.delete(userId)
+    if (wechatCharts[userId]) {
+      wechatCharts[userId].dispose()
+      delete wechatCharts[userId]
+    }
+    if (videoCharts[userId]) {
+      videoCharts[userId].dispose()
+      delete videoCharts[userId]
+    }
+  }
 }
 
 onMounted(async () => {
-  await nextTick()
-  // 渲染公众号迷你图
-  wechatList.value.forEach((row) => {
-    const el = wechatChartRefs[row.rank]
-    const data = Array.from({ length: 10 }, () => Math.round(Math.random() * 60 + 30))
-    if (el) renderMiniChart(el, data, wechatCharts, row.rank)
-  })
-  // 渲染视频迷你图
-  videoList.value.forEach((row) => {
-    const el = videoChartRefs[row.rank]
-    const data = Array.from({ length: 10 }, () => Math.round(Math.random() * 60 + 30))
-    if (el) renderMiniChart(el, data, videoCharts, row.rank)
-  })
+  await loadData()
 })
 </script>
 
@@ -349,9 +396,6 @@ onMounted(async () => {
 .main-card { margin-top: 16px; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .main-tabs :deep(.el-tabs__header) { margin-bottom: 16px; }
-.rank-badge { display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 600; }
-.rank-top { background: #f56c6c; }
-.rank-badge:not(.rank-top) { background: #e6a23c; }
 .text-success { color: #67c23a; font-weight: 600; }
 .text-danger { color: #f56c6c; }
 .text-warning { color: #e6a23c; }

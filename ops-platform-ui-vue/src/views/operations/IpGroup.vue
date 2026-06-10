@@ -372,13 +372,6 @@ import {
   unbindIpGroupAnchor,
 } from '@/api/ip-group'
 import type { IpGroupTreeVO, IpGroupStatsVO } from '@/types/ip-group'
-import {
-  mockIpGroupTree,
-  mockIpGroupStats,
-  mockMembers,
-  mockAccounts,
-  mockAnchors,
-} from '@/mock/ip-group'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import UserSelect from '@/components/selectors/UserSelect.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
@@ -404,8 +397,10 @@ const loadTree = async () => {
   treeLoading.value = true
   try {
     treeData.value = await getIpGroupTree()
-  } catch {
-    treeData.value = [...mockIpGroupTree]
+  } catch (e) {
+    console.error('[IpGroup] 加载 IP 组树失败:', e)
+    treeData.value = []
+    ElMessage.error('IP 组树加载失败，请稍后重试')
   } finally {
     treeLoading.value = false
   }
@@ -446,8 +441,10 @@ const loadStats = async () => {
   try {
     const data = await getIpGroupStats(currentNode.value.id)
     statsData.value = data
-  } catch {
-    statsData.value = mockIpGroupStats
+  } catch (e) {
+    console.error('[IpGroup] 加载统计数据失败:', e)
+    statsData.value = null
+    ElMessage.error('统计数据加载失败')
   } finally {
     statsLoading.value = false
   }
@@ -458,8 +455,10 @@ const loadMembers = async () => {
   try {
     const data = await getIpGroupMembers(currentNode.value.id)
     memberList.value = data
-  } catch {
-    memberList.value = mockMembers[currentNode.value.id] || []
+  } catch (e) {
+    console.error('[IpGroup] 加载成员失败:', e)
+    memberList.value = []
+    ElMessage.error('成员列表加载失败')
   } finally {
     memberLoading.value = false
   }
@@ -470,8 +469,10 @@ const loadAccounts = async () => {
   try {
     const data = await getIpGroupAccounts(currentNode.value.id)
     accountList.value = data
-  } catch {
-    accountList.value = mockAccounts[currentNode.value.id] || []
+  } catch (e) {
+    console.error('[IpGroup] 加载账号失败:', e)
+    accountList.value = []
+    ElMessage.error('账号列表加载失败')
   } finally {
     accountLoading.value = false
   }
@@ -482,8 +483,10 @@ const loadAnchors = async () => {
   try {
     const data = await getIpGroupAnchors(currentNode.value.id)
     anchorList.value = data
-  } catch {
-    anchorList.value = mockAnchors[currentNode.value.id] || []
+  } catch (e) {
+    console.error('[IpGroup] 加载主播失败:', e)
+    anchorList.value = []
+    ElMessage.error('主播列表加载失败')
   } finally {
     anchorLoading.value = false
   }
@@ -494,6 +497,19 @@ const dialogVisible = ref(false)
 const dialogMode = ref<'create' | 'edit' | 'createChild'>('create')
 const formRef = ref<FormInstance>()
 const submitLoading = ref(false)
+
+// 递归查找树节点（用于编辑后从新树中定位已保存节点，避免 currentNode 引用旧对象）
+const findNodeById = (nodes: any[], id: number): any => {
+  for (const n of nodes) {
+    if (n.id === id) return n
+    if (n.children?.length) {
+      const f = findNodeById(n.children, id)
+      if (f) return f
+    }
+  }
+  return null
+}
+
 const formData = reactive({
   id: undefined as number | undefined,
   groupName: '',
@@ -562,10 +578,21 @@ const handleSubmit = async () => {
     }
     dialogVisible.value = false
     await loadTree()
-    // 重新选中
-    nextTick(() => {
-      if (formData.id && treeRef.value) treeRef.value.setCurrentKey(formData.id)
-    })
+    // 重新选中并刷新右侧详情
+    // P-GATE-UNMOCK: setCurrentKey 只高亮不触发 node-click，currentNode.value 仍指向旧对象，
+    // 需手动从新树中找出节点并赋给 currentNode，否则右侧详情显示旧值。
+    const savedId = formData.id
+    if (savedId) {
+      const found = findNodeById(treeData.value, savedId)
+      if (found) {
+        currentNode.value = found
+      }
+      nextTick(() => {
+        if (treeRef.value) treeRef.value.setCurrentKey(savedId)
+      })
+      // 重新拉详情 tab
+      loadAllTabData()
+    }
   } catch (e: any) {
     ElMessage.error(e?.message || '操作失败')
   } finally {

@@ -1,15 +1,16 @@
 <template>
   <div class="account-analysis-page">
-    <!-- 平台Tab -->
-    <el-tabs v-model="activePlatform" @tab-click="handleTabChange" class="platform-tabs">
-      <el-tab-pane label="全部" :name="PlatformType.ALL" />
-      <el-tab-pane label="公众号" :name="PlatformType.WECHAT_MP" />
-      <el-tab-pane label="视频号" :name="PlatformType.VIDEO_ACCOUNT" />
-      <el-tab-pane label="抖音" :name="PlatformType.DOUYIN" />
-      <el-tab-pane label="快手" :name="PlatformType.KUAISHOU" />
-      <el-tab-pane label="小红书" :name="PlatformType.XIAOHONGSHU" />
-      <el-tab-pane label="服务号" :name="PlatformType.SERVICE_ACCOUNT" />
-      <el-tab-pane label="企微" :name="PlatformType.WECHAT_WORK" />
+    <!-- 平台Tab（S-R3: PlatformType 全部用 dict 真实值，名字从 PLATFORM_LABEL 拿）-->
+    <el-tabs v-model="activePlatform" class="platform-tabs">
+      <el-tab-pane label="全部" :name="'ALL'" />
+      <el-tab-pane label="公众号" :name="'WECHAT_OFFICIAL'" />
+      <el-tab-pane label="视频号" :name="'WECHAT_VIDEO'" />
+      <el-tab-pane label="抖音" :name="'DOUYIN'" />
+      <el-tab-pane label="快手" :name="'KUAISHOU'" />
+      <el-tab-pane label="小红书" :name="'XIAOHONGSHU'" />
+      <el-tab-pane label="企微" :name="'WEWORK'" />
+      <!-- S-R6-TODO4：V30 补 dict_platform_type.个微=WECHAT_PERSONAL -->
+      <el-tab-pane label="个微" :name="'WECHAT_PERSONAL'" />
     </el-tabs>
 
     <!-- 筛选区 -->
@@ -45,7 +46,7 @@
         <el-table-column prop="platformName" label="平台" width="90" align="center">
           <template #default="{ row }">
             <el-tag :type="getPlatformTagType(row.platformType)">
-              {{ row.platformName }}
+              {{ getPlatformLabel(row.platformType) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -103,12 +104,15 @@
 </template>
 
 <script setup lang="ts">
+// P-GATE-UNMOCK-R S-R2-B：去 mock + 跳真实详情
 import { ref, reactive, onMounted, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 import { Download, TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { getAccountList } from '@/api/account'
-import { mockGetAccountList, mockGetFollowerTrend, mockAccountList } from '@/mock/account'
+import { getAccountAnalysisList } from '@/api/account-analysis'
+import { getFollowerTrend } from '@/api/follower'
 import { PlatformType, AccountStatus } from '@/types/account'
 import type { AccountQuery } from '@/types/account'
 import TableSearch from '@/components/TableSearch.vue'
@@ -117,83 +121,65 @@ import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { exportToExcel } from '@/utils'
+import { normalizePlatform, normalizeAccountStatus, PLATFORM_LABEL, type PlatformType as DictPlatform } from '@/utils/enum-alias'
 
-// 暴露枚举供模板使用
+const router = useRouter()
+
 const PlatformTypeEnum = PlatformType
 const AccountStatusEnum = AccountStatus
 
 // ==================== 响应式数据 ====================
 
-// 当前平台Tab
-const activePlatform = ref<PlatformType>(PlatformType.ALL)
-
-// 搜索表单
+// S-R3：默认 Tab=公众号（后端 dict 真实值 WECHAT_OFFICIAL）
+const activePlatform = ref<DictPlatform>('WECHAT_OFFICIAL')
 const searchForm = reactive({
   ipGroupId: undefined as number | undefined,
   keyword: '',
-  accountStatus: undefined as AccountStatus | undefined,
+  // S-R3：AccountStatus 用后端真实值
+  accountStatus: undefined as 'NORMAL' | 'DISABLED' | undefined,
 })
-
-// 加载状态
 const loading = ref(false)
-
-// 表格数据 - 初始值使用Mock数据
-const tableData = ref<any[]>([...mockAccountList])
-
-// 分页参数
-const pagination = reactive({
-  pageNo: 1,
-  pageSize: 10,
-  total: 0,
-})
-
-// 趋势对比对话框
+const tableData = ref<any[]>([])
+const pagination = reactive({ pageNo: 1, pageSize: 10, total: 0 })
 const trendDialogVisible = ref(false)
 const trendChartRef = ref<HTMLElement>()
 
 // ==================== 方法 ====================
 
-// 加载数据
 const loadData = async () => {
   loading.value = true
   try {
     const params: AccountQuery = {
       ipGroupId: searchForm.ipGroupId,
       keyword: searchForm.keyword || undefined,
-      accountStatus: searchForm.accountStatus,
-      platformType: activePlatform.value === PlatformType.ALL ? undefined : activePlatform.value,
-      pageNo: pagination.pageNo,
-      pageSize: pagination.pageSize,
-    }
+      // S-R3：用 normalize 转换前端值到后端 dict 真实值
+      accountStatus: normalizeAccountStatus(searchForm.accountStatus),
+      // S-R3：用 normalize 转换 PlatformType（前端 ALL→后端 ALL，其他按 alias）
+      platform: normalizePlatform(activePlatform.value),
+      // S-R3：后端 controller 收 page/size 不是 pageNo/size
+      page: pagination.pageNo,
+      size: pagination.pageSize,
+    } as any
 
-    const result = await getAccountList(params).catch(() => {
-      return mockGetAccountList(pagination.pageNo, pagination.pageSize, activePlatform.value)
-    })
-
-    // 确保使用Mock数据作为降级方案
-    const mockResult = mockGetAccountList(pagination.pageNo, pagination.pageSize, activePlatform.value)
-    tableData.value = result?.list?.length ? result.list : mockResult.list
-    pagination.total = result?.total || mockResult.total
+    // spec: 调用 /oa/account-analysis/list（不是 /oa/account/list）
+    const result = await getAccountAnalysisList(params as any)
+    tableData.value = result?.list || []
+    pagination.total = result?.total ?? 0
   } catch (error) {
-    ElMessage.error('数据加载失败')
+    console.error('[AccountAnalysis] 加载失败:', error)
+    ElMessage.error('账号数据加载失败：' + (error instanceof Error ? error.message : String(error)))
+    tableData.value = []
+    pagination.total = 0
   } finally {
     loading.value = false
   }
 }
 
-// Tab切换
-const handleTabChange = () => {
-  pagination.pageNo = 1
-  loadData()
-}
+const handleTabChange = () => { pagination.pageNo = 1; loadData() }
 
-// 搜索
-const handleSearch = () => {
-  pagination.pageNo = 1
-  loadData()
-}
-
-// 重置
+// S-R3：v-model activePlatform 改变时也重新加载（@tab-click 在某些 element-plus 版本下不触发）
+watch(activePlatform, () => { pagination.pageNo = 1; loadData() })
+const handleSearch = () => { pagination.pageNo = 1; loadData() }
 const handleReset = () => {
   searchForm.ipGroupId = undefined
   searchForm.keyword = ''
@@ -202,7 +188,6 @@ const handleReset = () => {
   loadData()
 }
 
-// 导出
 const handleExport = () => {
   const columns = [
     { key: 'accountName', label: '账号名称' },
@@ -217,25 +202,29 @@ const handleExport = () => {
   exportToExcel(tableData.value, columns, '账号数据分析')
 }
 
-// 查看详情
+// P-GATE-UNMOCK-R S-R2-B：跳真实详情（后端已补 /{id}/followers 和 /{id}/contents）
 const handleViewDetail = (row: any, tab: string) => {
-  ElMessage.info(`查看${row.accountName}的${tab === 'follower' ? '粉丝' : '作品'}详情`)
-  // TODO: router.push(`/analysis/account/${row.id}/detail?tab=${tab}`)
+  const tabName = tab === 'follower' ? 'followers' : 'contents'
+  const accountId = row.accountId ?? row.id
+  router.push({ path: `/analysis/account/${accountId}/detail`, query: { tab: tabName } })
 }
 
-// 获取平台标签类型
-const getPlatformTagType = (platformType: PlatformType) => {
-  const types: Record<PlatformType, string> = {
-    [PlatformType.ALL]: '',
-    [PlatformType.WECHAT_MP]: 'success',
-    [PlatformType.VIDEO_ACCOUNT]: 'primary',
-    [PlatformType.DOUYIN]: 'danger',
-    [PlatformType.KUAISHOU]: 'warning',
-    [PlatformType.XIAOHONGSHU]: '',
-    [PlatformType.SERVICE_ACCOUNT]: 'info',
-    [PlatformType.WECHAT_WORK]: 'success',
+// S-R3：获取平台标签类型（用后端真实 enum 值）
+const getPlatformTagType = (platformType: string) => {
+  const types: Record<string, string> = {
+    WECHAT_OFFICIAL: 'success',
+    WECHAT_VIDEO: 'primary',
+    DOUYIN: 'danger',
+    KUAISHOU: 'warning',
+    XIAOHONGSHU: '',
+    WEWORK: 'info',
   }
   return types[platformType] || ''
+}
+
+// S-R3：显示平台中文 label
+const getPlatformLabel = (platformType: string) => {
+  return PLATFORM_LABEL[platformType as DictPlatform] ?? platformType
 }
 
 // 格式化数字（千分位）
@@ -262,10 +251,12 @@ const renderTrendChart = async () => {
   }
   const chart = echarts.init(trendChartRef.value)
   trendChart = chart
-  
-  // 获取Mock数据
-  const trendData = mockGetFollowerTrend(1001)
-  
+
+  // P-GATE-UNMOCK-R S-R2-C：真粉丝趋势（不再用 mock）
+  const trendData = await getFollowerTrend({
+    startDate: '', endDate: '',
+  } as any).catch(() => [])
+
   const option = {
     tooltip: { trigger: 'axis' },
     legend: { data: ['粉丝数', '新增粉丝'] },
@@ -281,14 +272,14 @@ const renderTrendChart = async () => {
       {
         name: '粉丝数',
         type: 'line',
-        data: trendData.map(d => d.followerCount),
+        data: trendData.map((d: any) => d.followerCount ?? 0),
         smooth: true,
       },
       {
         name: '新增粉丝',
         type: 'bar',
         yAxisIndex: 1,
-        data: trendData.map(d => d.newFollowers),
+        data: trendData.map((d: any) => d.newFollower ?? d.newFollowers ?? 0),
       },
     ],
   }

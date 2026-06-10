@@ -176,16 +176,22 @@ export interface AuthorDashboardVO {
 
 /**
  * 运营人员信息
+ * P-GATE-UNMOCK-R S-R1 P0-3 (2026-06-09)：字段名与后端 OpsUserVO.java 对齐
+ * 5 字段：opsUserId, opsUserName, ipGroupId, startDate, endDate
+ * 注：原前端 4 字段（userId/userName/deptName/relTime）与后端完全错位
+ * 部门名称(deptName) 后端未实现 → 表格该列暂留空（记入 ADR-007）
  */
 export interface OpsUserVO {
-  /** 用户ID */
-  userId: number
-  /** 用户姓名 */
-  userName: string
-  /** 部门名称 */
-  deptName: string
-  /** 关联时间 */
-  relTime: string
+  /** 运营用户 ID */
+  opsUserId: number
+  /** 运营用户姓名 */
+  opsUserName: string
+  /** 所属 IP 组 ID */
+  ipGroupId: number
+  /** 关联开始日期 */
+  startDate: string
+  /** 关联结束日期 */
+  endDate: string
 }
 
 // ==================== 运营→主播关联类型 ====================

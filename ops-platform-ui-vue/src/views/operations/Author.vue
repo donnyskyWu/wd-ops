@@ -264,9 +264,10 @@
     <!-- 运营人员列表对话框 -->
     <el-dialog v-model="opsDialogVisible" title="负责运营人员" width="600px">
       <el-table v-if="opsData" :data="opsData" border stripe>
-        <el-table-column prop="userName" label="姓名" width="120" />
-        <el-table-column prop="deptName" label="部门" min-width="150" />
-        <el-table-column prop="relTime" label="关联时间" width="180" />
+        <el-table-column prop="opsUserName" label="姓名" width="120" />
+        <el-table-column prop="ipGroupId" label="所属 IP 组 ID" min-width="120" />
+        <el-table-column prop="startDate" label="关联开始" width="120" />
+        <el-table-column prop="endDate" label="关联结束" width="120" />
       </el-table>
     </el-dialog>
   </div>

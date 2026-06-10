@@ -49,7 +49,7 @@
           <div class="kpi">
             <div class="kpi-label">总粉丝数</div>
             <div class="kpi-value">{{ formatNumber(kpi.totalFollowers) }}</div>
-            <div class="kpi-change up">+{{ kpi.followerChangeRate }}% 较上月</div>
+            <div class="kpi-change up">{{ formatPercent(kpi.followerChangeRate) }} 较上月</div>
           </div>
         </el-card>
       </el-col>
@@ -57,8 +57,8 @@
         <el-card shadow="hover">
           <div class="kpi">
             <div class="kpi-label">月产出内容</div>
-            <div class="kpi-value">{{ kpi.monthlyContent }}</div>
-            <div class="kpi-change up">+{{ kpi.contentChangeRate }}% 较上月</div>
+            <div class="kpi-value">{{ formatNumber(kpi.monthlyContent) }}</div>
+            <div class="kpi-change up">{{ formatPercent(kpi.contentChangeRate) }} 较上月</div>
           </div>
         </el-card>
       </el-col>
@@ -66,8 +66,8 @@
         <el-card shadow="hover">
           <div class="kpi">
             <div class="kpi-label">月直播时长</div>
-            <div class="kpi-value">{{ kpi.monthlyLiveHours }}h</div>
-            <div class="kpi-change down">-{{ kpi.liveChangeRate }}% 较上月</div>
+            <div class="kpi-value">{{ formatNumber(kpi.monthlyLiveHours) }}h</div>
+            <div class="kpi-change down">{{ formatPercent(-kpi.liveChangeRate) }} 较上月</div>
           </div>
         </el-card>
       </el-col>
@@ -75,8 +75,8 @@
         <el-card shadow="hover">
           <div class="kpi">
             <div class="kpi-label">月度 ROI</div>
-            <div class="kpi-value" :class="{ negative: kpi.roi < 1 }">{{ kpi.roi.toFixed(2) }}</div>
-            <div class="kpi-change up">+{{ kpi.roiChangeRate }}% 较上月</div>
+            <div class="kpi-value" :class="{ negative: kpi.roi < 1 }">{{ formatNumber(kpi.roi) }}</div>
+            <div class="kpi-change up">{{ formatPercent(kpi.roiChangeRate) }} 较上月</div>
           </div>
         </el-card>
       </el-col>
@@ -97,16 +97,11 @@
       <el-tab-pane label="运营→主播关联" name="anchor">
         <ContentWrap>
           <el-table :data="anchorList" border stripe>
-            <el-table-column prop="anchorName" label="主播" width="140" />
-            <el-table-column prop="platformName" label="平台" width="120" />
-            <el-table-column prop="relType" label="关联类型" width="120" align="center">
-              <template #default="{ row }">
-                <el-tag size="small">{{ row.relType }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="boundAt" label="关联时间" width="180" align="center" />
-            <el-table-column prop="remark" label="备注" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="userName" label="运营人员" width="140" />
+            <el-table-column prop="deptName" label="部门" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="relTime" label="关联时间" width="180" align="center" />
           </el-table>
+          <el-empty v-if="!anchorList.length" description="暂无关联运营" />
         </ContentWrap>
       </el-tab-pane>
     </el-tabs>
@@ -116,8 +111,10 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
+import { getAuthorDashboard, getAuthorOpsList } from '@/api/author'
 
 const route = useRoute()
 const router = useRouter()
@@ -141,56 +138,89 @@ const contentChartRef = ref<HTMLDivElement>()
 let followerChart: echarts.ECharts | null = null
 let contentChart: echarts.ECharts | null = null
 
-const formatNumber = (n: number) => n >= 10000 ? (n / 10000).toFixed(1) + '万' : n.toString()
+const safeNumber = (n: any): number => (typeof n === 'number' && !isNaN(n) ? n : 0)
+
+const formatNumber = (n: any) => {
+  const v = safeNumber(n)
+  return v >= 10000 ? (v / 10000).toFixed(1) + '万' : v.toString()
+}
+
+const formatPercent = (n: any) => {
+  const v = safeNumber(n)
+  return (v >= 0 ? '+' : '') + v.toFixed(1) + '%'
+}
 
 const loadAuthor = async () => {
   loading.value = true
   const id = Number(route.params.id)
-  // TODO: GET /admin-api/oa/author/{id}
-  await new Promise((r) => setTimeout(r, 300))
-  author.value = {
-    id,
-    nickname: '张三',
-    avatar: '',
-    authorType: '内容作者',
-    status: 1,
-    ipGroupName: 'A 大组',
-    accountCount: 8,
-    anchorCount: 3,
-    joinedAt: '2025-03-15',
+  try {
+    const [dash, opsList] = await Promise.all([
+      getAuthorDashboard(id),
+      getAuthorOpsList(id).catch(() => []),
+    ])
+    // P-GATE-UNMOCK: 后端 AuthorDashboardVO 实际字段是 followerCount/contentStats/liveStats/orderAttribution，
+    // 与前端类型定义不一致。后续 P-GATE-UNMOCK-R 需要同步两端类型。当前阶段用安全 fallback。
+    const d: any = dash || {}
+    const contentStats: any = d.contentStats || {}
+    const liveStats: any = d.liveStats || {}
+    const orderAttribution: any = d.orderAttribution || {}
+    author.value = {
+      id,
+      nickname: d.authorName || '-',
+      avatar: '',
+      authorType: '-',
+      status: 1,
+      ipGroupName: d.ipGroupName || '-',
+      accountCount: 0,
+      anchorCount: 0,
+      joinedAt: '-',
+      followerTrend: Array.isArray(d.followerTrend) ? d.followerTrend : [],
+      contentStats: contentStats,
+      liveStats: liveStats,
+      orderAttribution: orderAttribution,
+    }
+    Object.assign(kpi, {
+      totalFollowers: safeNumber(d.followerCount),
+      followerChangeRate: 0,
+      monthlyContent: safeNumber(contentStats.totalCount),
+      contentChangeRate: 0,
+      monthlyLiveHours: safeNumber(liveStats.totalHours),
+      liveChangeRate: 0,
+      roi: safeNumber(orderAttribution.roi),
+      roiChangeRate: 0,
+    })
+    anchorList.value = Array.isArray(opsList) ? opsList : []
+  } catch (e) {
+    console.error('[AuthorDashboard] 加载作者详情失败:', e)
+    author.value = null
+    anchorList.value = []
+    ElMessage.error('作者详情加载失败')
+  } finally {
+    loading.value = false
   }
-  Object.assign(kpi, {
-    totalFollowers: 1280000,
-    followerChangeRate: 12.5,
-    monthlyContent: 86,
-    contentChangeRate: 8.3,
-    monthlyLiveHours: 142,
-    liveChangeRate: 3.2,
-    roi: 1.65,
-    roiChangeRate: 5.7,
-  })
-  anchorList.value = [
-    { anchorName: '李四', platformName: '抖音', relType: '内容+直播', boundAt: '2025-04-01 10:00:00', remark: '重点培养对象' },
-    { anchorName: '王五', platformName: '快手', relType: '内容', boundAt: '2025-05-15 14:00:00', remark: '' },
-  ]
-  loading.value = false
 }
 
 const initFollowerChart = () => {
   if (!followerChartRef.value) return
   followerChart = echarts.init(followerChartRef.value)
+  // S-R4 修复：用真实数据 (followerTrend) 替代 Math.random() 假数据
+  // spec §4.2.3 §5: 作者数据自动从 oa_follower_daily 聚合
+  const trend: any[] = Array.isArray(author.value?.followerTrend) ? author.value.followerTrend : []
+  const xData = trend.map((p: any) => p.date?.substring(5) || '-')
+  const yData = trend.map((p: any) => p.followerCount ?? 0)
+  const noData = trend.length === 0
   followerChart.setOption({
-    title: { text: '近 30 天粉丝变化', left: 'center' },
+    title: { text: noData ? '近 30 天粉丝变化（暂无数据）' : '近 30 天粉丝变化', left: 'center' },
     tooltip: { trigger: 'axis' },
     grid: { left: 60, right: 30, top: 50, bottom: 30 },
-    xAxis: { type: 'category', data: Array.from({ length: 30 }, (_, i) => `${i + 1}日`) },
+    xAxis: { type: 'category', data: noData ? ['暂无数据'] : xData },
     yAxis: { type: 'value', name: '粉丝数' },
     series: [{
       name: '粉丝数',
       type: 'line',
       smooth: true,
       areaStyle: { opacity: 0.3 },
-      data: Array.from({ length: 30 }, (_, i) => 1200000 + i * 3500 + Math.random() * 2000),
+      data: noData ? [0] : yData,
     }],
   })
 }
@@ -198,17 +228,19 @@ const initFollowerChart = () => {
 const initContentChart = () => {
   if (!contentChartRef.value) return
   contentChart = echarts.init(contentChartRef.value)
+  // S-R4 修复：内容产出用真实 contentStats，无后端趋势时显示空状态
+  const total = safeNumber(kpi.monthlyContent)
+  const noData = total === 0
   contentChart.setOption({
-    title: { text: '近 30 天内容产出', left: 'center' },
+    title: { text: noData ? '内容产出（暂无数据）' : '作者总内容产出', left: 'center' },
     tooltip: { trigger: 'axis' },
-    legend: { data: ['视频', '文章', '直播'], top: 30 },
+    legend: { data: ['内容数', '爆款数'], top: 30 },
     grid: { left: 60, right: 30, top: 80, bottom: 30 },
-    xAxis: { type: 'category', data: Array.from({ length: 30 }, (_, i) => `${i + 1}日`) },
+    xAxis: { type: 'category', data: noData ? ['暂无数据'] : ['总内容', '爆款'] },
     yAxis: { type: 'value', name: '数量' },
     series: [
-      { name: '视频', type: 'bar', stack: 'c', data: Array.from({ length: 30 }, () => Math.floor(Math.random() * 5)) },
-      { name: '文章', type: 'bar', stack: 'c', data: Array.from({ length: 30 }, () => Math.floor(Math.random() * 3)) },
-      { name: '直播', type: 'bar', stack: 'c', data: Array.from({ length: 30 }, () => Math.floor(Math.random() * 2)) },
+      { name: '内容数', type: 'bar', data: noData ? [0] : [total] },
+      { name: '爆款数', type: 'bar', data: noData ? [0] : [safeNumber(kpi.contentStats?.hitCount)] },
     ],
   })
 }

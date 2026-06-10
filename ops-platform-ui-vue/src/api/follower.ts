@@ -1,35 +1,61 @@
 /**
- * 粉丝分析 - API接口封装
+ * 粉丝分析 - API (P-GATE-UNMOCK-R S-R2-C, S-R6 重构)
+ * 路径对齐后端：/admin-api/oa/follower-analysis/* (spec §4.4)
  */
-
 import { request } from '@/utils/request'
-import type {
-  FollowerStats,
-  FollowerTrendPoint,
-  FollowerDetailVO,
-  FollowerQuery,
-  PageResult,
-} from '@/types/follower'
+import type { FollowerQuery, FollowerStats } from '@/types/follower'
 
-// ==================== 粉丝统计 ====================
+export interface FollowerRowVO {
+  statDate: string
+  accountId: number
+  accountName: string
+  ipGroupName: string
+  followerCount: number
+  newFollower: number
+  unfollowCount: number
+  netGrowth: number
+  growthRate: number
+}
 
-/**
- * 获取粉丝统计数据
- */
-export function getFollowerStats(params: Pick<FollowerQuery, 'ipGroupId' | 'platformType' | 'accountId' | 'startDate' | 'endDate'>): Promise<FollowerStats> {
-  return request.get<FollowerStats>({ url: '/oa/follower/stats', params })
+export interface FollowerPageResult {
+  total: number
+  list: FollowerRowVO[]
+}
+
+export function getFollowerList(params: FollowerQuery): Promise<FollowerPageResult> {
+  return request.get({ url: '/oa/follower-analysis/list', params })
+}
+
+export function getFollowerTrend(params: FollowerQuery): Promise<FollowerTrendPointVO[]> {
+  return request.get({ url: '/oa/follower-analysis/trend', params })
+}
+
+export interface FollowerTrendPointVO {
+  timePeriod: string
+  accountName?: string
+  ipGroupName?: string
+  followerCount?: number
+  newFollower?: number
+  unfollowCount?: number
+  netGrowth?: number
+  growthRate?: number
 }
 
 /**
- * 获取粉丝趋势数据
+ * S-R6-B1+B4：聚合统计（替代前端 list.reduce）
  */
-export function getFollowerTrend(params: Pick<FollowerQuery, 'ipGroupId' | 'platformType' | 'accountId' | 'startDate' | 'endDate' | 'dimension'>): Promise<FollowerTrendPoint[]> {
-  return request.get<FollowerTrendPoint[]>({ url: '/oa/follower/trend', params })
+export function getFollowerStats(params: FollowerQuery): Promise<FollowerStats> {
+  return request.get({ url: '/oa/follower-analysis/stats', params })
 }
 
 /**
- * 获取粉丝明细列表（分页）
+ * S-R6-B3：导出。直接返回 blob 让浏览器下载（后端响应 Content-Disposition: attachment）。
+ * 文件名 follower_analysis_{ts}.csv。
  */
-export function getFollowerList(params: FollowerQuery): Promise<PageResult<FollowerDetailVO>> {
-  return request.get<PageResult<FollowerDetailVO>>({ url: '/oa/follower/list', params })
+export function exportFollowerAnalysis(params: FollowerQuery): Promise<Blob> {
+  return request.get({
+    url: '/oa/follower-analysis/export',
+    params,
+    responseType: 'blob',
+  })
 }

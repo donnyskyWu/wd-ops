@@ -373,6 +373,13 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/analysis/FunnelAnalysis.vue'),
         meta: { title: '漏斗分析' }
       },
+      // P-GATE-UNMOCK-R S-R2-B：账号分析详情页（粉丝/作品）
+      {
+        path: '/analysis/account/:id/detail',
+        name: 'AccountAnalysisDetail',
+        component: () => import('@/views/analysis/AccountAnalysisDetail.vue'),
+        meta: { title: '账号详情' }
+      },
       // 数据分析 - 微信数据分析
       {
         path: '/wechat-data',

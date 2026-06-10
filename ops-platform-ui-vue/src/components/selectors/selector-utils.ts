@@ -58,7 +58,4 @@ export function applyExcludeBound<T extends BoundItem>(
   })
 }
 
-export function useMockFallback<T>(list: T[], mockList: T[]): T[] {
-  if (list.length) return list
-  return import.meta.env.VITE_USE_MOCK === 'true' ? mockList : []
-}
+// P-GATE-UNMOCK S-A: mock 兜底已移除。前端不再以 mock 静默回退，API 失败由调用方在 try/catch 中显式 ElMessage 提示用户。

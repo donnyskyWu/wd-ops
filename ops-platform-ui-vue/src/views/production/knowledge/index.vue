@@ -6,8 +6,7 @@
         <el-input v-model="searchForm.keyword" placeholder="搜索标题或标签" clearable />
       </el-form-item>
       <el-form-item label="分类">
-        <el-select v-model="searchForm.category" placeholder="请选择" clearable>
-          <el-option label="全部" :value="undefined" />
+        <el-select v-model="searchForm.category" placeholder="全部（不选则查全部）" clearable>
           <el-option label="案例库" value="case" />
           <el-option label="模板库" value="template" />
           <el-option label="行业资料" value="industry" />
@@ -130,15 +129,28 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="标签" prop="tags">
-          <el-select
-            v-model="formData.tags"
-            multiple
-            filterable
-            allow-create
-            placeholder="请输入标签（最多10个）"
-            :max-collapse-tags="10"
-            style="width: 100%"
-          />
+          <div class="tags-input-wrapper" @click="focusTagInput">
+            <el-tag
+              v-for="(tag, idx) in formData.tags"
+              :key="tag + idx"
+              closable
+              size="default"
+              type="info"
+              style="margin: 2px 4px 2px 0"
+              @close="removeTag(idx)"
+            >{{ tag }}</el-tag>
+            <input
+              ref="tagInputRef"
+              v-model="tagInputValue"
+              class="tag-native-input"
+              :placeholder="formData.tags.length ? '' : '输入后回车确认（最多 10 个）'"
+              :maxlength="20"
+              :disabled="formData.tags.length >= 10"
+              @keydown.enter.prevent="commitTag"
+              @keydown.delete="onTagBackspace"
+            />
+            <div v-if="formData.tags.length >= 10" class="form-tip">已达上限 10 个</div>
+          </div>
         </el-form-item>
         <el-form-item label="是否公开" prop="isPublic">
           <el-switch v-model="formData.isPublic" />
@@ -218,16 +230,59 @@ import {
   deleteKnowledge,
   toggleLike,
 } from '@/api/knowledge'
-import { mockKnowledgeList, queryKnowledgeList, mockKnowledgeDetails } from '@/mock/knowledge'
 import type { KnowledgeVO, KnowledgeDetailVO, KnowledgeFormData } from '@/types/knowledge'
 import { KnowledgeCategory, CATEGORY_LABELS } from '@/types/knowledge'
 
 // ==================== 列表数据 ====================
 
 const loading = ref(false)
-const knowledgeList = ref<KnowledgeVO[]>([...mockKnowledgeList])
-const total = ref(mockKnowledgeList.length)
+const knowledgeList = ref<KnowledgeVO[]>([])
+const total = ref(0)
 const viewMode = ref<'list' | 'card'>('list')
+
+/** P-GATE-UNMOCK-R S-R1 P0-1：后端 tags 是逗号分隔字符串，前端转 string[] */
+const parseTags = (raw: unknown): string[] => {
+  if (Array.isArray(raw)) return raw as string[]
+  if (typeof raw === 'string' && raw.length) return raw.split(',').map((s) => s.trim()).filter(Boolean)
+  return []
+}
+
+/** P-GATE-UNMOCK-R S-R1 P0-1：前端 enum → 后端 dict_value 映射
+ *  V28 后字典 5 项：TEMPLATE_LIB / OPS_TIPS / CASE_LIB / INDUSTRY_LIB / EXPERIENCE_LIB
+ *  旧前端 enum 4 项：case / template / industry / experience
+ *  S-R2 整改：前端改 DictSelect 自动拉字典，本映射表删除
+ */
+const CATEGORY_TO_BACKEND: Record<string, string> = {
+  case: 'CASE_LIB',
+  template: 'TEMPLATE_LIB',
+  industry: 'INDUSTRY_LIB',
+  experience: 'EXPERIENCE_LIB',
+}
+const BACKEND_TO_CATEGORY: Record<string, KnowledgeCategory> = {
+  CASE_LIB: KnowledgeCategory.CASE,
+  TEMPLATE_LIB: KnowledgeCategory.TEMPLATE,
+  INDUSTRY_LIB: KnowledgeCategory.INDUSTRY,
+  EXPERIENCE_LIB: KnowledgeCategory.EXPERIENCE,
+  // 旧字典值也兼容（V28 之前的数据）
+  OPS_TIPS: KnowledgeCategory.EXPERIENCE,
+}
+const toFrontendCategory = (raw: string | undefined): KnowledgeCategory =>
+  (raw && BACKEND_TO_CATEGORY[raw]) || KnowledgeCategory.TEMPLATE
+const toBackendCategory = (raw: KnowledgeCategory | string): string =>
+  CATEGORY_TO_BACKEND[raw as string] || 'TEMPLATE_LIB'
+
+/** 把后端 VO 转成前端 VO（适配 tags string → string[]，字段名补齐） */
+const adaptVO = (raw: any): KnowledgeVO => ({
+  id: raw.id,
+  title: raw.title ?? '',
+  category: toFrontendCategory(raw.category),
+  tags: parseTags(raw.tags),
+  isPublic: Boolean(raw.isPublic),
+  creatorName: raw.creatorName ?? '',
+  viewCount: raw.viewCount ?? 0,
+  likeCount: raw.likeCount ?? 0,
+  createdAt: raw.createTime ?? raw.createdAt ?? '',
+})
 
 const searchForm = reactive({
   pageNo: 1,
@@ -242,16 +297,14 @@ const searchForm = reactive({
 const loadList = async () => {
   loading.value = true
   try {
-    // 优先使用API，失败时降级到Mock
-    try {
-      const res = await getKnowledgeList(searchForm)
-      knowledgeList.value = res.list
-      total.value = res.total
-    } catch {
-      const res = queryKnowledgeList(searchForm)
-      knowledgeList.value = res.list
-      total.value = res.total
-    }
+    // P-GATE-UNMOCK-R S-R1 P0-1：移除 mock 降级，API 失败显式提示
+    const res = await getKnowledgeList(searchForm)
+    knowledgeList.value = (res.list || []).map(adaptVO)
+    total.value = res.total || 0
+  } catch (err) {
+    knowledgeList.value = []
+    total.value = 0
+    ElMessage.error('知识列表加载失败：' + (err instanceof Error ? err.message : String(err)))
   } finally {
     loading.value = false
   }
@@ -300,6 +353,34 @@ const formData = reactive<KnowledgeFormData>({
   isPublic: true,
 })
 
+// ==================== 标签输入（原生 input + 回车确认） ====================
+const tagInputRef = ref<HTMLInputElement | null>(null)
+const tagInputValue = ref('')
+const focusTagInput = () => tagInputRef.value?.focus()
+const commitTag = () => {
+  const v = tagInputValue.value.trim()
+  if (!v) return
+  if (formData.tags.includes(v)) {
+    ElMessage.warning(`标签「${v}」已存在`)
+    return
+  }
+  if (formData.tags.length >= 10) {
+    ElMessage.warning('最多 10 个标签')
+    return
+  }
+  formData.tags.push(v)
+  tagInputValue.value = ''
+}
+const removeTag = (idx: number) => {
+  formData.tags.splice(idx, 1)
+}
+const onTagBackspace = () => {
+  // 输入框为空时按 Backspace 删除最后一个 tag
+  if (tagInputValue.value === '' && formData.tags.length > 0) {
+    formData.tags.pop()
+  }
+}
+
 const formRules = {
   title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
   category: [{ required: true, message: '请选择分类', trigger: 'change' }],
@@ -311,17 +392,24 @@ const handleAdd = () => {
   dialogVisible.value = true
 }
 
-const handleEdit = (row: KnowledgeVO) => {
-  dialogTitle.value = '编辑知识'
-  Object.assign(formData, {
-    id: row.id,
-    title: row.title,
-    category: row.category,
-    content: '<p>富文本内容...</p>',
-    tags: [...row.tags],
-    isPublic: row.isPublic,
-  })
-  dialogVisible.value = true
+const handleEdit = async (row: KnowledgeVO) => {
+  try {
+    // P-GATE-UNMOCK-R S-R1 P0-1：编辑时调详情拿真实 content
+    const raw = await getKnowledgeDetail(row.id)
+    const detail = { ...adaptVO(raw), content: raw.content ?? '', isLiked: raw.isLiked ?? false, updatedAt: raw.updateTime ?? '' } as KnowledgeDetailVO
+    dialogTitle.value = '编辑知识'
+    Object.assign(formData, {
+      id: detail.id,
+      title: detail.title,
+      category: detail.category,
+      content: detail.content,
+      tags: [...detail.tags],
+      isPublic: detail.isPublic,
+    })
+    dialogVisible.value = true
+  } catch (err) {
+    ElMessage.error('加载编辑数据失败：' + (err instanceof Error ? err.message : String(err)))
+  }
 }
 
 const handleSubmit = async () => {
@@ -338,17 +426,27 @@ const handleSubmit = async () => {
 
     submitLoading.value = true
     try {
+      // P-GATE-UNMOCK-R S-R1 P0-1：tags string[] → 后端 String + category enum → dict_value
+      // P-GATE-UNMOCK-R (2026-06-09 热修)：isPublic boolean → 0/1（后端 Integer）
+      const submitData = {
+        ...formData,
+        tags: Array.isArray(formData.tags) ? formData.tags.join(',') : formData.tags,
+        category: toBackendCategory(formData.category),
+        isPublic: formData.isPublic ? 1 : 0,
+      } as any
+      // P-GATE-UNMOCK-R 调试：打印实际 payload 帮助诊断 500
+      console.log('[Knowledge] submitData =', JSON.stringify(submitData, null, 2))
       if (formData.id) {
-        await updateKnowledge(formData)
+        await updateKnowledge(submitData)
         ElMessage.success('更新成功')
       } else {
-        await createKnowledge(formData)
+        await createKnowledge(submitData)
         ElMessage.success('创建成功')
       }
       dialogVisible.value = false
       loadList()
     } catch (error) {
-      ElMessage.error('操作失败')
+      ElMessage.error('操作失败：' + (error instanceof Error ? error.message : String(error)))
     } finally {
       submitLoading.value = false
     }
@@ -365,6 +463,7 @@ const handleDialogClose = () => {
     tags: [],
     isPublic: true,
   })
+  tagInputValue.value = ''
 }
 
 // ==================== 查看详情 ====================
@@ -374,20 +473,17 @@ const currentDetail = ref<KnowledgeDetailVO | null>(null)
 
 const handleView = async (row: KnowledgeVO) => {
   try {
-    // 优先使用API，失败时降级到Mock
-    try {
-      currentDetail.value = await getKnowledgeDetail(row.id)
-    } catch {
-      currentDetail.value = mockKnowledgeDetails[row.id] || {
-        ...row,
-        content: '<p>暂无内容</p>',
-        isLiked: false,
-        updatedAt: row.createdAt,
-      }
-    }
+    // P-GATE-UNMOCK-R S-R1 P0-1：移除 mock 降级，失败显式提示
+    const raw = await getKnowledgeDetail(row.id)
+    currentDetail.value = {
+      ...adaptVO(raw),
+      content: raw.content ?? '',
+      isLiked: raw.isLiked ?? false,
+      updatedAt: raw.updateTime ?? raw.updatedAt ?? '',
+    } as KnowledgeDetailVO
     detailVisible.value = true
   } catch (error) {
-    ElMessage.error('获取详情失败')
+    ElMessage.error('获取详情失败：' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -431,10 +527,8 @@ const handleToggleLike = async () => {
 // ==================== 初始化 ====================
 
 onMounted(() => {
-  // 直接使用Mock数据，确保页面有数据显示
-  const mockResult = queryKnowledgeList(searchForm)
-  knowledgeList.value = mockResult.list
-  total.value = mockResult.total
+  // P-GATE-UNMOCK-R S-R1 P0-1：直接调真 API
+  loadList()
 })
 </script>
 
@@ -557,6 +651,40 @@ onMounted(() => {
 
 .detail-content :deep(p) {
   margin: 8px 0;
+}
+
+.tags-input-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  background: #fff;
+  cursor: text;
+  transition: border-color 0.2s;
+}
+.tags-input-wrapper:focus-within {
+  border-color: #409eff;
+}
+.tag-native-input {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  padding: 4px 2px;
+  font-size: 14px;
+  background: transparent;
+}
+.tag-native-input:disabled {
+  cursor: not-allowed;
+  background: #f5f7fa;
+}
+.form-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-left: 4px;
 }
 
 .detail-footer {

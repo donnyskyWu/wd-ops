@@ -1,101 +1,56 @@
 /**
  * 粉丝分析 - TypeScript类型定义
+ * P-GATE-UNMOCK-R S-R2-C：字段名与后端 VO 对齐
+ * 后端 VO 实测字段：statDate, accountId, accountName, ipGroupName, followerCount, newFollower, unfollowCount, netGrowth, growthRate
+ * 后端端点：/admin-api/oa/follower-analysis/list  (spec §4.2)
  */
 
-// ==================== 枚举类型 ====================
-
-/**
- * 时间维度枚举
- */
 export enum TimeDimension {
   DAY = 'day',
   WEEK = 'week',
   MONTH = 'month',
 }
 
-// ==================== 粉丝核心类型 ====================
-
-/**
- * 粉丝统计卡片
- */
 export interface FollowerStats {
-  /** 粉丝总数 */
   totalFollowers: number
-  /** 新增粉丝 */
   newFollowers: number
-  /** 取消关注 */
   unfollowers: number
-  /** 净增粉丝 */
   netFollowers: number
-  /** 增长率 */
   growthRate: number
 }
 
-/**
- * 粉丝趋势数据点
- */
 export interface FollowerTrendPoint {
-  /** 日期 */
   date: string
-  /** 粉丝总数 */
   totalFollowers: number
-  /** 新增粉丝 */
   newFollowers: number
-  /** 取消关注 */
   unfollowers: number
-  /** 净增粉丝 */
   netFollowers: number
 }
 
-/**
- * 粉丝明细数据
- */
 export interface FollowerDetailVO {
-  /** ID */
-  id: number
-  /** 时间 */
-  date: string
-  /** 账号名称 */
+  id?: number
+  statDate: string
+  accountId: number
   accountName: string
-  /** 所属IP组 */
   ipGroupName: string
-  /** 粉丝总数 */
-  totalFollowers: number
-  /** 新增粉丝 */
-  newFollowers: number
-  /** 取消关注 */
-  unfollowers: number
-  /** 净增粉丝 */
-  netFollowers: number
-  /** 增长率 */
+  followerCount: number
+  newFollower: number
+  unfollowCount: number
+  netGrowth: number
   growthRate: number
 }
 
-/**
- * 粉丝查询参数
- */
 export interface FollowerQuery {
-  /** IP组ID */
   ipGroupId?: number
-  /** 平台类型 */
   platformType?: string
-  /** 账号ID */
   accountId?: number
-  /** 开始日期 */
   startDate: string
-  /** 结束日期 */
   endDate: string
-  /** 时间维度 */
-  dimension: TimeDimension
-  /** 页码 */
-  pageNo: number
-  /** 每页条数 */
-  pageSize: number
+  dimension?: TimeDimension | string
+  page?: number
+  size?: number
 }
 
-/**
- * 分页响应
- */
 export interface PageResult<T> {
   total: number
   list: T[]

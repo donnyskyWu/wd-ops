@@ -21,6 +21,7 @@ export function getContentStats(
   return request.get({ url: '/oa/content-analysis/stats', params })
 }
 
-export function getContentTrend(contentId: number): Promise<ContentTrendPoint[]> {
-  return request.get({ url: `/oa/content-analysis/${contentId}/trend` })
+export function getContentTrend(params: { contentId: number; startDate?: string; endDate?: string }): Promise<ContentTrendPoint[]> {
+  // S-R8 B3: 修正 trend 端点路径（去掉 ${contentId}，改为 query param）
+  return request.get({ url: '/oa/content-analysis/trend', params })
 }

@@ -37,8 +37,8 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { request } from '@/utils/request'
-import { mockUserList } from '@/mock/selectors'
 
 interface UserVO {
   id: number
@@ -92,20 +92,21 @@ const loadList = async (keyword: string) => {
   loading.value = true
   try {
     const res = await request.get<{ list: UserVO[] }>({
-      url: '/system/user/simple-list',
+      url: '/system/user/list',
       params: {
         nickname: keyword || undefined,
         deptId: props.deptId,
         roleCode: props.roleCode,
-        status: 1,
+        status: 'ENABLED',
         pageSize: 50,
       },
     })
     const list = (res as any).list || (Array.isArray(res) ? (res as any) : [])
-    options.value = list.length ? list : mockUserList
+    options.value = list // P-GATE-UNMOCK S-A: 已去除 mock 兜底
   } catch (e) {
-    console.warn('[UserSelect] fallback to mock:', e)
-    options.value = mockUserList
+    console.error('[UserSelect] 加载用户列表失败:', e)
+    options.value = []
+    ElMessage.error('用户列表加载失败，请稍后重试')
   } finally {
     loading.value = false
   }

@@ -1,92 +1,68 @@
 /**
  * 作品分析 - TypeScript类型定义
+ * P-GATE-UNMOCK-R S-R2-D：字段名与后端 VO 对齐
+ * 后端 ContentAnalysisVO 实测字段：id, accountId, accountName, title, platformType, contentType, publishTime,
+ *   readCount, likeCount, commentCount, forwardCount, isHit, dataSource
+ * 后端 ContentStatsVO 实测字段：totalCount, hitCount, totalRead, avgRead
+ * 后端 trend 端点返回 List<Map>：{date, count, readCount, likeCount, commentCount, forwardCount}
  */
 
-// ==================== 作品核心类型 ====================
-
-/**
- * 作品列表项
- */
 export interface ContentAnalysisVO {
-  /** 作品ID */
   id: number
-  /** 作品标题 */
-  title: string
-  /** 内容类型 */
-  contentType: string
-  /** 账号名称 */
+  accountId: number
   accountName: string
-  /** 所属IP组 */
-  ipGroupName: string
-  /** 发布时间 */
+  title: string
+  platformType: string
+  contentType: string
   publishTime: string
-  /** 阅读/播放量 */
-  viewCount: number
-  /** 点赞数 */
+  readCount: number
   likeCount: number
-  /** 评论数 */
   commentCount: number
-  /** 转发数 */
-  shareCount: number
-  /** 是否爆款 */
-  isViral: boolean
+  forwardCount: number
+  isHit: boolean
+  dataSource?: string
+  // 兼容旧字段（前端展示层兜底）
+  viewCount?: number
+  shareCount?: number
+  isViral?: boolean
 }
 
-/**
- * 作品统计数据
- */
 export interface ContentStats {
-  /** 发布总数 */
+  totalCount: number
+  hitCount: number
+  totalRead: number
+  avgRead: number
+  // S-R8 B1: 5 KPI 卡全量聚合字段（来自后端 ContentStatsVO 扩展）
   totalPublished: number
-  /** 阅读/播放总量 */
   totalViews: number
-  /** 点赞总数 */
   totalLikes: number
-  /** 评论总数 */
   totalComments: number
-  /** 转发总数 */
   totalShares: number
 }
 
-/**
- * 作品趋势数据点
- */
 export interface ContentTrendPoint {
-  /** 日期 */
   date: string
-  /** 阅读量 */
-  viewCount: number
-  /** 互动数（点赞+评论+转发） */
-  interactionCount: number
+  // S-R8 B3: 字段名与后端实返一致（readCount/likeCount/commentCount/forwardCount/count）
+  count: number
+  readCount: number
+  likeCount: number
+  commentCount: number
+  forwardCount: number
 }
 
-/**
- * 作品查询参数
- */
 export interface ContentAnalysisQuery {
-  /** IP组ID */
   ipGroupId?: number
-  /** 平台类型 */
   platformType?: string
-  /** 账号ID */
   accountId?: number
-  /** 内容类型 */
   contentType?: string
-  /** 开始日期 */
   startDate?: string
-  /** 结束日期 */
   endDate?: string
-  /** 关键词 */
   keyword?: string
-  /** 页码 */
-  pageNo: number
-  /** 每页条数 */
-  pageSize: number
+  // S-R8 B6: 与后端 controller 契约对齐
+  page: number
+  size: number
 }
 
-/**
- * 分页响应
- */
 export interface PageResult<T> {
   total: number
   list: T[]

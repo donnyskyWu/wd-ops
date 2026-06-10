@@ -272,10 +272,7 @@ import {
   approveReview,
   rejectReview,
 } from '@/api/sop'
-import {
-  mockGetSopTemplateList,
-  mockGetSopReviewList,
-} from '@/mock/sop'
+// P-GATE-UNMOCK-R S-R2-G：去 mock
 import type {
   SopTemplateQuery,
   SopReviewQuery,
@@ -377,9 +374,14 @@ const rejectRules = {
 const loadTemplateList = async () => {
   loading.value = true
   try {
-    // 直接使用Mock数据
-    console.log('加载模板列表, 页码:', pagination.pageNo, '每页:', pagination.pageSize)
-    const result = mockGetSopTemplateList(pagination.pageNo, pagination.pageSize)
+    // P-GATE-UNMOCK-R S-R2-G：去 mock 接真 API
+    const result: any = await getSopTemplateList({
+      templateName: searchForm.templateName || undefined,
+      contentType: searchForm.contentType as any,
+      status: searchForm.status as any,
+      pageNo: pagination.pageNo,
+      pageSize: pagination.pageSize,
+    } as any)
     
     console.log('获取到的模板数据:', result)
     
@@ -387,9 +389,7 @@ const loadTemplateList = async () => {
     templateList.value = result.list || []
     pagination.total = result.total || 0
     
-    if (result.list.length === 0) {
-      ElMessage.warning('暂无SOP模板数据')
-    }
+    // P-GATE-UNMOCK-R S-R2-G：去 mock（保留结构）
   } catch (error) {
     console.error('加载SOP模板列表失败:', error)
     ElMessage.error('数据加载失败，请重试')
@@ -402,9 +402,13 @@ const loadTemplateList = async () => {
 const loadReviewList = async () => {
   reviewLoading.value = true
   try {
-    // 直接使用Mock数据
-    console.log('加载审核列表, 页码:', reviewPagination.pageNo, '每页:', reviewPagination.pageSize)
-    const result = mockGetSopReviewList(reviewPagination.pageNo, reviewPagination.pageSize)
+    // P-GATE-UNMOCK-R S-R2-G：去 mock 接真 API
+    const result: any = await getSopReviewList({
+      templateId: reviewSearchForm.templateId,
+      reviewStatus: reviewSearchForm.reviewStatus as any,
+      pageNo: reviewPagination.pageNo,
+      pageSize: reviewPagination.pageSize,
+    } as any)
     
     console.log('获取到的审核数据:', result)
     

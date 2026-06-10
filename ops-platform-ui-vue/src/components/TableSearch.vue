@@ -66,6 +66,8 @@ const handleReset = () => {
   .search-form {
     :deep(.el-form-item) {
       margin-bottom: 8px;
+      // P-GATE-UNMOCK-R S-R2-A：统一搜索控件最小宽度 220，避免太窄
+      min-width: 240px;
     }
 
     :deep(.el-form-item__label) {

@@ -33,8 +33,8 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { getIpGroupTree } from '@/api/ip-group'
-import { mockIpGroupTree } from '@/mock/ip-group'
 
 interface TreeNode {
   id: number
@@ -82,10 +82,11 @@ const groupTypeTag = (t: string) => {
 const loadTree = async () => {
   try {
     const data = await getIpGroupTree()
-    treeData.value = data && data.length ? data : [...mockIpGroupTree]
+    treeData.value = data && data.length ? data : []
   } catch (e) {
-    console.warn('[IpGroupTreeSelect] 加载 IP 组树失败,fallback to mock:', e)
-    treeData.value = [...mockIpGroupTree]
+    console.error('[IpGroupTreeSelect] 加载 IP 组树失败:', e)
+    treeData.value = []
+    ElMessage.error('IP 组树加载失败，请稍后重试')
   }
 }
 

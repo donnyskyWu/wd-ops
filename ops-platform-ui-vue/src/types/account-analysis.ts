@@ -82,8 +82,8 @@ export interface AccountAnalysisVO {
  * 账号分析查询参数
  */
 export interface AccountAnalysisQueryVO {
-  /** 平台类型 */
-  platformType: PlatformType
+  /** 平台类型（spec: API-M1 §4.3 + 实际后端 controller @RequestParam(name="platform")）*/
+  platform?: PlatformType
   /** IP组ID */
   ipGroupId?: number
   /** 关键词（账号名称/ID模糊搜索） */

@@ -44,17 +44,17 @@
         <el-table-column prop="accountName" label="账号" width="140" />
         <el-table-column prop="ipGroupName" label="IP组" width="100" />
         <el-table-column prop="publishTime" label="发布时间" width="160" />
-        <el-table-column prop="viewCount" label="阅读量" width="110" align="right">
+        <el-table-column prop="readCount" label="阅读量" width="110" align="right">
           <template #default="{ row }">
-            {{ formatNumber(row.viewCount) }}
+            {{ formatNumber(row.readCount) }}
           </template>
         </el-table-column>
         <el-table-column prop="likeCount" label="点赞" width="90" align="right" />
         <el-table-column prop="commentCount" label="评论" width="90" align="right" />
-        <el-table-column prop="shareCount" label="转发" width="90" align="right" />
-        <el-table-column prop="isViral" label="爆款" width="80" align="center">
+        <el-table-column prop="forwardCount" label="转发" width="90" align="right" />
+        <el-table-column prop="isHit" label="爆款" width="80" align="center">
           <template #default="{ row }">
-            <span v-if="row.isViral" class="viral-tag">🔥爆款</span>
+            <span v-if="row.isHit" class="viral-tag">🔥爆款</span>
             <span v-else>-</span>
           </template>
         </el-table-column>
@@ -91,7 +91,6 @@ import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { getContentAnalysisList, getContentStats, getContentTrend } from '@/api/works'
-import { mockGetContentList, mockContentStats, mockGetContentTrend, mockContentList } from '@/mock/works'
 import type { ContentAnalysisQuery, ContentStats } from '@/types/works'
 import TableSearch from '@/components/TableSearch.vue'
 import ContentWrap from '@/components/ContentWrap.vue'
@@ -99,6 +98,7 @@ import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { exportToExcel } from '@/utils'
+import { normalizePlatform } from '@/utils/enum-alias'
 
 // ==================== 响应式数据 ====================
 
@@ -110,8 +110,12 @@ const searchForm = reactive({
   keyword: '',
 })
 
-// 统计数据
+// 统计数据（S-R8 B1: 5 KPI 卡走 stats 端点全量聚合）
 const stats = ref<ContentStats>({
+  totalCount: 0,
+  hitCount: 0,
+  totalRead: 0,
+  avgRead: 0,
   totalPublished: 0,
   totalViews: 0,
   totalLikes: 0,
@@ -121,24 +125,27 @@ const stats = ref<ContentStats>({
 
 // 统计卡片
 const statCards = computed(() => [
-  { label: '发布总数', value: formatNumber(stats.value?.totalPublished || 0), color: '#409EFF' },
-  { label: '阅读/播放', value: formatNumber(stats.value?.totalViews || 0), color: '#67C23A' },
+  { label: '发布总数', value: formatNumber(stats.value?.totalCount || 0), color: '#409EFF' },
+  { label: '阅读/播放', value: formatNumber(stats.value?.totalRead || 0), color: '#67C23A' },
   { label: '点赞总数', value: formatNumber(stats.value?.totalLikes || 0), color: '#E6A23C' },
   { label: '评论总数', value: formatNumber(stats.value?.totalComments || 0), color: '#F56C6C' },
   { label: '转发总数', value: formatNumber(stats.value?.totalShares || 0), color: '#909399' },
 ])
 
+// S-R8 B1: 后端 ContentStatsVO 扩了 totalLikes/totalComments/totalShares，前端直接用 stats 端点全量数据，不再从 list 累加
+const statFromList = computed(() => null)
+
 // 加载状态
 const loading = ref(false)
 
-// 表格数据 - 初始值使用Mock数据
-const tableData = ref<any[]>([...mockContentList])
+// 表格数据
+const tableData = ref<any[]>([])
 
-// 分页参数 - 初始值使用Mock数据
+// 分页参数
 const pagination = reactive({
   pageNo: 1,
   pageSize: 10,
-  total: mockContentList.length,
+  total: 0,
 })
 
 // 详情对话框
@@ -154,23 +161,44 @@ const loadData = async () => {
   try {
     const params: ContentAnalysisQuery = {
       ipGroupId: searchForm.ipGroupId,
-      platformType: searchForm.platformType || undefined,
+      // S-R3：用 normalize 转换 PlatformType
+      platformType: normalizePlatform(searchForm.platformType) as any,
       contentType: searchForm.contentType || undefined,
       keyword: searchForm.keyword || undefined,
-      pageNo: pagination.pageNo,
-      pageSize: pagination.pageSize,
+      // S-R8 B6: 后端收 page/size
+      page: pagination.pageNo,
+      size: pagination.pageSize,
     }
 
-    // 加载统计数据
-    const statsData = await getContentStats(params).catch(() => mockContentStats)
-    stats.value = statsData
+    // 加载列表
+    const listResult = await getContentAnalysisList(params)
+    const list = listResult?.list || []
+    tableData.value = list
+    pagination.total = listResult?.total ?? 0
 
-    // 加载列表 - 确保使用Mock数据作为降级方案
-    const mockResult = mockGetContentList(pagination.pageNo, pagination.pageSize)
-    const listResult = await getContentAnalysisList(params).catch(() => mockResult)
-    tableData.value = listResult?.list?.length ? listResult.list : mockResult.list
-    pagination.total = listResult?.total || mockResult.total
+    // S-R8 B1: stats 端点直接覆盖 5 KPI（含 totalLikes/totalComments/totalShares）
+    try {
+      const statsData = await getContentStats(params)
+      if (statsData) {
+        stats.value = {
+          totalCount: statsData.totalCount ?? 0,
+          hitCount: statsData.hitCount ?? 0,
+          totalRead: statsData.totalRead ?? 0,
+          avgRead: statsData.avgRead ?? 0,
+          totalPublished: statsData.totalCount ?? list.length,
+          totalViews: statsData.totalRead ?? 0,
+          totalLikes: statsData.totalLikes ?? 0,
+          totalComments: statsData.totalComments ?? 0,
+          totalShares: statsData.totalShares ?? 0,
+        }
+      }
+    } catch (e) {
+      // ignore - 卡片保持 0
+    }
   } catch (error) {
+    console.error('[WorksAnalysis] 加载失败:', error)
+    tableData.value = []
+    pagination.total = 0
     ElMessage.error('数据加载失败')
   } finally {
     loading.value = false
@@ -181,8 +209,9 @@ const loadData = async () => {
 const handleViewDetail = async (row: any) => {
   currentContent.value = row
   detailDialogVisible.value = true
-  
+
   await nextTick()
+  // S-R8 B3: 后端 /trend 端点收 contentId query param（不再是 path param）
   renderTrendChart(row.id)
 }
 
@@ -200,9 +229,7 @@ const renderTrendChart = async (contentId: number) => {
     worksTrendChart = null
   }
 
-  const trendData = await getContentTrend(contentId).catch(() => {
-    return mockGetContentTrend(contentId)
-  })
+  const trendData = await getContentTrend({ contentId })
 
   const chart = echarts.init(trendChartRef.value)
   worksTrendChart = chart
@@ -222,7 +249,8 @@ const renderTrendChart = async (contentId: number) => {
       {
         name: '阅读量',
         type: 'line',
-        data: trendData.map(d => d.viewCount),
+        // S-R8 B3: 后端实返 readCount（不是 viewCount）
+        data: trendData.map(d => d.readCount),
         smooth: true,
         lineStyle: { width: 3 },
       },
@@ -230,7 +258,8 @@ const renderTrendChart = async (contentId: number) => {
         name: '互动数',
         type: 'bar',
         yAxisIndex: 1,
-        data: trendData.map(d => d.interactionCount),
+        // S-R8 B3: 后端实返 like+comment+forward
+        data: trendData.map(d => (d.likeCount || 0) + (d.commentCount || 0) + (d.forwardCount || 0)),
         itemStyle: { color: '#67C23A' },
       },
     ],
@@ -257,16 +286,18 @@ const handleReset = () => {
 
 // 导出
 const handleExport = () => {
+  // S-R8 B2: 导出 columns 字段名与后端 ContentAnalysisVO 对齐
   const columns = [
     { key: 'title', label: '标题' },
     { key: 'contentType', label: '类型' },
     { key: 'accountName', label: '账号' },
     { key: 'ipGroupName', label: 'IP组' },
     { key: 'publishTime', label: '发布时间' },
-    { key: 'viewCount', label: '阅读量' },
+    { key: 'readCount', label: '阅读量' },
     { key: 'likeCount', label: '点赞' },
     { key: 'commentCount', label: '评论' },
-    { key: 'shareCount', label: '转发' },
+    { key: 'forwardCount', label: '转发' },
+    { key: 'isHit', label: '是否爆款' },
   ]
   exportToExcel(tableData.value, columns, '作品数据分析')
 }

@@ -215,17 +215,9 @@ const getCostTypeColor = (type: CostType): string => {
   return map[type] || ''
 }
 
-// ==================== 过程成本Mock数据 ====================
-const mockProcessList = [
-  { id: 1, accountId: 1, accountName: '知识变现研究院', costType: 'PERSON' as CostType, amount: 15000, description: '5月内容运营人员成本', operator: '张三', createTime: '2026-05-15 10:00:00' },
-  { id: 2, accountId: 2, accountName: 'AI技术前沿', costType: 'CONTENT' as CostType, amount: 8500, description: '视频剪辑与制作费用', operator: '李四', createTime: '2026-05-14 14:30:00' },
-  { id: 3, accountId: 3, accountName: '职场进阶指南', costType: 'PROMOTE' as CostType, amount: 12000, description: 'dou+推广投放费用', operator: '王五', createTime: '2026-05-13 09:00:00' },
-  { id: 4, accountId: 1, accountName: '知识变现研究院', costType: 'PLATFORM' as CostType, amount: 3000, description: '第三方平台服务费', operator: '赵六', createTime: '2026-05-12 16:00:00' },
-  { id: 5, accountId: 2, accountName: 'AI技术前沿', costType: 'PERSON' as CostType, amount: 18000, description: '6月内容运营人员成本', operator: '张三', createTime: '2026-06-01 10:00:00' },
-  { id: 6, accountId: 3, accountName: '职场进阶指南', costType: 'CONTENT' as CostType, amount: 6500, description: '图文内容制作费用', operator: '李四', createTime: '2026-06-02 11:00:00' },
-  { id: 7, accountId: 1, accountName: '知识变现研究院', costType: 'PROMOTE' as CostType, amount: 20000, description: '公众号广告投放', operator: '王五', createTime: '2026-06-03 15:00:00' },
-  { id: 8, accountId: 2, accountName: 'AI技术前沿', costType: 'OTHER' as CostType, amount: 1500, description: '设备维护与耗材', operator: '赵六', createTime: '2026-06-04 10:00:00' },
-]
+// ==================== 过程成本（Phase 2: 待后端实现 /admin-api/oa/finance/process-cost/list） ====================
+// P-GATE-UNMOCK S-B: 已删除硬编码 mock 数据。后端尚无 process-cost 接口，过程成本 tab 暂显示空状态。
+// 相关 API 占位见 docs/engineering/API-M8-财务成本.md (TODO Phase 2)
 
 // ==================== 过程成本响应式数据 ====================
 const processLoading = ref(false)
@@ -274,8 +266,9 @@ const processFormRules = {
 // ==================== 过程成本方法 ====================
 const loadProcessList = () => {
   processLoading.value = true
-  processList.value = [...mockProcessList]
-  processPagination.total = mockProcessList.length
+  // P-GATE-UNMOCK S-B: 后端无 process-cost 接口，留空 + 提示
+  processList.value = []
+  processPagination.total = 0
   processLoading.value = false
 }
 
