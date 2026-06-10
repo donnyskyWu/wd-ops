@@ -61,7 +61,7 @@
                           <div class="expand-title"><el-icon color="#409eff"><Document /></el-icon> 内容产出</div>
                           <div class="expand-row"><span>发布作品: <b>{{ row.contentOutput }}</b></span><span>平均阅读: <b style="color: #409eff">{{ formatNumber(row.avgRead) }}</b></span></div>
                           <div class="expand-row"><span>爆款数: <b>{{ row.hitCount }}</b></span></div>
-                          <div class="expand-desc">注：ContentDO 无 user 关联，详见 ADR-008</div>
+                          <div v-if="!row.contentOutput && !row.hitCount" class="expand-desc">该周期暂无内容产出</div>
                         </div>
                       </el-card>
                     </el-col>
@@ -111,7 +111,7 @@
                         <div class="expand-card">
                           <div class="expand-title"><el-icon color="#409eff"><VideoCamera /></el-icon> 视频产出</div>
                           <div class="expand-row"><span>发布视频: <b>{{ row.contentOutput }}</b></span><span>平均播放: <b style="color: #409eff">{{ formatNumber(row.avgPlay) }}</b></span></div>
-                          <div class="expand-desc">注：ContentDO 无 user 关联，详见 ADR-008</div>
+                          <div v-if="!row.contentOutput" class="expand-desc">该周期暂无视频产出</div>
                         </div>
                       </el-card>
                     </el-col>
@@ -119,8 +119,8 @@
                       <el-card shadow="hover" body-style="padding: 16px">
                         <div class="expand-card">
                           <div class="expand-title"><el-icon color="#e6a23c"><Star /></el-icon> 互动指标</div>
-                          <div class="expand-row"><span>总点赞: <b>{{ formatNumber(row.avgRead) }}</b></span><span>总评论: <b>-</b></span></div>
-                          <div class="expand-desc">注：ContentDO 无 user 关联，详见 ADR-008</div>
+                          <div class="expand-row"><span>平均阅读: <b>{{ formatNumber(row.avgRead) }}</b></span><span>爆款数: <b>{{ row.hitCount }}</b></span></div>
+                          <div v-if="!row.hitCount && !row.avgRead" class="expand-desc">该周期暂无互动数据</div>
                         </div>
                       </el-card>
                     </el-col>
@@ -208,7 +208,7 @@ import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { getProductivityList, exportProductivityCsv, getProductivityDetail } from '@/api/productivity'
 import { exportToExcel } from '@/utils'
-import type { ProductivityReviewVO } from '@/types/productivity'
+import type { ProductivityReviewVO, ProductivityReviewQuery } from '@/types/productivity'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
@@ -273,6 +273,10 @@ const EFFICIENCY_EXPORT_COLUMNS = [
   { key: 'revenue', label: '营收' },
   { key: 'roi', label: 'ROI(%)' },
   { key: 'orderCount', label: '订单数' },
+  { key: 'contentOutput', label: '发布作品' },
+  { key: 'avgRead', label: '平均阅读' },
+  { key: 'avgPlay', label: '平均播放' },
+  { key: 'hitCount', label: '爆款数' },
 ]
 
 const handleExport = async () => {
@@ -289,7 +293,7 @@ const handleExport = async () => {
     ElMessage.success('导出任务已提交')
   } catch (e) {
     console.error('[Efficiency] 后端导出失败，降级为前端导出:', e)
-    exportToExcel(productivityList.value, EFFICIENCY_EXPORT_COLUMNS, '人效分析')
+    exportToExcel(productivityList.value, '人效分析', { columns: EFFICIENCY_EXPORT_COLUMNS })
   }
 }
 
@@ -307,20 +311,18 @@ const statDateToRange = (kind: 'start' | 'end'): string => {
 const loadData = async () => {
   loading.value = true
   try {
-    const params: any = {
+    const params: ProductivityReviewQuery = {
       timeDimension: searchForm.timeDimension,
       ipGroupId: searchForm.ipGroupId,
       position: searchForm.position,
       keyword: searchForm.keyword,
       page: 1,
       size: 50,
+      ...(searchForm.statDate
+        ? { startDate: statDateToRange('start'), endDate: statDateToRange('end') }
+        : {}),
     }
-    // 只有 statDate 设置时才传 start/end（避免空 statDate 传 1970-01-01）
-    if (searchForm.statDate) {
-      params.startDate = statDateToRange('start')
-      params.endDate = statDateToRange('end')
-    }
-    const res: any = await getProductivityList(params)
+    const res = await getProductivityList(params)
     productivityList.value = res?.list || []
     totalCount.value = res?.total ?? 0
   } catch (e) {

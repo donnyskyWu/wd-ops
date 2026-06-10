@@ -54,6 +54,7 @@ import { ref, reactive, onMounted } from 'vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { getUnifiedAccountList, getUnifiedAccountStats } from '@/api/report'
+import { unwrapApiData, pickListPage } from '@/utils'
 
 const loading = ref(false)
 const filter = reactive({ ipGroupId: undefined as number | undefined, platformType: undefined as string | undefined, dateRange: [] as string[] })
@@ -76,11 +77,10 @@ const loadData = async () => {
   try {
     const q = buildQuery()
     const [listRes, statsRes] = await Promise.all([getUnifiedAccountList(q), getUnifiedAccountStats(q)])
-    const l = (listRes as any)?.data ?? listRes
-    list.value = l?.list ?? l?.records ?? []
-    total.value = l?.total ?? list.value.length
-    const s = (statsRes as any)?.data ?? statsRes
-    Object.assign(stats, s)
+    const l = pickListPage(unwrapApiData(listRes))
+    list.value = l.list
+    total.value = l.total
+    Object.assign(stats, unwrapApiData(statsRes))
   } catch (e) { console.error(e); list.value = [] }
   finally { loading.value = false }
 }

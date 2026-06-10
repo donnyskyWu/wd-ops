@@ -156,13 +156,25 @@ const statusType = computed(() => {
   const map: any = { 0: 'info', 1: 'warning', 2: 'primary', 3: 'success' }
   return map[detail.value?.status] || 'info'
 })
+const STATUS_LABELS: Record<number, string> = {
+  0: '待提交',
+  1: '待主管审核',
+  2: '待HR复核',
+  3: '已发布',
+}
 const statusLabel = computed(() => {
-  const map: any = { 0: '待提交', 1: '待主管审核', 2: '待HR复核', 3: '已发布' }
-  return map[detail.value?.status] || '-'
+  const status = detail.value?.status
+  return status !== undefined ? (STATUS_LABELS[status] || '-') : '-'
 })
 const stepActive = computed(() => detail.value?.status || 0)
 
-const sourceLabel = (s: string) => ({ follower_inc: '粉丝净增', work_count: '作品数', order_gmv: 'GMV', engagement: '互动数' } as any)[s] || s
+const SOURCE_LABELS: Record<string, string> = {
+  follower_inc: '粉丝净增',
+  work_count: '作品数',
+  order_gmv: 'GMV',
+  engagement: '互动数',
+}
+const sourceLabel = (s: string) => SOURCE_LABELS[s] || s
 
 const calcMetricScore = (m: any) => {
   if (!m.target) return 0

@@ -83,6 +83,7 @@ import ContentWrap from '@/components/ContentWrap.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
 import { getVideoOutputList, getVideoOutputTrend, getVideoOutputRanking } from '@/api/report'
+import { unwrapApiData, pickListPage } from '@/utils'
 
 const loading = ref(false)
 const filter = reactive({
@@ -126,12 +127,12 @@ const loadData = async () => {
       getVideoOutputRanking({ startDate: q.startDate, endDate: q.endDate, limit: 10 }),
       getVideoOutputTrend({ accountId: filter.accountId, startDate: q.startDate, endDate: q.endDate }),
     ])
-    const l = (listRes as any)?.data ?? listRes
-    list.value = l?.list ?? l?.records ?? []
-    total.value = l?.total ?? list.value.length
-    const r = (rankRes as any)?.data ?? rankRes
+    const l = pickListPage(unwrapApiData(listRes))
+    list.value = l.list
+    total.value = l.total
+    const r = unwrapApiData(rankRes)
     ranking.value = Array.isArray(r) ? r : []
-    const t = (trendRes as any)?.data ?? trendRes
+    const t = unwrapApiData(trendRes)
     drawTrend(Array.isArray(t) ? t : [])
   } catch (e) {
     console.error('loadData failed', e)

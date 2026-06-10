@@ -376,13 +376,14 @@ const loadTemplateList = async () => {
   try {
     // P-GATE-UNMOCK-R S-R2-G：去 mock 接真 API
     // S-R11 B1: 后端 SopTemplateController.list 收 pageNum，spec API-M2 §1.1 显式定义 pageNum
-    const result: any = await getSopTemplateList({
+    const query: SopTemplateQuery = {
       templateName: searchForm.templateName || undefined,
-      contentType: searchForm.contentType as any,
-      status: searchForm.status as any,
+      contentType: searchForm.contentType,
+      status: searchForm.status,
       pageNum: pagination.pageNo,
       pageSize: pagination.pageSize,
-    } as any)
+    }
+    const result = await getSopTemplateList(query)
     
     console.log('获取到的模板数据:', result)
     

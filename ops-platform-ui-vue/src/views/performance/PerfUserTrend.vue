@@ -101,7 +101,13 @@ const avgScore = computed(() => {
   return monthlyScores.value.reduce((a, b) => a + b, 0) / monthlyScores.value.length
 })
 
-const gradeType = (g: string) => ({ S: 'danger', A: 'warning', B: 'success', C: 'info' } as any)[g] || 'info'
+const GRADE_TYPES: Record<string, 'danger' | 'warning' | 'success' | 'info'> = {
+  S: 'danger',
+  A: 'warning',
+  B: 'success',
+  C: 'info',
+}
+const gradeType = (g: string) => GRADE_TYPES[g] || 'info'
 
 const initTrend = () => {
   if (!trendChartRef.value) return

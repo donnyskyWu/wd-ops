@@ -11,7 +11,7 @@
 
 | Slice | 任务 | 文件锁 | 状态 | 下一步 |
 |-------|------|--------|------|--------|
-| **S-R27a-Mike** | M3 详情 + 趋势 userInfo | `PerfRecord*` · `PerfTrendVO` · `M3PerfDetailEnrichIT` | ✅ | 待 Donny S-R27 前端接线 |
+| **S-R27b-Mike** | 公司详情 + 扩容历史 | `CompanyController` | ⬜ | 下一 slice |
 
 ---
 

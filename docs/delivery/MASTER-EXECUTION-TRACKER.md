@@ -540,7 +540,7 @@ curl http://localhost:8080/oa/...
 
 | ID | 任务 | 模块 | 决策点 | 现状 |
 |----|------|------|--------|------|
-| D-1 | **oa_content 加 author_id**（schema drift） | M1/M2 | ADR-008 方案 A | ✅ 后端 S-R21-Mike · 🟡 前端 S-R21-Donny 待闭环 |
+| D-1 | **oa_content 加 author_id**（schema drift） | M1/M2 | ADR-008 方案 A | ✅ S-R21-Mike + S-R21-Donny |
 | D-2 | **B13 ParamManage 后端 sys_param**（基础/采集/AI/通知） | M9 | 是否 Phase 2 落地 | 前端 placeholder |
 | D-3 | **B14 DictManage 后端 sys_dict CRUD** | M9 | 是否本期补 | 前端 placeholder |
 | D-4 | **B15 LogManage 后端 sys_operation_log** | M9 | 是否本期补 | 前端 placeholder |
@@ -554,7 +554,7 @@ curl http://localhost:8080/oa/...
 |----|------|------|------|
 | B-1 | L1 导出 xlsx 确认 + 多 Sheet 模板 | M1-M7 | ✅ 已对齐 .xlsx |
 | B-2 | L2 enum literal 全量清理 | 前端 | ✅ enum-alias 工具已规范 |
-| B-3 | L3 ADR-008 待 D-1 决策 | M1/M2 | 🟡 同 D-1（后端 ✅，前端待 S-R21-Donny） |
+| B-3 | L3 ADR-008 待 D-1 决策 | M1/M2 | ✅ 同 D-1（S-R21 全闭环） |
 | B-4 | L4 SOP pageNum | M2 | ✅ S-R11 已修 |
 | B-5 | L5 seed V18-V23 CJK 终端显示 | 终端 | ✅ 仅显示问题 |
 | B-6 | B19 M8/M9 路径 prefix 一致性 | M8/M9 | ✅ S-R23：`/oa/system/*` 规范 + 旧别名兼容 |
@@ -567,8 +567,8 @@ curl http://localhost:8080/oa/...
 |----|------|------|
 | P-1 | 25+ mock 文件清理（types/*.ts enum literal） | 不强制 |
 | P-2 | 前端 console 0 error 重测（Playwright 全量） | E2E 已 180/183 |
-| P-3 | `as any` 临时类型映射清理 | 多处 |
-| P-4 | Playwright 3 个 skip 测试补全 | 动态路由 |
+| P-3 | `as any` 临时类型映射清理 | ✅ S-R25：unwrapApiData + 11 文件首批 |
+| P-4 | Playwright 3 个 skip 测试补全 | ✅ S-R25：SYSTEM-001~003 3/3 绿 |
 
 ### 15.4 横切（合规 / 安全 / 鉴权）
 
@@ -626,8 +626,8 @@ curl http://localhost:8080/oa/...
 | S-R22-Mike | Mike | D-7 Content delete | ✅ |
 | S-R23-Mike | Mike | B-6 M9 路径 | ✅ |
 | S-R24-Mike | Mike | B-7 exportToExcel | ✅ |
-| S-R21-Donny | Donny | D-1 效率页 KPI UI 闭环 | ⬜ |
-| S-R25-Donny | Donny | P-3 + P-4 前端工程债 | ⬜ |
+| S-R21-Donny | Donny | D-1 效率页 KPI UI 闭环 | ✅ |
+| S-R25-Donny | Donny | P-3 + P-4 前端工程债 | ✅ |
 | S-R27-Mike | Mike | B-8 详情页字段 | ⬜ |
 | S-R26 | Mike+Donny | 集成回归 + 上线决策 | ⬜ |
 
@@ -636,7 +636,7 @@ curl http://localhost:8080/oa/...
 | Wave | Mike | Donny | 同步点 |
 |------|------|-------|--------|
 | **Wave-1** ✅ | S-R21~R24 | S-R20 规划 | 已合入待 push |
-| **Wave-2** 🔵 | S-R27 B-8 | S-R21-Donny + S-R25 | 每日 pull |
+| **Wave-2** 🔵 | S-R27 B-8 | ~~S-R21-Donny~~ ✅ · ~~S-R25~~ ✅ → P-2 | 每日 pull |
 | **Wave-3** | mvn verify | P-2 PW 全量 | SESSION-PROGRESS |
 | **Wave-4** | S-R26 后端 | S-R26 前端 + Gate | 上线决策 |
 

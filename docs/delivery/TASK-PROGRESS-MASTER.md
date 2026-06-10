@@ -3,7 +3,7 @@
 > **性质**：协作 SSOT · 汇总 Mike / Donny 个人表，防文件冲突  
 > **维护**：每完成 1 个 slice → 更新本表 + 对应个人表 + `SESSION-PROGRESS.md`  
 > **个人表**：[Mike](./TASK-PROGRESS-MIKE.md) · [Donny](./TASK-PROGRESS-DONNY.md)  
-> **最后更新**：2026-06-10 · S-R21~R24 批次
+> **最后更新**：2026-06-10 · merge Mike S-R27a + Donny S-R21/S-R25
 
 ---
 
@@ -47,8 +47,8 @@
 | 阶段 | 目标 | 状态 | 目标日 |
 |------|------|------|--------|
 | **Wave-1** | D-1 / D-7 / B-6 / B-7 补强 | ✅ 完成 | 2026-06-10 |
-| **Wave-2** | D-1 前端闭环 + 工程债 P-3/P-4 | 🔵 进行中 | D+3 |
-| **Wave-3** | B-8 详情页字段 + P-2 全量 PW | ⬜ 待开始 | D+5 |
+| **Wave-2** | D-1 前端 + P-3/P-4 工程债 | ✅ 完成 | 2026-06-10 |
+| **Wave-3** | B-8 详情页 + P-2 全量 PW | 🔵 进行中 | D+5 |
 | **Wave-4** | S-R26 集成回归 + 上线决策 | ⬜ 待开始 | D+7 |
 | **Phase-2** | D-2~D-6 M9 系统页后端 | ⬜ 待 Donny 决策 | TBD |
 
@@ -58,18 +58,18 @@
 
 | Slice | 负责人 | 待办 ID | 简述 | 文件锁（不可重叠） | 状态 | 依赖 |
 |-------|--------|---------|------|-------------------|------|------|
-| S-R21-Mike | Mike | D-1 | `oa_content.author_id` + 人效 KPI 聚合 | `V31__*.sql` · `ContentDO` · `ContentMapper` · `ProductivityReview*` · `M1ContentAuthorIdIT` | ✅ | ADR-008 |
-| S-R22-Mike | Mike | D-7 | Content DELETE + IT | `ProductionContentController/Service*` · `M2ContentDeleteIT` · `api/content.ts`（删除） | ✅ | — |
-| S-R23-Mike | Mike | B-6 | M9 `/oa/system/*` 双路径 | `*Controller.java`(system) · `system-*.ts` · `M9*IT` · ADR-009 | ✅ | — |
+| S-R21-Mike | Mike | D-1 | `oa_content.author_id` + 人效 KPI 聚合 | `V31__*.sql` · `ContentDO` · `ProductivityReview*` | ✅ | ADR-008 |
+| S-R22-Mike | Mike | D-7 | Content DELETE + IT | `ProductionContentController*` · `M2ContentDeleteIT` | ✅ | — |
+| S-R23-Mike | Mike | B-6 | M9 `/oa/system/*` 双路径 | `*Controller.java`(system) · ADR-009 | ✅ | — |
 | S-R24-Mike | Mike | B-7 | 5 页 exportToExcel + P2-#14 | 5 个 `.vue` · `ux-p0-p1-p2-regression.spec.ts` | ✅ | — |
-| **S-R25-Donny** | Donny | P-3/P-4 | `as any` 清理 + PW skip 补全 | `ops-platform-ui-vue/src/**`（不含 `yudao-server`） | ⬜ | — |
-| **S-R21-Donny** | Donny | D-1/B-3 | 效率页去 ADR 占位 + 真 KPI 展示 | `Efficiency.vue` · `types/productivity.ts` | ⬜ | S-R21-Mike ✅ |
+| **S-R21-Donny** | Donny | D-1/B-3 | 效率页去 ADR 占位 + 真 KPI | `Efficiency.vue` · `types/productivity.ts` | ✅ | S-R21-Mike |
+| **S-R25-Donny** | Donny | P-3/P-4 | `as any` 清理 + PW skip 补全 | `ops-platform-ui-vue/src/**` | ✅ | — |
 | **S-R27a-Mike** | Mike | B-8/M3 | 绩效详情 + 趋势 userInfo | `PerfRecord*` · `PerfTrendVO` · `M3PerfDetailEnrichIT` | ✅ | — |
 | **S-R27b-Mike** | Mike | B-8/M4 | 公司详情 + 扩容历史 | `CompanyController` | ⬜ | — |
 | **S-R27c-Mike** | Mike | B-8/M4 | 平台账号统计字段 | `AccountRespVO` | ⬜ | — |
-| **S-R27-Donny** | Donny | B-8 | 4 详情页前端接线 | `PerfRecordDetail` · `PerfUserTrend` 等 | ⬜ | S-R27a ✅ |
-| **S-R26** | Mike+Donny | — | 集成回归 mvn verify + PW 全量 | 全库 | ⬜ | Wave-2/3 ✅ |
-| **D-2~D-6** | Donny | D-2~D-6 | M9 五页是否 Phase 2 | PRD · ADR · MASTER §15 | ⬜ 待决策 | 产品会 |
+| **S-R27-Donny** | Donny | B-8 | M3 详情页前端接 workflowStatus/userInfo | `PerfRecordDetail.vue` · `PerfUserTrend.vue` | ⬜ | S-R27a ✅ |
+| **S-R26** | Mike+Donny | — | 集成回归 mvn verify + PW 全量 | 全库 | ⬜ | Wave-3 ✅ |
+| **D-2~D-6** | Donny | D-2~D-6 | M9 五页是否 Phase 2 | PRD · ADR | ⬜ 待决策 | 产品会 |
 
 ---
 
@@ -77,29 +77,26 @@
 
 | ID | 任务 | 负责人 | 状态 |
 |----|------|--------|------|
-| D-1 | oa_content.author_id | Mike 后端 ✅ · Donny 前端 ⬜ | 🟡 |
+| D-1 | oa_content.author_id | Mike + Donny | ✅ |
 | D-2~D-6 | M9 系统页后端 | Donny 决策 | ⬜ |
 | D-7 | Content delete | Mike | ✅ |
 | B-6 | M9 路径 prefix | Mike | ✅ |
 | B-7 | exportToExcel 5 页 | Mike | ✅ |
-| B-8 | 详情页 assignee/userOwner | Mike | ⬜ |
+| B-8 | 详情页字段补全 | Mike S-R27a ✅ · b/c + Donny 待办 | 🟡 |
 | P-2 | PW 全量 0 error | Donny | ⬜ |
-| P-3 | `as any` 清理 | Donny | ⬜ |
-| P-4 | PW skip 补全 | Donny | ⬜ |
+| P-3 | `as any` 清理 | Donny | ✅ |
+| P-4 | PW skip 补全 | Donny | ✅ |
 | X-1~X-5 | 横切合规 | 已完成 | ✅ |
 
 ---
 
-## 4. 并行排期（Wave-2 起）
+## 4. 并行排期（当前）
 
 | 时段 | Mike | Donny | 同步点 |
 |------|------|-------|--------|
-| **现在** | S-R27-Mike 调研 B-8 | S-R21-Donny 效率页 KPI UI | 每日 stand-up |
-| **+1d** | S-R27 实现 + IT | S-R25-Donny P-3 第一批 | Mike push 后 Donny pull |
-| **+2d** | mvn verify 子集 | S-R25 P-4 + PW 局部 | — |
-| **+3d** | — | P-2 PW 全量复测 | 记 SESSION-PROGRESS |
-| **+5d** | **S-R26** 后端回归 | **S-R26** 前端回归 | Donny Gate 签字 |
-| **+7d** | — | 上线决策会 | OVERVIEW 更新 |
+| **现在** | S-R27b 公司详情 | S-R27-Donny 绩效详情 UI + P-2 | 每日 stand-up |
+| **+2d** | S-R27c 平台账号统计 | P-2 PW 全量 | — |
+| **+5d** | **S-R26** 后端回归 | **S-R26** 前端回归 | Gate 签字 |
 
 ---
 
@@ -107,9 +104,10 @@
 
 | 日期 | 操作人 | 动作 | 结果 | 备注 |
 |------|--------|------|------|------|
-| 2026-06-10 | Mike | `git pull` | ✅ Already up to date | 无冲突 |
-| 2026-06-10 | Mike | commit `be5594f` S-R21~R24 + 任务表 | ✅ 本地已提交 | 44 files |
-| 2026-06-10 | Mike | `git push origin main` | ⏸ 待人工 push | 环境拦截 protected main；Donny 本地 `git pull` 后 push |
+| 2026-06-10 | Mike | commit `be5594f` S-R21~R24 | ✅ 本地 | 44 files |
+| 2026-06-10 | Donny | commit `b41a89b` S-R21/S-R25 前端 | ✅ remote | |
+| 2026-06-10 | Mike | merge `b41a89b` + S-R27a | ✅ 冲突已解 | TASK-PROGRESS-* |
+| 2026-06-10 | Mike | `git push origin main` | 待执行 | — |
 
 ---
 
@@ -117,11 +115,10 @@
 
 | 文档 | 用途 |
 |------|------|
-| [TASK-PROGRESS-MIKE.md](./TASK-PROGRESS-MIKE.md) | Mike 个人任务（仅后端域为主） |
-| [TASK-PROGRESS-DONNY.md](./TASK-PROGRESS-DONNY.md) | Donny 个人任务（前端+产品） |
+| [TASK-PROGRESS-MIKE.md](./TASK-PROGRESS-MIKE.md) | Mike 个人任务 |
+| [TASK-PROGRESS-DONNY.md](./TASK-PROGRESS-DONNY.md) | Donny 个人任务 |
 | [MASTER-EXECUTION-TRACKER.md](./MASTER-EXECUTION-TRACKER.md) | Gate + §15 待办 SSOT |
 | [SESSION-PROGRESS.md](./SESSION-PROGRESS.md) | 会话级变更日志 |
-| [deliverable-OVERVIEW-20260610.md](../deliverable-OVERVIEW-20260610.md) | 总览与方法论 |
 
 ---
 
