@@ -79,6 +79,7 @@ import { ref, computed, nextTick, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
+import { getPerfUserTrend } from '@/api/perfResult'
 
 const route = useRoute()
 const router = useRouter()
@@ -160,32 +161,38 @@ const initRadar = () => {
 
 const loadDetail = async () => {
   loading.value = true
-  await new Promise((r) => setTimeout(r, 300))
-  const userId = Number(route.params.userId)
-  userInfo.value = {
-    id: userId,
-    name: '李四',
-    position: '运营专员',
-    dept: '抖音矩阵组',
-    joinAt: '2024-03-15',
+  try {
+    const userId = Number(route.params.userId)
+    const res: any = await getPerfUserTrend(userId)
+    userInfo.value = res.userInfo || {
+      id: userId,
+      name: res.userName || '用户',
+      position: res.position || '',
+      dept: res.dept || '',
+      joinAt: res.joinAt || '',
+    }
+    const points = (res.points || res.historyList || []) as any[]
+    months.value = points.map((p) => p.period || p.cycle || '')
+    monthlyScores.value = points.map((p) => p.score ?? p.totalScore ?? 0)
+    history.value = points.map((p, i) => ({
+      period: months.value[i],
+      templateName: p.templateName || '',
+      baseScore: p.baseScore ?? 0,
+      metricScore: p.metricScore ?? 0,
+      bonusScore: p.bonusScore ?? 0,
+      totalGrade: p.grade || (monthlyScores.value[i] > 95 ? 'S' : monthlyScores.value[i] > 85 ? 'A' : 'B'),
+      status: p.status || '已发布',
+    }))
+  } catch {
+    // 加载失败保持空
+  } finally {
+    loading.value = false
+    await nextTick()
+    setTimeout(() => {
+      initTrend()
+      initRadar()
+    }, 100)
   }
-  months.value = ['2025-07', '08', '09', '10', '11', '12', '2026-01', '02', '03', '04', '05']
-  monthlyScores.value = [85, 92, 78, 88, 95, 102, 90, 87, 96, 100, 98]
-  history.value = months.value.map((m, i) => ({
-    period: m,
-    templateName: '抖音主账号运营模板',
-    baseScore: 10,
-    metricScore: monthlyScores.value[i] - 10,
-    bonusScore: 0,
-    totalGrade: monthlyScores.value[i] > 95 ? 'S' : monthlyScores.value[i] > 85 ? 'A' : monthlyScores.value[i] > 75 ? 'B' : 'C',
-    status: i < 10 ? '已发布' : '待发布',
-  }))
-  loading.value = false
-  await nextTick()
-  setTimeout(() => {
-    initTrend()
-    initRadar()
-  }, 100)
 }
 
 onMounted(loadDetail)

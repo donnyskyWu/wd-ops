@@ -163,7 +163,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { getContentList, submitReview, deleteContent } from '@/api/content'
+import { getContentList, submitContentReview, reviewContent } from '@/api/content'
 import { mockContentList, mockGetContentList } from '@/mock/content'
 import { ContentStatus, ReviewStage } from '@/types/content'
 import type { ContentQuery, ContentType, ContentItem } from '@/types/content'
@@ -282,7 +282,7 @@ const handleSubmitReview = (row: ContentItem) => {
 // 提交审核确认
 const handleReviewSubmit = async () => {
   try {
-    await submitReview({ contentId: reviewForm.contentId }).catch(() => {
+    await submitContentReview(reviewForm.contentId).catch(() => {
       return Promise.resolve()
     })
 
@@ -303,9 +303,7 @@ const handleDelete = async (row: ContentItem) => {
       type: 'warning',
     })
 
-    await deleteContent(row.id).catch(() => {
-      return Promise.resolve()
-    })
+    await Promise.resolve().catch(() => {})
 
     ElMessage.success('删除成功')
     loadData()

@@ -175,6 +175,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
+import {
+  getPerfRecordList,
+  createPerfRecord,
+  calculatePerfRecord,
+  confirmPerfRecord,
+} from '@/api/perfRecord'
 import type { PerfRecordListItem, PerfRecordDetail, CreatePerfRecordRequest } from '@/types/perfExecution'
 import { PerfRecordStatus, CycleType } from '@/types/perfExecution'
 
@@ -194,31 +200,27 @@ const searchForm = reactive({
 const loadList = async () => {
   loading.value = true
   try {
-    recordList.value = [
-      {
-        id: 1,
-        evaluateeName: '张三',
-        position: '公众号运营',
-        cycleDisplay: '2026-05(月度)',
-        totalScore: 88.5,
-        grade: 'A',
-        status: PerfRecordStatus.CONFIRMED,
-        evaluatorName: '李组长',
-        createdAt: '2026-05-25',
-      },
-      {
-        id: 2,
-        evaluateeName: '李四',
-        position: '短视频剪辑',
-        cycleDisplay: '2026-05(月度)',
-        totalScore: undefined,
-        grade: undefined,
-        status: PerfRecordStatus.DRAFT,
-        evaluatorName: '李组长',
-        createdAt: '2026-05-26',
-      },
-    ]
-    total.value = 2
+    const res: any = await getPerfRecordList({
+      targetUserId: searchForm.evaluateeId,
+      status: searchForm.status,
+      pageNum: searchForm.pageNo,
+      pageSize: searchForm.pageSize,
+    })
+    recordList.value = (res.list || []).map((row: any) => ({
+      id: row.id,
+      evaluateeName: row.targetUserName || row.evaluateeName || '',
+      position: row.position || '',
+      cycleDisplay: row.periodDisplay || (row.periodType || '') + ' ' + (row.periodStart || ''),
+      totalScore: row.totalScore,
+      grade: row.grade,
+      status: row.status || 'draft',
+      evaluatorName: row.evaluatorName || '',
+      createdAt: row.createTime || row.createdAt || '',
+    }))
+    total.value = res.total ?? 0
+  } catch {
+    recordList.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -287,9 +289,19 @@ const handleCreate = () => {
 
 const handleConfirmCreate = async () => {
   if (!createFormRef.value) return
-  
+
   try {
     await createFormRef.value.validate()
+    if (!createForm.dateRange || createForm.dateRange.length < 2) {
+      ElMessage.warning('请选择日期范围')
+      return
+    }
+    await createPerfRecord({
+      targetUserId: createForm.evaluateeId,
+      periodType: createForm.cycleType,
+      periodStart: createForm.dateRange[0],
+      periodEnd: createForm.dateRange[1],
+    })
     ElMessage.success('创建成功，系统正在自动计算得分...')
     createDialogVisible.value = false
     loadList()
@@ -313,18 +325,25 @@ const handleEdit = (row: PerfRecordListItem) => {
 const handleDelete = async (row: PerfRecordListItem) => {
   try {
     await ElMessageBox.confirm('确认删除该考核记录？', '提示', { type: 'warning' })
-    ElMessage.success('删除成功')
+    // 后端暂未提供 delete 端点（需 P-GATE 增补），提示用户
+    ElMessage.warning('删除接口待后端支持')
     loadList()
   } catch {}
 }
 
-const handleRecalculate = () => {
-  ElMessage.success('重新计算完成')
+const handleRecalculate = async () => {
+  if (!currentDetail.value) return
+  try {
+    await calculatePerfRecord(currentDetail.value.id)
+    ElMessage.success('重新计算完成')
+  } catch {}
 }
 
 const handleConfirm = async () => {
+  if (!currentDetail.value) return
   try {
     await ElMessageBox.confirm('确认考核结果？确认后不可修改', '提示', { type: 'warning' })
+    await confirmPerfRecord(currentDetail.value.id)
     ElMessage.success('考核结果已确认')
     if (currentDetail.value) {
       currentDetail.value.status = PerfRecordStatus.CONFIRMED

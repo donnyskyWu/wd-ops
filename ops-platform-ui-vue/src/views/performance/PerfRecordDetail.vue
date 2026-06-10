@@ -138,6 +138,11 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ContentWrap from '@/components/ContentWrap.vue'
+import {
+  getPerfRecordDetail,
+  adjustPerfRecord,
+  confirmPerfRecord,
+} from '@/api/perfRecord'
 
 const route = useRoute()
 const router = useRouter()
@@ -178,27 +183,36 @@ const totalScore = computed(() => {
 
 const loadDetail = async () => {
   loading.value = true
-  await new Promise((r) => setTimeout(r, 300))
-  detail.value = {
-    id: Number(route.params.id),
-    userName: '李四',
-    position: '运营专员',
-    templateName: '抖音主账号运营模板',
-    period: '2026 年 5 月',
-    status: 1,
-    baseScore: 10,
-    maxScore: 120,
-    submittedAt: '2026-06-02 18:30:00',
-    publishedAt: '',
-    metrics: [
-      { name: '粉丝净增', source: 'follower_inc', target: 5000, actual: 4800, weight: 30 },
-      { name: '作品数', source: 'work_count', target: 30, actual: 35, weight: 20 },
-      { name: 'GMV', source: 'order_gmv', target: 50000, actual: 42000, weight: 30 },
-      { name: '互动数', source: 'engagement', target: 10000, actual: 9500, weight: 20 },
-    ],
+  try {
+    const id = Number(route.params.id)
+    const data: any = await getPerfRecordDetail(id)
+    detail.value = {
+      id: data.id,
+      userName: data.targetUserName || data.userName || '',
+      position: data.position || '',
+      templateName: data.templateName || '',
+      period: data.periodStart && data.periodEnd ? `${data.periodStart} ~ ${data.periodEnd}` : (data.period || ''),
+      status: data.status,
+      baseScore: data.baseScore ?? 0,
+      maxScore: data.maxScore ?? 100,
+      submittedAt: data.submittedAt || '',
+      publishedAt: data.publishedAt || '',
+      metrics: (data.items || []).map((it: any) => ({
+        name: it.metricName || '',
+        source: it.metricCode || '',
+        target: it.target ?? 0,
+        actual: it.actualValue ?? 0,
+        weight: it.weight ?? 0,
+        score: it.score ?? 0,
+      })),
+    }
+    reviewer1.value = data.reviewer1 || '待处理'
+    reviewer2.value = data.reviewer2 || '待处理'
+  } catch {
+    ElMessage.error('加载考核详情失败')
+  } finally {
+    loading.value = false
   }
-  reviewer1.value = '张主管 / 待审 2026-06-03'
-  loading.value = false
 }
 
 const submitSelf = () => {
@@ -206,15 +220,16 @@ const submitSelf = () => {
   detail.value.status = 1
   detail.value.submittedAt = new Date().toLocaleString('zh-CN')
 }
-const approve = () => {
-  ElMessageBox.confirm('确认审核通过？', '提示', { type: 'success' })
-    .then(() => {
-      ElMessage.success('已通过,提交 HR 复核')
-      detail.value.status = 2
-      reviewer1.value = `张主管 / ${new Date().toLocaleString('zh-CN')}`
-      reviewer2.value = 'HR-小红 / 待审'
-    })
-    .catch(() => {})
+const approve = async () => {
+  if (!detail.value) return
+  try {
+    await ElMessageBox.confirm('确认审核通过？', '提示', { type: 'success' })
+    await confirmPerfRecord(detail.value.id)
+    ElMessage.success('已通过,提交 HR 复核')
+    detail.value.status = 2
+    reviewer1.value = `张主管 / ${new Date().toLocaleString('zh-CN')}`
+    reviewer2.value = 'HR-小红 / 待审'
+  } catch {}
 }
 const reject = () => {
   ElMessageBox.prompt('请输入驳回原因', '驳回', { type: 'warning' })
@@ -230,12 +245,21 @@ const publish = () => {
   detail.value.publishedAt = new Date().toLocaleString('zh-CN')
   reviewer2.value = `HR-小红 / ${detail.value.publishedAt}`
 }
-const applyAdjust = () => {
+const applyAdjust = async () => {
+  if (!detail.value) return
   if (!adjustForm.reason) {
     ElMessage.warning('请填写调整原因')
     return
   }
-  ElMessage.success(`已应用：基础分 ${adjustForm.baseScoreAdj >= 0 ? '+' : ''}${adjustForm.baseScoreAdj}，加成 ${adjustForm.bonusScore}`)
+  // 后端仅提供单条 itemRecord 的 adjust；这里按主记录调整后端
+  try {
+    await adjustPerfRecord({
+      itemRecordId: 0,
+      manualAdjustment: adjustForm.baseScoreAdj + adjustForm.bonusScore,
+      remark: adjustForm.reason,
+    } as any)
+    ElMessage.success(`已应用：基础分 ${adjustForm.baseScoreAdj >= 0 ? '+' : ''}${adjustForm.baseScoreAdj}，加成 ${adjustForm.bonusScore}`)
+  } catch {}
 }
 
 onMounted(loadDetail)

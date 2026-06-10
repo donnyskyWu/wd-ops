@@ -183,6 +183,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import ContentWrap from '@/components/ContentWrap.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import {
+  getTemplateDetail,
+  createTemplate,
+  updateTemplate,
+} from '@/api/perfTemplate'
 
 const route = useRoute()
 const router = useRouter()
@@ -251,38 +256,36 @@ const removeMetric = (i: number) => form.metrics.splice(i, 1)
 
 const loadDetail = async () => {
   loading.value = true
-  await new Promise((r) => setTimeout(r, 200))
-  if (!isNew.value) {
-    const id = Number(route.params.id)
-    Object.assign(form, {
-      id,
-      name: '抖音主账号运营模板 v' + id,
-      position: '运营专员',
-      platform: ['douyin', 'xhs'],
-      cycle: 'monthly',
-      baseScore: 10,
-      maxScore: 120,
-      status: 1,
-      remark: '主账号专用,2026 季度新版本',
-      metrics: [
-        { name: '粉丝净增', source: 'follower_inc', weight: 30, target: 5000, calcType: 'ratio' },
-        { name: '作品数', source: 'work_count', weight: 20, target: 30, calcType: 'ratio' },
-        { name: 'GMV', source: 'order_gmv', weight: 30, target: 50000, calcType: 'cap' },
-        { name: '互动数', source: 'engagement', weight: 20, target: 10000, calcType: 'ladder' },
-      ],
-    })
-    history.value = [
-      { time: '2026-05-01 10:00:00', action: '发布 v3 版本', type: 'success', operator: 'admin' },
-      { time: '2026-01-15 14:00:00', action: '调整 GMV 权重 25% → 30%', type: 'warning', operator: 'admin' },
-      { time: '2025-09-01 09:00:00', action: '创建模板', type: 'info', operator: 'admin' },
-    ]
-    // 模拟预览值
-    previewData.follower_inc = 4800
-    previewData.work_count = 28
-    previewData.order_gmv = 42000
-    previewData.engagement = 9500
+  try {
+    if (!isNew.value) {
+      const id = Number(route.params.id)
+      const data: any = await getTemplateDetail(id)
+      Object.assign(form, {
+        id: data.id,
+        name: data.templateName || '',
+        position: data.position || '',
+        platform: data.platform || [],
+        cycle: data.cycle || 'monthly',
+        baseScore: data.baseScore ?? 0,
+        maxScore: data.maxScore ?? 100,
+        status: data.isActive ? 1 : 0,
+        remark: data.remark || '',
+        metrics: (data.items || []).map((it: any) => ({
+          name: it.metricName || '',
+          source: it.metricCode || '',
+          weight: it.weight || 0,
+          target: it.target || 0,
+          calcType: it.calcRule === 'manual' ? 'ladder' : 'ratio',
+        })),
+      })
+      // 操作历史后端暂未提供，先用静态占位
+      history.value = []
+    }
+  } catch {
+    ElMessage.error('加载模板详情失败')
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
 const save = async () => {
@@ -297,14 +300,39 @@ const save = async () => {
     return
   }
   saving.value = true
-  await new Promise((r) => setTimeout(r, 400))
-  saving.value = false
-  ElMessage.success('保存成功')
-  if (isNew.value && !form.id) {
-    form.id = Math.floor(Math.random() * 1000) + 100
-    history.value.unshift({ time: new Date().toLocaleString('zh-CN'), action: '创建模板', type: 'info', operator: '当前用户' })
-  } else {
-    history.value.unshift({ time: new Date().toLocaleString('zh-CN'), action: '更新模板', type: 'warning', operator: '当前用户' })
+  try {
+    const payload = {
+      id: form.id,
+      templateName: form.name,
+      position: form.position,
+      isActive: form.status === 1 ? 1 : 0,
+      items: form.metrics.map((m: any, idx: number) => ({
+        metricId: m.metricId || idx + 1,
+        metricName: m.name,
+        metricCode: m.source,
+        weight: m.weight,
+        calcRule: m.calcType === 'ladder' ? 'manual' : 'auto',
+        scoreStandard: { ranges: [] },
+      })),
+    }
+    if (form.id) {
+      await updateTemplate(payload)
+      ElMessage.success('更新成功')
+    } else {
+      const newId = await createTemplate(payload)
+      form.id = newId
+      ElMessage.success('保存成功')
+    }
+    history.value.unshift({
+      time: new Date().toLocaleString('zh-CN'),
+      action: form.id ? '更新模板' : '创建模板',
+      type: 'info',
+      operator: '当前用户',
+    })
+  } catch {
+    // 错误已由拦截器处理
+  } finally {
+    saving.value = false
   }
 }
 

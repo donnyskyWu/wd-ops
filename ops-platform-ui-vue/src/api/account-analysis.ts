@@ -17,11 +17,15 @@ export function getAccountAnalysisList(params: AccountAnalysisQueryVO): Promise<
 }
 
 export function getAccountFollowerDetail(params: FollowerDetailQueryVO): Promise<FollowerDetailVO> {
-  return request.get({ url: `/oa/account-analysis/${params.accountId}/followers`, params })
+  // S-R13 B2 修复：URL 模板已含 accountId，params 不再重复传
+  const { accountId, ...query } = params
+  return request.get({ url: `/oa/account-analysis/${accountId}/followers`, params: query })
 }
 
 export function getAccountContentDetail(params: ContentQueryVO): Promise<PageResult<ContentVO>> {
-  return request.get({ url: `/oa/account-analysis/${params.accountId}/contents`, params })
+  // S-R13 B2 修复：URL 模板已含 accountId，params 不再重复传
+  const { accountId, ...query } = params
+  return request.get({ url: `/oa/account-analysis/${accountId}/contents`, params: query })
 }
 
 export function exportAccountAnalysis(data: Record<string, unknown>): Promise<string> {

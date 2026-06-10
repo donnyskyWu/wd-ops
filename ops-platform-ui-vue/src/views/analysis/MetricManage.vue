@@ -5,10 +5,9 @@
         <el-input v-model="searchForm.keyword" placeholder="搜索指标" clearable />
       </el-form-item>
       <el-form-item label="指标类型">
-        <el-select v-model="searchForm.metricType" placeholder="请选择" clearable style="width: 120px">
-          <el-option label="基础" value="BASIC" />
-          <el-option label="计算" value="CALCULATED" />
-          <el-option label="派生" value="DERIVED" />
+        <el-select v-model="searchForm.metricType" placeholder="请选择" clearable style="width: 140px">
+          <el-option label="基础指标" value="BASIC" />
+          <el-option label="复合指标" value="COMPOSITE" />
         </el-select>
       </el-form-item>
     </TableSearch>
@@ -19,19 +18,24 @@
     </div>
 
     <el-table :data="metricList" v-loading="loading" stripe>
-      <el-table-column prop="metricName" label="指标名称" width="150" />
-      <el-table-column prop="metricCode" label="指标编码" width="180" />
+      <el-table-column prop="id" label="ID" width="70" align="center" />
+      <el-table-column prop="metricName" label="指标名称" min-width="160" show-overflow-tooltip />
+      <el-table-column prop="metricCode" label="指标编码" width="180" show-overflow-tooltip />
       <el-table-column prop="metricType" label="类型" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :type="getTypeColor(row.metricType)">{{ getTypeName(row.metricType) }}</el-tag>
+          <el-tag :type="getTypeColor(row.metricType)" size="small">{{ getTypeName(row.metricType) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="dataSource" label="数据源" width="150" />
       <el-table-column prop="unit" label="单位" width="80" align="center" />
-      <el-table-column prop="formula" label="计算公式" min-width="200" show-overflow-tooltip />
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column prop="status" label="状态" width="80" align="center">
         <template #default="{ row }">
-          <el-button link type="primary" @click="handleView(row)">查看</el-button>
+          <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
+            {{ row.status === 1 ? '启用' : '停用' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="160" fixed="right">
+        <template #default="{ row }">
           <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
           <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
@@ -39,20 +43,17 @@
     </el-table>
 
     <el-pagination
-      :current-page="searchForm.pageNo"
+      :current-page="searchForm.pageNum"
       :page-size="searchForm.pageSize"
       :total="total"
       :page-sizes="[10, 20, 50]"
       layout="total, sizes, prev, pager, next"
       class="pagination"
-      @update:current-page="(val) => searchForm.pageNo = val"
-      @update:page-size="(val) => { searchForm.pageSize = val; handleSearch() }"
-      @current-change="handleSearch"
-      @size-change="handleSearch"
+      @update:current-page="(v) => { searchForm.pageNum = v; loadList() }"
+      @update:page-size="(v) => { searchForm.pageSize = v; searchForm.pageNum = 1; loadList() }"
     />
 
-    <!-- 新增/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px" @closed="handleDialogClosed">
       <el-form :model="formData" ref="formRef" :rules="formRules" label-width="100px">
         <el-form-item label="指标名称" prop="metricName">
           <el-input v-model="formData.metricName" placeholder="1-50字，全局唯一" maxlength="50" />
@@ -63,28 +64,19 @@
         <el-form-item label="指标类型" prop="metricType">
           <el-radio-group v-model="formData.metricType">
             <el-radio label="BASIC">基础</el-radio>
-            <el-radio label="CALCULATED">计算</el-radio>
-            <el-radio label="DERIVED">派生</el-radio>
+            <el-radio label="COMPOSITE">复合</el-radio>
           </el-radio-group>
-        </el-form-item>
-        <el-form-item label="数据源" prop="dataSource">
-          <el-select v-model="formData.dataSource" placeholder="请选择数据表" style="width: 100%">
-            <el-option label="oa_follower" value="oa_follower" />
-            <el-option label="oa_content" value="oa_content" />
-            <el-option label="oa_order" value="oa_order" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="计算公式">
-          <el-input v-model="formData.formula" type="textarea" :rows="3" placeholder="SQL表达式" />
-          <div class="form-tip">⚠️ 仅允许白名单中的表，禁止DROP/UPDATE/DELETE等操作</div>
         </el-form-item>
         <el-form-item label="单位">
           <el-input v-model="formData.unit" placeholder="如：人/元/%/次/分" />
         </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="formData.description" type="textarea" :rows="2" placeholder="指标说明（可选）" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">保存</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSubmit">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -95,59 +87,42 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
+import { getMetricList, createMetric, updateMetric, deleteMetric } from '@/api/metric'
 
-// ==================== 类型定义 ====================
-interface MetricItem {
-  id?: number
+interface MetricVO {
+  id: number
   metricName: string
   metricCode: string
-  metricType: 'BASIC' | 'CALCULATED' | 'DERIVED'
-  dataSource: string
-  formula?: string
-  unit?: string
+  metricType: string
+  unit: string
+  category: string
+  status: number
+  description: string
 }
 
-// ==================== 响应式数据 ====================
 const loading = ref(false)
-const metricList = ref([
-  { id: 1, metricName: '粉丝增长数', metricCode: 'FOLLOWER_GROWTH', metricType: 'BASIC', dataSource: 'oa_follower', unit: '人', formula: 'COUNT(follower_id)' },
-  { id: 2, metricName: '内容发布率', metricCode: 'CONTENT_PUBLISH', metricType: 'CALCULATED', dataSource: 'oa_content', unit: '%', formula: 'COUNT(published) / COUNT(total) * 100' },
-  { id: 3, metricName: '综合转化率', metricCode: 'CONV_RATE_CMPST', metricType: 'DERIVED', dataSource: '计算公式', unit: '%', formula: 'CONV_RATE * ENGAGEMENT_RATE' },
-])
-const total = ref(3)
+const saving = ref(false)
+const metricList = ref<MetricVO[]>([])
+const total = ref(0)
 
 const searchForm = reactive({
-  pageNo: 1,
+  pageNum: 1,
   pageSize: 20,
   keyword: undefined as string | undefined,
   metricType: undefined as string | undefined,
 })
 
-const loadList = () => { loading.value = false }
-const handleSearch = () => { searchForm.pageNo = 1; loadList() }
-const handleReset = () => { searchForm.keyword = undefined; searchForm.metricType = undefined; handleSearch() }
-
-const getTypeName = (type: string) => {
-  const map: Record<string, string> = { BASIC: '基础', CALCULATED: '计算', DERIVED: '派生' }
-  return map[type] || type
-}
-
-const getTypeColor = (type: string) => {
-  const map: Record<string, string> = { BASIC: '', CALCULATED: 'warning', DERIVED: 'danger' }
-  return map[type] || ''
-}
-
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增指标')
+const isEdit = ref(false)
 const formRef = ref()
 const formData = reactive({
-  id: undefined,
+  id: undefined as number | undefined,
   metricName: '',
   metricCode: '',
   metricType: 'BASIC',
-  dataSource: '',
-  formula: '',
   unit: '',
+  description: '',
 })
 
 const formRules = {
@@ -160,29 +135,120 @@ const formRules = {
     { pattern: /^[A-Za-z][A-Za-z0-9_]*$/, message: '编码需以字母开头，仅含字母数字下划线', trigger: 'blur' },
   ],
   metricType: [{ required: true, message: '请选择指标类型', trigger: 'change' }],
-  dataSource: [{ required: true, message: '请选择数据源', trigger: 'change' }],
 }
 
-const handleAdd = () => { dialogTitle.value = '新增指标'; dialogVisible.value = true }
-const handleEdit = (row: MetricItem) => {
-  dialogTitle.value = '编辑指标'
-  Object.assign(formData, { ...row })
+const getTypeName = (type: string) => {
+  const map: Record<string, string> = { BASIC: '基础', COMPOSITE: '复合' }
+  return map[type] || type || '-'
+}
+
+const getTypeColor = (type: string) => {
+  const map: Record<string, string> = { BASIC: '', COMPOSITE: 'warning' }
+  return map[type] || ''
+}
+
+const loadList = async () => {
+  loading.value = true
+  try {
+    const res: any = await getMetricList({
+      pageNum: searchForm.pageNum,
+      pageSize: searchForm.pageSize,
+      metricType: searchForm.metricType,
+    })
+    const data = res?.data ?? res
+    const list = data?.list ?? data?.records ?? []
+    let filtered = list
+    if (searchForm.keyword) {
+      const kw = searchForm.keyword.toLowerCase()
+      filtered = list.filter((m: MetricVO) =>
+        (m.metricName || '').toLowerCase().includes(kw) ||
+        (m.metricCode || '').toLowerCase().includes(kw),
+      )
+    }
+    metricList.value = filtered
+    total.value = data?.total ?? filtered.length
+  } catch (e) {
+    console.error('loadList failed', e)
+    metricList.value = []
+    total.value = 0
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleSearch = () => {
+  searchForm.pageNum = 1
+  loadList()
+}
+
+const handleReset = () => {
+  searchForm.keyword = undefined
+  searchForm.metricType = undefined
+  searchForm.pageNum = 1
+  loadList()
+}
+
+const handleAdd = () => {
+  isEdit.value = false
+  dialogTitle.value = '新增指标'
+  Object.assign(formData, { id: undefined, metricName: '', metricCode: '', metricType: 'BASIC', unit: '', description: '' })
   dialogVisible.value = true
 }
+
+const handleEdit = (row: MetricVO) => {
+  isEdit.value = true
+  dialogTitle.value = '编辑指标'
+  Object.assign(formData, {
+    id: row.id,
+    metricName: row.metricName,
+    metricCode: row.metricCode,
+    metricType: row.metricType || row.category || 'BASIC',
+    unit: row.unit || '',
+    description: row.description || '',
+  })
+  dialogVisible.value = true
+}
+
+const handleDialogClosed = () => {
+  formRef.value?.clearValidate()
+}
+
 const handleSubmit = async () => {
   if (!formRef.value) return
   await formRef.value.validate()
-  ElMessage.success('保存成功')
-  dialogVisible.value = false
-  loadList()
-}
-const handleView = () => ElMessage.info('查看详情功能开发中')
-const handleDelete = async () => {
+  saving.value = true
   try {
-    await ElMessageBox.confirm('确认删除该指标？', '提示', { type: 'warning' })
+    const payload = {
+      metricName: formData.metricName,
+      metricCode: formData.metricCode,
+      metricType: formData.metricType,
+      unit: formData.unit || undefined,
+      description: formData.description || undefined,
+    }
+    if (isEdit.value && formData.id) {
+      await updateMetric({ id: formData.id, ...payload })
+    } else {
+      await createMetric(payload)
+    }
+    ElMessage.success('保存成功')
+    dialogVisible.value = false
+    loadList()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '保存失败')
+  } finally {
+    saving.value = false
+  }
+}
+
+const handleDelete = async (row: MetricVO) => {
+  try {
+    await ElMessageBox.confirm(`确认删除指标"${row.metricName}"？`, '提示', { type: 'warning' })
+    await deleteMetric(row.id)
     ElMessage.success('删除成功')
     loadList()
-  } catch {}
+  } catch (e: any) {
+    if (e !== 'cancel' && e?.message) ElMessage.error(e.message)
+  }
 }
 
 onMounted(() => loadList())
@@ -193,5 +259,4 @@ onMounted(() => loadList())
 .action-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
 .total-info { color: #909399; font-size: 14px; }
 .pagination { margin-top: 16px; display: flex; justify-content: flex-end; }
-.form-tip { font-size: 12px; color: #e6a23c; margin-top: 4px; }
 </style>

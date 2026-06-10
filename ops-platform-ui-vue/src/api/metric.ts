@@ -18,3 +18,7 @@ export function updateMetric(data: Record<string, unknown>) {
 export function deleteMetric(id: number) {
   return request.delete({ url: `/oa/metric/${id}` })
 }
+
+export function getMetricOptions() {
+  return request.get({ url: '/oa/metric/list', params: { pageSize: 200, pageNum: 1 } }).then((res: any) => res.list || [])
+}

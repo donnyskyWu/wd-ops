@@ -206,7 +206,16 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
-import type { PerfTemplateListItem, PerfTemplateDetail, PerfTemplateItem, MetricOption, ScoreRange } from '@/types/perfTemplate'
+import {
+  getTemplateList,
+  createTemplate,
+  updateTemplate,
+  activateTemplate,
+} from '@/api/perfTemplate'
+import {
+  getMetricOptions,
+} from '@/api/metric'
+import type { PerfTemplateListItem, PerfTemplateItem, ScoreRange } from '@/types/perfTemplate'
 import { CalcRule, Grade } from '@/types/perfTemplate'
 
 const loading = ref(false)
@@ -224,26 +233,24 @@ const searchForm = reactive({
 const loadList = async () => {
   loading.value = true
   try {
-    // Mock数据
-    templateList.value = [
-      {
-        id: 1,
-        position: '运营组长',
-        templateName: '运营组长考核模板',
-        itemCount: 5,
-        isActive: true,
-        createdAt: '2026-01-10',
-      },
-      {
-        id: 2,
-        position: '公众号运营',
-        templateName: '公众号运营模板',
-        itemCount: 6,
-        isActive: true,
-        createdAt: '2026-01-10',
-      },
-    ]
-    total.value = 2
+    const res = await getTemplateList({
+      position: searchForm.position,
+      isActive: searchForm.isActive === undefined ? undefined : (searchForm.isActive ? 1 : 0),
+      pageNum: searchForm.pageNo,
+      pageSize: searchForm.pageSize,
+    })
+    templateList.value = (res.list || []).map((row: any) => ({
+      id: row.id,
+      position: row.position,
+      templateName: row.templateName,
+      itemCount: row.itemCount ?? 0,
+      isActive: row.isActive === 1 || row.isActive === true,
+      createdAt: row.createTime || row.createdAt || '',
+    })) as PerfTemplateListItem[]
+    total.value = res.total ?? 0
+  } catch (e) {
+    templateList.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -264,19 +271,29 @@ const handleReset = () => {
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增模板')
 const formRef = ref()
-const metricOptions = ref<MetricOption[]>([
-  { id: 101, metricName: '粉丝增长数', metricCode: 'FOLLOWER_GROWTH', calcRule: CalcRule.AUTO, unit: '人' },
-  { id: 102, metricName: '内容发布完成率', metricCode: 'CONTENT_PUBLISH_RATE', calcRule: CalcRule.AUTO, unit: '%' },
-  { id: 103, metricName: '转化率', metricCode: 'CONVERSION_RATE', calcRule: CalcRule.AUTO, unit: '%' },
-  { id: 104, metricName: '内容质量评分', metricCode: 'CONTENT_QUALITY', calcRule: CalcRule.MANUAL, unit: '分' },
-  { id: 105, metricName: '任务及时完成率', metricCode: 'TASK_COMPLETION_RATE', calcRule: CalcRule.AUTO, unit: '%' },
-])
+const metricOptions = ref<any[]>([])
 
-const formData = reactive<PerfTemplateDetail>({
+const loadMetricOptions = async () => {
+  try {
+    const list = await getMetricOptions()
+    metricOptions.value = (list || []).map((m: any) => ({
+      id: m.id,
+      metricName: m.metricName,
+      metricCode: m.metricCode,
+      calcRule: m.metricType === 'MANUAL' ? CalcRule.MANUAL : CalcRule.AUTO,
+      unit: m.unit || '',
+    }))
+  } catch {
+    metricOptions.value = []
+  }
+}
+
+const formData = reactive<any>({
+  id: undefined as number | undefined,
   templateName: '',
   position: '',
   isActive: true,
-  items: [],
+  items: [] as any[],
 })
 
 const formRules = {
@@ -355,9 +372,31 @@ const handleSubmit = async () => {
   if (!formRef.value) return
   await formRef.value.validate(async (valid: boolean) => {
     if (!valid || totalWeight.value !== 100) return
-    ElMessage.success('保存成功')
-    dialogVisible.value = false
-    loadList()
+    try {
+      const payload = {
+        id: formData.id,
+        templateName: formData.templateName,
+        position: formData.position,
+        isActive: formData.isActive ? 1 : 0,
+        items: formData.items.map((it: any) => ({
+          metricId: it.metricId,
+          weight: it.weight,
+          calcRule: it.calcRule,
+          scoreStandard: it.scoreStandard,
+        })),
+      }
+      if (formData.id) {
+        await updateTemplate(payload)
+        ElMessage.success('更新成功')
+      } else {
+        await createTemplate(payload)
+        ElMessage.success('保存成功')
+      }
+      dialogVisible.value = false
+      loadList()
+    } catch (e) {
+      // 错误已由全局拦截器处理
+    }
   })
 }
 
@@ -379,25 +418,36 @@ const handleView = (row: PerfTemplateListItem) => {
 const handleActivate = async (row: PerfTemplateListItem) => {
   try {
     await ElMessageBox.confirm('启用后将停用该岗位现有生效模板，确认操作？', '提示', { type: 'warning' })
+    await activateTemplate(row.id)
     ElMessage.success('启用成功')
     loadList()
-  } catch {}
+  } catch (e) {
+    // 用户取消或请求失败
+  }
 }
 
 const handleDeactivate = async (row: PerfTemplateListItem) => {
-  ElMessage.success('停用成功')
-  loadList()
+  // 后端目前只提供 activate，停用通过 update(isActive=0) 实现
+  try {
+    await updateTemplate({ id: row.id, isActive: 0 } as any)
+    ElMessage.success('停用成功')
+    loadList()
+  } catch {}
 }
 
 const handleDelete = async (row: PerfTemplateListItem) => {
   try {
     await ElMessageBox.confirm('确认删除该模板？', '提示', { type: 'warning' })
-    ElMessage.success('删除成功')
+    // 后端未提供删除端点，标记为软删除后续补
+    ElMessage.warning('删除接口待后端支持')
     loadList()
   } catch {}
 }
 
-onMounted(() => loadList())
+onMounted(() => {
+  loadList()
+  loadMetricOptions()
+})
 </script>
 
 <style scoped>

@@ -1,152 +1,120 @@
-<!--
-  M6-2 状态监控报表
-  依据: FR-M6-002
-  路径: /analysis/report/account-status
--->
 <template>
-  <div class="report-page" v-loading="loading">
+  <div class="report-page">
     <el-breadcrumb separator="/" style="margin-bottom: 16px">
       <el-breadcrumb-item :to="{ path: '/data-report' }">数据报表</el-breadcrumb-item>
       <el-breadcrumb-item>状态监控</el-breadcrumb-item>
     </el-breadcrumb>
-
     <ContentWrap>
       <el-form :model="filter" inline>
-        <el-form-item label="IP 组">
-          <IpGroupTreeSelect v-model="filter.ipGroupId" />
+        <el-form-item label="账号">
+          <AccountSelect v-model="filter.accountId" style="width: 220px" />
         </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="loadData">查询</el-button>
+        <el-form-item label="时间">
+          <el-date-picker v-model="filter.dateRange" type="daterange" value-format="YYYY-MM-DD" style="width: 240px" />
         </el-form-item>
+        <el-form-item><el-button type="primary" @click="loadData">查询</el-button></el-form-item>
       </el-form>
     </ContentWrap>
-
-    <el-row :gutter="16" style="margin-top: 16px">
-      <el-col :span="6">
-        <el-card><div class="kpi-label">正常</div><div class="kpi-value success">{{ stats.normal }}</div></el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card><div class="kpi-label">限流</div><div class="kpi-value warning">{{ stats.limited }}</div></el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card><div class="kpi-label">封禁</div><div class="kpi-value danger">{{ stats.banned }}</div></el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card><div class="kpi-label">待激活</div><div class="kpi-value">{{ stats.pending }}</div></el-card>
-      </el-col>
-    </el-row>
-
-    <el-row :gutter="16" style="margin-top: 16px">
-      <el-col :span="12">
-        <ContentWrap title="状态分布">
-          <div ref="pieRef" style="width: 100%; height: 320px" />
-        </ContentWrap>
-      </el-col>
-      <el-col :span="12">
-        <ContentWrap title="7 天状态变更趋势">
-          <div ref="lineRef" style="width: 100%; height: 320px" />
-        </ContentWrap>
-      </el-col>
-    </el-row>
-
-    <ContentWrap title="异常账号列表" style="margin-top: 16px">
-      <el-table :data="abnormal" border stripe>
-        <el-table-column prop="account" label="账号" min-width="200" />
-        <el-table-column prop="platform" label="平台" width="100" align="center">
-          <template #default="{ row }"><el-tag size="small">{{ row.platform }}</el-tag></template>
-        </el-table-column>
-        <el-table-column prop="ipGroup" label="IP 组" min-width="120" />
+    <ContentWrap title="状态趋势" style="margin-top: 16px">
+      <div ref="trendRef" style="width: 100%; height: 320px" />
+    </ContentWrap>
+    <ContentWrap title="状态摘要" style="margin-top: 16px">
+      <el-row :gutter="16">
+        <el-col :span="6"><el-card shadow="hover"><el-statistic title="在线" :value="summary.online || 0" /></el-card></el-col>
+        <el-col :span="6"><el-card shadow="hover"><el-statistic title="异常" :value="summary.abnormal || 0" /></el-card></el-col>
+        <el-col :span="6"><el-card shadow="hover"><el-statistic title="掉线" :value="summary.offline || 0" /></el-card></el-col>
+        <el-col :span="6"><el-card shadow="hover"><el-statistic title="恢复" :value="summary.recovered || 0" /></el-card></el-col>
+      </el-row>
+    </ContentWrap>
+    <ContentWrap title="状态日志" style="margin-top: 16px">
+      <el-table :data="logList" border stripe v-loading="loading">
+        <el-table-column prop="date" label="日期" width="120" />
+        <el-table-column prop="account_name" label="账号" min-width="200" show-overflow-tooltip />
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === '封禁' ? 'danger' : 'warning'" size="small">{{ row.status }}</el-tag>
+            <el-tag :type="getStatusType(row.status)" size="small">{{ row.status || '-' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="reason" label="原因" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="time" label="变更时间" width="160" align="center" />
+        <el-table-column prop="remark" label="备注" min-width="200" show-overflow-tooltip />
       </el-table>
+      <el-pagination :current-page="pageNum" :page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next"
+        class="pagination" @update:current-page="(v) => { pageNum = v; loadData() }"
+        @update:page-size="(v) => { pageSize = v; pageNum = 1; loadData() }" />
     </ContentWrap>
   </div>
 </template>
-
 <script setup lang="ts">
-import { ref, reactive, nextTick, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
-import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
+import AccountSelect from '@/components/selectors/AccountSelect.vue'
+import { getAccountStatusTrend, getAccountStatusSummary, getAccountStatusLog } from '@/api/report'
 
 const loading = ref(false)
-const filter = reactive({ ipGroupId: undefined as number | undefined })
-const stats = reactive({ normal: 0, limited: 0, banned: 0, pending: 0 })
-const abnormal = ref<any[]>([])
-const pieRef = ref<HTMLDivElement | null>(null)
-const lineRef = ref<HTMLDivElement | null>(null)
-let pieChart: echarts.ECharts | null = null
-let lineChart: echarts.ECharts | null = null
+const filter = reactive({ accountId: undefined as number | undefined, dateRange: [] as string[] })
+const pageNum = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
+const logList = ref<any[]>([])
+const summary = reactive<any>({ online: 0, abnormal: 0, offline: 0, recovered: 0 })
+const trendRef = ref<HTMLDivElement | null>(null)
+let chart: echarts.ECharts | null = null
 
-const initPie = () => {
-  if (!pieRef.value) return
-  const el = pieRef.value
-  if (el.getBoundingClientRect().width === 0) return setTimeout(initPie, 100)
-  if (!pieChart) pieChart = echarts.init(el)
-  pieChart.setOption({
-    tooltip: { trigger: 'item' },
-    legend: { bottom: 0 },
-    series: [{
-      type: 'pie', radius: ['40%', '70%'], itemStyle: { borderRadius: 6 },
-      data: [
-        { name: '正常', value: stats.normal, itemStyle: { color: '#67c23a' } },
-        { name: '限流', value: stats.limited, itemStyle: { color: '#e6a23c' } },
-        { name: '封禁', value: stats.banned, itemStyle: { color: '#f56c6c' } },
-        { name: '待激活', value: stats.pending, itemStyle: { color: '#909399' } },
-      ],
-    }],
-  })
+const getStatusType = (s: string) => {
+  const map: Record<string, string> = { ONLINE: 'success', ABNORMAL: 'warning', OFFLINE: 'danger', RECOVERED: 'info' }
+  return map[s] || ''
 }
-const initLine = () => {
-  if (!lineRef.value) return
-  const el = lineRef.value
-  if (el.getBoundingClientRect().width === 0) return setTimeout(initLine, 100)
-  if (!lineChart) lineChart = echarts.init(el)
-  const days = Array.from({ length: 7 }, (_, i) => `${i + 1}日`)
-  lineChart.setOption({
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['限流', '封禁'], top: 0 },
-    grid: { left: 40, right: 16, top: 40, bottom: 30 },
-    xAxis: { type: 'category', data: days },
-    yAxis: { type: 'value' },
-    series: [
-      { name: '限流', type: 'line', data: [3, 5, 2, 7, 4, 6, 3], itemStyle: { color: '#e6a23c' }, smooth: true },
-      { name: '封禁', type: 'line', data: [1, 0, 2, 1, 3, 0, 1], itemStyle: { color: '#f56c6c' }, smooth: true },
-    ],
-  })
+
+const buildQ = () => {
+  const q: Record<string, any> = { pageNum: pageNum.value, pageSize: pageSize.value }
+  if (filter.accountId) q.accountId = filter.accountId
+  if (filter.dateRange?.length === 2) { q.startDate = filter.dateRange[0]; q.endDate = filter.dateRange[1] }
+  return q
 }
 
 const loadData = async () => {
   loading.value = true
-  await new Promise((r) => setTimeout(r, 300))
-  stats.normal = 85
-  stats.limited = 8
-  stats.banned = 3
-  stats.pending = 12
-  abnormal.value = [
-    { account: '抖音-知识变现研究院', platform: '抖音', ipGroup: '头部 IP', status: '封禁', reason: '涉嫌违规营销', time: '2026-06-07 14:30' },
-    { account: '公众号-AI 技术前沿', platform: '公众号', ipGroup: '腰部 IP', status: '限流', reason: '近期互动率下降', time: '2026-06-06 09:15' },
-    { account: '小红书-种草官 03', platform: '小红书', ipGroup: '尾部 IP', status: '限流', reason: '笔记重复度高', time: '2026-06-05 11:00' },
-    { account: '快手-健身达人 05', platform: '快手', ipGroup: '尾部 IP', status: '封禁', reason: '违反社区规定', time: '2026-06-04 16:20' },
-  ]
-  loading.value = false
-  await nextTick()
-  setTimeout(() => { initPie(); initLine() }, 100)
+  try {
+    const q = buildQ()
+    const [trendRes, sumRes, logRes] = await Promise.all([
+      getAccountStatusTrend({ accountId: filter.accountId, startDate: q.startDate, endDate: q.endDate }),
+      getAccountStatusSummary({ accountId: filter.accountId, startDate: q.startDate, endDate: q.endDate }),
+      getAccountStatusLog(q),
+    ])
+    const t = (trendRes as any)?.data ?? trendRes
+    drawTrend(Array.isArray(t) ? t : [])
+    const s = (sumRes as any)?.data ?? sumRes
+    Object.assign(summary, s)
+    const l = (logRes as any)?.data ?? logRes
+    logList.value = l?.list ?? l?.records ?? []
+    total.value = l?.total ?? logList.value.length
+  } catch (e) { console.error(e); logList.value = [] }
+  finally { loading.value = false }
 }
 
-onMounted(loadData)
-</script>
+const drawTrend = (rows: any[]) => {
+  if (!trendRef.value) return
+  const el = trendRef.value
+  if (el.getBoundingClientRect().width === 0) { setTimeout(() => drawTrend(rows), 100); return }
+  if (!chart) chart = echarts.init(el)
+  const dates = Array.from(new Set(rows.map((r: any) => r.date || r.stat_date))).sort()
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['在线', '异常', '掉线'], top: 0 },
+    grid: { left: 40, right: 16, top: 40, bottom: 30 },
+    xAxis: { type: 'category', data: dates },
+    yAxis: { type: 'value' },
+    series: [
+      { name: '在线', type: 'line', smooth: true, data: dates.map(d => rows.find((r: any) => (r.date || r.stat_date) === d)?.online || 0) },
+      { name: '异常', type: 'line', smooth: true, data: dates.map(d => rows.find((r: any) => (r.date || r.stat_date) === d)?.abnormal || 0) },
+      { name: '掉线', type: 'line', smooth: true, data: dates.map(d => rows.find((r: any) => (r.date || r.stat_date) === d)?.offline || 0) },
+    ],
+  })
+}
 
+onMounted(() => loadData())
+</script>
 <style scoped>
 .report-page { padding: 20px; }
-.kpi-label { color: #909399; font-size: 13px; }
-.kpi-value { font-size: 28px; font-weight: 600; line-height: 1.4; text-align: center; padding: 8px 0; }
-.kpi-value.success { color: #67c23a; }
-.kpi-value.warning { color: #e6a23c; }
-.kpi-value.danger { color: #f56c6c; }
+.pagination { margin-top: 16px; display: flex; justify-content: flex-end; }
 </style>

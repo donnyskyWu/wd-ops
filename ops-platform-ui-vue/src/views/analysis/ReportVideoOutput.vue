@@ -1,8 +1,3 @@
-<!--
-  M6-3 短视频产出
-  依据: FR-M6-003
-  路径: /analysis/report/video-output
--->
 <template>
   <div class="report-page" v-loading="loading">
     <el-breadcrumb separator="/" style="margin-bottom: 16px">
@@ -12,19 +7,18 @@
 
     <ContentWrap>
       <el-form :model="filter" inline>
-        <el-form-item label="平台">
-          <el-select v-model="filter.platform" multiple clearable style="width: 240px">
-            <el-option label="抖音" value="DOUYIN" />
-            <el-option label="快手" value="KUAISHOU" />
-            <el-option label="小红书" value="XIAOHONGSHU" />
-            <el-option label="视频号" value="VIDEO_ACCOUNT" />
-          </el-select>
+        <el-form-item label="IP 组">
+          <IpGroupTreeSelect v-model="filter.ipGroupId" style="width: 220px" />
+        </el-form-item>
+        <el-form-item label="账号">
+          <AccountSelect v-model="filter.accountId" :ip-group-id="filter.ipGroupId" style="width: 200px" />
         </el-form-item>
         <el-form-item label="时间">
-          <el-date-picker v-model="filter.dateRange" type="daterange" value-format="YYYY-MM-DD" />
+          <el-date-picker v-model="filter.dateRange" type="daterange" value-format="YYYY-MM-DD" style="width: 240px" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="loadData">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
     </ContentWrap>
@@ -38,80 +32,157 @@
     </el-row>
 
     <ContentWrap title="账号产出排行" style="margin-top: 16px">
-      <el-table :data="rank" border stripe>
+      <el-table :data="ranking" border stripe>
         <el-table-column type="index" label="#" width="60" align="center" />
-        <el-table-column prop="account" label="账号" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="account_name" label="账号" min-width="200" show-overflow-tooltip />
         <el-table-column prop="platform" label="平台" width="100" align="center">
-          <template #default="{ row }"><el-tag size="small">{{ row.platform }}</el-tag></template>
-        </el-table-column>
-        <el-table-column prop="count" label="产出数" width="100" align="right" />
-        <el-table-column prop="avgView" label="均播放" width="120" align="right">
-          <template #default="{ row }">{{ (row.avgView / 1000).toFixed(1) }}k</template>
-        </el-table-column>
-        <el-table-column prop="top" label="爆款数" width="100" align="right">
           <template #default="{ row }">
-            <el-tag :type="row.top > 3 ? 'success' : 'info'" size="small">{{ row.top }}</el-tag>
+            <el-tag size="small">{{ row.platform || row.platform_type }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="engage" label="互动率" width="100" align="center">
-          <template #default="{ row }">{{ (row.engage * 100).toFixed(1) }}%</template>
+        <el-table-column prop="output_count" label="产出数" width="100" align="right" />
+        <el-table-column prop="avg_view" label="均播放" width="120" align="right">
+          <template #default="{ row }">{{ formatK(row.avg_view) }}</template>
+        </el-table-column>
+        <el-table-column prop="top_count" label="爆款数" width="100" align="right">
+          <template #default="{ row }">
+            <el-tag :type="(row.top_count || 0) > 3 ? 'success' : 'info'" size="small">{{ row.top_count || 0 }}</el-tag>
+          </template>
         </el-table-column>
       </el-table>
+    </ContentWrap>
+
+    <ContentWrap title="产出明细" style="margin-top: 16px">
+      <el-table :data="list" border stripe v-loading="loading">
+        <el-table-column prop="date" label="日期" width="120" />
+        <el-table-column prop="account_name" label="账号" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="platform_type" label="平台" width="100" align="center" />
+        <el-table-column prop="output_count" label="产出数" width="100" align="right" />
+        <el-table-column prop="read_count" label="阅读数" width="120" align="right" />
+        <el-table-column prop="like_count" label="点赞数" width="100" align="right" />
+      </el-table>
+      <el-pagination
+        :current-page="pageNum"
+        :page-size="pageSize"
+        :total="total"
+        :page-sizes="[10, 20, 50]"
+        layout="total, sizes, prev, pager, next"
+        class="pagination"
+        @update:current-page="(v) => { pageNum = v; loadData() }"
+        @update:page-size="(v) => { pageSize = v; pageNum = 1; loadData() }"
+      />
     </ContentWrap>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, nextTick, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
+import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
+import AccountSelect from '@/components/selectors/AccountSelect.vue'
+import { getVideoOutputList, getVideoOutputTrend, getVideoOutputRanking } from '@/api/report'
 
 const loading = ref(false)
-const filter = reactive({ platform: [] as string[], dateRange: undefined as any })
+const filter = reactive({
+  ipGroupId: undefined as number | undefined,
+  accountId: undefined as number | undefined,
+  dateRange: [] as string[],
+})
+const pageNum = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
+const list = ref<any[]>([])
+const ranking = ref<any[]>([])
 const trendRef = ref<HTMLDivElement | null>(null)
 let trendChart: echarts.ECharts | null = null
-const rank = ref<any[]>([])
 
-const initTrend = () => {
-  if (!trendRef.value) return
-  const el = trendRef.value
-  if (el.getBoundingClientRect().width === 0) return setTimeout(initTrend, 100)
-  if (!trendChart) trendChart = echarts.init(el)
-  const days = Array.from({ length: 30 }, (_, i) => `${i + 1}日`)
-  trendChart.setOption({
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['抖音', '快手', '小红书', '视频号'], top: 0 },
-    grid: { left: 40, right: 16, top: 40, bottom: 30 },
-    xAxis: { type: 'category', data: days },
-    yAxis: { type: 'value' },
-    series: [
-      { name: '抖音', type: 'line', stack: 'cnt', data: days.map(() => 20 + Math.floor(Math.random() * 15)), smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64,158,255,0.3)' } },
-      { name: '快手', type: 'line', stack: 'cnt', data: days.map(() => 10 + Math.floor(Math.random() * 8)), smooth: true, itemStyle: { color: '#e6a23c' } },
-      { name: '小红书', type: 'line', stack: 'cnt', data: days.map(() => 15 + Math.floor(Math.random() * 10)), smooth: true, itemStyle: { color: '#f56c6c' } },
-      { name: '视频号', type: 'line', stack: 'cnt', data: days.map(() => 5 + Math.floor(Math.random() * 5)), smooth: true, itemStyle: { color: '#67c23a' } },
-    ],
-  })
+const formatK = (v: any) => {
+  const n = Number(v)
+  if (!n) return 0
+  if (n >= 10000) return (n / 10000).toFixed(1) + 'w'
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'k'
+  return n
+}
+
+const buildQuery = () => {
+  const q: Record<string, any> = { pageNum: pageNum.value, pageSize: pageSize.value }
+  if (filter.ipGroupId) q.ipGroupId = filter.ipGroupId
+  if (filter.accountId) q.accountId = filter.accountId
+  if (filter.dateRange?.length === 2) {
+    q.startDate = filter.dateRange[0]
+    q.endDate = filter.dateRange[1]
+  }
+  return q
 }
 
 const loadData = async () => {
   loading.value = true
-  await new Promise((r) => setTimeout(r, 400))
-  rank.value = Array.from({ length: 10 }, (_, i) => ({
-    account: ['知识变现研究院', 'AI 技术前沿', '种草官', '健身达人', '美妆发现号', '财经早班车', '情感夜话', '旅行背包客', '读书时光', '美食家'][i],
-    platform: ['抖音', '小红书', '抖音', '快手', '小红书', '视频号', '抖音', '快手', '视频号', '小红书'][i],
-    count: 60 - i * 4,
-    avgView: 50000 - i * 3000,
-    top: Math.max(0, 5 - Math.floor(i / 2)),
-    engage: 0.08 - i * 0.005,
-  }))
-  loading.value = false
-  await nextTick()
-  setTimeout(initTrend, 100)
+  try {
+    const q = buildQuery()
+    const [listRes, rankRes, trendRes] = await Promise.all([
+      getVideoOutputList(q),
+      getVideoOutputRanking({ startDate: q.startDate, endDate: q.endDate, limit: 10 }),
+      getVideoOutputTrend({ accountId: filter.accountId, startDate: q.startDate, endDate: q.endDate }),
+    ])
+    const l = (listRes as any)?.data ?? listRes
+    list.value = l?.list ?? l?.records ?? []
+    total.value = l?.total ?? list.value.length
+    const r = (rankRes as any)?.data ?? rankRes
+    ranking.value = Array.isArray(r) ? r : []
+    const t = (trendRes as any)?.data ?? trendRes
+    drawTrend(Array.isArray(t) ? t : [])
+  } catch (e) {
+    console.error('loadData failed', e)
+    list.value = []
+    ranking.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
-onMounted(loadData)
+const drawTrend = (rows: any[]) => {
+  if (!trendRef.value) return
+  const el = trendRef.value
+  if (el.getBoundingClientRect().width === 0) {
+    setTimeout(() => drawTrend(rows), 100)
+    return
+  }
+  if (!trendChart) trendChart = echarts.init(el)
+  const dates = Array.from(new Set(rows.map((r: any) => r.date || r.stat_date))).sort()
+  const platforms = Array.from(new Set(rows.map((r: any) => r.platform || r.platform_type)))
+  const series = platforms.map(p => ({
+    name: p,
+    type: 'line',
+    smooth: true,
+    data: dates.map(d => {
+      const row = rows.find((r: any) => (r.date || r.stat_date) === d && (r.platform || r.platform_type) === p)
+      return row ? (row.output_count || row.count || 0) : 0
+    }),
+  }))
+  trendChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: platforms, top: 0 },
+    grid: { left: 40, right: 16, top: 40, bottom: 30 },
+    xAxis: { type: 'category', data: dates },
+    yAxis: { type: 'value' },
+    series,
+  })
+}
+
+const handleReset = () => {
+  filter.ipGroupId = undefined
+  filter.accountId = undefined
+  filter.dateRange = []
+  pageNum.value = 1
+  loadData()
+}
+
+onMounted(() => loadData())
 </script>
 
 <style scoped>
 .report-page { padding: 20px; }
+.pagination { margin-top: 16px; display: flex; justify-content: flex-end; }
 </style>

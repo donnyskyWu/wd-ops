@@ -146,6 +146,11 @@ import { Download } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import {
+  getPerfResultList,
+  getPerfUserTrend,
+  exportPerfResult,
+} from '@/api/perfResult'
 
 const loading = ref(false)
 const resultList = ref<any[]>([])
@@ -163,39 +168,26 @@ const searchForm = reactive({
 const loadList = async () => {
   loading.value = true
   try {
-    resultList.value = [
-      {
-        id: 1,
-        evaluateeName: '张三',
-        position: '公众号运营',
-        cycleDisplay: '2026-05(月度)',
-        totalScore: 88.5,
-        grade: 'A',
-        evaluatorName: '李组长',
-        confirmedAt: '2026-05-26',
-      },
-      {
-        id: 2,
-        evaluateeName: '李四',
-        position: '短视频剪辑',
-        cycleDisplay: '2026-05(月度)',
-        totalScore: 95.0,
-        grade: 'S',
-        evaluatorName: '陈组长',
-        confirmedAt: '2026-05-26',
-      },
-      {
-        id: 3,
-        evaluateeName: '王五',
-        position: '直播运营',
-        cycleDisplay: '2026-04(月度)',
-        totalScore: 62.0,
-        grade: 'C',
-        evaluatorName: '李组长',
-        confirmedAt: '2026-04-28',
-      },
-    ]
-    total.value = 3
+    const res: any = await getPerfResultList({
+      userId: searchForm.evaluateeId,
+      grade: searchForm.grade,
+      pageNum: searchForm.pageNo,
+      pageSize: searchForm.pageSize,
+    })
+    resultList.value = (res.list || []).map((row: any) => ({
+      id: row.id,
+      evaluateeName: row.userName || row.evaluateeName || '',
+      position: row.position || '',
+      cycleDisplay: row.periodDisplay || (row.periodType || '') + ' ' + (row.periodStart || ''),
+      totalScore: row.totalScore,
+      grade: row.grade,
+      evaluatorName: row.evaluatorName || '',
+      confirmedAt: row.confirmedAt || row.createTime || '',
+    }))
+    total.value = res.total ?? 0
+  } catch {
+    resultList.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -235,8 +227,14 @@ const getGradeIcon = (grade: string) => {
   return map[grade] || ''
 }
 
-const handleExport = () => {
-  ElMessage.success('导出功能开发中')
+const handleExport = async () => {
+  try {
+    const ids = resultList.value.map((r: any) => r.id).filter(Boolean)
+    const res: any = await exportPerfResult(ids)
+    ElMessage.success(`导出任务已创建：${res?.jobId || res?.id || '已提交'}`)
+  } catch {
+    // 错误已拦截
+  }
 }
 
 // 详情
@@ -265,19 +263,23 @@ const trendPeriod = ref('6')
 const trendChartRef = ref<HTMLElement>()
 const historyList = ref<any[]>([])
 
-const handleTrend = (row: any) => {
-  router.push(`/perf/result/${row.evaluateeId || row.id}/trend`)
+const handleTrend = async (row: any) => {
+  router.push(`/perf/result/${row.userId || row.evaluateeId || row.id}/trend`)
   trendPosition.value = row.position
+  trendUserName.value = row.evaluateeName
   trendVisible.value = true
+  historyList.value = []
 
-  historyList.value = [
-    { cycle: '2026-05', score: 88.5, grade: 'A' },
-    { cycle: '2026-04', score: 92.0, grade: 'A' },
-    { cycle: '2026-03', score: 85.0, grade: 'B' },
-    { cycle: '2026-02', score: 78.0, grade: 'B' },
-    { cycle: '2026-01', score: 82.0, grade: 'A' },
-    { cycle: '2025-12', score: 90.0, grade: 'A' },
-  ]
+  try {
+    const res: any = await getPerfUserTrend(row.userId || row.evaluateeId || row.id)
+    historyList.value = (res.points || res.historyList || []).map((p: any) => ({
+      cycle: p.period || p.cycle,
+      score: p.score ?? p.totalScore,
+      grade: p.grade,
+    }))
+  } catch {
+    historyList.value = []
+  }
 
   nextTick(() => renderTrendChart())
 }

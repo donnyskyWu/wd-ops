@@ -153,16 +153,21 @@ import { ElMessage } from 'element-plus'
 import { Download, DataAnalysis } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import { exportToExcel } from '@/utils'
+import {
+  getOrderAttributionList,
+  getOrderAttributionRoi,
+  exportOrderAttribution,
+} from '@/api/orderAttribution'
 
 const loading = ref(false)
 const activeTab = ref('list')
 const router = useRouter()
 
 const stats = reactive({
-  totalAmount: 386420,
-  totalCost: 128800,
-  roi: 3.00,
-  orderCount: 2356,
+  totalAmount: 0,
+  totalCost: 0,
+  roi: 0,
+  orderCount: 0,
 })
 
 const searchForm = reactive({
@@ -172,34 +177,40 @@ const searchForm = reactive({
   ipGroupId: undefined as string | undefined,
 })
 
-const orderList = ref([
-  {
-    id: 1,
-    orderNo: 'ORD20260501001',
-    ipGroupName: 'A组',
-    accountName: '知识变现研究院',
-    operatorName: '张三',
-    amount: 1299,
-    attributionTime: '2026-05-01',
-  },
-  {
-    id: 2,
-    orderNo: 'ORD20260501002',
-    ipGroupName: 'B组',
-    accountName: 'AI技术前沿',
-    operatorName: '李四',
-    amount: 888,
-    attributionTime: '2026-05-01',
-  },
-])
+const orderList = ref<any[]>([])
 
-const total = ref(2)
+const total = ref(0)
 
 const loadList = async () => {
+  if (!searchForm.dateRange || searchForm.dateRange.length < 2) {
+    ElMessage.warning('请选择日期范围')
+    return
+  }
   loading.value = true
   try {
-    // Mock数据
-    total.value = 2
+    const res: any = await getOrderAttributionList({
+      ipGroupId: searchForm.ipGroupId ? Number(searchForm.ipGroupId) : undefined,
+      startDate: searchForm.dateRange[0],
+      endDate: searchForm.dateRange[1],
+      pageNum: searchForm.pageNo,
+      pageSize: searchForm.pageSize,
+    })
+    orderList.value = (res.list || []).map((row: any) => ({
+      id: row.id,
+      orderNo: row.orderNo,
+      ipGroupName: row.ipGroupName,
+      accountName: row.accountName,
+      operatorName: row.operatorName,
+      amount: row.amount,
+      attributionTime: row.attributionTime || row.createTime,
+    }))
+    total.value = res.total ?? 0
+    // 统计
+    stats.totalAmount = orderList.value.reduce((s, r) => s + (r.amount || 0), 0)
+    stats.orderCount = total.value
+  } catch {
+    orderList.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -224,16 +235,15 @@ const handleRoi = () => {
   router.push('/perf/order-attribution/roi')
 }
 
-const handleExport = () => {
-  const columns = [
-    { key: 'orderNo', label: '订单编号' },
-    { key: 'ipGroupName', label: 'IP组' },
-    { key: 'accountName', label: '账号名称' },
-    { key: 'operatorName', label: '归因运营' },
-    { key: 'amount', label: '成交金额' },
-    { key: 'attributionTime', label: '归因时间' },
-  ]
-  exportToExcel(orderList.value, columns, '订单归因')
+const handleExport = async () => {
+  if (!searchForm.dateRange || searchForm.dateRange.length < 2) {
+    ElMessage.warning('请选择日期范围')
+    return
+  }
+  try {
+    const res: any = await exportOrderAttribution(searchForm.dateRange[0], searchForm.dateRange[1])
+    ElMessage.success(`导出任务已创建：${res?.jobId || res?.id || '已提交'}`)
+  } catch {}
 }
 
 const handleDetail = (row: any) => {
@@ -242,16 +252,50 @@ const handleDetail = (row: any) => {
 
 // ROI分析
 const roiDimension = ref('ipGroup')
-const roiList = ref([
-  { ipGroupName: 'A组', accountName: '-', operatorName: '-', amount: 220000, cost: 65000, roi: 3.38, trend: 8 },
-  { ipGroupName: 'B组', accountName: '-', operatorName: '-', amount: 166420, cost: 63800, roi: 2.61, trend: -3 },
-])
+const roiList = ref<any[]>([])
 
-const loadRoiData = () => {
-  ElMessage.success(`已切换到${roiDimension.value === 'ipGroup' ? 'IP组' : roiDimension.value === 'account' ? '账号' : '运营人员'}维度`)
+const loadRoiData = async () => {
+  if (!searchForm.dateRange || searchForm.dateRange.length < 2) {
+    ElMessage.warning('请先选择日期范围')
+    return
+  }
+  try {
+    const res: any = await getOrderAttributionRoi({
+      ipGroupId: searchForm.ipGroupId ? Number(searchForm.ipGroupId) : undefined,
+      startDate: searchForm.dateRange[0],
+      endDate: searchForm.dateRange[1],
+    })
+    // 后端目前返回单一 roi VO；按维度展示同一份数据
+    const roiVal = res.roi ?? 0
+    const amount = res.totalAmount ?? 0
+    const cost = res.totalCost ?? 0
+    roiList.value = [
+      {
+        ipGroupName: roiDimension.value === 'ipGroup' ? '当前IP组' : '-',
+        accountName: roiDimension.value === 'account' ? '当前账号' : '-',
+        operatorName: roiDimension.value === 'operator' ? '当前运营' : '-',
+        amount,
+        cost,
+        roi: roiVal,
+        trend: res.trend ?? 0,
+      },
+    ]
+    stats.totalAmount = amount
+    stats.totalCost = cost
+    stats.roi = roiVal
+  } catch {
+    roiList.value = []
+  }
 }
 
-onMounted(() => loadList())
+onMounted(() => {
+  // 默认给一个最近30天日期范围
+  const today = new Date()
+  const start = new Date()
+  start.setDate(today.getDate() - 30)
+  searchForm.dateRange = [start.toISOString().slice(0, 10), today.toISOString().slice(0, 10)]
+  loadList()
+})
 </script>
 
 <style scoped>

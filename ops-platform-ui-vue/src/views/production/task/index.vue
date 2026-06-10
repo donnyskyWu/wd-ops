@@ -157,7 +157,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getTaskList, getMyTasks, startTask, completeTask, submitReview } from '@/api/task'
+import { getTaskList, getMyTasks, startTask, completeTask, submitTaskReview } from '@/api/task'
 import { mockTaskList, mockGetTaskList, mockGetMyTasks } from '@/mock/task'
 import { TaskStatus } from '@/types/task'
 import type { TaskQuery, TaskVO } from '@/types/task'
@@ -306,7 +306,7 @@ const handleSubmitReview = (row: TaskVO) => {
 // 提交审核确认
 const handleReviewSubmit = async () => {
   try {
-    await submitReview(reviewForm.taskId).catch(() => {
+    await submitTaskReview(reviewForm.taskId).catch(() => {
       return Promise.resolve()
     })
 
