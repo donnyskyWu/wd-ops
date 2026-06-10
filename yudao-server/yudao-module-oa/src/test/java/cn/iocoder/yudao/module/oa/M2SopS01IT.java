@@ -72,6 +72,24 @@ class M2SopS01IT extends OaITBase {
     }
 
     @Test
+    @DisplayName("M2-S-01: SOP 模板创建 platformType=ALL（API-M2 §1.1）")
+    void sopTemplateCreateWithAllPlatform() throws Exception {
+        mockMvc.perform(post("/admin-api/oa/sop/template/create")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "templateName": "IT-SOP-ALL平台",
+                                  "contentType": "ALL",
+                                  "platformType": "ALL",
+                                  "description": "适用全部平台"
+                                }
+                                """))
+                .andExpect(jsonPath("$.code").value(0));
+    }
+
+    @Test
     @DisplayName("M2-S-01: SOP 节点创建")
     void sopNodeCreate() throws Exception {
         MvcResult templateResult = mockMvc.perform(post("/admin-api/oa/sop/template/create")

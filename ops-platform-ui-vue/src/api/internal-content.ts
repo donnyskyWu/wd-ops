@@ -13,8 +13,11 @@ export function getInternalContentList(params: InternalContentQuery): Promise<Pa
   return request.get({ url: '/oa/internal-content/list', params })
 }
 
-export function getInternalContentTrend(contentId: number): Promise<ContentTrendDetailVO> {
-  return request.get({ url: `/oa/internal-content/${contentId}/trend` })
+export function getInternalContentTrend(
+  contentId: number,
+  params?: { startDate?: string; endDate?: string },
+): Promise<ContentTrendDetailVO> {
+  return request.get({ url: `/oa/internal-content/${contentId}/trend`, params })
 }
 
 export function submitContentImport(data: Record<string, unknown>): Promise<number> {

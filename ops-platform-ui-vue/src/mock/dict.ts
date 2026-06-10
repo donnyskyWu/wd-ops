@@ -10,13 +10,14 @@ export const mockDictMap: Record<string, Array<{ label: string; value: string; c
   ],
   // 平台
   dict_platform_type: [
-    { label: '公众号', value: 'WECHAT_MP', colorType: 'success' },
-    { label: '视频号', value: 'VIDEO_ACCOUNT', colorType: 'success' },
+    { label: '全部', value: 'ALL', colorType: 'info' },
+    { label: '微信公众号', value: 'WECHAT_OFFICIAL', colorType: 'success' },
     { label: '抖音', value: 'DOUYIN', colorType: 'warning' },
+    { label: '企业微信', value: 'WEWORK', colorType: 'primary' },
+    { label: '视频号', value: 'WECHAT_VIDEO', colorType: 'success' },
     { label: '快手', value: 'KUAISHOU', colorType: 'warning' },
     { label: '小红书', value: 'XIAOHONGSHU', colorType: 'danger' },
-    { label: '服务号', value: 'SERVICE_ACCOUNT', colorType: 'primary' },
-    { label: '企微', value: 'WECHAT_WORK', colorType: 'primary' },
+    { label: '个微', value: 'WECHAT_PERSONAL', colorType: 'primary' },
   ],
   // 账号状态
   dict_account_status: [

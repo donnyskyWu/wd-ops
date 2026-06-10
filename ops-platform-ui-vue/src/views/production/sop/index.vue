@@ -77,7 +77,7 @@
           <el-table-column prop="createTime" label="创建时间" width="160" align="center" />
           <el-table-column label="操作" width="180" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button link type="primary" @click="handleEdit(row)">
+              <el-button link type="primary" @click.stop="handleEdit(row)">
                 编辑
               </el-button>
               <el-popconfirm
@@ -187,22 +187,10 @@
           <el-input v-model="createForm.templateName" placeholder="请输入模板名称" maxlength="100" />
         </el-form-item>
         <el-form-item label="内容类型">
-          <el-select v-model="createForm.contentType" placeholder="请选择">
-            <el-option label="全部" value="ALL" />
-            <el-option label="文章" value="ARTICLE" />
-            <el-option label="短视频" value="SHORT_VIDEO" />
-            <el-option label="视频" value="VIDEO" />
-          </el-select>
+          <DictSelect v-model="createForm.contentType" dict-type="dict_content_type" placeholder="请选择" />
         </el-form-item>
         <el-form-item label="适用平台">
-          <el-select v-model="createForm.platformType" placeholder="请选择">
-            <el-option label="全部" value="ALL" />
-            <el-option label="公众号" value="WECHAT_OFFICIAL" />
-            <el-option label="视频号" value="WECHAT_VIDEO" />
-            <el-option label="抖音" value="DOUYIN" />
-            <el-option label="快手" value="KUAISHOU" />
-            <el-option label="小红书" value="XIAOHONGSHU" />
-          </el-select>
+          <DictSelect v-model="createForm.platformType" dict-type="dict_platform_type" placeholder="请选择" />
         </el-form-item>
         <el-form-item label="模板描述">
           <el-input
@@ -291,6 +279,7 @@ import TableSearch from '@/components/TableSearch.vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import { PLATFORM_LABEL, type PlatformType as DictPlatform } from '@/utils/enum-alias'
 
 const router = useRouter()
 
@@ -470,7 +459,11 @@ const handleCreateSubmit = async () => {
     // 跳转到DAG编辑页
     const newId = typeof result === 'number' ? result : (result as { id?: number })?.id
     if (newId) {
-      router.push(`/sop/${newId}/edit`)
+      router.push({
+        name: 'SopEdit',
+        params: { id: String(newId) },
+        state: { templateName: createForm.templateName },
+      })
     }
   } catch (error: any) {
     if (error.response?.status === 409) {
@@ -483,7 +476,15 @@ const handleCreateSubmit = async () => {
 
 // 编辑模板
 const handleEdit = (row: SopTemplateVO) => {
-  router.push(`/sop/${row.id}/edit`)
+  if (!row?.id) {
+    ElMessage.error('模板 ID 无效')
+    return
+  }
+  router.push({
+    name: 'SopEdit',
+    params: { id: String(row.id) },
+    state: { templateName: row.templateName },
+  })
 }
 
 // 删除模板
@@ -573,19 +574,9 @@ const getContentTypeText = (contentType: ContentType) => {
   return texts[contentType] || ''
 }
 
-// 获取平台类型文本
+// 获取平台类型文本（dict 真实值，含 ALL / WECHAT_OFFICIAL 等）
 const getPlatformTypeText = (platformType: PlatformType) => {
-  const texts: Record<PlatformType, string> = {
-    ALL: '全部',
-    WECHAT_MP: '公众号',
-    VIDEO_ACCOUNT: '视频号',
-    DOUYIN: '抖音',
-    KUAISHOU: '快手',
-    XIAOHONGSHU: '小红书',
-    SERVICE_ACCOUNT: '服务号',
-    WEWORK: '企业微信',
-  }
-  return texts[platformType] || ''
+  return PLATFORM_LABEL[platformType as DictPlatform] ?? platformType
 }
 
 // 获取审核状态类型

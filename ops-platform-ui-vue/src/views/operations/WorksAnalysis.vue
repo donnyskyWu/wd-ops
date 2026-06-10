@@ -26,12 +26,12 @@
       <el-form-item label="关键词">
         <el-input v-model="searchForm.keyword" placeholder="作品标题" clearable maxlength="50" />
       </el-form-item>
-      <el-form-item label=" ">
+      <template #extra>
         <el-button type="success" @click="handleExport">
           <el-icon><Download /></el-icon>
           导出
         </el-button>
-      </el-form-item>
+      </template>
     </TableSearch>
 
     <!-- 内容区 -->
@@ -332,18 +332,17 @@ onMounted(() => {
 <style scoped lang="scss">
 .works-analysis-page {
   .stats-cards {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 12px;
     margin-bottom: 16px;
-    overflow-x: auto;
 
     .stat-card-item {
-      flex: 1;
-      min-width: 140px;
-      max-width: 200px;
+      min-width: 0;
 
       .el-card {
         text-align: center;
+        height: 100%;
       }
     }
 

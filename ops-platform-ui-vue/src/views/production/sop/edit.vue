@@ -237,7 +237,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, nextTick, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { 
@@ -247,7 +247,7 @@ import {
 } from '@element-plus/icons-vue'
 import LogicFlow, { CircleNode, CircleNodeModel, RectNode, RectNodeModel } from '@logicflow/core'
 import '@logicflow/core/dist/index.css'
-import { getSopNodeList, validateDag } from '@/api/sop'
+import { getSopNodeList, getSopTemplateList, validateDag } from '@/api/sop'
 import type { SopNodeVO } from '@/types/sop'
 
 const route = useRoute()
@@ -256,7 +256,7 @@ const templateId = computed(() => Number(route.params.id))
 
 // ==================== 响应式数据 ====================
 
-const templateName = ref('')
+const templateName = ref((history.state?.templateName as string) || '')
 const loading = ref(false)
 const nodes = ref<SopNodeVO[]>([])
 const edges = ref<any[]>([])
@@ -314,6 +314,10 @@ const selectedNode = computed(() => {
 
 const initLogicFlow = () => {
   if (!containerRef.value) return
+  if (lf) {
+    renderGraph()
+    return
+  }
 
   lf = new LogicFlow({
     container: containerRef.value,
@@ -477,8 +481,9 @@ const isStartNode = (node: SopNodeVO): boolean => {
 
 // 渲染图
 const renderGraph = () => {
-  if (!lf || nodes.value.length === 0) {
-    console.warn('LogicFlow未初始化或没有节点数据', { lf: !!lf, nodesCount: nodes.value.length })
+  if (!lf) return
+  if (nodes.value.length === 0) {
+    lf.render({ nodes: [], edges: [] })
     return
   }
 
@@ -716,45 +721,73 @@ const calculateNodeLevels = (nodeList: SopNodeVO[]): Record<number, number> => {
 
 // ==================== 方法 ====================
 
+const ensureCanvasReady = () => {
+  nextTick(() => initLogicFlow())
+}
+
+const loadTemplateMeta = async () => {
+  if (templateName.value) return
+  try {
+    const res = await getSopTemplateList({ pageNum: 1, pageSize: 200 })
+    const found = res.list?.find((t) => t.id === templateId.value)
+    if (found) templateName.value = found.templateName
+  } catch {
+    /* 标题加载失败不阻断编辑 */
+  }
+}
+
 // 加载节点列表
 const loadNodes = async () => {
   loading.value = true
   try {
     const data = await getSopNodeList(templateId.value)
-    
-    if (!data || data.length === 0) {
-      ElMessage.warning('该模板暂无节点数据，请添加节点')
-      nodes.value = []
-      edges.value = []
-      return
-    }
 
-    nodes.value = data
-    
-    // 构建边数据
+    nodes.value = data || []
     edges.value = []
-    data.forEach(node => {
-      if (node.predecessors && node.predecessors.length > 0) {
-        node.predecessors.forEach(predId => {
-          edges.value.push({
-            source: predId,
-            target: node.id,
-          })
+    ;(data || []).forEach((node) => {
+      if (node.predecessors?.length) {
+        node.predecessors.forEach((predId) => {
+          edges.value.push({ source: predId, target: node.id })
         })
       }
     })
-    
-    // 等待DOM更新后初始化
-    nextTick(() => {
-      initLogicFlow()
+
+    if (!data?.length) {
+      ElMessage.info('该模板暂无节点，请从左侧节点库拖拽或点击 + 添加')
+    } else {
       ElMessage.success(`已加载 ${data.length} 个节点`)
-    })
+    }
+
+    ensureCanvasReady()
   } catch (error) {
     console.error('加载节点失败:', error)
     ElMessage.error('加载节点失败，请重试')
+    ensureCanvasReady()
   } finally {
     loading.value = false
   }
+}
+
+const resetEditor = () => {
+  selectedNodeId.value = null
+  nodes.value = []
+  edges.value = []
+  historyStack.value = []
+  historyIndex.value = -1
+  if (lf) {
+    lf.destroy()
+    lf = null
+  }
+}
+
+const bootstrapEditor = async () => {
+  if (!templateId.value || Number.isNaN(templateId.value)) {
+    ElMessage.error('无效的模板 ID')
+    router.push('/sop')
+    return
+  }
+  await loadTemplateMeta()
+  await loadNodes()
 }
 
 // 连线创建处理
@@ -840,6 +873,7 @@ const hasCycle = (sourceId: number, targetId: number): boolean => {
 
 // 添加节点
 const handleAddNode = () => {
+  ensureCanvasReady()
   const newNode: SopNodeVO = {
     id: Date.now(),
     templateId: templateId.value,
@@ -977,15 +1011,15 @@ const handleBack = () => {
 // ==================== 生命周期 ====================
 
 onMounted(() => {
-  if (!templateId.value || Number.isNaN(templateId.value)) {
-    ElMessage.error('无效的模板 ID')
-    router.push('/sop')
-    return
-  }
-  loadNodes()
-
-  // 监听快捷键
+  bootstrapEditor()
   window.addEventListener('keydown', handleKeyDown)
+})
+
+watch(templateId, (id, prev) => {
+  if (!id || Number.isNaN(id) || id === prev) return
+  templateName.value = (history.state?.templateName as string) || ''
+  resetEditor()
+  bootstrapEditor()
 })
 
 onUnmounted(() => {

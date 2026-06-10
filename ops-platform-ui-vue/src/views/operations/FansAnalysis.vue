@@ -21,12 +21,12 @@
       <el-form-item label="时间维度">
         <DictSelect v-model="searchForm.dimension" dict-type="dict_time_dimension" placeholder="全部" clearable />
       </el-form-item>
-      <el-form-item label=" ">
+      <template #extra>
         <el-button type="success" @click="handleExport">
           <el-icon><Download /></el-icon>
           导出
         </el-button>
-      </el-form-item>
+      </template>
       <el-form-item label="快速范围">
         <el-radio-group v-model="searchForm.quickRange" @change="handleQuickRangeChange">
           <el-radio-button label="7d">近 7 日</el-radio-button>
@@ -38,7 +38,7 @@
 
     <!-- 统计卡片（等高对齐） -->
     <el-row :gutter="16" class="stats-cards">
-      <el-col v-for="card in statCards" :key="card.label" :span="6">
+      <el-col v-for="card in statCards" :key="card.label" :span="statColSpan">
         <el-card shadow="hover" class="stat-card-wrap">
           <div class="stat-card">
             <div class="stat-label">{{ card.label }}</div>
@@ -136,6 +136,8 @@ const searchForm = reactive({
 
 // 初始化为空（real-or-empty 策略）
 const stats = ref<FollowerStats>({ totalFollowers: 0, newFollowers: 0, unfollowers: 0, netFollowers: 0, growthRate: 0 })
+
+const statColSpan = computed(() => Math.floor(24 / statCards.value.length) || 6)
 
 const statCards = computed(() => [
   { label: '粉丝总数', value: formatNumber(stats.value.totalFollowers), valueClass: '', sub: ' ' },

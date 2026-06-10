@@ -306,7 +306,15 @@ const totalWeight = computed(() => {
 })
 
 const handleAdd = () => {
-  router.push('/perf/template/new')
+  dialogTitle.value = '新增模板'
+  Object.assign(formData, {
+    id: undefined,
+    templateName: '',
+    position: '',
+    isActive: true,
+    items: [],
+  })
+  dialogVisible.value = true
 }
 
 const handleEdit = (row: PerfTemplateListItem) => {

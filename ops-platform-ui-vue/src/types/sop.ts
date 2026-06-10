@@ -24,7 +24,16 @@ export type ContentType = 'ALL' | 'ARTICLE' | 'VIDEO' | 'LIVE'
 /**
  * 平台类型
  */
-export type PlatformType = 'ALL' | 'WECHAT_MP' | 'VIDEO_ACCOUNT' | 'DOUYIN' | 'KUAISHOU' | 'XIAOHONGSHU' | 'SERVICE_ACCOUNT' | 'WEWORK'
+/** 与 dict_platform_type 字典 value 对齐（API-M2 §1.1） */
+export type PlatformType =
+  | 'ALL'
+  | 'WECHAT_OFFICIAL'
+  | 'WECHAT_VIDEO'
+  | 'DOUYIN'
+  | 'KUAISHOU'
+  | 'XIAOHONGSHU'
+  | 'WEWORK'
+  | 'WECHAT_PERSONAL'
 
 // ==================== SOP模板类型 ====================
 

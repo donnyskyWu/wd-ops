@@ -17,6 +17,7 @@ export type PlatformType =
   | 'KUAISHOU'          // 快手
   | 'XIAOHONGSHU'       // 小红书
   | 'WEWORK'            // 企业微信
+  | 'WECHAT_PERSONAL'   // 个微
   | 'ALL'
 
 /**
@@ -58,6 +59,7 @@ export const PLATFORM_LABEL: Record<PlatformType, string> = {
   KUAISHOU: '快手',
   XIAOHONGSHU: '小红书',
   WEWORK: '企微',
+  WECHAT_PERSONAL: '个微',
   ALL: '全部',
 }
 

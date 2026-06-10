@@ -85,18 +85,15 @@
           />
           <el-table :data="form.metrics" border style="margin-top: 12px">
             <el-table-column label="序号" type="index" width="60" align="center" />
-            <el-table-column label="指标名" min-width="140">
+            <el-table-column label="指标" min-width="180">
               <template #default="{ row }">
-                <el-input v-model="row.name" placeholder="如：粉丝净增" />
-              </template>
-            </el-table-column>
-            <el-table-column label="数据源" width="140">
-              <template #default="{ row }">
-                <el-select v-model="row.source">
-                  <el-option label="粉丝净增数" value="follower_inc" />
-                  <el-option label="作品发布数" value="work_count" />
-                  <el-option label="订单 GMV" value="order_gmv" />
-                  <el-option label="互动数" value="engagement" />
+                <el-select v-model="row.metricId" placeholder="选择指标" style="width: 100%" @change="handleMetricChange(row)">
+                  <el-option
+                    v-for="opt in metricOptions"
+                    :key="opt.id"
+                    :label="opt.metricName"
+                    :value="opt.id"
+                  />
                 </el-select>
               </template>
             </el-table-column>
@@ -188,6 +185,8 @@ import {
   createTemplate,
   updateTemplate,
 } from '@/api/perfTemplate'
+import { getMetricOptions } from '@/api/metric'
+import { CalcRule, Grade } from '@/types/perfTemplate'
 
 const route = useRoute()
 const router = useRouter()
@@ -211,6 +210,38 @@ const form = reactive<any>({
 const preview = reactive<any>({})
 const previewData = reactive<Record<string, number>>({})
 const history = ref<any[]>([])
+const metricOptions = ref<any[]>([])
+
+const DEFAULT_SCORE_RANGES = [
+  { min: 0, max: 60, score: 0, grade: Grade.D },
+  { min: 60, max: 75, score: 60, grade: Grade.C },
+  { min: 75, max: 85, score: 75, grade: Grade.B },
+  { min: 85, max: 95, score: 85, grade: Grade.A },
+  { min: 95, max: 9999, score: 100, grade: Grade.S },
+]
+
+const loadMetricOptions = async () => {
+  try {
+    const list = await getMetricOptions()
+    metricOptions.value = (list || []).map((m: any) => ({
+      id: m.id,
+      metricName: m.metricName,
+      metricCode: m.metricCode,
+      calcRule: m.metricType === 'MANUAL' ? CalcRule.MANUAL : CalcRule.AUTO,
+    }))
+  } catch {
+    metricOptions.value = []
+  }
+}
+
+const handleMetricChange = (row: any) => {
+  const opt = metricOptions.value.find(m => m.id === row.metricId)
+  if (opt) {
+    row.name = opt.metricName
+    row.source = opt.metricCode
+    row.calcRule = opt.calcRule
+  }
+}
 
 const isNew = computed(() => !route.params.id || route.params.id === 'new')
 const totalWeight = computed(() => form.metrics.reduce((s: number, m: any) => s + (m.weight || 0), 0))
@@ -250,7 +281,16 @@ const finalScore = computed(() => {
 })
 
 const addMetric = () => {
-  form.metrics.push({ name: '', source: 'follower_inc', weight: 10, target: 100, calcType: 'ratio' })
+  form.metrics.push({
+    metricId: undefined,
+    name: '',
+    source: '',
+    weight: 10,
+    target: 100,
+    calcType: 'ratio',
+    calcRule: CalcRule.AUTO,
+    scoreStandard: { ranges: JSON.parse(JSON.stringify(DEFAULT_SCORE_RANGES)) },
+  })
 }
 const removeMetric = (i: number) => form.metrics.splice(i, 1)
 
@@ -271,11 +311,16 @@ const loadDetail = async () => {
         status: data.isActive ? 1 : 0,
         remark: data.remark || '',
         metrics: (data.items || []).map((it: any) => ({
+          metricId: it.metricId,
           name: it.metricName || '',
           source: it.metricCode || '',
           weight: it.weight || 0,
           target: it.target || 0,
           calcType: it.calcRule === 'manual' ? 'ladder' : 'ratio',
+          calcRule: it.calcRule === 'manual' ? CalcRule.MANUAL : CalcRule.AUTO,
+          scoreStandard: it.scoreStandard?.ranges?.length
+            ? it.scoreStandard
+            : { ranges: JSON.parse(JSON.stringify(DEFAULT_SCORE_RANGES)) },
         })),
       })
       // 操作历史后端暂未提供，先用静态占位
@@ -294,7 +339,22 @@ const save = async () => {
     activeTab.value = 'basic'
     return
   }
-  if (totalWeight.value !== 100 && form.metrics.length) {
+  if (!form.position) {
+    ElMessage.warning('请选择岗位')
+    activeTab.value = 'basic'
+    return
+  }
+  if (!form.metrics.length) {
+    ElMessage.warning('请至少添加一项考核指标')
+    activeTab.value = 'metrics'
+    return
+  }
+  if (form.metrics.some((m: any) => !m.metricId)) {
+    ElMessage.warning('请为每项指标选择有效的考核指标')
+    activeTab.value = 'metrics'
+    return
+  }
+  if (totalWeight.value !== 100) {
     ElMessage.warning(`权重合计 ${totalWeight.value}%,需为 100%`)
     activeTab.value = 'metrics'
     return
@@ -306,13 +366,13 @@ const save = async () => {
       templateName: form.name,
       position: form.position,
       isActive: form.status === 1 ? 1 : 0,
-      items: form.metrics.map((m: any, idx: number) => ({
-        metricId: m.metricId || idx + 1,
-        metricName: m.name,
-        metricCode: m.source,
+      items: form.metrics.map((m: any) => ({
+        metricId: m.metricId,
         weight: m.weight,
-        calcRule: m.calcType === 'ladder' ? 'manual' : 'auto',
-        scoreStandard: { ranges: [] },
+        calcRule: m.calcRule || (m.calcType === 'ladder' ? CalcRule.MANUAL : CalcRule.AUTO),
+        scoreStandard: m.scoreStandard?.ranges?.length
+          ? m.scoreStandard
+          : { ranges: JSON.parse(JSON.stringify(DEFAULT_SCORE_RANGES)) },
       })),
     }
     if (form.id) {
@@ -336,7 +396,10 @@ const save = async () => {
   }
 }
 
-onMounted(loadDetail)
+onMounted(async () => {
+  await loadMetricOptions()
+  await loadDetail()
+})
 </script>
 
 <style scoped>

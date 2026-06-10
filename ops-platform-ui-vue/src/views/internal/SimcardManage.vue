@@ -86,9 +86,8 @@
         <el-form-item label="套餐">
           <el-input v-model="formData.packageName" placeholder="套餐名称" />
         </el-form-item>
-        <el-form-item label="归属人ID" prop="assignedUserId">
-          <el-input-number v-model="formData.assignedUserId" :min="1" />
-          <span class="form-tip">Dev 环境默认 seed 用户 1001</span>
+        <el-form-item label="归属人" prop="assignedUserId">
+          <UserSelect v-model="formData.assignedUserId" placeholder="请选择归属人" />
         </el-form-item>
         <el-form-item label="状态">
           <DictSelect v-model="formData.status" dict-type="dict_sim_status" />
@@ -109,6 +108,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import UserSelect from '@/components/selectors/UserSelect.vue'
 import {
   createSimCard,
   deleteSimCard,
@@ -177,7 +177,7 @@ const formData = reactive({
   operator: '',
   isPrimary: 'YES',
   packageName: '',
-  assignedUserId: 1001,
+  assignedUserId: undefined as number | undefined,
   status: 'ENABLED',
 })
 
@@ -188,7 +188,7 @@ const formRules = {
   ],
   iccid: [{ required: true, message: '请输入 ICCID', trigger: 'blur' }],
   operator: [{ required: true, message: '请选择运营商', trigger: 'change' }],
-  assignedUserId: [{ required: true, message: '请指定归属人', trigger: 'blur' }],
+  assignedUserId: [{ required: true, message: '请选择归属人', trigger: 'change' }],
 }
 
 const resetForm = () => {
@@ -199,7 +199,7 @@ const resetForm = () => {
     operator: '',
     isPrimary: 'YES',
     packageName: '',
-    assignedUserId: 1001,
+    assignedUserId: undefined as number | undefined,
     status: 'ENABLED',
   })
 }
@@ -219,7 +219,7 @@ const handleEdit = (row: SimCardVO) => {
     operator: row.operator || '',
     isPrimary: row.isPrimary || 'YES',
     packageName: row.packageName || '',
-    assignedUserId: row.assignedUserId ?? 1001,
+    assignedUserId: row.assignedUserId,
     status: row.status || 'ENABLED',
   })
   dialogVisible.value = true
@@ -278,5 +278,4 @@ onMounted(() => loadList())
 .total-info { color: #909399; font-size: 14px; }
 .pagination { margin-top: 16px; display: flex; justify-content: flex-end; }
 .masked-text { font-family: monospace; }
-.form-tip { margin-left: 8px; color: #909399; font-size: 12px; }
 </style>

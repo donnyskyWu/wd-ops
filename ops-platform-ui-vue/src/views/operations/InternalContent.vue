@@ -49,7 +49,22 @@
     </ContentWrap>
 
     <!-- 趋势侧抽屉 -->
-    <el-drawer v-model="trendDrawerVisible" :title="`趋势分析 - ${currentContent.title}`" size="600px">
+    <el-drawer v-model="trendDrawerVisible" :title="`趋势分析 - ${currentContent.title}`" size="640px">
+      <div class="trend-drawer-toolbar">
+        <el-date-picker
+          v-model="trendDateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          value-format="YYYY-MM-DD"
+          @change="reloadTrendChart"
+        />
+        <el-radio-group v-model="trendQuickRange" @change="handleTrendQuickRange">
+          <el-radio-button label="7d">近 7 日</el-radio-button>
+          <el-radio-button label="30d">近 30 日</el-radio-button>
+        </el-radio-group>
+      </div>
       <div ref="trendChartRef" style="height: 400px;"></div>
     </el-drawer>
 
@@ -134,6 +149,7 @@
 <script setup lang="ts">
 // P-GATE-UNMOCK-R S-R2-E：去 mock 接真 API
 import { ref, reactive, onMounted, nextTick } from 'vue'
+import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { Plus, Upload } from '@element-plus/icons-vue'
@@ -160,9 +176,15 @@ const platforms = [
   { label: '企微', value: 'WEWORK' },
 ]
 
+function getDefaultWeekRange(): string[] {
+  const end = dayjs().format('YYYY-MM-DD')
+  const start = dayjs().subtract(6, 'day').format('YYYY-MM-DD')
+  return [start, end]
+}
+
 const searchForm = reactive({
   keyword: '',
-  dateRange: [] as string[],
+  dateRange: getDefaultWeekRange() as string[],
   ipGroupId: undefined as number | undefined,
   // S-R7-B4：删 importType（content 列表表无此字段，importType 是 oa_content_import 表的字段）
 })
@@ -172,6 +194,8 @@ const pagination = reactive({ pageNo: 1, pageSize: 10, total: 0 })
 const trendDrawerVisible = ref(false)
 const currentContent = ref<any>({})
 const trendChartRef = ref<HTMLElement>()
+const trendDateRange = ref<string[]>(getDefaultWeekRange())
+const trendQuickRange = ref<'7d' | '30d' | 'custom'>('7d')
 
 // ==================== 我的补录 ====================
 const myImportsVisible = ref(false)
@@ -298,7 +322,7 @@ const handleTabChange = () => { pagination.pageNo = 1; pagination.total = 0; loa
 const handleSearch = () => { pagination.pageNo = 1; pagination.total = 0; loadData() }
 const handleReset = () => {
   searchForm.keyword = ''
-  searchForm.dateRange = []
+  searchForm.dateRange = getDefaultWeekRange()
   searchForm.ipGroupId = undefined
   // S-R7-B4：删 importType reset
   pagination.pageNo = 1
@@ -306,12 +330,28 @@ const handleReset = () => {
 }
 
 let internalTrendChart: echarts.ECharts | null = null
-const handleViewTrend = async (row: any) => {
-  currentContent.value = row
-  trendDrawerVisible.value = true
+
+const handleTrendQuickRange = (val: string) => {
+  if (val === '7d') {
+    trendDateRange.value = getDefaultWeekRange()
+  } else if (val === '30d') {
+    trendDateRange.value = [
+      dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
+      dayjs().format('YYYY-MM-DD'),
+    ]
+  }
+  reloadTrendChart()
+}
+
+const reloadTrendChart = async () => {
+  if (!currentContent.value?.id) return
+  await renderTrendChart(currentContent.value)
+}
+
+const renderTrendChart = async (row: any) => {
   await nextTick()
   if (!trendChartRef.value || trendChartRef.value.getBoundingClientRect().width === 0) {
-    setTimeout(() => handleViewTrend(row), 100)
+    setTimeout(() => renderTrendChart(row), 100)
     return
   }
   if (internalTrendChart) {
@@ -320,9 +360,9 @@ const handleViewTrend = async (row: any) => {
   }
   const chart = echarts.init(trendChartRef.value!)
   internalTrendChart = chart
-  // P-GATE-UNMOCK-R S-R2-Fix-3：调真 API 拿 oa_content_daily 数据
+  const [startDate, endDate] = trendDateRange.value || []
   try {
-    const data: any = await getInternalContentTrend(row.id ?? row.contentId)
+    const data: any = await getInternalContentTrend(row.id ?? row.contentId, { startDate, endDate })
     const series: any[] = data?.series || []
     if (series.length === 0) {
       chart.setOption({
@@ -346,6 +386,14 @@ const handleViewTrend = async (row: any) => {
       title: { text: '趋势加载失败', left: 'center', top: 'middle', textStyle: { color: '#F56C6C', fontSize: 14 } },
     })
   }
+}
+
+const handleViewTrend = async (row: any) => {
+  currentContent.value = row
+  trendDateRange.value = getDefaultWeekRange()
+  trendQuickRange.value = '7d'
+  trendDrawerVisible.value = true
+  await renderTrendChart(row)
 }
 
 onMounted(() => loadData())
@@ -408,6 +456,14 @@ const handleReview = async (row: any, status: 1 | 2) => {
   .total-info {
     color: #909399;
     font-size: 14px;
+  }
+
+  .trend-drawer-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
   }
 }
 </style>

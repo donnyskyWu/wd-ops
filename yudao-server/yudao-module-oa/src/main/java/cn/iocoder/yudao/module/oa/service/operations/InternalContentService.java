@@ -42,5 +42,5 @@ public interface InternalContentService {
      * @param contentId 内容 ID
      * @return 趋势详情（contentId/title/series）
      */
-    ContentTrendDetailVO trend(Long contentId);
+    ContentTrendDetailVO trend(Long contentId, LocalDate startDate, LocalDate endDate);
 }

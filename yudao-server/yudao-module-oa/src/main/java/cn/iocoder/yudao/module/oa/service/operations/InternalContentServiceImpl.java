@@ -269,7 +269,7 @@ public class InternalContentServiceImpl implements InternalContentService {
 
     // P-GATE-UNMOCK-R S-R2-Fix-3：内部内容趋势 - 从 oa_content_daily 按日聚合
     @Override
-    public ContentTrendDetailVO trend(Long contentId) {
+    public ContentTrendDetailVO trend(Long contentId, LocalDate startDate, LocalDate endDate) {
         Long tenantId = requireTenantId();
         ContentDO content = contentMapper.selectById(contentId);
         if (content == null || !Objects.equals(content.getTenantId(), tenantId)) {
@@ -278,6 +278,8 @@ public class InternalContentServiceImpl implements InternalContentService {
         LambdaQueryWrapper<ContentDailyDO> wrapper = new LambdaQueryWrapper<ContentDailyDO>()
                 .eq(ContentDailyDO::getTenantId, tenantId)
                 .eq(ContentDailyDO::getContentId, contentId)
+                .ge(startDate != null, ContentDailyDO::getStatDate, startDate)
+                .le(endDate != null, ContentDailyDO::getStatDate, endDate)
                 .orderByAsc(ContentDailyDO::getStatDate);
         List<ContentDailyDO> rows = contentDailyMapper.selectList(wrapper);
         ContentTrendDetailVO vo = new ContentTrendDetailVO();

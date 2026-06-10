@@ -63,7 +63,10 @@ public class InternalContentController {
 
     // P-GATE-UNMOCK-R S-R2-Fix-3：内容趋势详情（spec: API-M1-运营管理 §4.5）
     @GetMapping("/{id}/trend")
-    public CommonResult<ContentTrendDetailVO> trend(@PathVariable Long id) {
-        return CommonResult.success(internalContentService.trend(id));
+    public CommonResult<ContentTrendDetailVO> trend(
+            @PathVariable Long id,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate) {
+        return CommonResult.success(internalContentService.trend(id, startDate, endDate));
     }
 }
