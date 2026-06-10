@@ -170,17 +170,32 @@
 ```json
 {
   "id": 1,
+  "targetUserId": 1003,
+  "templateId": 9512,
   "targetUserName": "张三",
+  "templateName": "SEED-运营专员考核-2026",
+  "position": "OPERATOR",
   "periodType": "MONTH",
   "periodStart": "2026-06-01",
   "periodEnd": "2026-06-30",
   "totalScore": 85.5,
+  "baseScore": 60,
+  "maxScore": 100,
   "grade": "A",
+  "status": "CONFIRMED",
+  "workflowStatus": 3,
+  "submittedAt": "2026-06-01 10:00:00",
+  "publishedAt": "2026-06-02 15:30:00",
+  "reviewer1": "oa-leader / 2026-06-02 15:30:00",
+  "reviewer2": "HR复核 / 2026-06-02 15:30:00",
   "items": [
     {
       "metricName": "推文发布数",
+      "metricCode": "POST_COUNT",
       "weight": 40,
       "metricValue": 50,
+      "actualValue": 50,
+      "target": 9999,
       "score": 80,
       "manualAdjustment": 5,
       "finalScore": 85
@@ -188,6 +203,8 @@
   ]
 }
 ```
+
+> **S-R27a**：`workflowStatus` / 审批流时间由 `status` + `create_time` / `update_time` 推导（无独立审批表）。
 
 ### 2.6 POST `/admin-api/oa/perf/record/confirm`
 
@@ -227,14 +244,36 @@
 
 ```json
 {
-  "userId": 123,
+  "userId": 1003,
+  "userName": "运营专员",
+  "position": "OPERATOR",
+  "dept": "SEED-八卦一组",
+  "joinAt": "2026-01-01",
+  "userInfo": {
+    "id": 1003,
+    "name": "运营专员",
+    "position": "OPERATOR",
+    "dept": "SEED-八卦一组",
+    "joinAt": "2026-01-01"
+  },
   "trends": [
-    {"period": "2026-01", "totalScore": 80, "grade": "A"},
-    {"period": "2026-02", "totalScore": 85, "grade": "A"},
-    ...
-  ]
+    {
+      "period": "2026-05",
+      "totalScore": 75,
+      "score": 75,
+      "grade": "B",
+      "templateName": "SEED-运营专员考核-2026",
+      "baseScore": 60,
+      "metricScore": 75,
+      "bonusScore": -5,
+      "status": "已发布"
+    }
+  ],
+  "points": []
 }
 ```
+
+> `points` 与 `trends` 内容相同，兼容前端 `res.points || res.historyList`。
 
 ### 3.3 POST `/admin-api/oa/perf/result/export`
 

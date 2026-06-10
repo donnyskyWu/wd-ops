@@ -64,7 +64,10 @@
 | S-R24-Mike | Mike | B-7 | 5 页 exportToExcel + P2-#14 | 5 个 `.vue` · `ux-p0-p1-p2-regression.spec.ts` | ✅ | — |
 | **S-R25-Donny** | Donny | P-3/P-4 | `as any` 清理 + PW skip 补全 | `ops-platform-ui-vue/src/**`（不含 `yudao-server`） | ⬜ | — |
 | **S-R21-Donny** | Donny | D-1/B-3 | 效率页去 ADR 占位 + 真 KPI 展示 | `Efficiency.vue` · `types/productivity.ts` | ⬜ | S-R21-Mike ✅ |
-| **S-R27-Mike** | Mike | B-8 | 详情页 assignee/userOwner 字段 | `yudao-server` M3/M4 相关 VO/Mapper/IT | ⬜ | — |
+| **S-R27a-Mike** | Mike | B-8/M3 | 绩效详情 + 趋势 userInfo | `PerfRecord*` · `PerfTrendVO` · `M3PerfDetailEnrichIT` | ✅ | — |
+| **S-R27b-Mike** | Mike | B-8/M4 | 公司详情 + 扩容历史 | `CompanyController` | ⬜ | — |
+| **S-R27c-Mike** | Mike | B-8/M4 | 平台账号统计字段 | `AccountRespVO` | ⬜ | — |
+| **S-R27-Donny** | Donny | B-8 | 4 详情页前端接线 | `PerfRecordDetail` · `PerfUserTrend` 等 | ⬜ | S-R27a ✅ |
 | **S-R26** | Mike+Donny | — | 集成回归 mvn verify + PW 全量 | 全库 | ⬜ | Wave-2/3 ✅ |
 | **D-2~D-6** | Donny | D-2~D-6 | M9 五页是否 Phase 2 | PRD · ADR · MASTER §15 | ⬜ 待决策 | 产品会 |
 

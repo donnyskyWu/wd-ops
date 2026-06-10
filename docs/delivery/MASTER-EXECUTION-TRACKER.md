@@ -95,6 +95,7 @@
 | 补丁 | **S-R22-Mike** | D-7 ContentController DELETE | ✅ | API-M2 §3.6 |
 | 补丁 | **S-R23-Mike** | B-6 M9 路径 `/oa/system/*` 规范 + 别名 | ✅ | ADR-009 |
 | 补丁 | **S-R24** | B-7 5 页 + FansAnalysis 补 exportToExcel | ✅ | P2-#14 `missing===0` |
+| 补丁 | **S-R27a-Mike** | B-8/M3 绩效详情 + 趋势 userInfo enrich | ✅ | API-M3 §2.5/§3.2 |
 
 **累计走查发现并修复**：70+ 个真 bug（mock 数据 13 处、enum 不对齐 6+、KPI 聚合 8 处、分页契约 6 处、UI render bug 5 处、跨模块 9 处、schema drift 4 处、字段名错位 10 处、错码冲突 4 处、5 selector mock 切换 7 处）
 
@@ -558,7 +559,7 @@ curl http://localhost:8080/oa/...
 | B-5 | L5 seed V18-V23 CJK 终端显示 | 终端 | ✅ 仅显示问题 |
 | B-6 | B19 M8/M9 路径 prefix 一致性 | M8/M9 | ✅ S-R23：`/oa/system/*` 规范 + 旧别名兼容 |
 | B-7 | 5 个 L-α/β/γ 页面补 exportToExcel | 前端 | ✅ S-R24：Efficiency / content / AccountCost / Financial / Metric + Fans 降级 |
-| B-8 | L-β 5 个详情页 follow-up：assignee/userOwner 字段补全 | M3/M4 | 走查留 P2 |
+| B-8 | L-β 5 个详情页 follow-up：assignee/userOwner 字段补全 | M3/M4 | 🟡 S-R27a M3 ✅ · S-R27b/c + Donny 前端待办 |
 
 ### 15.3 P2 体验/工程债
 

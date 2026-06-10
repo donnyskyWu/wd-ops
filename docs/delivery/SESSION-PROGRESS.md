@@ -607,6 +607,18 @@ L-γ 走查完成。
 - ✅ 写 [S-R19-报告-20260610.md](./gates/S-R19-报告-20260610.md)
 - ✅ OVERVIEW §1.5 同步：L1/L2/L4 → ✅；L3 保留 P0；新增 L6 ✅
 
+### 2026-06-10 · S-R27a-Mike M3 绩效详情 + 趋势 userInfo
+
+#### 完成
+- ✅ `PerfRecordDetailVO`：templateName/position/workflowStatus/审批流/submittedAt/items.metricCode+target
+- ✅ `PerfTrendVO`：userInfo + points 别名 + 趋势明细字段
+- ✅ `M3PerfDetailEnrichIT` 3 用例
+- ✅ API-M3 §2.5 / §3.2 同步
+
+#### 待办
+- Mike：S-R27b/c（公司详情 + 平台账号统计）
+- Donny：S-R27-Donny 前端接线 `PerfRecordDetail` / `PerfUserTrend`
+
 ### 2026-06-10 · 协作机制：Mike + Donny 双人任务表
 
 #### 完成

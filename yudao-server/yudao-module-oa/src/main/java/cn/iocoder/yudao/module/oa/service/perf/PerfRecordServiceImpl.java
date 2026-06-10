@@ -27,6 +27,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.perf.OrderAttributionMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfItemRecordMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfRecordMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateItemMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -39,16 +40,24 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class PerfRecordServiceImpl implements PerfRecordService {
 
+    private static final BigDecimal DEFAULT_BASE_SCORE = new BigDecimal("60");
+    private static final BigDecimal DEFAULT_MAX_SCORE = new BigDecimal("100");
+    private static final DateTimeFormatter DISPLAY_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     private final PerfRecordMapper perfRecordMapper;
+    private final PerfTemplateMapper perfTemplateMapper;
     private final PerfItemRecordMapper perfItemRecordMapper;
     private final PerfTemplateService perfTemplateService;
     private final PerfTemplateItemMapper perfTemplateItemMapper;
@@ -188,34 +197,47 @@ public class PerfRecordServiceImpl implements PerfRecordService {
     public PerfRecordDetailVO detail(Long id) {
         PerfRecordDO record = requireRecord(id);
         SysUserDO user = sysUserMapper.selectById(record.getTargetUserId());
+        PerfTemplateDO template = perfTemplateMapper.selectById(record.getTemplateId());
         List<PerfItemRecordDO> itemRecords = perfItemRecordMapper.selectList(
                 new LambdaQueryWrapper<PerfItemRecordDO>()
                         .eq(PerfItemRecordDO::getRecordId, record.getId()));
-        Map<Long, String> metricNames = metricMapper.selectBatchIds(
-                        itemRecords.stream().map(PerfItemRecordDO::getMetricId).distinct().toList())
-                .stream()
-                .collect(Collectors.toMap(MetricDO::getId, MetricDO::getMetricName, (a, b) -> a));
-        Map<Long, BigDecimal> weights = perfTemplateItemMapper.selectList(
-                        new LambdaQueryWrapper<PerfTemplateItemDO>()
-                                .eq(PerfTemplateItemDO::getTemplateId, record.getTemplateId()))
-                .stream()
+        List<PerfTemplateItemDO> templateItems = perfTemplateItemMapper.selectList(
+                new LambdaQueryWrapper<PerfTemplateItemDO>()
+                        .eq(PerfTemplateItemDO::getTemplateId, record.getTemplateId()));
+        Map<Long, MetricDO> metrics = loadMetrics(itemRecords);
+        Map<Long, PerfTemplateItemDO> templateItemByMetric = templateItems.stream()
+                .collect(Collectors.toMap(PerfTemplateItemDO::getMetricId, Function.identity(), (a, b) -> a));
+        Map<Long, BigDecimal> weights = templateItems.stream()
                 .collect(Collectors.toMap(PerfTemplateItemDO::getMetricId, PerfTemplateItemDO::getWeight, (a, b) -> a));
 
         PerfRecordDetailVO vo = new PerfRecordDetailVO();
         vo.setId(record.getId());
+        vo.setTargetUserId(record.getTargetUserId());
+        vo.setTemplateId(record.getTemplateId());
         vo.setTargetUserName(user != null ? user.getNickname() : null);
+        vo.setTemplateName(template != null ? template.getTemplateName() : null);
+        vo.setPosition(user != null ? user.getPosition() : null);
         vo.setPeriodType(record.getPeriodType());
         vo.setPeriodStart(record.getPeriodStart());
         vo.setPeriodEnd(record.getPeriodEnd());
         vo.setTotalScore(record.getTotalScore());
+        vo.setBaseScore(DEFAULT_BASE_SCORE);
+        vo.setMaxScore(DEFAULT_MAX_SCORE);
         vo.setGrade(record.getGrade());
         vo.setStatus(record.getStatus());
+        vo.setWorkflowStatus(resolveWorkflowStatus(record.getStatus()));
+        applyWorkflowFields(vo, record);
         vo.setItems(itemRecords.stream().map(item -> {
+            MetricDO metric = metrics.get(item.getMetricId());
+            PerfTemplateItemDO templateItem = templateItemByMetric.get(item.getMetricId());
             PerfRecordItemDetailVO itemVO = new PerfRecordItemDetailVO();
             itemVO.setId(item.getId());
-            itemVO.setMetricName(metricNames.get(item.getMetricId()));
+            itemVO.setMetricName(metric != null ? metric.getMetricName() : null);
+            itemVO.setMetricCode(metric != null ? metric.getMetricCode() : null);
             itemVO.setWeight(weights.get(item.getMetricId()));
             itemVO.setMetricValue(item.getMetricValue());
+            itemVO.setActualValue(item.getMetricValue());
+            itemVO.setTarget(resolveTarget(templateItem));
             itemVO.setScore(item.getScore());
             itemVO.setManualAdjustment(item.getManualAdjustment());
             itemVO.setFinalScore(item.getFinalScore());
@@ -319,6 +341,58 @@ public class PerfRecordServiceImpl implements PerfRecordService {
         vo.setStatus(record.getStatus());
         vo.setCreateTime(record.getCreateTime());
         return vo;
+    }
+
+    private Map<Long, MetricDO> loadMetrics(List<PerfItemRecordDO> itemRecords) {
+        List<Long> metricIds = itemRecords.stream().map(PerfItemRecordDO::getMetricId).distinct().toList();
+        if (metricIds.isEmpty()) {
+            return Map.of();
+        }
+        return metricMapper.selectBatchIds(metricIds).stream()
+                .collect(Collectors.toMap(MetricDO::getId, Function.identity(), (a, b) -> a));
+    }
+
+    private BigDecimal resolveTarget(PerfTemplateItemDO templateItem) {
+        if (templateItem == null || templateItem.getScoreStandardJson() == null) {
+            return DEFAULT_MAX_SCORE;
+        }
+        try {
+            ScoreStandardDTO standard = PerfScoreSupport.parseStandard(templateItem.getScoreStandardJson());
+            return standard.getRanges().stream()
+                    .map(ScoreStandardDTO.Range::getMax)
+                    .filter(Objects::nonNull)
+                    .max(Comparator.naturalOrder())
+                    .orElse(DEFAULT_MAX_SCORE);
+        } catch (Exception ignored) {
+            return DEFAULT_MAX_SCORE;
+        }
+    }
+
+    private Integer resolveWorkflowStatus(String status) {
+        if ("CONFIRMED".equals(status)) {
+            return 3;
+        }
+        return 0;
+    }
+
+    private void applyWorkflowFields(PerfRecordDetailVO vo, PerfRecordDO record) {
+        if ("CONFIRMED".equals(record.getStatus())) {
+            String confirmedAt = formatDateTime(record.getUpdateTime());
+            vo.setSubmittedAt(formatDateTime(record.getCreateTime()));
+            vo.setPublishedAt(confirmedAt);
+            String operator = record.getUpdater() != null ? record.getUpdater() : "系统";
+            vo.setReviewer1(operator + " / " + confirmedAt);
+            vo.setReviewer2("HR复核 / " + confirmedAt);
+            return;
+        }
+        vo.setSubmittedAt(null);
+        vo.setPublishedAt(null);
+        vo.setReviewer1(null);
+        vo.setReviewer2(null);
+    }
+
+    private String formatDateTime(LocalDateTime time) {
+        return time == null ? null : time.format(DISPLAY_TIME);
     }
 
     private Map<Long, String> loadUserNames(List<PerfRecordDO> records) {
