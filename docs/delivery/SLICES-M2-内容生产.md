@@ -1,8 +1,8 @@
 # SLICES-M2-内容生产
 
 > **切片计划**：M2 内容生产
-> **版本**：v1.0 | 2026-06-07
-> **总切片数**：8 片 | 预估总工时：约 20 人日
+> **版本**：v1.1 | 2026-06-11
+> **总切片数**：9 片 | 预估总工时：约 22 人日
 
 ---
 
@@ -18,6 +18,7 @@
 | S-06 | 内容 CRUD + 三级审核 | FR-M2-003 (1/2) | S-01 | 3.0 | P0 |
 | S-07 | AI 辅助创作 + 自动发布 | FR-M2-003 (2/2) | S-06 | 3.0 | P1 |
 | S-08 | 知识库 | FR-M2-004 | - | 2.0 | P1 |
+| S-09 | 计划管理 + 任务联动 | FR-M2-009 | S-01, S-04 | 2.0 | P0 |
 
 ---
 
@@ -28,6 +29,8 @@ graph LR
     S01[S-01 SOP CRUD] --> S02[S-02 DAG 画布]
     S01 --> S03[S-03 预置模板]
     S01 --> S04[S-04 任务实例]
+    S01 --> S09[S-09 计划管理]
+    S04 --> S09
     S01 --> S06[S-06 内容 CRUD]
     S04 --> S05[S-05 SOP 审核]
     S06 --> S07[S-07 AI + 发布]
@@ -147,6 +150,24 @@ graph LR
 
 ---
 
+### S-09 计划管理
+
+**包含**：
+- 后端：8 个 API（list/get/create/start/terminate/approve/reject/delete）— `ContentPlanController`
+- 前端：列表 + 新增弹窗 + 详情抽屉 — `plan/index.vue`
+- 数据：`oa_content_plan` / `_competition` / `_step`；`oa_task` 扩展 `plan_id`、`visible_in_list`
+- 业务：草稿任务隐藏、启动可见、组长终止审批（ADR-012）
+- 赛事：Phase 1 Mock `src/mock/competition.ts`
+
+**全局规范**：
+- `templateId` / `ipGroupId` / `assigneeIds` 强制选择器
+- `status` 用 `<DictSelect dict-type="dict_plan_status" />`
+
+**验收**：AC-M2-009-1, AC-M2-009-2, AC-M2-009-3  
+**测试**：`M2PlanS09IT`
+
+---
+
 *下一步：CHECKLIST + TESTCASES。*
 
 ---
@@ -168,10 +189,10 @@ graph LR
 
 | Slice ID | 关联 AC | 标题 | 估时 |
 |----------|---------|------|------|
-| S-M2-01 | AC-M2-01 | 内容创建-作者强关联选择器 | 1d |
-| S-M2-02 | AC-M2-02 | SOP 任务创建与状态机 | 1.5d |
-| S-M2-03 | AC-M2-03 | 内容发布-平台字典选择 | 1d |
-| S-M2-04 | AC-M2-04 | 三审流（初审/复审/终审） | 2d |
+| S-09 | AC-M2-009-1~3 | 计划管理-任务联动 | 2d |
+| S-04 | AC-M2-002-1~4 | SOP 任务状态机 | 3d |
+| S-06 | AC-M2-003-1~4 | 内容三级审核 | 3d |
+| S-08 | AC-M2-004-1~3 | 知识库 | 2d |
 
 ### 估算单位
 - `d` = 人天（1 人 = 8 小时）

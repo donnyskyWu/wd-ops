@@ -179,7 +179,7 @@ graph TB
 **包含**：
 
 - 后端：`/follower-analysis/*`、`/content-analysis/*` 全部 API
-- 前端：粉丝指标卡、趋势图、导出按钮；作品表格 + 爆款标签
+- 前端：粉丝 `#extra` 导出 + `statColSpan` 指标卡；作品 KPI 卡置顶、日期默认全部 + 快捷范围、详情趋势 7d 筛选
 - 业务规则：BR-003 爆款判定
 
 **依赖**：S-06
@@ -199,7 +199,7 @@ graph TB
 **包含**：
 
 - 后端：`GET /internal-content/list`、`GET /internal-content/{id}/trend`
-- 前端：Tab 切换、筛选（含数据来源筛选）、表格
+- 前端：Tab 切换、筛选；列表日期默认空（全量），趋势抽屉默认 7 日
 - 数据来源：API / IMPORT（（已替换为具体内容）
 
 **依赖**：S-07

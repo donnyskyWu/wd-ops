@@ -8,6 +8,7 @@ public class PersonalWechatRespVO {
     private Long id;
     private String accountName;
     private String wechatId;
+    private String contactPhone;
     private Long phoneId;
     private String phoneNumberMasked;
     private String status;

@@ -1,25 +1,50 @@
 <template>
   <div class="plan-page">
     <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
-      <el-form-item label="计划名称"><el-input v-model="searchForm.keyword" placeholder="搜索计划" clearable /></el-form-item>
+      <el-form-item label="计划名称">
+        <el-input v-model="searchForm.planName" placeholder="搜索计划" clearable />
+      </el-form-item>
+      <el-form-item label="状态">
+        <DictSelect v-model="searchForm.status" dict-type="dict_plan_status" placeholder="全部" clearable />
+      </el-form-item>
     </TableSearch>
+
     <div class="action-bar">
-      <el-button type="primary" @click="handleAdd"><el-icon><Plus /></el-icon>新增计划</el-button>
+      <el-button type="primary" @click="handleAdd">
+        <el-icon><Plus /></el-icon>
+        新增计划
+      </el-button>
       <span class="total-info">共 {{ total }} 条</span>
     </div>
-    <el-table :data="planList" v-loading="loading" stripe>
-      <el-table-column prop="planName" label="计划名称" min-width="150" />
+
+    <el-table :data="planList" v-loading="loading" stripe border>
+      <el-table-column prop="planName" label="计划名称" min-width="160" show-overflow-tooltip />
+      <el-table-column prop="templateName" label="SOP 模板" width="140" show-overflow-tooltip />
+      <el-table-column prop="ipGroupName" label="IP 组" width="120" show-overflow-tooltip />
       <el-table-column prop="startDate" label="开始日期" width="120" />
       <el-table-column prop="endDate" label="结束日期" width="120" />
-      <el-table-column prop="status" label="状态" width="80" align="center"><template #default="{ row }"><el-tag :type="row.status === '进行中' ? 'success' : 'info'">{{ row.status }}</el-tag></template></el-table-column>
-      <el-table-column prop="progress" label="进度" width="150"><template #default="{ row }"><el-progress :percentage="row.progress" /></template></el-table-column>
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column prop="status" label="状态" width="110" align="center">
         <template #default="{ row }">
-          <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-          <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+          <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="progress" label="进度" width="140">
+        <template #default="{ row }">
+          <el-progress :percentage="row.progress ?? 0" :stroke-width="8" />
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="260" fixed="right" align="center">
+        <template #default="{ row }">
+          <el-button link type="primary" @click="handleView(row)">详情</el-button>
+          <el-button v-if="row.status === 'DRAFT'" link type="success" @click="handleStart(row)">启动</el-button>
+          <el-button v-if="row.status === 'IN_PROGRESS'" link type="warning" @click="handleTerminate(row)">申请终止</el-button>
+          <el-button v-if="row.status === 'TERMINATE_PENDING'" link type="success" @click="handleApproveTerminate(row)">批准终止</el-button>
+          <el-button v-if="row.status === 'TERMINATE_PENDING'" link type="warning" @click="handleRejectTerminate(row)">驳回终止</el-button>
+          <el-button v-if="row.status === 'DRAFT'" link type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
+
     <el-pagination
       :current-page="searchForm.pageNo"
       :page-size="searchForm.pageSize"
@@ -32,14 +57,130 @@
       @current-change="handleSearch"
       @size-change="handleSearch"
     />
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
-      <el-form :model="formData" ref="formRef" :rules="formRules" label-width="100px">
-        <el-form-item label="计划名称" prop="planName"><el-input v-model="formData.planName" maxlength="100" show-word-limit /></el-form-item>
-        <el-form-item label="日期范围" prop="dateRange"><el-date-picker v-model="formData.dateRange" type="daterange" range-separator="~" style="width: 100%" /></el-form-item>
-        <el-form-item label="计划描述"><el-input v-model="formData.description" type="textarea" :rows="3" /></el-form-item>
+
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="960px" destroy-on-close @close="resetForm">
+      <el-form :model="formData" ref="formRef" :rules="formRules" label-width="120px">
+        <el-divider content-position="left">基本信息</el-divider>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="计划名称" prop="planName">
+              <el-input v-model="formData.planName" maxlength="100" show-word-limit placeholder="请输入计划名称" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="日期范围" prop="dateRange">
+              <el-date-picker
+                v-model="formData.dateRange"
+                type="daterange"
+                range-separator="~"
+                value-format="YYYY-MM-DD"
+                style="width: 100%"
+                @change="handleDateRangeChange"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="SOP 模板" prop="templateId">
+              <el-select
+                v-model="formData.templateId"
+                placeholder="请选择 SOP 模板"
+                filterable
+                style="width: 100%"
+                @change="handleTemplateChange"
+              >
+                <el-option
+                  v-for="item in templateOptions"
+                  :key="item.id"
+                  :label="item.templateName"
+                  :value="item.id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="IP 组" prop="ipGroupId">
+              <IpGroupTreeSelect v-model="formData.ipGroupId" placeholder="请选择 IP 组" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="关联赛事" prop="competitionIds">
+          <el-select
+            v-model="formData.competitionIds"
+            multiple
+            filterable
+            placeholder="请选择赛事（外部 Mock）"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="item in competitionOptions"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            >
+              <span>{{ item.name }}</span>
+              <span style="float: right; color: #909399; font-size: 12px">{{ item.season }}</span>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="计划描述">
+          <el-input v-model="formData.description" type="textarea" :rows="2" maxlength="500" show-word-limit />
+        </el-form-item>
+
+        <el-divider content-position="left">SOP 步骤分配</el-divider>
+        <el-table :data="formData.steps" border size="small" empty-text="请先选择 SOP 模板">
+          <el-table-column prop="nodeOrder" label="#" width="50" align="center" />
+          <el-table-column prop="nodeName" label="步骤名称" min-width="120" />
+          <el-table-column prop="executorRole" label="执行岗位" width="110" />
+          <el-table-column label="执行人" min-width="180">
+            <template #default="{ row }">
+              <UserSelect v-model="row.assigneeIds" multiple placeholder="选择执行人" />
+            </template>
+          </el-table-column>
+          <el-table-column label="开始时间" width="190">
+            <template #default="{ row }">
+              <el-date-picker
+                v-model="row.scheduledStart"
+                type="datetime"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                placeholder="默认计划开始"
+                style="width: 100%"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column label="结束时间" width="190">
+            <template #default="{ row }">
+              <el-date-picker
+                v-model="row.scheduledEnd"
+                type="datetime"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                placeholder="默认计划结束"
+                style="width: 100%"
+              />
+            </template>
+          </el-table-column>
+        </el-table>
       </el-form>
-      <template #footer><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" @click="handleSubmit">保存</el-button></template>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">保存草稿</el-button>
+      </template>
     </el-dialog>
+
+    <el-drawer v-model="detailVisible" title="计划详情" size="520px">
+      <el-descriptions v-if="detailData" :column="1" border>
+        <el-descriptions-item label="计划名称">{{ detailData.planName }}</el-descriptions-item>
+        <el-descriptions-item label="SOP 模板">{{ detailData.templateName }}</el-descriptions-item>
+        <el-descriptions-item label="IP 组">{{ detailData.ipGroupName }}</el-descriptions-item>
+        <el-descriptions-item label="日期">{{ detailData.startDate }} ~ {{ detailData.endDate }}</el-descriptions-item>
+        <el-descriptions-item label="状态">{{ statusLabel(detailData.status) }}</el-descriptions-item>
+        <el-descriptions-item label="赛事">
+          {{ detailData.competitions?.map((c) => c.competitionName).join('、') || '--' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="描述">{{ detailData.description || '--' }}</el-descriptions-item>
+      </el-descriptions>
+    </el-drawer>
   </div>
 </template>
 
@@ -48,29 +189,54 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
+import DictSelect from '@/components/DictSelect.vue'
+import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
+import UserSelect from '@/components/selectors/UserSelect.vue'
+import { getSopTemplateList, getSopNodeList } from '@/api/sop'
+import { searchCompetitions, type CompetitionVO } from '@/mock/competition'
+import {
+  getContentPlanPage,
+  getContentPlan,
+  createContentPlan,
+  startContentPlan,
+  submitTerminatePlan,
+  approveTerminatePlan,
+  rejectTerminatePlan,
+  deleteContentPlan,
+  type ContentPlanVO,
+} from '@/api/plan'
 
-// ==================== 类型定义 ====================
-interface PlanItem {
-  id?: number
-  planName: string
-  startDate: string
-  endDate: string
-  status: string
-  progress: number
+interface StepFormRow {
+  nodeId: number
+  nodeName: string
+  nodeOrder: number
+  executorRole: string
+  assigneeIds: number[]
+  scheduledStart?: string
+  scheduledEnd?: string
 }
 
-// ==================== 响应式数据 ====================
 const loading = ref(false)
-const planList = ref<PlanItem[]>([
-  { id: 1, planName: '5月内容发布计划', startDate: '2026-05-01', endDate: '2026-05-31', status: '进行中', progress: 65 },
-  { id: 2, planName: 'Q2运营推广计划', startDate: '2026-04-01', endDate: '2026-06-30', status: '进行中', progress: 40 },
-])
-const total = ref(2)
-const searchForm = reactive({ pageNo: 1, pageSize: 20, keyword: undefined as string | undefined })
+const submitting = ref(false)
+const planList = ref<ContentPlanVO[]>([])
+const total = ref(0)
+const templateOptions = ref<Array<{ id: number; templateName: string }>>([])
+const competitionOptions = ref<CompetitionVO[]>([])
+const searchForm = reactive({ pageNo: 1, pageSize: 20, planName: undefined as string | undefined, status: undefined as string | undefined })
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增计划')
+const detailVisible = ref(false)
+const detailData = ref<ContentPlanVO | null>(null)
 const formRef = ref<any>()
-const formData = reactive({ id: undefined, planName: '', dateRange: [], description: '' })
+const formData = reactive({
+  planName: '',
+  dateRange: [] as string[],
+  templateId: undefined as number | undefined,
+  ipGroupId: undefined as number | undefined,
+  competitionIds: [] as string[],
+  description: '',
+  steps: [] as StepFormRow[],
+})
 
 const formRules = {
   planName: [
@@ -78,27 +244,199 @@ const formRules = {
     { max: 100, message: '计划名称不超过 100 字', trigger: 'blur' },
   ],
   dateRange: [{ required: true, message: '请选择日期范围', trigger: 'change' }],
+  templateId: [{ required: true, message: '请选择 SOP 模板', trigger: 'change' }],
+  ipGroupId: [{ required: true, message: '请选择 IP 组', trigger: 'change' }],
+  competitionIds: [{ required: true, type: 'array', min: 1, message: '请至少选择一个赛事', trigger: 'change' }],
 }
 
-const loadList = () => { loading.value = false }
+const statusLabel = (status: string) => ({
+  DRAFT: '草稿',
+  IN_PROGRESS: '进行中',
+  TERMINATE_PENDING: '终止审批中',
+  TERMINATED: '已终止',
+}[status] || status)
+
+const statusTagType = (status: string) => ({
+  DRAFT: 'info',
+  IN_PROGRESS: 'success',
+  TERMINATE_PENDING: 'warning',
+  TERMINATED: 'danger',
+}[status] || 'info')
+
+const loadList = async () => {
+  loading.value = true
+  try {
+    const res = await getContentPlanPage({
+      planName: searchForm.planName,
+      status: searchForm.status,
+      pageNo: searchForm.pageNo,
+      pageSize: searchForm.pageSize,
+    })
+    planList.value = res.list
+    total.value = res.total
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadOptions = async () => {
+  const [templates, competitions] = await Promise.all([
+    getSopTemplateList({ pageNum: 1, pageSize: 200, status: 1 }),
+    searchCompetitions(),
+  ])
+  templateOptions.value = templates.list
+  competitionOptions.value = competitions
+}
+
 const handleSearch = () => { searchForm.pageNo = 1; loadList() }
-const handleReset = () => { searchForm.keyword = undefined; handleSearch() }
-const handleAdd = () => { dialogTitle.value = '新增计划'; dialogVisible.value = true }
-const handleEdit = (row: PlanItem) => { dialogTitle.value = '编辑计划'; Object.assign(formData, { ...row }); dialogVisible.value = true }
+const handleReset = () => { searchForm.planName = undefined; searchForm.status = undefined; handleSearch() }
+
+const resetForm = () => {
+  Object.assign(formData, {
+    planName: '',
+    dateRange: [],
+    templateId: undefined,
+    ipGroupId: undefined,
+    competitionIds: [],
+    description: '',
+    steps: [],
+  })
+}
+
+const handleAdd = () => {
+  dialogTitle.value = '新增计划'
+  resetForm()
+  dialogVisible.value = true
+}
+
+const handleTemplateChange = async (templateId: number) => {
+  if (!templateId) {
+    formData.steps = []
+    return
+  }
+  const nodes = await getSopNodeList(templateId)
+  formData.steps = nodes
+    .sort((a, b) => a.nodeOrder - b.nodeOrder)
+    .map((node) => ({
+      nodeId: node.id,
+      nodeName: node.nodeName,
+      nodeOrder: node.nodeOrder,
+      executorRole: node.executorRole,
+      assigneeIds: [],
+      scheduledStart: undefined,
+      scheduledEnd: undefined,
+    }))
+}
+
+const handleDateRangeChange = () => {
+  if (formData.dateRange?.length === 2) {
+    formData.steps.forEach((step) => {
+      if (!step.scheduledStart) step.scheduledStart = `${formData.dateRange[0]} 00:00:00`
+      if (!step.scheduledEnd) step.scheduledEnd = `${formData.dateRange[1]} 23:59:59`
+    })
+  }
+}
+
 const handleSubmit = async () => {
   if (!formRef.value) return
   await formRef.value.validate()
-  ElMessage.success('保存成功')
-  dialogVisible.value = false
+  if (formData.steps.length === 0) {
+    ElMessage.warning('请先选择包含节点的 SOP 模板')
+    return
+  }
+  if (formData.steps.some((step) => !step.assigneeIds?.length)) {
+    ElMessage.warning('请为每个 SOP 步骤分配执行人')
+    return
+  }
+  submitting.value = true
+  try {
+    await createContentPlan({
+      planName: formData.planName,
+      templateId: formData.templateId!,
+      ipGroupId: formData.ipGroupId!,
+      startDate: formData.dateRange[0],
+      endDate: formData.dateRange[1],
+      description: formData.description || undefined,
+      competitions: formData.competitionIds.map((id) => {
+        const item = competitionOptions.value.find((c) => c.id === id)!
+        return { competitionId: item.id, competitionName: item.name }
+      }),
+      steps: formData.steps.map((step) => ({
+        nodeId: step.nodeId,
+        assigneeIds: step.assigneeIds,
+        scheduledStart: step.scheduledStart,
+        scheduledEnd: step.scheduledEnd,
+      })),
+    })
+    ElMessage.success('计划已保存为草稿')
+    dialogVisible.value = false
+    loadList()
+  } finally {
+    submitting.value = false
+  }
+}
+
+const handleView = async (row: ContentPlanVO) => {
+  detailData.value = await getContentPlan(row.id)
+  detailVisible.value = true
+}
+
+const handleStart = async (row: ContentPlanVO) => {
+  await ElMessageBox.confirm(`确认启动计划「${row.planName}」？启动后关联任务将出现在任务列表。`, '提示', { type: 'warning' })
+  await startContentPlan(row.id)
+  ElMessage.success('计划已启动')
   loadList()
 }
-const handleDelete = async () => { try { await ElMessageBox.confirm('确认删除？', '提示', { type: 'warning' }); ElMessage.success('删除成功'); loadList() } catch {} }
-onMounted(() => loadList())
+
+const handleTerminate = async (row: ContentPlanVO) => {
+  const { value } = await ElMessageBox.prompt('请输入终止原因', '申请终止计划', {
+    confirmButtonText: '提交审批',
+    cancelButtonText: '取消',
+    inputPlaceholder: '终止原因',
+  })
+  await submitTerminatePlan(row.id, value)
+  ElMessage.success('已提交终止审批')
+  loadList()
+}
+
+const handleApproveTerminate = async (row: ContentPlanVO) => {
+  await ElMessageBox.confirm(`确认批准终止计划「${row.planName}」？`, '组长审批', { type: 'warning' })
+  await approveTerminatePlan(row.id)
+  ElMessage.success('计划已终止')
+  loadList()
+}
+
+const handleRejectTerminate = async (row: ContentPlanVO) => {
+  await ElMessageBox.confirm(`确认驳回终止申请，计划「${row.planName}」继续执行？`, '组长审批', { type: 'info' })
+  await rejectTerminatePlan(row.id)
+  ElMessage.success('已驳回终止申请')
+  loadList()
+}
+
+const handleDelete = async (row: ContentPlanVO) => {
+  await ElMessageBox.confirm(`确认删除草稿计划「${row.planName}」？`, '提示', { type: 'warning' })
+  await deleteContentPlan(row.id)
+  ElMessage.success('删除成功')
+  loadList()
+}
+
+onMounted(async () => {
+  await loadOptions()
+  await loadList()
+})
 </script>
 
-<style scoped>
-.plan-page { padding: 20px; }
-.action-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
-.total-info { color: #909399; font-size: 14px; }
-.pagination { margin-top: 16px; display: flex; justify-content: flex-end; }
+<style scoped lang="scss">
+.plan-page {
+  padding: 20px;
+  .action-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .total-info { color: #909399; font-size: 14px; }
+  .pagination { margin-top: 16px; display: flex; justify-content: flex-end; }
+  :deep(.el-divider__text) { font-weight: 600; color: #303133; }
+}
 </style>

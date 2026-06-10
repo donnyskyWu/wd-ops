@@ -11,7 +11,15 @@
       </el-form-item>
       <el-form-item label="关键词"><el-input v-model="searchForm.keyword" placeholder="内容标题" clearable /></el-form-item>
       <el-form-item label="日期范围">
-        <el-date-picker v-model="searchForm.dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" />
+        <el-date-picker
+          v-model="searchForm.dateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          value-format="YYYY-MM-DD"
+          clearable
+        />
       </el-form-item>
       <!-- S-R7-B4：删"补录类型"——content 列表不该用 importType 筛（importType 是 oa_content_import 表的字段） -->
     </TableSearch>
@@ -184,7 +192,7 @@ function getDefaultWeekRange(): string[] {
 
 const searchForm = reactive({
   keyword: '',
-  dateRange: getDefaultWeekRange() as string[],
+  dateRange: [] as string[],
   ipGroupId: undefined as number | undefined,
   // S-R7-B4：删 importType（content 列表表无此字段，importType 是 oa_content_import 表的字段）
 })
@@ -294,8 +302,8 @@ const loadData = async () => {
       ipGroupId: searchForm.ipGroupId,
       keyword: searchForm.keyword || undefined,
       // S-R7-B4：删 importType（content 列表表无此字段）
-      startDate: searchForm.dateRange?.[0],
-      endDate: searchForm.dateRange?.[1],
+      startDate: searchForm.dateRange?.length === 2 ? searchForm.dateRange[0] : undefined,
+      endDate: searchForm.dateRange?.length === 2 ? searchForm.dateRange[1] : undefined,
       // S-R3：后端收 page/size
       page: pagination.pageNo,
       size: pagination.pageSize,
@@ -322,7 +330,7 @@ const handleTabChange = () => { pagination.pageNo = 1; pagination.total = 0; loa
 const handleSearch = () => { pagination.pageNo = 1; pagination.total = 0; loadData() }
 const handleReset = () => {
   searchForm.keyword = ''
-  searchForm.dateRange = getDefaultWeekRange()
+  searchForm.dateRange = []
   searchForm.ipGroupId = undefined
   // S-R7-B4：删 importType reset
   pagination.pageNo = 1

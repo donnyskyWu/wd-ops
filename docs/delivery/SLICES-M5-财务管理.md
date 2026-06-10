@@ -33,10 +33,16 @@ graph LR
 ### S-01 账号成本 CRUD
 
 **全局规范**：
-- `accountId` 用 `<AccountSelect />`
+- `accountId` 用 `<AccountSelect />`（成本记录侧）
 - `costType` / `payMethod` / `period` 用 `<DictSelect />`
 
-**验收**：AC-M5-001-1, AC-M5-001-2, AC-M5-001-3
+**前端**（2026-06-11）：
+- 路由 `/account-cost` · `AccountCostManage.vue`
+- 平台 Tab + 账号维度成本汇总表
+- 「查看」抽屉 + 「成本管理」弹窗（采购 + 过程 CRUD）
+- 复用 `getAccountList` + `getCostList` 前端聚合
+
+**验收**：AC-M5-001-1 ~ AC-M5-001-5
 
 ### S-02 成本定时归集
 

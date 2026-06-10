@@ -114,6 +114,7 @@
 | `dict_sop_node_type` | SOP 节点类型 | 启动 / 审核 / 创作 / 拍摄 / 剪辑 / 发布 / 归档 | M2 |
 | `dict_sop_node_status` | SOP 节点状态 | 待办 / 进行中 / 已完成 / 已驳回 / 已跳过 | M2 |
 | `dict_sop_status` | SOP 流程状态 | 草稿 / 审核中 / 已发布 / 已停用 | M2 |
+| `dict_plan_status` | 计划状态 | 草稿(DRAFT) / 进行中(IN_PROGRESS) / 终止审批中(TERMINATE_PENDING) / 已终止(TERMINATED) | M2 |
 | `dict_content_status` | 内容状态 | 草稿 / 待初审 / 待复审 / 待终审 / 已通过 / 已驳回 / 已发布 / 已下架 | M2 |
 | `dict_content_review_result` | 审核结果 | 通过 / 驳回 / 需修改 | M2 |
 | `dict_perf_metric_type` | 绩效指标类型 | 数量 / 质量 / 营收 / 增长率 / 复合 | M3 |
@@ -244,7 +245,10 @@
 | `oa_sop_template` | `status` | `dict_sop_status` | N:1 | ✅ | 状态（字典） |
 | `oa_sop_node` | `node_type` | `dict_sop_node_type` | N:1 | ✅ | 节点类型（字典） |
 | `oa_sop_node` | `status` | `dict_sop_node_status` | N:1 | ✅ | 状态（字典） |
-| `oa_collect_task` | `method` | `dict_collect_method` | N:1 | ✅ | 采集方式（字典） |
+| `oa_content_plan` | `status` | `dict_plan_status` | N:1 | ✅ | 计划状态（字典） |
+| `oa_content_plan` | `template_id` | `oa_sop_template` | N:1 | ❌ | SOP 模板（**强关联**）⭐ |
+| `oa_content_plan` | `ip_group_id` | `oa_ip_group` | N:1 | ❌ | IP 组（**强关联**）⭐ |
+| `oa_task` | `plan_id` | `oa_content_plan` | N:1 | ❌ | 计划关联任务 |
 | `oa_collect_task` | `source` | `dict_collect_source` | N:1 | ✅ | 采集源（字典） |
 | `oa_collect_task` | `frequency` | `dict_collect_frequency` | N:1 | ✅ | 采集频率（字典） |
 | `oa_collect_task` | `status` | `dict_collect_status` | N:1 | ✅ | 状态（字典） |

@@ -72,6 +72,7 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
         entity.setTenantId(tenantId);
         entity.setAccountName(req.getAccountName());
         entity.setWechatId(req.getWechatId());
+        entity.setContactPhone(normalizeContactPhone(req.getContactPhone()));
         entity.setPhoneId(req.getPhoneId());
         entity.setStatus(StrUtil.blankToDefault(req.getStatus(), "ENABLED"));
         entity.setCreator(TenantContextHolder.getUsername());
@@ -94,6 +95,9 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
         }
         if (StrUtil.isNotBlank(req.getAccountName())) {
             existing.setAccountName(req.getAccountName());
+        }
+        if (req.getContactPhone() != null) {
+            existing.setContactPhone(normalizeContactPhone(req.getContactPhone()));
         }
         if (req.getPhoneId() != null) {
             assertPhoneInTenant(req.getPhoneId(), tenantId);
@@ -154,6 +158,7 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
         vo.setId(entity.getId());
         vo.setAccountName(entity.getAccountName());
         vo.setWechatId(entity.getWechatId());
+        vo.setContactPhone(entity.getContactPhone());
         vo.setPhoneId(entity.getPhoneId());
         vo.setPhoneNumberMasked(maskPhone(entity.getPhoneId()));
         vo.setStatus(entity.getStatus());
@@ -167,6 +172,10 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
             vo.setToken(maskIfPresent(entity.getTokenEncrypted()));
         }
         return vo;
+    }
+
+    private String normalizeContactPhone(String contactPhone) {
+        return StrUtil.blankToDefault(contactPhone, null);
     }
 
     private String maskIfPresent(String encrypted) {

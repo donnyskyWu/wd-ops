@@ -1,6 +1,6 @@
 # API-M4-账号管理
 
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v1.1 | 2026-06-11
 > **关联 PRD**：[`PRD-M4-账号管理.md`](../product/PRD-M4-账号管理.md)
 > **关联 UX**：[`UX-M4-账号管理.md`](../product/UX-M4-账号管理.md)
 > **关联全局规范**：[`GLOBAL-CONVENTIONS.md`](./GLOBAL-CONVENTIONS.md)
@@ -136,15 +136,18 @@
 ```json
 {
   "phoneNumber": "13800001111",
+  "phoneCode": "PH-001",
   "phoneModel": "iPhone 15 Pro",
-  "keeper": 123,
-  "status": 1
+  "keeperId": 123,
+  "wechatBound": "wx_bound_01",
+  "status": "ENABLED"
 }
 ```
 
-**校验**：
-- `phoneNumber` 11 位 + 全局唯一
-- `keeper` `@NotNull`：必须从 `<UserSelect />` 选
+**校验**（ADR-011）：
+- `phoneNumber` 11 位 + 全局唯一（创建必填；更新可选）
+- **无** `realnameId` 字段
+- `keeperId` `@NotNull`：必须从 `<UserSelect />` 选，本租户有效用户
 - `status` `@InDict(type="dict_phone_status")`
 
 ---
@@ -178,20 +181,23 @@
 
 ```json
 {
-  "phoneNumber": "13800001111",
-  "isPrimary": 1,
+  "phoneId": 10,
+  "phoneNumber": null,
+  "isPrimary": "YES",
   "operator": "MOBILE",
   "assignedUserId": 123,
   "iccid": "8986011...",
-  "status": 1
+  "packageName": "5G畅享",
+  "status": "ENABLED"
 }
 ```
 
 **校验**：
-- `phoneNumber` 11 位 + 全局唯一
+- `phoneId` 与 `phoneNumber` **二选一**，优先 `phoneId`；传 `phoneId` 时后端从 `oa_phone` 解密号码
+- `phoneNumber` 11 位 + 全局唯一（仅 `phoneId` 为空时）
 - `isPrimary` `@InDict(type="dict_yes_no")`
 - `operator` `@InDict(type="dict_sim_operator")`
-- `assignedUserId` `@NotNull`
+- `assignedUserId` `@NotNull`（`<UserSelect />`）
 - `iccid` 加密
 
 ### 4.3 GET `/admin-api/oa/internal/sim-card/{id}/linked-accounts`（⭐ v9.1 新增）
@@ -386,6 +392,7 @@
   "id": 1,
   "accountName": "张三",
   "wechatId": "zhangsan_wx",
+  "contactPhone": "13800001111",
   "phoneId": 1,
   "apiUrl": "****",
   "appId": "****",
@@ -393,6 +400,27 @@
   "token": "****"
 }
 ```
+
+### 6.2.1 POST `/admin-api/oa/internal/personal-account/create`
+
+**请求体** `PersonalWechatCreateReq`：
+
+```json
+{
+  "accountName": "张三",
+  "wechatId": "zhangsan_wx",
+  "contactPhone": "13800001111",
+  "phoneId": null,
+  "status": "ENABLED"
+}
+```
+
+**校验**：
+- `contactPhone` 可选；若填写则 `^1[3-9]\d{9}$`（ADR-010，明文存储）
+
+### 6.2.2 PUT `/admin-api/oa/internal/personal-account/update`
+
+同 create + `id`；`contactPhone` 可更新。
 
 ### 6.3 POST `/admin-api/oa/internal/personal-account/api-config`
 
@@ -411,6 +439,74 @@
 **业务**：仅系统管理员可编辑；其他角色只读。
 
 ### 6.4 GET `/admin-api/oa/internal/wework/list`
+
+企微**应用配置** CRUD：`/create` · `/update` · `/delete` · `/get`（Secret 脱敏展示）。
+
+### 6.5 企微员工账号 API（S-08b）
+
+基路径：`/admin-api/oa/internal/wework/employee`  
+**实现**：`WeworkEmployeeController`
+
+> **鉴权说明**（Gate S2 对齐）：企微员工 CRUD **未加**方法级 `@PreAuthorize`，与 M4 其他写接口（个微/手机/实名人 create/update/delete）一致；依赖 Dev Token 登录 + `X-Tenant-Id` 租户隔离。list/get 同样无独立权限点，避免破坏既有 `M4PersonalAccountS08IT`。
+
+#### 6.5.1 GET `/list`
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| weworkAccountId | Long | ❌ | 按应用配置过滤 |
+| nickname | String | ❌ | 昵称模糊 |
+| weworkUserId | String | ❌ | 企微 ID 模糊 |
+| status | String | ❌ | ENABLED/DISABLED |
+| pageNo / pageSize | Integer | ❌ | 分页 |
+
+**响应** `PageResult<WeworkEmployeeRespVO>`：
+
+```json
+{
+  "list": [{
+    "id": 1,
+    "weworkAccountId": 9001,
+    "nickname": "李四",
+    "weworkUserId": "LiSi",
+    "phone": "13900139001",
+    "department": "运营部",
+    "position": "运营专员",
+    "status": "ENABLED",
+    "createTime": "2026-06-11 10:00:00"
+  }],
+  "total": 1
+}
+```
+
+#### 6.5.2 POST `/create`
+
+**请求体** `WeworkEmployeeCreateReq`：
+
+```json
+{
+  "weworkAccountId": 9001,
+  "nickname": "李四",
+  "weworkUserId": "LiSi",
+  "phone": "13900139001",
+  "department": "运营部",
+  "position": "运营专员",
+  "status": "ENABLED"
+}
+```
+
+**校验**：
+- `weworkAccountId` 必须存在 + 本租户 + 未停用（1500/1501/1504）
+- `nickname` / `weworkUserId` `@NotBlank`
+- `phone` 可选；若填写则 11 位手机号
+- 同 `weworkAccountId` 下 `weworkUserId` 唯一
+
+#### 6.5.3 PUT `/update`
+
+**请求体** `WeworkEmployeeUpdateReq`：同 create + `id`（`weworkAccountId` 不可改）。
+
+#### 6.5.4 DELETE `/delete?id={id}`
+
+软删除；租户隔离。
 
 ---
 

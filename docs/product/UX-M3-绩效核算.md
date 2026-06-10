@@ -34,8 +34,11 @@
 | F-NAME | `<Input />` | - |
 | F-ACTIVE | `<DictSelect dict-type="dict_yes_no" />` | 字典 |
 | TBL-TPL | 表格 | `oa_perf_template` |
-| BTN-ADD | "新增模板" | - |
+| BTN-ADD | "新增模板" → **弹窗**（非路由跳转） | - |
+| BTN-EDIT | 行内编辑 → `/perf/template/:id` | - |
 | BTN-ACTIVATE | "启用" | - |
+
+**新增弹窗**：岗位、模板名、指标列表（`metricId` 来自 `getMetricOptions`）、权重、算分方式、评分标准。
 
 ---
 
@@ -62,7 +65,7 @@
 
 | 控件 | 类型 | 字典/实体 | 必填 |
 |------|------|----------|------|
-| F-METRIC | `<MetricSelect />` | `oa_metric_definition` | ✅ |
+| F-METRIC | `<el-select>` 绑定真实 `metricId` | `oa_metric_definition`（`getMetricOptions`） | ✅ |
 | F-WEIGHT | `<InputNumber :precision="2" :min="0" :max="100" />` | - | ✅ |
 | F-CALC | `<DictSelect dict-type="dict_perf_calc_method" />` | 字典 | ✅ |
 | F-STANDARD | `<ScoreStandardEditor />` | - | 条件（自动/混合时必填） |
@@ -115,7 +118,7 @@
 |------|------|----------|
 | F-USER | `<UserSelect />` | `sys_user` |
 | F-PERIOD | `<DictSelect dict-type="dict_perf_period" />` | 字典 |
-| F-GRADE | `<Select />` | 固定值（S/A/B/C/D） |
+| F-GRADE | `<DictSelect dict-type="dict_perf_grade" />` | 字典（V34） |
 | F-IP | `<IpGroupTreeSelect />` | `oa_ip_group` |
 | TBL-RESULT | 表格 | `oa_perf_record` |
 

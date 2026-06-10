@@ -12,6 +12,8 @@ public class SimCardUpdateReq {
     @NotNull
     private Long id;
 
+    private Long phoneId;
+
     @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String phoneNumber;
 

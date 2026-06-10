@@ -1,4 +1,19 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Locator, type Page } from '@playwright/test'
+
+function formCombobox(scope: Locator, label: string) {
+  return scope.getByRole('combobox', { name: new RegExp(label) })
+}
+
+async function openSelect(scope: Locator, label: string) {
+  const box = formCombobox(scope, label)
+  await box.locator('xpath=ancestor::div[contains(@class,"el-select")]').locator('.el-select__wrapper').click()
+}
+
+async function pickFirstOption(page: Page) {
+  const item = page.locator('.el-select-dropdown:visible .el-select-dropdown__item').first()
+  await expect(item).toBeVisible({ timeout: 8_000 })
+  await item.click({ force: true })
+}
 
 /**
  * 前后端联调 · M4 S-04 手机管理
@@ -28,6 +43,9 @@ test.describe('前后端联调 - 手机管理 @integration', () => {
     await dialog.locator('input[placeholder*="11位手机号"]').fill(phoneNumber)
     await dialog.locator('input[placeholder*="内部编号"]').fill(`PH-${suffix}`)
     await dialog.locator('input[placeholder*="iPhone"]').fill('联调测试机')
+    // ADR-011：保管人必填（UserSelect）
+    await openSelect(dialog, '保管人')
+    await pickFirstOption(page)
 
     await dialog.getByRole('button', { name: '保存' }).click()
     await expect(page.getByText('保存成功')).toBeVisible({ timeout: 8_000 })

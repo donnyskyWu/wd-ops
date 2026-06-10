@@ -43,7 +43,8 @@ export interface SimCardPageResult {
 }
 
 export interface SimCardCreateReq {
-  phoneNumber: string
+  phoneId?: number
+  phoneNumber?: string
   isPrimary?: string
   operator: string
   assignedUserId: number

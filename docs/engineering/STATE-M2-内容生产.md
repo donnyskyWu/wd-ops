@@ -1,6 +1,6 @@
 # STATE-M2-内容生产
 
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v1.1 | 2026-06-11
 > **关联 PRD**：[`PRD-M2-内容生产.md`](../product/PRD-M2-内容生产.md)
 > **关联全局规范**：[`GLOBAL-CONVENTIONS.md`](./GLOBAL-CONVENTIONS.md)
 
@@ -20,6 +20,10 @@
 | 已跳过 | `SKIPPED` | 因业务规则跳过（如并行组中其他节点失败） |
 | 已完成 | `DONE` | 节点完成（仅适用于无需审核节点） |
 | 已超时 | `TIMEOUT` | SLA 超时（事件型状态，不影响流程） |
+| 计划草稿 | `PLAN_DRAFT` | 计划保存为草稿，任务未启动（ADR-012） |
+| 已终止 | `TERMINATED` | 计划终止审批通过（ADR-012） |
+
+> 计划草稿期任务另设 `visible_in_list=0`，任务列表 API 默认过滤。
 
 ### 1.2 状态机
 
@@ -141,7 +145,40 @@ stateDiagram-v2
 
 ---
 
-## 4. 知识库状态（轻量）
+## 4. 计划状态机（FR-M2-009）
+
+### 4.1 状态定义（`dict_plan_status`）
+
+| 状态 | value | 含义 |
+|------|-------|------|
+| 草稿 | `DRAFT` | 已保存，任务 PLAN_DRAFT 且不可见 |
+| 进行中 | `IN_PROGRESS` | 已启动，任务 PENDING 且可见 |
+| 终止审批中 | `TERMINATE_PENDING` | 已提交终止申请 |
+| 已终止 | `TERMINATED` | 组长批准终止 |
+
+### 4.2 状态机
+
+```mermaid
+stateDiagram-v2
+    [*] --> DRAFT: create
+    DRAFT --> IN_PROGRESS: start
+    IN_PROGRESS --> TERMINATE_PENDING: submitTerminate
+    TERMINATE_PENDING --> TERMINATED: approve（OPS_LEADER）
+    TERMINATE_PENDING --> IN_PROGRESS: reject（OPS_LEADER）
+    TERMINATED --> [*]
+```
+
+### 4.3 联动副作用
+
+| 转移 | 任务副作用 |
+|------|-----------|
+| create | 每 (node, assignee) 插入 `oa_task`：`PLAN_DRAFT` + `visible_in_list=0` |
+| start | 计划任务 → `PENDING` + `visible_in_list=1` |
+| approve 终止 | 计划任务 → `TERMINATED` |
+
+---
+
+## 5. 知识库状态（轻量）
 
 仅 `is_public`（公开/私有）+ `status`（草稿/已发布）。
 

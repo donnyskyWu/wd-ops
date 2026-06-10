@@ -45,6 +45,7 @@ public class TaskServiceImpl implements TaskService {
         Long tenantId = requireTenantId();
         LambdaQueryWrapper<TaskDO> wrapper = new LambdaQueryWrapper<TaskDO>()
                 .eq(TaskDO::getTenantId, tenantId)
+                .eq(TaskDO::getVisibleInList, 1)
                 .eq(ipGroupId != null, TaskDO::getIpGroupId, ipGroupId)
                 .eq(StrUtil.isNotBlank(status), TaskDO::getStatus, status)
                 .eq(executorId != null, TaskDO::getAssigneeId, executorId)

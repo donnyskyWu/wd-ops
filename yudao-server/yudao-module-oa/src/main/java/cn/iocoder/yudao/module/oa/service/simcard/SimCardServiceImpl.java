@@ -80,13 +80,14 @@ public class SimCardServiceImpl implements SimCardService {
     public Long create(SimCardCreateReq req) {
         Long tenantId = requireTenantId();
         assertUserInTenant(req.getAssignedUserId(), tenantId);
-        assertPhoneNumberUnique(tenantId, req.getPhoneNumber(), null);
+        String phoneNumber = resolvePhoneNumber(tenantId, req.getPhoneId(), req.getPhoneNumber());
+        assertPhoneNumberUnique(tenantId, phoneNumber, null);
 
         SimCardDO entity = new SimCardDO();
         entity.setTenantId(tenantId);
-        entity.setPhoneId(resolvePhoneId(tenantId, req.getPhoneNumber()));
-        entity.setPhoneNumberEncrypted(aesUtil.encrypt(req.getPhoneNumber()));
-        entity.setPhoneNumberHash(hashPlain(req.getPhoneNumber()));
+        entity.setPhoneId(req.getPhoneId() != null ? req.getPhoneId() : resolvePhoneId(tenantId, phoneNumber));
+        entity.setPhoneNumberEncrypted(aesUtil.encrypt(phoneNumber));
+        entity.setPhoneNumberHash(hashPlain(phoneNumber));
         entity.setIsPrimary(StrUtil.blankToDefault(req.getIsPrimary(), "YES"));
         entity.setOperator(req.getOperator());
         entity.setAssignedUserId(req.getAssignedUserId());
@@ -110,11 +111,12 @@ public class SimCardServiceImpl implements SimCardService {
     @AuditLog(module = "M4-simcard", action = "update")
     public void update(SimCardUpdateReq req) {
         SimCardDO existing = getRequiredInTenant(req.getId());
-        if (StrUtil.isNotBlank(req.getPhoneNumber())) {
-            assertPhoneNumberUnique(existing.getTenantId(), req.getPhoneNumber(), existing.getId());
-            existing.setPhoneNumberEncrypted(aesUtil.encrypt(req.getPhoneNumber()));
-            existing.setPhoneNumberHash(hashPlain(req.getPhoneNumber()));
-            existing.setPhoneId(resolvePhoneId(existing.getTenantId(), req.getPhoneNumber()));
+        if (req.getPhoneId() != null || StrUtil.isNotBlank(req.getPhoneNumber())) {
+            String phoneNumber = resolvePhoneNumber(existing.getTenantId(), req.getPhoneId(), req.getPhoneNumber());
+            assertPhoneNumberUnique(existing.getTenantId(), phoneNumber, existing.getId());
+            existing.setPhoneNumberEncrypted(aesUtil.encrypt(phoneNumber));
+            existing.setPhoneNumberHash(hashPlain(phoneNumber));
+            existing.setPhoneId(req.getPhoneId() != null ? req.getPhoneId() : resolvePhoneId(existing.getTenantId(), phoneNumber));
         }
         if (StrUtil.isNotBlank(req.getIsPrimary())) {
             existing.setIsPrimary(req.getIsPrimary());
@@ -224,6 +226,24 @@ public class SimCardServiceImpl implements SimCardService {
                 .eq(PhoneDO::getPhoneNumberHash, hashPlain(phoneNumber))
                 .last("LIMIT 1"));
         return phone != null ? phone.getId() : null;
+    }
+
+    private String resolvePhoneNumber(Long tenantId, Long phoneId, String phoneNumber) {
+        if (phoneId != null) {
+            PhoneDO phone = phoneMapper.selectById(phoneId);
+            if (phone == null || !tenantId.equals(phone.getTenantId())) {
+                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
+            }
+            try {
+                return aesUtil.decrypt(phone.getPhoneNumberEncrypted());
+            } catch (Exception ex) {
+                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
+            }
+        }
+        if (StrUtil.isBlank(phoneNumber)) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "请选择手机号");
+        }
+        return phoneNumber;
     }
 
     private SimCardDO getRequiredInTenant(Long id) {

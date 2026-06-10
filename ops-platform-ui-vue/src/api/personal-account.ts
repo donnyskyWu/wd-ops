@@ -7,6 +7,7 @@ export interface PersonalWechatVO {
   id: number
   accountName: string
   wechatId: string
+  contactPhone?: string
   phoneId?: number
   phoneNumberMasked?: string
   status: string
@@ -14,6 +15,18 @@ export interface PersonalWechatVO {
   appId?: string
   appSecret?: string
   token?: string
+  createTime?: string
+}
+
+export interface WeworkEmployeeVO {
+  id: number
+  weworkAccountId: number
+  nickname: string
+  weworkUserId: string
+  phone?: string
+  department?: string
+  position?: string
+  status: string
   createTime?: string
 }
 
@@ -49,6 +62,7 @@ export function getPersonalWechat(id: number): Promise<PersonalWechatVO> {
 export function createPersonalWechat(data: {
   accountName: string
   wechatId: string
+  contactPhone?: string
   phoneId?: number
   status?: string
 }): Promise<number> {
@@ -59,6 +73,7 @@ export function updatePersonalWechat(data: {
   id: number
   accountName?: string
   wechatId?: string
+  contactPhone?: string
   phoneId?: number
   status?: string
 }): Promise<boolean> {
@@ -116,4 +131,43 @@ export function updateWework(data: {
 
 export function deleteWework(id: number): Promise<boolean> {
   return request.delete({ url: '/oa/internal/wework/delete', params: { id } })
+}
+
+export function getWeworkEmployeePage(params: {
+  weworkAccountId?: number
+  nickname?: string
+  weworkUserId?: string
+  status?: string
+  pageNo?: number
+  pageSize?: number
+}): Promise<PageResult<WeworkEmployeeVO>> {
+  return request.get({ url: '/oa/internal/wework/employee/list', params })
+}
+
+export function createWeworkEmployee(data: {
+  weworkAccountId: number
+  nickname: string
+  weworkUserId: string
+  phone?: string
+  department?: string
+  position?: string
+  status?: string
+}): Promise<number> {
+  return request.post({ url: '/oa/internal/wework/employee/create', data })
+}
+
+export function updateWeworkEmployee(data: {
+  id: number
+  nickname: string
+  weworkUserId: string
+  phone?: string
+  department?: string
+  position?: string
+  status?: string
+}): Promise<boolean> {
+  return request.put({ url: '/oa/internal/wework/employee/update', data })
+}
+
+export function deleteWeworkEmployee(id: number): Promise<boolean> {
+  return request.delete({ url: '/oa/internal/wework/employee/delete', params: { id } })
 }

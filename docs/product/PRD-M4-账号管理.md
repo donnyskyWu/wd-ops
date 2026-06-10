@@ -3,7 +3,7 @@
 > **业务域**：M4 账号管理
 > **功能模块**：公司 + 实名人 + 手机 + 手机卡 + 平台账号 + 个人账号 + 三方关联
 > **详细设计章节**：5.16、5.17、5.18、5.19、5.20、5.21、5.22
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v1.1 | 2026-06-11
 > **状态**：Draft
 > **🔴 关键模块**（关联属性集中地）
 > **全局规范**：[`docs/engineering/GLOBAL-CONVENTIONS.md`](./../engineering/GLOBAL-CONVENTIONS.md)
@@ -115,7 +115,7 @@
 |------|------|----------|
 | `company_name` | `<Input />` | - |
 | `credit_code` | `<Input />` | 18 位统一社会信用代码 |
-| `industry` | `<Input />` | - |
+| `industry` | `<DictSelect dict-type="dict_industry" />` | 字典（V35） |
 | `address` | `<Input />` | - |
 | `legal_name` | `<Input />` | - |
 | `legal_id_card` | `<Input />`（加密） | - |
@@ -224,21 +224,28 @@
 
 #### 4.3.1 数据项
 
+> **偏差说明**（ADR-011）：手机资产表**不维护** `realname_id`；实名人关联见平台账号 FR-M4-005。
+
 | 字段 | 控件 | 字典/实体 |
 |------|------|----------|
-| `phone_number` | `<Input />` | - |
+| `phone_number` | `<Input />`（新增必填；编辑脱敏只读） | 11 位全局唯一 |
 | `phone_code` | `<Input />` | - |
 | `phone_model` | `<Input />` | - |
-| `keeper` | `<UserSelect />` | `sys_user` |
+| `keeper_id` | `<UserSelect />` | `sys_user`（**强关联**） |
 | `wechat_bound` | `<Input />` | - |
 | `status` | `<DictSelect dict-type="dict_phone_status" />` | 字典 |
 
 #### 4.3.2 验收标准
 
 **AC-M4-003-1**（手机 CRUD）
-- Given 创建手机
+- Given 创建手机，填写手机号 + 选择保管人
 - When 提交
-- Then `phone_number` 全局唯一
+- Then `phone_number` 全局唯一 + `keeper_id` 持久化
+
+**AC-M4-003-3**（保管人选择器）
+- Given 新增手机
+- When 点击保管人
+- Then 弹出 `<UserSelect />`，禁止手输 userId
 
 **AC-M4-003-2**（关联账号时不可删）
 - Given 手机 X 被账号 A 引用
@@ -257,12 +264,16 @@
 
 | 字段 | 控件 | 字典/实体 |
 |------|------|----------|
-| `phone_number` | `<Input />` | 11 位全局唯一 |
+| `phone_id` | `<PhoneSelect />`（**强关联**，优先） | `oa_phone` |
+| `phone_number` | 后端由 `phone_id` 解析；API 直传为兜底 | 11 位全局唯一 |
 | `is_primary` | `<DictSelect dict-type="dict_yes_no" />` | 字典 |
-| `operator` | `<DictSelect />`（移动/联通/电信） | 字典 |
-| `assigned_user_id` | `<UserSelect />` | `sys_user` |
+| `operator` | `<DictSelect dict-type="dict_sim_operator" />` | 字典 |
+| `assigned_user_id` | `<UserSelect />` | `sys_user`（**强关联**） |
 | `iccid` | `<Input />`（加密） | - |
+| `package_name` | `<Input />` | - |
 | `status` | `<DictSelect dict-type="dict_sim_status" />` | 字典 |
+
+**表单辅助**（仅 UI，不入库）：实名人 `<RealNameSelect />` 用于筛选 `<PhoneSelect />` 可选范围（按实名人过滤手机资产）。
 
 #### 4.4.3 业务规则
 
@@ -397,13 +408,14 @@
 |------|------|
 | `account_name` | `<Input />` |
 | `wechat_id` | `<Input />` |
-| `phone_id` | `<PhoneSelect />` |
+| `contact_phone` | `<Input />`（明文，手动填写联系号） |
+| `phone_id` | `<PhoneSelect />`（可选，保留列；表单不强制） |
 | `api_url` | `<Input />`（脱敏） |
 | `app_id` | `<Input />`（脱敏） |
 | `app_secret` | `<Input />`（脱敏） |
 | `token` | `<Input />`（脱敏） |
 
-**企微**：
+**企微应用配置**（`oa_wework_account`）：
 
 | 字段 | 控件 |
 |------|------|
@@ -412,6 +424,18 @@
 | `agent_id` | `<Input />` |
 | `secret` | `<Input />`（脱敏） |
 
+**企微员工账号**（`oa_wework_employee`，S-08b）：
+
+| 字段 | 控件 |
+|------|------|
+| `wework_account_id` | 关联当前企微应用配置（后端校验） |
+| `nickname` | `<Input />` |
+| `wework_user_id` | `<Input />` |
+| `phone` | `<Input />` |
+| `department` | `<Input />` |
+| `position` | `<Input />` |
+| `status` | `<el-select />`（ENABLED/DISABLED） |
+
 #### 4.6.3 业务规则
 
 - 奥创接口信息**只读展示**（脱敏）
@@ -419,9 +443,10 @@
 
 #### 4.6.4 验收标准
 
-**AC-M4-006-1**（个微 CRUD）
+**AC-M4-006-1**（个微 CRUD + contact_phone 持久化）
 **AC-M4-006-2**（奥创接口脱敏）
-**AC-M4-006-3**（企微 CRUD）
+**AC-M4-006-3**（企微应用配置 CRUD）
+**AC-M4-006-4**（企微员工账号 CRUD + 关联应用配置）
 
 ---
 
@@ -502,6 +527,8 @@
 | ADR-M4-002 | 中介人单独表还是与实名人合并？ | 单独表 | 1 对多、敏感分级 | 2026-06-07 |
 | ADR-M4-003 | 是否强制实名人绑定？ | 强制 | 合规要求 | 2026-06-07 |
 | ADR-M4-004 | 已绑定实名人被其他账号选择时如何处理？ | 默认禁止 + "强制替换" | 数据一致性 | 2026-06-07 |
+| ADR-010 | 个微联系号 `contact_phone` | 明文手动输入，与 `phone_id` 并存 | 运营联系号与设备资产解耦 | 2026-06-11 |
+| ADR-011 | 手机表是否绑实名人？ | 否；保管人 UserSelect | 避免与平台账号重复关联 | 2026-06-11 |
 
 ---
 

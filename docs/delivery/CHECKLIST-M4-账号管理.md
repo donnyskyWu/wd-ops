@@ -28,6 +28,9 @@
 ### 3.1 强关联属性选择器（必查）
 
 - [ ] **FR-M4-005** 中 `companyId` 使用 `<CompanySelect />`
+- [ ] **FR-M4-003** 保管人使用 `<UserSelect />`（ADR-011，无实名人）
+- [ ] **FR-M4-004** 归属人使用 `<UserSelect />`；手机号使用 `<PhoneSelect />`（phoneId）
+- [x] **FR-M4-006** 个微 `contactPhone` 手动输入（ADR-010）；企微员工 S-08b CRUD（`M4PersonalAccountS08IT` 覆盖）
 - [ ] **FR-M4-005** 中 `realnameId` 使用 `<RealNameSelect />`
 - [ ] **FR-M4-005** 中 `phoneId` 使用 `<PhoneSelect />`
 - [ ] **FR-M4-005** 中 `simCardId` 使用 `<SimCardSelect />`

@@ -1,6 +1,6 @@
 # UX-M2-内容生产
 
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v1.1 | 2026-06-11
 > **关联 PRD**：[`PRD-M2-内容生产.md`](./PRD-M2-内容生产.md)
 > **全局规范**：[`GLOBAL-CONVENTIONS.md`](../engineering/GLOBAL-CONVENTIONS.md)
 
@@ -25,6 +25,7 @@
 | P-M2-008 | 内容审核 | `/prod/content/review` | FR-M2-003 |
 | P-M2-009 | 知识库列表 | `/prod/knowledge` | FR-M2-004 |
 | P-M2-010 | 知识详情 | `/prod/knowledge/:id` | FR-M2-004 |
+| P-M2-011 | 计划管理 | `/plan` | FR-M2-009 |
 
 ---
 
@@ -168,7 +169,76 @@
 
 ---
 
-## 8. 跨页通用约定
+## 8. P-M2-011 计划管理
+
+**路由**：`/plan` · **实现**：`views/production/plan/index.vue`
+
+### 8.1 列表页
+
+| 控件 | 类型 | 字典/实体 |
+|------|------|----------|
+| F-PLAN-NAME | `<Input />` | - |
+| F-STATUS | `<DictSelect dict-type="dict_plan_status" />` | 字典 |
+| BTN-ADD | 按钮 | "新增计划" |
+| TBL-PLAN | 表格 | `oa_content_plan` |
+| COL-PROGRESS | `<Progress />` | 按任务完成率 |
+| BTN-START | 链接 | 草稿 → "启动" |
+| BTN-TERMINATE | 链接 | 进行中 → "申请终止" |
+| BTN-APPROVE-TERM | 链接 | 终止审批中 → "批准终止"（组长） |
+| BTN-REJECT-TERM | 链接 | 终止审批中 → "驳回终止"（组长） |
+| BTN-DELETE | 链接 | 草稿 → "删除" |
+
+### 8.2 新增计划弹窗（960px）
+
+```
++----------------------------------------------------------+
+| 基本信息                                                  |
+| 计划名称 [__]     日期范围 [daterange]                    |
+| SOP 模板 [select]  IP 组 [IpGroupTreeSelect]             |
+| 关联赛事 [select multiple]（Mock 数据源）               |
+| 计划描述 [textarea]                                       |
++----------------------------------------------------------+
+| SOP 步骤分配（选模板后自动加载节点）                       |
+| # | 步骤名称 | 执行岗位 | 执行人 | 开始 | 结束            |
+| 1 | ...      | ...      | UserSelect×N | datetime | ...  |
++----------------------------------------------------------+
+| [取消]  [保存草稿]                                        |
++----------------------------------------------------------+
+```
+
+| 控件 | 类型 | 字典/实体 | 必填 |
+|------|------|----------|------|
+| F-PLAN-NAME | `<Input />` max 100 | - | ✅ |
+| F-DATE-RANGE | `<DatePicker type="daterange" />` | - | ✅ |
+| F-TEMPLATE | `<Select />`（启用模板） | `oa_sop_template` | ✅ |
+| F-IP-GROUP | `<IpGroupTreeSelect />` | `oa_ip_group` | ✅ |
+| F-COMPETITIONS | `<Select multiple />` | Mock `competition.ts` | ✅（≥1） |
+| F-DESCRIPTION | `<TextArea />` max 500 | - | ❌ |
+| F-STEP-ASSIGNEE | `<UserSelect multiple />` | `sys_user` | ✅（每节点） |
+| F-STEP-START/END | `<DateTimePicker />` | 默认计划日期 | ❌ |
+
+**联动**：
+- 选 SOP 模板 → 拉取节点列表填充步骤表
+- 改日期范围 → 未填写的步骤起止时间默认同步
+
+### 8.3 详情抽屉
+
+只读展示：计划名称、模板、IP 组、日期、状态、赛事列表、描述。
+
+### 8.4 状态与提示
+
+| 状态 | 表现 |
+|------|------|
+| 保存成功 | Toast "计划已保存为草稿" |
+| 启动确认 | 二次确认："启动后关联任务将出现在任务列表" |
+| 申请终止 | `prompt` 输入终止原因 |
+| 批准终止 | 二次确认（组长） |
+| 驳回终止 | 二次确认（组长）；计划回到进行中 |
+| 步骤未分配执行人 | 警告 "请为每个 SOP 步骤分配执行人" |
+
+---
+
+## 9. 跨页通用约定
 
 - **关联属性强制选择**：所有 `*_id` 字段必须用选择器
 - **字典字段**：状态/类型/平台一律 `<DictSelect />`

@@ -8,6 +8,8 @@
 
 ## 1. 账号成本 API
 
+> **前端聚合**（2026-06-11）：`AccountCostManage` 并行调用账号列表 API + 本节 cost/list，按 `accountId` 汇总 `PURCHASE` 与过程成本；平台筛选在账号列表侧完成。
+
 ### 1.1 GET `/admin-api/oa/finance/cost/list`
 
 ### 1.2 POST `/admin-api/oa/finance/cost/create`

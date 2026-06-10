@@ -38,13 +38,14 @@ graph LR
 
 **包含**：
 - 后端：5 个 API（list/create/update/activate/items）
-- 前端：列表 + 弹窗
-- 业务：每岗位仅 1 个 ACTIVE 模板
+- 前端：列表 + **新增弹窗**（`handleAdd` 不跳路由）；编辑走 `/perf/template/:id`
+- 业务：每岗位仅 1 个 ACTIVE 模板；指标 `metricId` 来自 `getMetricOptions` 真实 ID
 
 **全局规范**：
 - `position` 用 `<DictSelect dict-type="dict_position" />`
 - `isActive` 用 `<DictSelect dict-type="dict_yes_no" />`
-- `metricId` 用 `<MetricSelect />`
+- `metricId` 用指标下拉（`PerfTemplate` / `PerfTemplateEdit` 校验非空）
+- 绩效结果筛选 `grade` 用 `dict_perf_grade`（V34 迁移）
 
 **验收**：AC-M3-001-1, AC-M3-001-5
 

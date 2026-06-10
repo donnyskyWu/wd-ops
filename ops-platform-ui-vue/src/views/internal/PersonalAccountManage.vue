@@ -31,32 +31,66 @@
       <span class="total-info">共 {{ pagination.total }} 条</span>
     </div>
 
-    <!-- 企微列表 -->
-    <el-table v-if="activePlatform === 'WEWORK'" :data="weworkList" v-loading="loading" border stripe>
-      <el-table-column prop="accountName" label="账号名称" min-width="160" show-overflow-tooltip />
-      <el-table-column prop="corpId" label="Corp ID" width="160" />
-      <el-table-column prop="agentId" label="Agent ID" width="140" />
-      <el-table-column prop="status" label="状态" width="80" align="center">
-        <template #default="{ row }">
-          <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" size="small">
-            {{ row.status === 'ENABLED' ? '正常' : '停用' }}
-          </el-tag>
+    <!-- 企微：应用配置 + 员工账号 -->
+    <template v-if="activePlatform === 'WEWORK'">
+      <el-card shadow="never" class="wework-config-card">
+        <template #header>
+          <div class="card-header">
+            <span>企业微信应用配置</span>
+            <el-button type="primary" link @click="handleEditWeworkConfig">
+              {{ weworkConfig ? '编辑配置' : '新增配置' }}
+            </el-button>
+          </div>
         </template>
-      </el-table-column>
-      <el-table-column prop="createTime" label="创建时间" width="170" />
-      <el-table-column label="操作" width="160" fixed="right" align="center">
-        <template #default="{ row }">
-          <el-button link type="primary" @click="handleEditWework(row)">编辑</el-button>
-          <el-button link type="danger" @click="handleDeleteWework(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+        <el-descriptions v-if="weworkConfig" :column="2" border size="small">
+          <el-descriptions-item label="账号名称">{{ weworkConfig.accountName }}</el-descriptions-item>
+          <el-descriptions-item label="Corp ID">{{ weworkConfig.corpId }}</el-descriptions-item>
+          <el-descriptions-item label="Agent ID">{{ weworkConfig.agentId }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="weworkConfig.status === 'ENABLED' ? 'success' : 'info'" size="small">
+              {{ weworkConfig.status === 'ENABLED' ? '正常' : '停用' }}
+            </el-tag>
+          </el-descriptions-item>
+        </el-descriptions>
+        <el-empty v-else description="尚未配置企业微信应用，请点击右上角新增" :image-size="64" />
+      </el-card>
+
+      <div class="section-title">
+        <span>员工企微账号</span>
+        <el-button type="primary" size="small" :disabled="!weworkConfig" @click="handleAddEmployee">
+          <el-icon><Plus /></el-icon>
+          新增员工账号
+        </el-button>
+      </div>
+      <el-table :data="employeeList" v-loading="employeeLoading" border stripe>
+        <el-table-column prop="nickname" label="昵称" min-width="120" />
+        <el-table-column prop="weworkUserId" label="企微 ID" width="160" />
+        <el-table-column prop="phone" label="手机号" width="130" />
+        <el-table-column prop="department" label="部门" width="120" />
+        <el-table-column prop="position" label="岗位" width="120" />
+        <el-table-column prop="status" label="状态" width="80" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" size="small">
+              {{ row.status === 'ENABLED' ? '正常' : '停用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="160" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="handleEditEmployee(row)">编辑</el-button>
+            <el-button link type="danger" @click="handleDeleteEmployee(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-if="!employeeLoading && employeeList.length === 0" description="暂无员工企微账号数据" :image-size="80" />
+    </template>
 
     <!-- 个微列表 -->
-    <el-table v-else :data="personalList" v-loading="loading" border stripe>
+    <template v-else>
+      <el-table :data="personalList" v-loading="loading" border stripe>
       <el-table-column prop="accountName" label="微信名" min-width="140" show-overflow-tooltip />
       <el-table-column prop="wechatId" label="微信号" width="160" />
-      <el-table-column prop="phoneNumberMasked" label="关联手机" width="130" />
+      <el-table-column prop="contactPhone" label="联系电话" width="130" />
       <el-table-column prop="status" label="状态" width="80" align="center">
         <template #default="{ row }">
           <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" size="small">
@@ -73,8 +107,10 @@
         </template>
       </el-table-column>
     </el-table>
+    </template>
 
     <Pagination
+      v-if="activePlatform === 'PERSONAL_WX'"
       :current-page="pagination.pageNo"
       :page-size="pagination.pageSize"
       :total="pagination.total"
@@ -112,6 +148,57 @@
       </template>
     </el-dialog>
 
+    <!-- 企微员工表单 -->
+    <el-dialog v-model="employeeDialogVisible" :title="employeeDialogTitle" width="640px" destroy-on-close>
+      <el-form :model="employeeForm" ref="employeeFormRef" :rules="employeeRules" label-width="120px" class="employee-form">
+        <el-divider content-position="left">基本信息</el-divider>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="昵称" prop="nickname">
+              <el-input v-model="employeeForm.nickname" maxlength="100" placeholder="请输入员工昵称" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="企微 ID" prop="weworkUserId">
+              <el-input v-model="employeeForm.weworkUserId" maxlength="64" placeholder="企业微信 UserID" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="手机号" prop="phone">
+              <el-input v-model="employeeForm.phone" maxlength="11" placeholder="11 位手机号（可选）" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="状态">
+              <el-select v-model="employeeForm.status" style="width: 100%">
+                <el-option label="正常" value="ENABLED" />
+                <el-option label="停用" value="DISABLED" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-divider content-position="left">组织信息</el-divider>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="部门">
+              <el-input v-model="employeeForm.department" maxlength="100" placeholder="所属部门" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="岗位">
+              <el-input v-model="employeeForm.position" maxlength="100" placeholder="岗位名称" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
+        <el-button @click="employeeDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitEmployee">保存</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 个微表单 -->
     <el-dialog v-model="personalDialogVisible" :title="personalDialogTitle" width="560px">
       <el-form :model="personalForm" ref="personalFormRef" :rules="personalRules" label-width="100px">
@@ -121,8 +208,12 @@
         <el-form-item label="微信号" prop="wechatId">
           <el-input v-model="personalForm.wechatId" maxlength="64" :disabled="!!personalForm.id" />
         </el-form-item>
-        <el-form-item label="关联手机">
-          <PhoneSelect v-model="personalForm.phoneId" />
+        <el-form-item label="联系电话" prop="contactPhone">
+          <el-input
+            v-model="personalForm.contactPhone"
+            placeholder="个微联系手机号（手动填写，非公司手机资产）"
+            maxlength="11"
+          />
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="personalForm.status" style="width: 100%">
@@ -142,7 +233,7 @@
       <el-descriptions v-if="detailData" :column="1" border>
         <el-descriptions-item label="微信名">{{ detailData.accountName }}</el-descriptions-item>
         <el-descriptions-item label="微信号">{{ detailData.wechatId }}</el-descriptions-item>
-        <el-descriptions-item label="关联手机">{{ detailData.phoneNumberMasked || '--' }}</el-descriptions-item>
+        <el-descriptions-item label="联系电话">{{ detailData.contactPhone || detailData.phoneNumberMasked || '--' }}</el-descriptions-item>
         <el-descriptions-item label="状态">{{ detailData.status === 'ENABLED' ? '正常' : '停用' }}</el-descriptions-item>
       </el-descriptions>
       <el-divider content-position="left">奥创接口（只读脱敏）</el-divider>
@@ -157,12 +248,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import Pagination from '@/components/Pagination.vue'
-import PhoneSelect from '@/components/selectors/PhoneSelect.vue'
 import {
   getPersonalWechatPage,
   getPersonalWechat,
@@ -173,16 +263,24 @@ import {
   createWework,
   updateWework,
   deleteWework,
+  getWeworkEmployeePage,
+  createWeworkEmployee,
+  updateWeworkEmployee,
+  deleteWeworkEmployee,
   type PersonalWechatVO,
   type WeworkVO,
+  type WeworkEmployeeVO,
 } from '@/api/personal-account'
 
 type PlatformType = 'WEWORK' | 'PERSONAL_WX'
 
 const activePlatform = ref<PlatformType>('WEWORK')
 const loading = ref(false)
+const employeeLoading = ref(false)
 const personalList = ref<PersonalWechatVO[]>([])
 const weworkList = ref<WeworkVO[]>([])
+const employeeList = ref<WeworkEmployeeVO[]>([])
+const weworkConfig = computed(() => weworkList.value[0] ?? null)
 
 const searchForm = reactive({
   accountName: '',
@@ -224,16 +322,65 @@ const personalForm = reactive({
   id: undefined as number | undefined,
   accountName: '',
   wechatId: '',
-  phoneId: undefined as number | undefined,
+  contactPhone: '',
   status: 'ENABLED',
 })
 const personalRules = {
   accountName: [{ required: true, message: '请输入微信名', trigger: 'blur' }],
   wechatId: [{ required: true, message: '请输入微信号', trigger: 'blur' }],
+  contactPhone: [{
+    validator: (_: unknown, val: string, cb: (e?: Error) => void) => {
+      if (val && !/^1[3-9]\d{9}$/.test(val)) cb(new Error('联系电话格式不正确'))
+      else cb()
+    },
+    trigger: 'blur',
+  }],
+}
+
+const employeeDialogVisible = ref(false)
+const employeeDialogTitle = ref('新增员工账号')
+const employeeFormRef = ref<any>()
+const employeeForm = reactive({
+  id: undefined as number | undefined,
+  nickname: '',
+  weworkUserId: '',
+  phone: '',
+  department: '',
+  position: '',
+  status: 'ENABLED',
+})
+const employeeRules = {
+  nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
+  weworkUserId: [{ required: true, message: '请输入企微 ID', trigger: 'blur' }],
+  phone: [{
+    validator: (_: unknown, val: string, cb: (e?: Error) => void) => {
+      if (val && !/^1[3-9]\d{9}$/.test(val)) cb(new Error('手机号格式不正确'))
+      else cb()
+    },
+    trigger: 'blur',
+  }],
 }
 
 const detailVisible = ref(false)
 const detailData = ref<PersonalWechatVO | null>(null)
+
+const loadEmployees = async () => {
+  if (!weworkConfig.value) {
+    employeeList.value = []
+    return
+  }
+  employeeLoading.value = true
+  try {
+    const res = await getWeworkEmployeePage({
+      weworkAccountId: weworkConfig.value.id,
+      pageNo: 1,
+      pageSize: 100,
+    })
+    employeeList.value = res.list
+  } finally {
+    employeeLoading.value = false
+  }
+}
 
 const loadData = async () => {
   loading.value = true
@@ -248,6 +395,7 @@ const loadData = async () => {
       })
       weworkList.value = res.list
       pagination.total = res.total
+      await loadEmployees()
     } else {
       const res = await getPersonalWechatPage({
         accountName: searchForm.accountName || undefined,
@@ -278,13 +426,21 @@ const handleReset = () => handleTabChange()
 
 const handleAdd = () => {
   if (activePlatform.value === 'WEWORK') {
-    weworkDialogTitle.value = '新增企微'
-    Object.assign(weworkForm, { id: undefined, accountName: '', corpId: '', agentId: '', secret: '', status: 'ENABLED' })
-    weworkDialogVisible.value = true
+    handleEditWeworkConfig()
   } else {
     personalDialogTitle.value = '新增个微'
-    Object.assign(personalForm, { id: undefined, accountName: '', wechatId: '', phoneId: undefined, status: 'ENABLED' })
+    Object.assign(personalForm, { id: undefined, accountName: '', wechatId: '', contactPhone: '', status: 'ENABLED' })
     personalDialogVisible.value = true
+  }
+}
+
+const handleEditWeworkConfig = () => {
+  if (weworkConfig.value) {
+    handleEditWework(weworkConfig.value)
+  } else {
+    weworkDialogTitle.value = '新增企微应用配置'
+    Object.assign(weworkForm, { id: undefined, accountName: '', corpId: '', agentId: '', secret: '', status: 'ENABLED' })
+    weworkDialogVisible.value = true
   }
 }
 
@@ -296,8 +452,82 @@ const handleEditWework = (row: WeworkVO) => {
 
 const handleEditPersonal = (row: PersonalWechatVO) => {
   personalDialogTitle.value = '编辑个微'
-  Object.assign(personalForm, { id: row.id, accountName: row.accountName, wechatId: row.wechatId, phoneId: row.phoneId, status: row.status })
+  Object.assign(personalForm, {
+    id: row.id,
+    accountName: row.accountName,
+    wechatId: row.wechatId,
+    contactPhone: row.contactPhone || '',
+    status: row.status,
+  })
   personalDialogVisible.value = true
+}
+
+const handleAddEmployee = () => {
+  if (!weworkConfig.value) {
+    ElMessage.warning('请先配置企业微信应用')
+    return
+  }
+  employeeDialogTitle.value = '新增员工账号'
+  Object.assign(employeeForm, {
+    id: undefined,
+    nickname: '',
+    weworkUserId: '',
+    phone: '',
+    department: '',
+    position: '',
+    status: 'ENABLED',
+  })
+  employeeDialogVisible.value = true
+}
+
+const handleEditEmployee = (row: WeworkEmployeeVO) => {
+  employeeDialogTitle.value = '编辑员工账号'
+  Object.assign(employeeForm, {
+    id: row.id,
+    nickname: row.nickname,
+    weworkUserId: row.weworkUserId,
+    phone: row.phone || '',
+    department: row.department || '',
+    position: row.position || '',
+    status: row.status,
+  })
+  employeeDialogVisible.value = true
+}
+
+const handleDeleteEmployee = async (row: WeworkEmployeeVO) => {
+  await ElMessageBox.confirm(`确定删除员工「${row.nickname}」？`, '提示', { type: 'warning' })
+  await deleteWeworkEmployee(row.id)
+  ElMessage.success('删除成功')
+  loadEmployees()
+}
+
+const submitEmployee = async () => {
+  if (!employeeFormRef.value || !weworkConfig.value) return
+  await employeeFormRef.value.validate()
+  if (employeeForm.id) {
+    await updateWeworkEmployee({
+      id: employeeForm.id,
+      nickname: employeeForm.nickname,
+      weworkUserId: employeeForm.weworkUserId,
+      phone: employeeForm.phone || undefined,
+      department: employeeForm.department || undefined,
+      position: employeeForm.position || undefined,
+      status: employeeForm.status,
+    })
+  } else {
+    await createWeworkEmployee({
+      weworkAccountId: weworkConfig.value.id,
+      nickname: employeeForm.nickname,
+      weworkUserId: employeeForm.weworkUserId,
+      phone: employeeForm.phone || undefined,
+      department: employeeForm.department || undefined,
+      position: employeeForm.position || undefined,
+      status: employeeForm.status,
+    })
+  }
+  ElMessage.success('保存成功')
+  employeeDialogVisible.value = false
+  loadEmployees()
 }
 
 const handleViewPersonal = async (row: PersonalWechatVO) => {
@@ -333,12 +563,18 @@ const submitPersonal = async () => {
   if (!personalFormRef.value) return
   await personalFormRef.value.validate()
   if (personalForm.id) {
-    await updatePersonalWechat({ ...personalForm, id: personalForm.id })
+    await updatePersonalWechat({
+      id: personalForm.id,
+      accountName: personalForm.accountName,
+      wechatId: personalForm.wechatId,
+      contactPhone: personalForm.contactPhone.trim(),
+      status: personalForm.status,
+    })
   } else {
     await createPersonalWechat({
       accountName: personalForm.accountName,
       wechatId: personalForm.wechatId,
-      phoneId: personalForm.phoneId,
+      contactPhone: personalForm.contactPhone.trim() || undefined,
       status: personalForm.status,
     })
   }
@@ -367,6 +603,15 @@ onMounted(() => loadData())
 <style scoped lang="scss">
 .personal-account-page {
   .platform-tabs { margin-bottom: 16px; }
+  .wework-config-card { margin-bottom: 20px; }
+  .card-header { display: flex; justify-content: space-between; align-items: center; }
+  .section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
   .action-bar {
     display: flex;
     align-items: center;
@@ -374,5 +619,8 @@ onMounted(() => loadData())
     margin-bottom: 16px;
   }
   .total-info { color: #909399; font-size: 14px; }
+  .employee-form {
+    :deep(.el-divider__text) { font-weight: 600; color: #303133; }
+  }
 }
 </style>

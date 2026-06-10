@@ -224,7 +224,7 @@
 |------|------|------|------|
 | userId | Long | ❌ | - |
 | periodType | String | ❌ | `dict_perf_period` |
-| grade | String | ❌ | 固定值 S/A/B/C/D |
+| grade | String | ❌ | `dict_perf_grade`（V34：S/A/B/C/D） |
 | startDate | Date | ❌ | - |
 
 **权限**：

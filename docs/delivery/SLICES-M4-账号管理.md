@@ -18,7 +18,8 @@
 | S-05 | 手机卡管理 + 跨平台聚合 | FR-M4-004 | S-04 | 4.0 | P0 |
 | S-06 | **平台账号 CRUD + 强关联** | FR-M4-005 (1/2) | S-01/02/04/05 | 6.0 | P0 |
 | S-07 | **强关联选择器组件库** | FR-M4-005 (1/2) | S-06 | 2.0 | P0 |
-| S-08 | 个人账号（个微/企微） | FR-M4-006 | S-04 | 3.0 | P0 |
+| S-08 | 个人账号（个微/企微应用配置） | FR-M4-006 | S-04 | 3.0 | P0 |
+| S-08b | 企微员工用户账号 | FR-M4-006 | S-08 | 1.5 | P0 |
 | S-09 | 三方关联 | FR-M4-007 | S-08 | 1.5 | P1 |
 
 ---
@@ -35,7 +36,8 @@ graph LR
     S05 --> S06
     S07[S-07 选择器] --> S06
     S04 --> S08[S-08 个人账号]
-    S08 --> S09[S-09 三方关联]
+    S08 --> S08b[S-08b 企微员工]
+    S08b --> S09[S-09 三方关联]
 ```
 
 ---
@@ -86,10 +88,10 @@ graph LR
 
 **包含**：
 - 后端：4 个 API（list/create/update/delete）
-- 前端：列表
-- 业务：phone_number 唯一
+- 前端：列表 + 弹窗；保管人 `<UserSelect />`（ADR-011）
+- 业务：phone_number 唯一；**无**实名人字段
 
-**验收**：AC-M4-003-1, AC-M4-003-2
+**验收**：AC-M4-003-1, AC-M4-003-2, AC-M4-003-3
 
 ---
 
@@ -101,8 +103,10 @@ graph LR
 - 业务：跨平台账号聚合查询
 
 **全局规范**：
+- `phoneId` 用 `<PhoneSelect />`（后端 `resolvePhoneNumber` 支持 phoneId 优先）
 - `operator` / `isPrimary` / `status` 用 `<DictSelect />`
-- `assignedUserId` 用 `<UserSelect />`
+- `assignedUserId` 用 `<UserSelect />`（归属人）
+- UI 实名人选择器仅作 PhoneSelect 筛选，不入库
 
 **验收**：AC-M4-004-1, AC-M4-004-2, AC-M4-004-3, AC-M4-004-4
 
@@ -146,14 +150,27 @@ graph LR
 
 ---
 
-### S-08 个人账号（个微/企微）
+### S-08 个人账号（个微/企微应用配置）
 
 **包含**：
-- 后端：4 个 API
-- 前端：列表 + 详情（奥创只读区域）
-- 业务：奥创凭证脱敏、企微凭证加密
+- 后端：个微 CRUD + 奥创 api-config；企微应用级 CRUD（`oa_wework_account`）
+- 前端：个微列表 + 详情（奥创只读）；企微 tab 顶部应用配置卡片
+- 业务：奥创凭证脱敏、企微 Secret AES-256；个微 `contact_phone` 明文手动输入（ADR-010）
 
 **验收**：AC-M4-006-1, AC-M4-006-2, AC-M4-006-3
+
+---
+
+### S-08b 企微员工用户账号
+
+**包含**：
+- 后端：4 个 API（list/create/update/delete）· 表 `oa_wework_employee`
+- 前端：企微 tab 底部员工账号表格 + CRUD 弹窗
+- 业务：关联 `oa_wework_account`（强关联校验 1500/1501/1504）；`wework_user_id` 同应用下唯一
+
+**字段**：`nickname`、`weworkUserId`、`phone`、`department`、`position`、`status`
+
+**验收**：AC-M4-006-4（员工 CRUD + 租户隔离）
 
 ---
 

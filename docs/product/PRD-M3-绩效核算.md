@@ -106,13 +106,14 @@
 #### 4.1.2 主流程
 
 1. 管理员进入"考核模板管理"
-2. 新建模板：选择岗位（`position`）、填写模板名
+2. **新建模板**：列表页点击「新增模板」→ **弹窗**内完成岗位/名称/指标配置（不跳转独立路由）；编辑已有模板仍走 `/perf/template/:id`
 3. 添加考核指标：
    - 关联指标库（`<MetricSelect />` → `oa_metric_definition`）
    - 设置权重（%）
    - 配置算分方式（`<DictSelect dict-type="dict_perf_calc_method" />`）
    - 配置 `score_standard`（区间规则）
 4. 启用模板（每岗位仅一个生效模板）
+5. 指标行 `metricId` 必须从 `<MetricSelect />` 选择真实指标 ID（`PerfTemplateEdit` 校验非空）
 
 #### 4.1.3 业务规则
 
@@ -242,7 +243,7 @@
 #### 4.3.2 主流程
 
 1. 进入"绩效结果"列表
-2. 筛选（`<UserSelect />`、`<DictSelect dict-type="dict_perf_period" />`、绩效等级）
+2. 筛选（`<UserSelect />`、`<DictSelect dict-type="dict_perf_period" />`、`<DictSelect dict-type="dict_perf_grade" />`）
 3. 查看详情（指标明细）
 4. 个人趋势（折线图）
 

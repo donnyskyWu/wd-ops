@@ -105,13 +105,19 @@
 
 ## 5. P-M4-005 手机管理
 
+> **ADR-011**：无实名人字段/列；保管人 `<UserSelect />`。
+
 | 控件 | 类型 | 字典/实体 |
 |------|------|----------|
-| F-PHONE-NUMBER | `<Input />` | - |
+| F-PHONE-NUMBER | `<Input />`（新增）；编辑只读脱敏 | - |
+| F-CODE | `<Input />` | 手机编码 |
 | F-MODEL | `<Input />` | - |
+| F-KEEPER | `<UserSelect />` | `sys_user` |
+| F-WECHAT | `<Input />` | 绑定微信 |
 | F-STATUS | `<DictSelect dict-type="dict_phone_status" />` | 字典 |
 | TBL-PHONE | 表格 | `oa_account_phone` |
 | COL-PHONE-NUMBER | 表格列 | 脱敏显示 |
+| COL-KEEPER | 表格列 | 保管人姓名 |
 
 ---
 
@@ -119,13 +125,17 @@
 
 | 控件 | 类型 | 字典/实体 |
 |------|------|----------|
-| F-PHONE-NUMBER | `<Input />` | - |
-| F-OPERATOR | `<Select />` | 移动/联通/电信 |
+| F-REALNAME-FILTER | `<RealNameSelect />` | 仅筛选 `PhoneSelect` 范围（不入库） |
+| F-PHONE | `<PhoneSelect />` | `oa_phone`（**强关联**） |
+| F-ICCID | `<Input />` | ICCID |
+| F-OPERATOR | `<DictSelect dict-type="dict_sim_operator" />` | 字典 |
 | F-IS-PRIMARY | `<DictSelect dict-type="dict_yes_no" />` | 字典 |
+| F-PACKAGE | `<Input />` | 套餐名称 |
+| F-ASSIGNED | `<UserSelect />` | 归属人 `sys_user` |
 | F-STATUS | `<DictSelect dict-type="dict_sim_status" />` | 字典 |
 | TBL-SIM | 表格 | `oa_sim_card` |
 | COL-LINKED-COUNT | 表格列 | 关联账号数（可点击） |
-| BTN-VIEW-LINKED | 链接 | "查看关联"（v9.1 新增） |
+| BTN-VIEW-LINKED | 链接 | "跨平台查询" |
 
 ### 6.1 跨平台账号详情（侧滑）
 
@@ -209,28 +219,42 @@
 
 ## 8. P-M4-010 个人账号管理
 
-### 8.1 个微列表
+Tab：**个微** | **企微**
+
+### 8.1 个微列表 + 弹窗
 
 | 控件 | 类型 | 字典/实体 |
 |------|------|----------|
-| F-NAME | `<Input />` | - |
-| F-WECHAT-ID | `<Input />` | - |
+| F-NAME | `<Input />` | 账号名称 |
+| F-WECHAT-ID | `<Input />` | 微信号 |
+| F-CONTACT-PHONE | `<Input />` | 联系电话（明文，ADR-010） |
+| F-STATUS | `<DictSelect />` | 启用/停用 |
 | TBL-WECHAT | 表格 | `oa_personal_wechat_account` |
 
 ### 8.2 个微详情（奥创接口只读区域）
 
 | 区域 | 内容 |
 |------|------|
-| 基本信息 | 微信名、微信号、关联手机 |
+| 基本信息 | 微信名、微信号、联系电话 |
 | 奥创接口 | api_url / app_id / app_secret / token（全部脱敏 `****`） |
 
-### 8.3 企微列表
+### 8.3 企微 Tab
+
+**上部：应用配置**（`oa_wework_account`）
 
 | 控件 | 类型 |
 |------|------|
 | F-NAME | `<Input />` |
 | F-CORP-ID | `<Input />` |
-| TBL-WEWORK | 表格 |
+| F-AGENT-ID | `<Input />` |
+| F-SECRET | `<Input />`（脱敏） |
+
+**下部：员工账号**（`oa_wework_employee`，S-08b）
+
+| 控件 | 类型 |
+|------|------|
+| TBL-EMPLOYEE | 表格（昵称、企微 ID、手机、部门、岗位、状态） |
+| BTN-ADD-EMP | 新增员工弹窗 CRUD |
 
 ---
 

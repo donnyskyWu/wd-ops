@@ -23,6 +23,25 @@
       <el-form-item label="内容类型">
         <DictSelect v-model="searchForm.contentType" dict-type="dict_content_type" placeholder="全部" clearable />
       </el-form-item>
+      <el-form-item label="日期范围">
+        <el-date-picker
+          v-model="searchForm.dateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          value-format="YYYY-MM-DD"
+          clearable
+          @change="searchForm.quickRange = searchForm.dateRange?.length === 2 ? 'custom' : 'all'"
+        />
+      </el-form-item>
+      <el-form-item label="快捷">
+        <el-radio-group v-model="searchForm.quickRange" @change="handleQuickRange">
+          <el-radio-button label="all">全部</el-radio-button>
+          <el-radio-button label="7d">近 7 日</el-radio-button>
+          <el-radio-button label="30d">近 30 日</el-radio-button>
+        </el-radio-group>
+      </el-form-item>
       <el-form-item label="关键词">
         <el-input v-model="searchForm.keyword" placeholder="作品标题" clearable maxlength="50" />
       </el-form-item>
@@ -95,16 +114,32 @@
         </el-descriptions-item>
       </el-descriptions>
       <el-divider content-position="left">互动趋势</el-divider>
+      <div class="detail-trend-toolbar">
+        <el-date-picker
+          v-model="detailDateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          value-format="YYYY-MM-DD"
+          @change="handleDetailDateChange"
+        />
+        <el-radio-group v-model="detailQuickRange" @change="handleDetailQuickRange">
+          <el-radio-button label="7d">近 7 日</el-radio-button>
+          <el-radio-button label="30d">近 30 日</el-radio-button>
+        </el-radio-group>
+      </div>
       <div ref="trendChartRef" style="height: 320px;"></div>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
+import dayjs from 'dayjs'
 import { getContentAnalysisList, getContentStats, getContentTrend } from '@/api/works'
 import type { ContentAnalysisQuery, ContentStats } from '@/types/works'
 import TableSearch from '@/components/TableSearch.vue'
@@ -115,6 +150,12 @@ import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { exportToExcel } from '@/utils'
 import { normalizePlatform } from '@/utils/enum-alias'
 
+function getDefaultWeekRange(): string[] {
+  const end = dayjs().format('YYYY-MM-DD')
+  const start = dayjs().subtract(6, 'day').format('YYYY-MM-DD')
+  return [start, end]
+}
+
 // ==================== 响应式数据 ====================
 
 // 搜索表单
@@ -123,6 +164,8 @@ const searchForm = reactive({
   platformType: '',
   contentType: '',
   keyword: '',
+  dateRange: [] as string[],
+  quickRange: 'all' as 'all' | '7d' | '30d' | 'custom',
 })
 
 // 统计数据（S-R8 B1: 5 KPI 卡走 stats 端点全量聚合）
@@ -167,19 +210,67 @@ const pagination = reactive({
 const detailDialogVisible = ref(false)
 const currentContent = ref<any>({})
 const trendChartRef = ref<HTMLElement>()
+const detailDateRange = ref<string[]>(getDefaultWeekRange())
+const detailQuickRange = ref<'7d' | '30d' | 'custom'>('7d')
 
 // ==================== 方法 ====================
+
+const buildDateParams = () => {
+  if (searchForm.dateRange?.length !== 2) {
+    return { startDate: undefined, endDate: undefined }
+  }
+  const [startDate, endDate] = searchForm.dateRange
+  return { startDate, endDate }
+}
+
+const handleQuickRange = (val: string) => {
+  if (val === 'all') {
+    searchForm.dateRange = []
+  } else if (val === '7d') {
+    searchForm.dateRange = getDefaultWeekRange()
+  } else if (val === '30d') {
+    searchForm.dateRange = [
+      dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
+      dayjs().format('YYYY-MM-DD'),
+    ]
+  }
+  handleSearch()
+}
+
+const handleDetailQuickRange = (val: string) => {
+  if (val === '7d') {
+    detailDateRange.value = getDefaultWeekRange()
+  } else if (val === '30d') {
+    detailDateRange.value = [
+      dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
+      dayjs().format('YYYY-MM-DD'),
+    ]
+  }
+  if (currentContent.value?.id) {
+    renderTrendChart(currentContent.value.id)
+  }
+}
+
+const handleDetailDateChange = () => {
+  detailQuickRange.value = 'custom'
+  if (currentContent.value?.id) {
+    renderTrendChart(currentContent.value.id)
+  }
+}
 
 // 加载数据
 const loadData = async () => {
   loading.value = true
   try {
+    const { startDate, endDate } = buildDateParams()
     const params: ContentAnalysisQuery = {
       ipGroupId: searchForm.ipGroupId,
       // S-R3：用 normalize 转换 PlatformType
       platformType: normalizePlatform(searchForm.platformType) as any,
       contentType: searchForm.contentType || undefined,
       keyword: searchForm.keyword || undefined,
+      startDate,
+      endDate,
       // S-R8 B6: 后端收 page/size
       page: pagination.pageNo,
       size: pagination.pageSize,
@@ -223,6 +314,8 @@ const loadData = async () => {
 // 查看详情
 const handleViewDetail = async (row: any) => {
   currentContent.value = row
+  detailDateRange.value = getDefaultWeekRange()
+  detailQuickRange.value = '7d'
   detailDialogVisible.value = true
 
   await nextTick()
@@ -244,7 +337,10 @@ const renderTrendChart = async (contentId: number) => {
     worksTrendChart = null
   }
 
-  const trendData = await getContentTrend({ contentId })
+  const [startDate, endDate] = detailDateRange.value?.length === 2
+    ? detailDateRange.value
+    : getDefaultWeekRange()
+  const trendData = await getContentTrend({ contentId, startDate, endDate })
 
   const chart = echarts.init(trendChartRef.value)
   worksTrendChart = chart
@@ -295,6 +391,8 @@ const handleReset = () => {
   searchForm.platformType = ''
   searchForm.contentType = ''
   searchForm.keyword = ''
+  searchForm.dateRange = []
+  searchForm.quickRange = 'all'
   pagination.pageNo = 1
   loadData()
 }
@@ -326,6 +424,13 @@ const formatNumber = (num: number) => {
 
 onMounted(() => {
   loadData()
+})
+
+watch(detailDialogVisible, (visible) => {
+  if (!visible && worksTrendChart) {
+    worksTrendChart.dispose()
+    worksTrendChart = null
+  }
 })
 </script>
 
@@ -368,5 +473,13 @@ onMounted(() => {
   color: #F56C6C;
   font-weight: bold;
   font-size: 14px;
+}
+
+.detail-trend-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 </style>

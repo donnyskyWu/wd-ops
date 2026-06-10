@@ -71,8 +71,14 @@
 
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
       <el-form :model="formData" ref="formRef" :rules="formRules" label-width="100px">
-        <el-form-item label="手机号" prop="phoneNumber">
-          <el-input v-model="formData.phoneNumber" placeholder="11位手机号" maxlength="11" />
+        <el-form-item label="实名人" prop="realnameId">
+          <RealNameSelect v-model="formData.realnameId" />
+        </el-form-item>
+        <el-form-item label="手机号" prop="phoneId">
+          <PhoneSelect
+            v-model="formData.phoneId"
+            :real-name-id="formData.realnameId"
+          />
         </el-form-item>
         <el-form-item label="ICCID" prop="iccid">
           <el-input v-model="formData.iccid" placeholder="ICCID编码" maxlength="30" />
@@ -109,6 +115,8 @@ import { Plus } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import UserSelect from '@/components/selectors/UserSelect.vue'
+import RealNameSelect from '@/components/selectors/RealNameSelect.vue'
+import PhoneSelect from '@/components/selectors/PhoneSelect.vue'
 import {
   createSimCard,
   deleteSimCard,
@@ -172,7 +180,8 @@ const formRef = ref()
 
 const formData = reactive({
   id: undefined as number | undefined,
-  phoneNumber: '',
+  realnameId: undefined as number | undefined,
+  phoneId: undefined as number | undefined,
   iccid: '',
   operator: '',
   isPrimary: 'YES',
@@ -182,10 +191,8 @@ const formData = reactive({
 })
 
 const formRules = {
-  phoneNumber: [
-    { required: true, message: '请输入手机号', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的 11 位手机号', trigger: 'blur' },
-  ],
+  realnameId: [{ required: true, message: '请选择实名人', trigger: 'change' }],
+  phoneId: [{ required: true, message: '请选择手机号', trigger: 'change' }],
   iccid: [{ required: true, message: '请输入 ICCID', trigger: 'blur' }],
   operator: [{ required: true, message: '请选择运营商', trigger: 'change' }],
   assignedUserId: [{ required: true, message: '请选择归属人', trigger: 'change' }],
@@ -194,7 +201,8 @@ const formRules = {
 const resetForm = () => {
   Object.assign(formData, {
     id: undefined,
-    phoneNumber: '',
+    realnameId: undefined,
+    phoneId: undefined,
     iccid: '',
     operator: '',
     isPrimary: 'YES',
@@ -214,7 +222,8 @@ const handleEdit = (row: SimCardVO) => {
   dialogTitle.value = '编辑手机卡'
   Object.assign(formData, {
     id: row.id,
-    phoneNumber: '',
+    realnameId: undefined,
+    phoneId: row.phoneId,
     iccid: '',
     operator: row.operator || '',
     isPrimary: row.isPrimary || 'YES',
@@ -236,16 +245,15 @@ const handleSubmit = async () => {
         packageName: formData.packageName || undefined,
         assignedUserId: formData.assignedUserId,
         status: formData.status,
+        phoneId: formData.phoneId,
       }
       if (formData.id) {
         const updatePayload: Record<string, unknown> = { id: formData.id, ...payload }
-        if (formData.phoneNumber) updatePayload.phoneNumber = formData.phoneNumber
         if (formData.iccid) updatePayload.iccid = formData.iccid
         await updateSimCard(updatePayload as any)
       } else {
         await createSimCard({
           ...payload,
-          phoneNumber: formData.phoneNumber,
           iccid: formData.iccid,
         })
       }

@@ -122,6 +122,24 @@ async function ensurePhone(request: APIRequestContext, realnameId: number): Prom
  * 为 INT-SL05 准备：2 家公司 + 公司 A 下实名人 + 手机。
  * 幂等：已存在则跳过创建。
  */
+/** 为手机卡联调创建唯一手机（避免 DUPLICATE_ENTITY） */
+export async function ensureFreshPhone(
+  request: APIRequestContext,
+  realnameId: number,
+): Promise<{ phoneNumber: string; tail: string }> {
+  const suffix = Date.now().toString().slice(-8)
+  const phoneNumber = `136${suffix}`.slice(0, 11)
+  await apiPost<number>(request, '/oa/phone/create', {
+    phoneNumber,
+    phoneCode: `SIM-${suffix}`,
+    phoneModel: 'INT-SIM 联调机',
+    realnameId,
+    keeperId: 1001,
+    status: 'ENABLED',
+  })
+  return { phoneNumber, tail: phoneNumber.slice(-4) }
+}
+
 export async function ensureSl05Fixture(request: APIRequestContext): Promise<Sl05Fixture> {
   const companyAId = await ensureCompany(request, SL05.companyAName, SL05.companyACredit)
   await ensureCompany(request, SL05.companyBName, SL05.companyBCredit)

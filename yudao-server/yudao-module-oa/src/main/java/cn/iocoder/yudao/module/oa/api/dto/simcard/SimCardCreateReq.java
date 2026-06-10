@@ -10,7 +10,9 @@ import lombok.Data;
 @Data
 public class SimCardCreateReq {
 
-    @NotBlank
+    /** 强关联手机资产；与 phoneNumber 二选一，优先 phoneId */
+    private Long phoneId;
+
     @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String phoneNumber;
 

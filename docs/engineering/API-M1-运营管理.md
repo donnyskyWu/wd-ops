@@ -421,16 +421,22 @@
 | GET | `/admin-api/oa/content-analysis/stats` | 汇总统计 |
 | POST | `/admin-api/oa/content-analysis/export` | 导出 |
 
-**`/list` 关键参数**：`startDate`、`endDate`、`ipGroupId`、`accountId`、`platformType`、`contentType`、`isHit`、`page`、`size`
+**`/list` 关键参数**：`startDate`、`endDate`（可选；空=全量）、`ipGroupId`、`accountId`、`platformType`、`contentType`、`keyword`、`isHit`、`page`、`size`
+
+**`/trend` 关键参数**：`contentId`（必填）、`startDate`、`endDate`（详情弹窗传入；默认近 7 日）
 
 **`isHit` 字段** 命中 BR-003 阈值规则计算。
+
+**UI 默认**（2026-06-11）：列表 `dateRange` 默认空；详情趋势默认 7 日。
 
 ### 4.4 内部内容分析 + 数据补录（FR-M1-006）
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/admin-api/oa/internal-content/list` | 内部作品列表 |
-| GET | `/admin-api/oa/internal-content/{id}/trend` | 趋势 |
+| GET | `/admin-api/oa/internal-content/{id}/trend` | 趋势（抽屉默认近 7 日） |
+
+**`/list` 关键参数**：`startDate`、`endDate`（可选；前端默认不传=全量）、`ipGroupId`、`keyword`、`platformType`、`page`、`size`
 | POST | `/admin-api/oa/internal-content/export` | 导出 |
 | **POST** | **`/admin-api/oa/internal-content/import`** | **数据补录（v9.1 新增）** |
 | GET | `/admin-api/oa/internal-content/import/list` | 补录记录列表 |
