@@ -24,7 +24,7 @@ public class ProductivityReviewVO {
     private Double roi = 0.0;
     private Integer orderCount = 0;
 
-    // S-R9: 内容 KPI（ContentDO 无 user 关联 → 暂 0，记入 ADR-008）
+    // S-R21-Mike / ADR-008：内容 KPI（按 oa_content.author_id 聚合）
     private Integer contentOutput = 0;
     private Long avgRead = 0L;
     private Long avgPlay = 0L;

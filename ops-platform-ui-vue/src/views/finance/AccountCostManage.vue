@@ -189,6 +189,7 @@ import { Plus, Download } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import { exportToExcel } from '@/utils'
 
 // ==================== 过程成本类型定义 ====================
 type CostType = 'PERSON' | 'CONTENT' | 'PROMOTE' | 'PLATFORM' | 'OTHER'
@@ -314,7 +315,23 @@ const handleProcessSubmit = async () => {
 }
 
 const handleProcessExport = () => {
-  ElMessage.info('导出功能开发中')
+  const rows = processList.value.map((row) => ({
+    accountName: row.accountName,
+    costType: getCostTypeName(row.costType),
+    amount: row.amount,
+    description: row.description,
+    operator: row.operator,
+    createTime: row.createTime,
+  }))
+  const columns = [
+    { key: 'accountName', label: '关联账号' },
+    { key: 'costType', label: '成本类型' },
+    { key: 'amount', label: '金额' },
+    { key: 'description', label: '成本说明' },
+    { key: 'operator', label: '操作人' },
+    { key: 'createTime', label: '记录时间' },
+  ]
+  exportToExcel(rows, columns, '过程成本')
 }
 
 // ==================== 账号成本响应式数据 ====================

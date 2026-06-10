@@ -48,7 +48,7 @@
 
 ## 1. 全局进度总表
 
-> **最后更新**：2026-06-10 20:30 · **当前阶段**：S7 完成（GATE-S7 ✅）+ 19 走查切片 + 2 补丁 Gate · **整体进度**：8/8 Gate · 2 补丁 Gate · 19 走查 · **进入「上线前补强 + 持续走查 + Phase 2 决策」三轨并行阶段**
+> **最后更新**：2026-06-10 · **当前阶段**：S7 ✅ + 23 走查/补丁切片 · **协作**：Mike + Donny 双人并行（见 [TASK-PROGRESS-MASTER](./TASK-PROGRESS-MASTER.md)）· **进入「上线前补强 + 持续走查 + Phase 2 决策」三轨并行阶段**
 
 | Gate | 阶段 | 周次 | 模块 / 横切 | 开发 | 测试 | Seed | Gate | 通过日期 | 负责人 | 备注 |
 |------|------|------|------------|------|------|------|------|---------|--------|------|
@@ -91,6 +91,10 @@
 | 走查 | **S-R18** | 上线前 E2E 全量回归（250 IT + 180/183 PW） | ✅ | [S-R18-报告-20260610.md](./gates/S-R18-报告-20260610.md) |
 | 走查 | **S-R19** | 全量功能自查 + OVERVIEW backlog 复核（4 错码修） | ✅ | [S-R19-报告-20260610.md](./gates/S-R19-报告-20260610.md) |
 | 走查 | **S-R20** | 进度表整理 + 全页自查待办 + 多成员分工 | ✅ | [S-R20-报告-20260610.md](./gates/S-R20-报告-20260610.md) |
+| 补丁 | **S-R21-Mike** | D-1 `oa_content.author_id` + 人效 KPI 聚合 | ✅ | ADR-008 |
+| 补丁 | **S-R22-Mike** | D-7 ContentController DELETE | ✅ | API-M2 §3.6 |
+| 补丁 | **S-R23-Mike** | B-6 M9 路径 `/oa/system/*` 规范 + 别名 | ✅ | ADR-009 |
+| 补丁 | **S-R24** | B-7 5 页 + FansAnalysis 补 exportToExcel | ✅ | P2-#14 `missing===0` |
 
 **累计走查发现并修复**：70+ 个真 bug（mock 数据 13 处、enum 不对齐 6+、KPI 聚合 8 处、分页契约 6 处、UI render bug 5 处、跨模块 9 处、schema drift 4 处、字段名错位 10 处、错码冲突 4 处、5 selector mock 切换 7 处）
 
@@ -535,13 +539,13 @@ curl http://localhost:8080/oa/...
 
 | ID | 任务 | 模块 | 决策点 | 现状 |
 |----|------|------|--------|------|
-| D-1 | **oa_content 加 author_id**（schema drift） | M1/M2 | ADR-008 方案 A/B/C | 效率页 KPI 0 + ADR 提示 |
+| D-1 | **oa_content 加 author_id**（schema drift） | M1/M2 | ADR-008 方案 A | ✅ 后端 S-R21-Mike · 🟡 前端 S-R21-Donny 待闭环 |
 | D-2 | **B13 ParamManage 后端 sys_param**（基础/采集/AI/通知） | M9 | 是否 Phase 2 落地 | 前端 placeholder |
 | D-3 | **B14 DictManage 后端 sys_dict CRUD** | M9 | 是否本期补 | 前端 placeholder |
 | D-4 | **B15 LogManage 后端 sys_operation_log** | M9 | 是否本期补 | 前端 placeholder |
 | D-5 | **B16 LoginLog 后端 sys_login_log** | M9 | 是否本期补 | 前端 placeholder |
 | D-6 | **B17 MessageManage 后端 sys_message** | M9/M10 | 是否本期补（涉 M10） | 前端 placeholder |
-| D-7 | **B22 ContentController 补 delete 端点** | M2 | content/index.vue mock 兜底 | 前端 mock |
+| D-7 | **B22 ContentController 补 delete 端点** | M2 | — | ✅ S-R22-Mike |
 
 ### 15.2 P1 业务待办（上线后 1 个月内）
 
@@ -549,11 +553,11 @@ curl http://localhost:8080/oa/...
 |----|------|------|------|
 | B-1 | L1 导出 xlsx 确认 + 多 Sheet 模板 | M1-M7 | ✅ 已对齐 .xlsx |
 | B-2 | L2 enum literal 全量清理 | 前端 | ✅ enum-alias 工具已规范 |
-| B-3 | L3 ADR-008 待 D-1 决策 | M1/M2 | 同 D-1 |
+| B-3 | L3 ADR-008 待 D-1 决策 | M1/M2 | 🟡 同 D-1（后端 ✅，前端待 S-R21-Donny） |
 | B-4 | L4 SOP pageNum | M2 | ✅ S-R11 已修 |
 | B-5 | L5 seed V18-V23 CJK 终端显示 | 终端 | ✅ 仅显示问题 |
-| B-6 | B19 M8/M9 路径 prefix 一致性 | M8/M9 | `/admin-api/system/...` vs `/admin-api/oa/...` |
-| B-7 | 5 个 L-α/β/γ 页面补 exportToExcel | 前端 | 5 页（relaxed to 5） |
+| B-6 | B19 M8/M9 路径 prefix 一致性 | M8/M9 | ✅ S-R23：`/oa/system/*` 规范 + 旧别名兼容 |
+| B-7 | 5 个 L-α/β/γ 页面补 exportToExcel | 前端 | ✅ S-R24：Efficiency / content / AccountCost / Financial / Metric + Fans 降级 |
 | B-8 | L-β 5 个详情页 follow-up：assignee/userOwner 字段补全 | M3/M4 | 走查留 P2 |
 
 ### 15.3 P2 体验/工程债
@@ -579,29 +583,30 @@ curl http://localhost:8080/oa/...
 
 | 类型 | 总数 | P0 | P1 | P2 | 已 ✅ |
 |------|------|----|----|----|----|
-| 待办 | **24 项** | 7 | 8 | 4 | 5（横切） |
+| 待办 | **24 项** | 5（D-2~D-6 待决策） | 6 | 4 | 9（含 D-1 后端/D-7/B-6/B-7 + 横切） |
 
 ---
 
-## 16. 多成员分工协作（S-R20 沉淀，2026-06-10）
+## 16. 多成员分工协作（S-R20 沉淀 · 2026-06-10 升级为 Mike + Donny）
 
-### 16.1 当前状态 vs 加 1 人
+> **任务进度 SSOT**：[TASK-PROGRESS-MASTER.md](./TASK-PROGRESS-MASTER.md) · [Mike](./TASK-PROGRESS-MIKE.md) · [Donny](./TASK-PROGRESS-DONNY.md)
 
-| 项 | 现状 | 加 1 人（建议 Mike 后端 TL）|
-|----|------|-----------------------------|
-| 人员 | Cursor Agent（前端） + Donny（产品/架构）| + Mike（后端 TL）|
-| 并行 | 1 个 slice | **2 个 slice 并行** |
-| 工期 | v1.0 后 24 项 × 1-2 天 = 4-6 周 | **2-3 周**（Mike 后端 + CA 前端并行）|
+### 16.1 当前双人协作
 
-### 16.2 4 人 team 角色
+| 项 | 配置 |
+|----|------|
+| **成员** | **Mike**（后端 TL + 实现）+ **Donny**（产品/架构/前端验收）|
+| **并行** | 2 个 slice，**文件域不重叠**（见个人任务表「文件锁」）|
+| **工期** | Wave-2~4 约 **7 个工作日** → S-R26 集成 → 上线决策 |
+| **同步** | 每日 stand-up（Donny 主持）+ 每 slice 完成更新三张任务表 + SESSION-PROGRESS |
 
-| 角色 | 主责 | 占用率 |
-|------|------|--------|
-| 架构师（Donny 兼顾）| ADR · Spec · Gate 验收 | 20% |
-| **后端 TL（Mike 新人）**| Mapper · Service · Controller · IT | 100% |
-| 前端 TL（Cursor Agent）| api/*.ts · types/*.ts · *.vue · Playwright | 100% |
-| QA（待招）| IT 编写 · E2E 走查 · 5 大铁律审计 | 100% |
-| 产品（Donny 兼顾）| PRD · OQ 决策 · UAT | 20% |
+### 16.2 角色与文件域
+
+| 角色 | 成员 | 主责 | 文件域 |
+|------|------|------|--------|
+| 后端 TL | **Mike** | Mapper · Service · Controller · IT · Flyway | `yudao-server/**` |
+| 产品/架构 | **Donny** | PRD · OQ · ADR 决策 · Gate 签字 | `docs/product/**` · `docs/adr/**` |
+| 前端验收 | **Donny** | api · types · vue · Playwright | `ops-platform-ui-vue/**` |
 
 ### 16.3 切片分配原则（OVERVIEW §4.2）
 
@@ -612,26 +617,27 @@ curl http://localhost:8080/oa/...
 5. **改前端必浏览器复测**（agent-browser + Playwright）
 6. **完成写报告 + 更新 SESSION-PROGRESS**
 
-### 16.4 Mike 加 1 人分工建议（基于 §15 待办）
+### 16.4 Slice 分配（Wave-1 ✅ · Wave-2 起）
 
-| Slice | 负责人 | 范围 | 工时 |
+| Slice | 负责人 | 范围 | 状态 |
 |-------|--------|------|------|
-| S-R21-Mike | Mike | D-1 ADR-008 oa_content author_id 后端（方案 A）| 1-2 天 |
-| S-R22-Mike | Mike | D-7 B22 ContentController.delete + IT | 0.5 天 |
-| S-R23-Mike | Mike | B-6 B19 M8/M9 路径 prefix 重构 | 1 天 |
-| S-R21-CA | CA | D-1 前端 oa_content author_id 接入 + 效率页 KPI 启用 | 1 天 |
-| S-R24-CA | CA | B-7 5 个 L-α/β/γ 页面补 exportToExcel | 0.5 天 |
-| S-R25-CA | CA | P-3 `as any` 清理 + P-4 Playwright skip 补全 | 1 天 |
+| S-R21-Mike | Mike | D-1 author_id 后端 | ✅ |
+| S-R22-Mike | Mike | D-7 Content delete | ✅ |
+| S-R23-Mike | Mike | B-6 M9 路径 | ✅ |
+| S-R24-Mike | Mike | B-7 exportToExcel | ✅ |
+| S-R21-Donny | Donny | D-1 效率页 KPI UI 闭环 | ⬜ |
+| S-R25-Donny | Donny | P-3 + P-4 前端工程债 | ⬜ |
+| S-R27-Mike | Mike | B-8 详情页字段 | ⬜ |
+| S-R26 | Mike+Donny | 集成回归 + 上线决策 | ⬜ |
 
-### 16.5 5 阶段并行方案
+### 16.5 Wave 并行方案（当前）
 
-| 时段 | Mike（后端）| Cursor Agent（前端）| Donny（产品/架构）|
-|------|-------------|---------------------|-------------------|
-| **D1-2** | S-R21-Mike：D-1 schema migration + DAO | S-R21-CA：D-1 前端字段接入 | 5 大铁律复核 |
-| **D2-3** | S-R22-Mike：D-7 ContentController.delete | S-R24-CA：B-7 exportToExcel 5 页 | 验收 D-1 |
-| **D3-4** | S-R23-Mike：B-19 路径重构 | S-R25-CA：P-3 + P-4 cleanup | 验收 D-7 + B-7 |
-| **D4-5** | Mike 整合 mvn verify | CA Playwright 复测 | 验收 B-19 |
-| **D5** | 两人合并 → **S-R26 集成测试** | | ✅ 上线决策 |
+| Wave | Mike | Donny | 同步点 |
+|------|------|-------|--------|
+| **Wave-1** ✅ | S-R21~R24 | S-R20 规划 | 已合入待 push |
+| **Wave-2** 🔵 | S-R27 B-8 | S-R21-Donny + S-R25 | 每日 pull |
+| **Wave-3** | mvn verify | P-2 PW 全量 | SESSION-PROGRESS |
+| **Wave-4** | S-R26 后端 | S-R26 前端 + Gate | 上线决策 |
 
 **同步点**：每日 stand-up（Donny 主持）+ 5 阶段结束点合并回归
 

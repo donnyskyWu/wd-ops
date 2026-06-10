@@ -1,7 +1,7 @@
 <!--
   UserSelect - 系统用户选择器
   三大铁律 § 3.2 强制
-  关联: PRD-M9 FR-M9-002 / API-M9 § 1 GET /admin-api/system/user/list
+  关联: PRD-M9 FR-M9-002 / API-M9 § 1 GET /admin-api/oa/system/user/list
   使用: <UserSelect v-model="form.userId" :role-code="form.roleCode" />
 -->
 <template>
@@ -92,7 +92,7 @@ const loadList = async (keyword: string) => {
   loading.value = true
   try {
     const res = await request.get<{ list: UserVO[] }>({
-      url: '/system/user/list',
+      url: '/oa/system/user/list',
       params: {
         nickname: keyword || undefined,
         deptId: props.deptId,

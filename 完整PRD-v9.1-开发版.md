@@ -553,12 +553,12 @@ graph TB
 
 | 编号 | 功能名称 | 章节 | 优先级 | 对应 API |
 |------|----------|------|--------|----------|
-| `SYSTEM-001` | 用户管理 | （内嵌） | P0 | `/admin-api/system/user/*` |
-| `SYSTEM-002` | 角色权限 | （内嵌） | P0 | `/admin-api/system/role/*` |
-| `SYSTEM-003` | 租户管理 | （内嵌） | P0 | `/admin-api/system/tenant/*` |
-| `SYSTEM-004` | 系统参数 | （内嵌） | P0 | `/admin-api/system/param/*` |
-| `SYSTEM-005` | 字典管理 | （内嵌） | P0 | `/admin-api/system/dict/*` |
-| `SYSTEM-006` | 日志管理 / 消息管理 | （内嵌） | P1 | `/admin-api/system/{log,message}/*` |
+| `SYSTEM-001` | 用户管理 | （内嵌） | P0 | `/admin-api/oa/system/user/*` |
+| `SYSTEM-002` | 角色权限 | （内嵌） | P0 | `/admin-api/oa/system/role/*` |
+| `SYSTEM-003` | 租户管理 | （内嵌） | P0 | `/admin-api/oa/system/tenant/*` |
+| `SYSTEM-004` | 系统参数 | （内嵌） | P0 | `/admin-api/oa/system/param/*` |
+| `SYSTEM-005` | 字典管理 | （内嵌） | P0 | `/admin-api/oa/dict/*`（ADR-006） |
+| `SYSTEM-006` | 日志管理 / 消息管理 | （内嵌） | P1 | `/admin-api/oa/system/{log,message}/*` |
 
 #### 3A.2.11 数据采集（2 个功能点）
 

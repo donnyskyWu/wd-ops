@@ -46,6 +46,10 @@
         <el-icon><Plus /></el-icon>
         新增内容
       </el-button>
+      <el-button type="success" @click="handleExport">
+        <el-icon><Download /></el-icon>
+        导出
+      </el-button>
     </div>
 
     <!-- 内容区 -->
@@ -162,8 +166,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
-import { getContentList, submitContentReview, reviewContent } from '@/api/content'
+import { Plus, Download } from '@element-plus/icons-vue'
+import { exportToExcel } from '@/utils'
+import { getContentList, submitContentReview, reviewContent, deleteContent } from '@/api/content'
 import { mockContentList, mockGetContentList } from '@/mock/content'
 import { ContentStatus, ReviewStage } from '@/types/content'
 import type { ContentQuery, ContentType, ContentItem } from '@/types/content'
@@ -294,6 +299,31 @@ const handleReviewSubmit = async () => {
   }
 }
 
+// 导出
+const handleExport = () => {
+  const rows = tableData.value.map((row) => ({
+    title: row.title,
+    contentType: getContentTypeText(row.contentType),
+    platformType: getPlatformTypeText(row.platformType),
+    accountName: row.accountName,
+    creatorName: row.creatorName,
+    aiGenerated: row.aiGenerated ? '是' : '否',
+    status: getStatusText(row.status),
+    createdAt: row.createdAt,
+  }))
+  const columns = [
+    { key: 'title', label: '标题' },
+    { key: 'contentType', label: '类型' },
+    { key: 'platformType', label: '平台' },
+    { key: 'accountName', label: '发布账号' },
+    { key: 'creatorName', label: '创作者' },
+    { key: 'aiGenerated', label: 'AI生成' },
+    { key: 'status', label: '状态' },
+    { key: 'createdAt', label: '创建时间' },
+  ]
+  exportToExcel(rows, columns, '内容列表')
+}
+
 // 删除
 const handleDelete = async (row: ContentItem) => {
   try {
@@ -303,7 +333,7 @@ const handleDelete = async (row: ContentItem) => {
       type: 'warning',
     })
 
-    await Promise.resolve().catch(() => {})
+    await deleteContent(row.id)
 
     ElMessage.success('删除成功')
     loadData()

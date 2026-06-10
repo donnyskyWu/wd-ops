@@ -1,13 +1,16 @@
 # API-M9-系统管理
 
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v1.1 | 2026-06-10（S-R23 路径规范）
+> **关联 ADR**：[`ADR-009`](../adr/ADR-009-API路径前缀分配.md)
 > **关联全局规范**：[`GLOBAL-CONVENTIONS.md`](./GLOBAL-CONVENTIONS.md)
+>
+> **规范路径**：`/admin-api/oa/system/*` · 旧 `/admin-api/system/*` 仍作兼容别名（S-R23）
 
 ---
 
 ## 1. 用户 API
 
-### 1.1 GET `/admin-api/system/user/list`
+### 1.1 GET `/admin-api/oa/system/user/list`
 
 | 参数 | 字典 |
 |------|------|
@@ -15,7 +18,7 @@
 | deptId | - |
 | position | `dict_position` |
 
-### 1.2 POST `/admin-api/system/user/create`
+### 1.2 POST `/admin-api/oa/system/user/create`
 
 ```json
 {
@@ -38,23 +41,23 @@
 
 ## 2. 角色 API
 
-### 2.1 GET `/admin-api/system/role/list`
+### 2.1 GET `/admin-api/oa/system/role/list`
 
-### 2.2 POST `/admin-api/system/role/assign-permission`
+### 2.2 POST `/admin-api/oa/system/role/assign-permission`
 
 ---
 
 ## 3. 租户 API
 
-### 3.1 GET `/admin-api/system/tenant/list`
+### 3.1 GET `/admin-api/oa/system/tenant/list`
 
-### 3.2 POST `/admin-api/system/tenant/create`
+### 3.2 POST `/admin-api/oa/system/tenant/create`
 
 ---
 
 ## 4. 字典 API（⭐）
 
-### 4.1 GET `/admin-api/system/dict/type?type={type}`
+### 4.1 GET `/admin-api/oa/system/dict/type?type={type}`
 
 **响应**：
 
@@ -68,11 +71,11 @@
 }
 ```
 
-### 4.2 GET `/admin-api/system/dict/type-list`
+### 4.2 GET `/admin-api/oa/system/dict/type-list`
 
 字典 type 列表（用于下拉选择 dict_type）
 
-### 4.3 POST `/admin-api/system/dict/create`
+### 4.3 POST `/admin-api/oa/system/dict/create`
 
 ```json
 {
@@ -89,9 +92,9 @@
 - `dictValue` 命名 `（具体值详见相应章节）
 - `dictType` 唯一
 
-### 4.4 PUT `/admin-api/system/dict/update`
+### 4.4 PUT `/admin-api/oa/system/dict/update`
 
-### 4.5 DELETE `/admin-api/system/dict/{id}`
+### 4.5 DELETE `/admin-api/oa/system/dict/{id}`
 
 **业务**：停用后可删；启用且被引用 → 错误码 1502
 
@@ -99,14 +102,14 @@
 
 ## 5. 日志 API
 
-### 5.1 GET `/admin-api/system/log/operation`
+### 5.1 GET `/admin-api/oa/system/log/operation`
 
 | 参数 | 字典 |
 |------|------|
 | module | `dict_log_module` |
 | level | `dict_log_level` |
 
-### 5.2 GET `/admin-api/system/log/login`
+### 5.2 GET `/admin-api/oa/system/log/login`
 
 ---
 

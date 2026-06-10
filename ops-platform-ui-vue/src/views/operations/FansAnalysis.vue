@@ -144,6 +144,7 @@ import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { normalizePlatform, normalizeTimeDimension } from '@/utils/enum-alias'
+import { exportToExcel } from '@/utils'
 
 // ==================== 响应式数据 ====================
 
@@ -328,8 +329,18 @@ const handleExport = async () => {
     window.URL.revokeObjectURL(url)
     ElMessage.success(`导出成功：${filename}`)
   } catch (error) {
-    console.error('[FansAnalysis] 导出失败:', error)
-    ElMessage.error('导出失败：' + (error instanceof Error ? error.message : String(error)))
+    console.error('[FansAnalysis] 后端导出失败，降级为前端导出:', error)
+    const columns = [
+      { key: 'statDate', label: '时间' },
+      { key: 'accountName', label: '账号名称' },
+      { key: 'ipGroupName', label: '所属IP组' },
+      { key: 'followerCount', label: '粉丝总数' },
+      { key: 'newFollower', label: '新增' },
+      { key: 'unfollowCount', label: '取消' },
+      { key: 'netGrowth', label: '净增' },
+      { key: 'growthRate', label: '增长率(%)' },
+    ]
+    exportToExcel(tableData.value, columns, '粉丝分析')
   }
 }
 

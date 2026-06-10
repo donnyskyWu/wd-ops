@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.oa.service.content.ProductionContentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,6 +50,12 @@ public class ProductionContentController {
     @PutMapping("/update")
     public CommonResult<Boolean> update(@Valid @RequestBody ProductionContentUpdateReq req) {
         productionContentService.update(req);
+        return CommonResult.success(true);
+    }
+
+    @DeleteMapping("/{id}")
+    public CommonResult<Boolean> delete(@PathVariable Long id) {
+        productionContentService.delete(id);
         return CommonResult.success(true);
     }
 

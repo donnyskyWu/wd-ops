@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 @TableName("oa_content")
 public class ContentDO extends TenantBaseDO {
 
+    /** 内容生产者 sys_user.id（ADR-008 方案 A） */
+    private Long authorId;
     private Long accountId;
     private String title;
     private String platformType;

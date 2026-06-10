@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/admin-api/system/user")
+@RequestMapping({"/admin-api/oa/system/user", "/admin-api/system/user"})
 @Validated
 @RequiredArgsConstructor
 public class UserController {

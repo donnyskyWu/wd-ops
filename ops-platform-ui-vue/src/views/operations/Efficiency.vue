@@ -207,6 +207,7 @@ import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { getProductivityList, exportProductivityCsv, getProductivityDetail } from '@/api/productivity'
+import { exportToExcel } from '@/utils'
 import type { ProductivityReviewVO } from '@/types/productivity'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
@@ -261,6 +262,19 @@ const handleReset = () => {
   searchForm.keyword = undefined
   loadData()
 }
+const EFFICIENCY_EXPORT_COLUMNS = [
+  { key: 'userName', label: '经办人' },
+  { key: 'position', label: '岗位' },
+  { key: 'ipGroupName', label: 'IP组' },
+  { key: 'taskTotal', label: '任务总数' },
+  { key: 'taskCompleted', label: '已完成' },
+  { key: 'completionRate', label: '完成率(%)' },
+  { key: 'costAmount', label: '账号成本' },
+  { key: 'revenue', label: '营收' },
+  { key: 'roi', label: 'ROI(%)' },
+  { key: 'orderCount', label: '订单数' },
+]
+
 const handleExport = async () => {
   try {
     await exportProductivityCsv({
@@ -274,8 +288,8 @@ const handleExport = async () => {
     })
     ElMessage.success('导出任务已提交')
   } catch (e) {
-    console.error('[Efficiency] 导出失败:', e)
-    ElMessage.error('导出失败，请重试')
+    console.error('[Efficiency] 后端导出失败，降级为前端导出:', e)
+    exportToExcel(productivityList.value, EFFICIENCY_EXPORT_COLUMNS, '人效分析')
   }
 }
 

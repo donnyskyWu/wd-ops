@@ -1,5 +1,6 @@
 /**
  * M9 S-02 租户管理 API
+ * 契约: /admin-api/oa/system/tenant/*（S-R23 规范路径）
  */
 import { request } from '@/utils/request'
 
@@ -29,7 +30,7 @@ export function fetchTenantList(params: {
   pageNo?: number
   pageSize?: number
 }) {
-  return request.get<TenantPageResult>({ url: '/system/tenant/list', params })
+  return request.get<TenantPageResult>({ url: '/oa/system/tenant/list', params })
 }
 
 export function createTenant(data: {
@@ -42,7 +43,7 @@ export function createTenant(data: {
   status?: string
   remark?: string
 }) {
-  return request.post<number>({ url: '/system/tenant/create', data })
+  return request.post<number>({ url: '/oa/system/tenant/create', data })
 }
 
 export function updateTenant(data: {
@@ -56,11 +57,11 @@ export function updateTenant(data: {
   status?: string
   remark?: string
 }) {
-  return request.put<boolean>({ url: '/system/tenant/update', data })
+  return request.put<boolean>({ url: '/oa/system/tenant/update', data })
 }
 
 export function deleteTenant(id: number) {
-  return request.delete<boolean>({ url: '/system/tenant/delete', params: { id } })
+  return request.delete<boolean>({ url: '/oa/system/tenant/delete', params: { id } })
 }
 
 export const TENANT_STATUS_LABEL: Record<string, string> = {

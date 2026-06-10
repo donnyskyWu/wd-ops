@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin-api/system/role")
+@RequestMapping({"/admin-api/oa/system/role", "/admin-api/system/role"})
 @Validated
 @RequiredArgsConstructor
 public class RoleController {

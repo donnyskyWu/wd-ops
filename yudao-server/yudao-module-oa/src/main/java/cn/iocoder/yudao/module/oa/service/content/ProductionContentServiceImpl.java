@@ -141,6 +141,17 @@ public class ProductionContentServiceImpl implements ProductionContentService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M2-content", action = "delete")
+    public void delete(Long id) {
+        ProductionContentDO content = requireContent(id);
+        if (!"DRAFT".equals(content.getStatus()) && !"REJECTED".equals(content.getStatus())) {
+            throw new ServiceException(OaErrorCodes.CONTENT_STATUS_INVALID);
+        }
+        productionContentMapper.deleteById(id);
+    }
+
+    @Override
+    @Transactional
     @AuditLog(module = "M2-content", action = "review")
     public void review(Long id, ContentReviewReq req) {
         ProductionContentDO content = requireContent(id);

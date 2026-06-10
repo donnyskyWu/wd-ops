@@ -27,7 +27,7 @@ class GateS2AuthIT extends OaITBase {
     @Test
     @DisplayName("AUTH-001: 管理员 Token + tenant=1 → 200 且具备用户查询权限")
     void adminHasUserListPermission() throws Exception {
-        mockMvc.perform(get("/admin-api/system/user/list")
+        mockMvc.perform(get("/admin-api/oa/system/user/list")
                         .header("Authorization", ADMIN)
                         .header("X-Tenant-Id", TENANT_1))
                 .andExpect(status().isOk())
@@ -37,7 +37,7 @@ class GateS2AuthIT extends OaITBase {
     @Test
     @DisplayName("AUTH-002: 运营专员创建租户 → 403")
     void operatorCannotCreateTenant() throws Exception {
-        mockMvc.perform(post("/admin-api/system/tenant/create")
+        mockMvc.perform(post("/admin-api/oa/system/tenant/create")
                         .header("Authorization", OPERATOR)
                         .header("X-Tenant-Id", TENANT_1)
                         .contentType(MediaType.APPLICATION_JSON)

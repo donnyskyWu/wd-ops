@@ -216,10 +216,8 @@ test.describe('P2 修复项回归 @regression', () => {
     if (missing.length > 0) {
       console.warn('未接通 exportToExcel:', missing)
     }
-    // L-α 走查范围: Report/Finance/Metric/Content 接入 exportToExcel
-    // 未覆盖: Efficiency / content/index / AccountCostManage / FinancialAnalysis / MetricManage
-    // 留 5 个未接通作为 P2 增量（S-R18）
-    expect(missing.length, `未接通 exportToExcel 页数: ${missing.length}`).toBeLessThanOrEqual(5)
+    // S-R24：11 个导出页全部接通 exportToExcel（含后端导出失败时的前端降级）
+    expect(missing.length, `未接通 exportToExcel: ${missing.join(', ')}`).toBe(0)
   })
 
   test('P2-#15 关键表单含 :rules', () => {

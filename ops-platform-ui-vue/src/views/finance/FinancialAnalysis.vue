@@ -64,6 +64,7 @@ import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { getRoiAnalysis, getRoiTrend, getRoiBreakdown, exportRoi } from '@/api/finance'
+import { exportToExcel } from '@/utils'
 
 const loading = ref(false)
 const queryForm = reactive({
@@ -132,10 +133,20 @@ const drawTrend = (rows: any[]) => {
 const handleExport = async () => {
   const q = buildQ()
   if (!q) { ElMessage.warning('请选择时间范围'); return }
+  const columns = [
+    { key: 'dim_name', label: '维度项' },
+    { key: 'revenue', label: '营收' },
+    { key: 'cost', label: '成本' },
+    { key: 'profit', label: '毛利' },
+    { key: 'roi', label: 'ROI' },
+  ]
   try {
     await exportRoi({ startDate: q.startDate, endDate: q.endDate })
     ElMessage.success('导出任务已提交')
-  } catch (e: any) { ElMessage.error(e?.message || '导出失败') }
+  } catch (e: any) {
+    console.error('[FinancialAnalysis] 后端导出失败，降级为前端导出:', e)
+    exportToExcel(breakdownRows.value, columns, '财务分析')
+  }
 }
 
 onMounted(() => {

@@ -14,6 +14,7 @@
 
     <div class="action-bar">
       <el-button type="primary" @click="handleAdd"><el-icon><Plus /></el-icon>新增指标</el-button>
+      <el-button type="success" @click="handleExport"><el-icon><Download /></el-icon>导出</el-button>
       <span class="total-info">共 {{ total }} 条</span>
     </div>
 
@@ -85,7 +86,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Download } from '@element-plus/icons-vue'
+import { exportToExcel } from '@/utils'
 import TableSearch from '@/components/TableSearch.vue'
 import { getMetricList, createMetric, updateMetric, deleteMetric } from '@/api/metric'
 
@@ -186,6 +188,26 @@ const handleReset = () => {
   searchForm.metricType = undefined
   searchForm.pageNum = 1
   loadList()
+}
+
+const handleExport = () => {
+  const rows = metricList.value.map((row) => ({
+    id: row.id,
+    metricName: row.metricName,
+    metricCode: row.metricCode,
+    metricType: getTypeName(row.metricType),
+    unit: row.unit,
+    status: row.status === 1 ? '启用' : '停用',
+  }))
+  const columns = [
+    { key: 'id', label: 'ID' },
+    { key: 'metricName', label: '指标名称' },
+    { key: 'metricCode', label: '指标编码' },
+    { key: 'metricType', label: '类型' },
+    { key: 'unit', label: '单位' },
+    { key: 'status', label: '状态' },
+  ]
+  exportToExcel(rows, columns, '指标列表')
 }
 
 const handleAdd = () => {

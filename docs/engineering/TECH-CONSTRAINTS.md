@@ -122,6 +122,7 @@ docs/
 | 字段名 | 小写下划线 | `group_name` |
 | API 路径 | kebab-case | `/ip-group/create` |
 | 资源集合 | 复数名词 | `/ip-groups` |
+| **模块前缀** | 全部在 `/admin-api/oa/` 下 | M9：`/oa/system/user`（ADR-009） |
 
 ### 3.2 注释
 

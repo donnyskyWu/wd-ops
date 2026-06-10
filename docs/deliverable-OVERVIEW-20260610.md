@@ -5,7 +5,7 @@
 > 2. **总计划执行对照**：v1.0 计划 vs 实际
 > 3. **开发方法论 + 自查方法**：可直接复制给新协作者
 
-**最后更新**：2026-06-10 15:00 · **作者**：Cursor Agent + Donny
+**最后更新**：2026-06-10 · **协作**：Mike（后端）+ Donny（产品/架构）· **任务表**：[TASK-PROGRESS-MASTER](./delivery/TASK-PROGRESS-MASTER.md)
 
 ---
 
@@ -71,7 +71,7 @@
 |----|------|------|------|------|
 | L1 | ~~导出格式 xlsx（spec）vs csv（实现）~~ | ✅ 已对齐 | S-R19 自查：`excel-export.ts` 用 XLSX 库生成 .xlsx，PRD 未明确格式 | 原 P1 backlog 误判，已 close |
 | L2 | ~~30+ 文件 enum literal 清理~~ | ✅ 设计内 | S-R19 自查：`enum-alias.ts` 工具已规范高风险面，剩余为类型声明/mock 历史值（合理） | 永久方案非 P1 backlog |
-| L3 | **ADR-008 oa_content 加 author_id** | P0 待产品决策 | S-R9 走查发现 schema drift | ADR-008 方案 A/B/C 已定，效率页 KPI 0 + ADR 提示已优雅降级 |
+| L3 | **ADR-008 oa_content 加 author_id** | 🟡 后端 ✅ / 前端待闭环 | S-R21-Mike 已实施方案 A | Donny：S-R21-Donny 效率页去占位 + 真 KPI |
 | L4 | ~~SOP `pageNum` 不匹配~~ | ✅ 已修 | S-R11 走查已修（pageNo→pageNum） | OVERVIEW 老状态，已 close |
 | L5 | seed V18-V23 CJK 截断（PowerShell 终端显示） | 0（DB 存的是真中文） | 浏览器显示正常 | 仅显示问题 |
 | L6 | **4 个 error code 冲突修复** | ✅ 已修 | S-R19 自查发现：1500/2006/2008/2009 重复 | 修 OaErrorCodes + 11 IT，250/250 全绿 |
@@ -310,11 +310,11 @@ vo 加全字段（占位 0）
 ### 4.2 切片分配（避免冲突）
 
 每人 1 个 slice，**互不重叠文件范围**：
-- slice 标题：`S-R{N}-{人名缩写}`（如 `S-R11-Alice`）
-- 文件范围：在 todo list 第一项写明
-- 改后端必跑 mvn test 全套
-- 改前端必浏览器复测
-- 完成写报告 + 更新 SESSION-PROGRESS
+- slice 标题：`S-R{N}-{Mike|Donny}`
+- **个人任务表**：`docs/delivery/TASK-PROGRESS-MIKE.md` · `TASK-PROGRESS-DONNY.md`
+- **总表**：`docs/delivery/TASK-PROGRESS-MASTER.md`（每完成 1 项必更新）
+- 改后端必跑 mvn test 全套；改前端必 Playwright/浏览器复测
+- 完成写报告 + 更新 SESSION-PROGRESS + `git pull` → commit → push
 
 ### 4.3 冲突解决
 
@@ -410,4 +410,4 @@ docs/
 5. **每改一处自查 7 条**（3.3 节）
 6. **完成写报告 + 同步文档**（3.4 / 3.5 节）
 
-**有问题随时问。** Donny + Cursor 都在。
+**有问题随时问。** Donny + Mike 按 [TASK-PROGRESS-MASTER](./delivery/TASK-PROGRESS-MASTER.md) 并行协作。

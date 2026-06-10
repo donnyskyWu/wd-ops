@@ -19,4 +19,6 @@ public interface ProductionContentService {
     void submitReview(Long id);
 
     void review(Long id, ContentReviewReq req);
+
+    void delete(Long id);
 }

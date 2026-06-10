@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.perf.OrderAttributionDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.sop.TaskDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.OrderAttributionMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
 import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
@@ -39,6 +40,7 @@ public class ProductivityReviewServiceImpl implements ProductivityReviewService 
     private final IpGroupMapper ipGroupMapper;
     private final TaskMapper taskMapper;
     private final OrderAttributionMapper orderAttributionMapper;
+    private final ContentMapper contentMapper;
 
     @Override
     public PageResult<ProductivityReviewVO> list(LocalDate startDate, LocalDate endDate,
@@ -66,9 +68,10 @@ public class ProductivityReviewServiceImpl implements ProductivityReviewService 
         // S-R9 B2: 一次 SQL 聚合 task + order_attribution KPI（按 user）
         Map<Long, Map<String, Object>> taskAgg = sumTask(tenantId, userIds, startDate, endDate);
         Map<Long, Map<String, Object>> orderAgg = sumOrder(tenantId, userIds, startDate, endDate);
+        Map<Long, Map<String, Object>> contentAgg = sumContent(tenantId, userIds, startDate, endDate);
 
         List<ProductivityReviewVO> voList = userPage.getRecords().stream()
-                .map(u -> toVO(u, taskAgg.get(u.getId()), orderAgg.get(u.getId())))
+                .map(u -> toVO(u, taskAgg.get(u.getId()), orderAgg.get(u.getId()), contentAgg.get(u.getId())))
                 .collect(Collectors.toList());
         return new PageResult<>(voList, userPage.getTotal());
     }
@@ -86,7 +89,9 @@ public class ProductivityReviewServiceImpl implements ProductivityReviewService 
                 .get(userId);
         Map<String, Object> orderRow = sumOrder(tenantId, Collections.singletonList(userId), startDate, endDate)
                 .get(userId);
-        vo.setSummary(toVO(user, taskRow, orderRow));
+        Map<String, Object> contentRow = sumContent(tenantId, Collections.singletonList(userId), startDate, endDate)
+                .get(userId);
+        vo.setSummary(toVO(user, taskRow, orderRow, contentRow));
 
         // 任务列表（按 status 拆分）
         LambdaQueryWrapper<TaskDO> taskWrapper = new LambdaQueryWrapper<TaskDO>()
@@ -131,11 +136,11 @@ public class ProductivityReviewServiceImpl implements ProductivityReviewService 
             return m;
         }).collect(Collectors.toList()));
 
-        // 内容指标（占位：ContentDO 无 user 关联 → 全 0，记入 ADR-008）
+        // S-R21-Mike：内容指标按 oa_content.author_id 聚合
         vo.setContentMetrics(java.util.Map.of(
-                "publishCount", 0,
-                "avgReading", 0,
-                "hotCount", 0
+                "publishCount", contentRow != null ? toInt(contentRow.get("contentOutput")) : 0,
+                "avgReading", contentRow != null ? toLong(contentRow.get("avgRead")) : 0L,
+                "hotCount", contentRow != null ? toInt(contentRow.get("hitCount")) : 0
         ));
 
         // 趋势（按日营收/任务完成数）
@@ -159,8 +164,9 @@ public class ProductivityReviewServiceImpl implements ProductivityReviewService 
         List<Long> userIds = users.stream().map(SysUserDO::getId).collect(Collectors.toList());
         Map<Long, Map<String, Object>> taskAgg = sumTask(tenantId, userIds, startDate, endDate);
         Map<Long, Map<String, Object>> orderAgg = sumOrder(tenantId, userIds, startDate, endDate);
+        Map<Long, Map<String, Object>> contentAgg = sumContent(tenantId, userIds, startDate, endDate);
         return users.stream()
-                .map(u -> toVO(u, taskAgg.get(u.getId()), orderAgg.get(u.getId())))
+                .map(u -> toVO(u, taskAgg.get(u.getId()), orderAgg.get(u.getId()), contentAgg.get(u.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -222,6 +228,20 @@ public class ProductivityReviewServiceImpl implements ProductivityReviewService 
                 (a, b) -> a));
     }
 
+    private Map<Long, Map<String, Object>> sumContent(Long tenantId, List<Long> userIds,
+                                                      LocalDate startDate, LocalDate endDate) {
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        LocalDateTime startTime = startDate != null ? startDate.atStartOfDay() : null;
+        LocalDateTime endTime = endDate != null ? endDate.atTime(LocalTime.MAX) : null;
+        List<Map<String, Object>> rows = contentMapper.sumByUser(tenantId, userIds, startTime, endTime);
+        return rows.stream().collect(Collectors.toMap(
+                r -> toLong(r.get("userId")),
+                r -> r,
+                (a, b) -> a));
+    }
+
     private List<Map<String, Object>> buildTrend(Long tenantId, Long userId,
                                                  LocalDate startDate, LocalDate endDate) {
         LocalDate from = startDate != null ? startDate : LocalDate.now().minusDays(29);
@@ -245,7 +265,8 @@ public class ProductivityReviewServiceImpl implements ProductivityReviewService 
                 }).collect(Collectors.toList());
     }
 
-    private ProductivityReviewVO toVO(SysUserDO user, Map<String, Object> taskRow, Map<String, Object> orderRow) {
+    private ProductivityReviewVO toVO(SysUserDO user, Map<String, Object> taskRow,
+                                      Map<String, Object> orderRow, Map<String, Object> contentRow) {
         ProductivityReviewVO vo = new ProductivityReviewVO();
         vo.setUserId(user.getId());
         vo.setUserName(user.getNickname() != null ? user.getNickname() : user.getUsername());
@@ -273,6 +294,12 @@ public class ProductivityReviewServiceImpl implements ProductivityReviewService 
             vo.setCostAmount(cost);
             vo.setRoi(cost == 0 ? 0.0 : Math.round(rev / cost * 100.0) / 100.0);
             vo.setOrderCount(toInt(orderRow.get("orderCount")));
+        }
+        if (contentRow != null) {
+            vo.setContentOutput(toInt(contentRow.get("contentOutput")));
+            vo.setAvgRead(toLong(contentRow.get("avgRead")));
+            vo.setAvgPlay(toLong(contentRow.get("avgPlay")));
+            vo.setHitCount(toInt(contentRow.get("hitCount")));
         }
         return vo;
     }

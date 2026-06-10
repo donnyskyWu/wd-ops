@@ -381,7 +381,16 @@
 
 ---
 
-### 3.6 POST `/admin-api/oa/content/ai-generate`
+### 3.6 DELETE `/admin-api/oa/content/{id}`
+
+**业务**（S-R22-Mike）：
+- 仅 `DRAFT` / `REJECTED` 可删除
+- 其他状态 → `2010` CONTENT_STATUS_INVALID
+- 逻辑删除（`deleted=1`）
+
+---
+
+### 3.7 POST `/admin-api/oa/content/ai-generate`
 
 **请求体**：
 

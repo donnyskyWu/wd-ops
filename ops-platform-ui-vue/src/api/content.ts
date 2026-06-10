@@ -30,6 +30,10 @@ export function reviewContent(id: number, data: ReviewActionReq): Promise<boolea
   return request.post({ url: `/oa/content/${id}/review`, data })
 }
 
+export function deleteContent(id: number): Promise<boolean> {
+  return request.delete({ url: `/oa/content/${id}` })
+}
+
 /** S-07 stub：AI 生成占位 */
 export function aiGenerateContent(prompt: string): Promise<{ content: string; title: string }> {
   return request.post({ url: '/oa/content/ai-generate', data: { prompt } })
@@ -41,5 +45,6 @@ export default {
   updateContent,
   submitContentReview,
   reviewContent,
+  deleteContent,
   aiGenerateContent,
 }

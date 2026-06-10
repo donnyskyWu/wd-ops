@@ -30,7 +30,7 @@ class M9TenantS02IT extends OaITBase {
     void createTenantAndList() throws Exception {
         createTenant("M9-测试租户A");
 
-        mockMvc.perform(get("/admin-api/system/tenant/list")
+        mockMvc.perform(get("/admin-api/oa/system/tenant/list")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .param("tenantName", "M9-测试租户A"))
@@ -46,7 +46,7 @@ class M9TenantS02IT extends OaITBase {
     void duplicateTenantNameFails() throws Exception {
         createTenant("M9-重复租户");
 
-        mockMvc.perform(post("/admin-api/system/tenant/create")
+        mockMvc.perform(post("/admin-api/oa/system/tenant/create")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -64,7 +64,7 @@ class M9TenantS02IT extends OaITBase {
     @Test
     @DisplayName("M9-S-02: 非法租户状态 (1503)")
     void invalidTenantStatusFails() throws Exception {
-        mockMvc.perform(post("/admin-api/system/tenant/create")
+        mockMvc.perform(post("/admin-api/oa/system/tenant/create")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -85,7 +85,7 @@ class M9TenantS02IT extends OaITBase {
     void updateTenantStatus() throws Exception {
         Long tenantId = createTenant("M9-更新租户");
 
-        mockMvc.perform(put("/admin-api/system/tenant/update")
+        mockMvc.perform(put("/admin-api/oa/system/tenant/update")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -94,7 +94,7 @@ class M9TenantS02IT extends OaITBase {
                                 """, tenantId)))
                 .andExpect(jsonPath("$.code").value(0));
 
-        mockMvc.perform(get("/admin-api/system/tenant/list")
+        mockMvc.perform(get("/admin-api/oa/system/tenant/list")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .param("tenantName", "M9-更新租户"))
@@ -107,13 +107,13 @@ class M9TenantS02IT extends OaITBase {
     void deleteTenantRules() throws Exception {
         Long tenantId = createTenant("M9-待删租户");
 
-        mockMvc.perform(delete("/admin-api/system/tenant/delete")
+        mockMvc.perform(delete("/admin-api/oa/system/tenant/delete")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .param("id", String.valueOf(tenantId)))
                 .andExpect(jsonPath("$.code").value(0));
 
-        mockMvc.perform(delete("/admin-api/system/tenant/delete")
+        mockMvc.perform(delete("/admin-api/oa/system/tenant/delete")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .param("id", "1"))
@@ -121,7 +121,7 @@ class M9TenantS02IT extends OaITBase {
     }
 
     private Long createTenant(String name) throws Exception {
-        MvcResult result = mockMvc.perform(post("/admin-api/system/tenant/create")
+        MvcResult result = mockMvc.perform(post("/admin-api/oa/system/tenant/create")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)

@@ -38,6 +38,8 @@ __pycache__/
 .env.*.local
 *.pem
 *.key
+zhangwu
+zhangwu.pub
 
 # Logs / reports
 *.dumpstream

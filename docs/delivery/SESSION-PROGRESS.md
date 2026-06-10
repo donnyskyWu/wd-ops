@@ -607,6 +607,30 @@ L-γ 走查完成。
 - ✅ 写 [S-R19-报告-20260610.md](./gates/S-R19-报告-20260610.md)
 - ✅ OVERVIEW §1.5 同步：L1/L2/L4 → ✅；L3 保留 P0；新增 L6 ✅
 
+### 2026-06-10 · 协作机制：Mike + Donny 双人任务表
+
+#### 完成
+- ✅ 新增 [TASK-PROGRESS-MASTER.md](./TASK-PROGRESS-MASTER.md)（总表 + 协作流程 + Git 同步规则）
+- ✅ 新增 [TASK-PROGRESS-MIKE.md](./TASK-PROGRESS-MIKE.md)（Mike 个人 · 后端域）
+- ✅ 新增 [TASK-PROGRESS-DONNY.md](./TASK-PROGRESS-DONNY.md)（Donny 个人 · 前端/产品域）
+- ✅ MASTER §16 升级为 Mike + Donny 双人协作；§15 D-1/D-7 状态更新
+
+#### Wave-2 待办
+- Mike：S-R27-Mike（B-8）
+- Donny：S-R21-Donny（效率页 KPI UI）→ S-R25-Donny（P-3/P-4）
+
+### 2026-06-10 · S-R24 B-7 exportToExcel 5 页接通
+
+#### 完成
+- ✅ `Efficiency.vue`：后端 CSV 失败时降级 `exportToExcel(productivityList)`
+- ✅ `content/index.vue`：工具栏导出按钮 + 列表字段映射导出
+- ✅ `AccountCostManage.vue`：`handleProcessExport` 接通过程成本表
+- ✅ `FinancialAnalysis.vue`：后端 exportRoi 失败时降级 breakdown 表
+- ✅ `MetricManage.vue`：工具栏导出按钮 + 指标列表
+- ✅ `FansAnalysis.vue`（bonus）：后端失败时降级 tableData
+- ✅ Playwright P2-#14：`missing.length === 0`（2 passed）
+- ✅ MASTER §15 B-7 → ✅
+
 ### 2026-06-10 20:30 · S-R20 进度整理 + 全页自查待办 + 多成员分工
 
 用户提问"将进度整理计划进度表中，然后整理一下目前要将所有页面进行自查的待办任务，同时规划下如果增加一位成员协同来做，怎么进行任务分工" → S-R20 报告：
@@ -668,4 +692,4 @@ L-γ 走查完成。
 | L-新-4 | SOP `pageNum` 修前端 pageNo | P2 SOP 走查时 |
 
 ---
-*最后更新：2026-06-10 15:00*
+*最后更新：2026-06-10 · S-R24*

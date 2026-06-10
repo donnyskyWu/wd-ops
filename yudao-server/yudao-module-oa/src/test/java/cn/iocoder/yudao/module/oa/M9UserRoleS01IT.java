@@ -32,7 +32,7 @@ class M9UserRoleS01IT extends OaITBase {
 
         createUser("m9_user_a", "M9测试用户A", roleId);
 
-        mockMvc.perform(get("/admin-api/system/user/list")
+        mockMvc.perform(get("/admin-api/oa/system/user/list")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .param("username", "m9_user_a"))
@@ -49,7 +49,7 @@ class M9UserRoleS01IT extends OaITBase {
         Long roleId = createRole("M9_TEST_DUP", "M9重复测试");
         createUser("m9_user_dup", "重复用户1", roleId);
 
-        mockMvc.perform(post("/admin-api/system/user/create")
+        mockMvc.perform(post("/admin-api/oa/system/user/create")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -70,7 +70,7 @@ class M9UserRoleS01IT extends OaITBase {
     void invalidUserStatusFails() throws Exception {
         Long roleId = createRole("M9_TEST_STAT", "M9状态测试");
 
-        mockMvc.perform(post("/admin-api/system/user/create")
+        mockMvc.perform(post("/admin-api/oa/system/user/create")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -90,14 +90,14 @@ class M9UserRoleS01IT extends OaITBase {
     void assignPermissionAndList() throws Exception {
         Long roleId = createRole("M9_TEST_PERM", "M9权限测试");
 
-        mockMvc.perform(get("/admin-api/system/permission/list")
+        mockMvc.perform(get("/admin-api/oa/system/permission/list")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.length()").value(21));
 
-        mockMvc.perform(post("/admin-api/system/role/assign-permission")
+        mockMvc.perform(post("/admin-api/oa/system/role/assign-permission")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -106,7 +106,7 @@ class M9UserRoleS01IT extends OaITBase {
                                 """, roleId)))
                 .andExpect(jsonPath("$.code").value(0));
 
-        mockMvc.perform(get("/admin-api/system/role/permissions")
+        mockMvc.perform(get("/admin-api/oa/system/role/permissions")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .param("roleId", String.valueOf(roleId)))
@@ -120,7 +120,7 @@ class M9UserRoleS01IT extends OaITBase {
         Long roleId = createRole("M9_TEST_UPD", "M9更新测试");
         Long userId = createUser("m9_user_upd", "待更新用户", roleId);
 
-        mockMvc.perform(put("/admin-api/system/user/update")
+        mockMvc.perform(put("/admin-api/oa/system/user/update")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -129,7 +129,7 @@ class M9UserRoleS01IT extends OaITBase {
                                 """, userId)))
                 .andExpect(jsonPath("$.code").value(0));
 
-        mockMvc.perform(delete("/admin-api/system/user/delete")
+        mockMvc.perform(delete("/admin-api/oa/system/user/delete")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .param("id", String.valueOf(userId)))
@@ -137,7 +137,7 @@ class M9UserRoleS01IT extends OaITBase {
     }
 
     private Long createRole(String code, String name) throws Exception {
-        MvcResult result = mockMvc.perform(post("/admin-api/system/role/create")
+        MvcResult result = mockMvc.perform(post("/admin-api/oa/system/role/create")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -150,7 +150,7 @@ class M9UserRoleS01IT extends OaITBase {
     }
 
     private Long createUser(String username, String nickname, Long roleId) throws Exception {
-        MvcResult result = mockMvc.perform(post("/admin-api/system/user/create")
+        MvcResult result = mockMvc.perform(post("/admin-api/oa/system/user/create")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)

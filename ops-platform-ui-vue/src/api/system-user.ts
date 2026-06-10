@@ -1,6 +1,6 @@
 /**
  * M9 S-01 用户/角色/权限 API
- * 契约: /admin-api/system/user|role|permission/*
+ * 契约: /admin-api/oa/system/user|role|permission/*（S-R23 规范路径；旧 /system/* 仍兼容）
  */
 import { request } from '@/utils/request'
 
@@ -55,7 +55,7 @@ export function fetchUserList(params: {
   pageNo?: number
   pageSize?: number
 }) {
-  return request.get<UserPageResult>({ url: '/system/user/list', params })
+  return request.get<UserPageResult>({ url: '/oa/system/user/list', params })
 }
 
 export function createUser(data: {
@@ -69,7 +69,7 @@ export function createUser(data: {
   roleIds: number[]
   remark?: string
 }) {
-  return request.post<number>({ url: '/system/user/create', data })
+  return request.post<number>({ url: '/oa/system/user/create', data })
 }
 
 export function updateUser(data: {
@@ -83,37 +83,37 @@ export function updateUser(data: {
   roleIds?: number[]
   remark?: string
 }) {
-  return request.put<boolean>({ url: '/system/user/update', data })
+  return request.put<boolean>({ url: '/oa/system/user/update', data })
 }
 
 export function deleteUser(id: number) {
-  return request.delete<boolean>({ url: '/system/user/delete', params: { id } })
+  return request.delete<boolean>({ url: '/oa/system/user/delete', params: { id } })
 }
 
 export function fetchRoleList(params?: { name?: string; code?: string; pageNo?: number; pageSize?: number }) {
-  return request.get<RolePageResult>({ url: '/system/role/list', params: { pageNo: 1, pageSize: 100, ...params } })
+  return request.get<RolePageResult>({ url: '/oa/system/role/list', params: { pageNo: 1, pageSize: 100, ...params } })
 }
 
 export function createRole(data: { code: string; name: string; remark?: string }) {
-  return request.post<number>({ url: '/system/role/create', data })
+  return request.post<number>({ url: '/oa/system/role/create', data })
 }
 
 export function updateRole(data: { id: number; name?: string; remark?: string }) {
-  return request.put<boolean>({ url: '/system/role/update', data })
+  return request.put<boolean>({ url: '/oa/system/role/update', data })
 }
 
 export function deleteRole(id: number) {
-  return request.delete<boolean>({ url: '/system/role/delete', params: { id } })
+  return request.delete<boolean>({ url: '/oa/system/role/delete', params: { id } })
 }
 
 export function assignRolePermission(data: { roleId: number; permissionIds: number[] }) {
-  return request.post<boolean>({ url: '/system/role/assign-permission', data })
+  return request.post<boolean>({ url: '/oa/system/role/assign-permission', data })
 }
 
 export function fetchRolePermissions(roleId: number) {
-  return request.get<PermissionVO[]>({ url: '/system/role/permissions', params: { roleId } })
+  return request.get<PermissionVO[]>({ url: '/oa/system/role/permissions', params: { roleId } })
 }
 
 export function fetchPermissionList() {
-  return request.get<PermissionVO[]>({ url: '/system/permission/list' })
+  return request.get<PermissionVO[]>({ url: '/oa/system/permission/list' })
 }

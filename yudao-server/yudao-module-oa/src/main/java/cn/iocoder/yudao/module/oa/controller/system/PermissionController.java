@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin-api/system/permission")
+@RequestMapping({"/admin-api/oa/system/permission", "/admin-api/system/permission"})
 @RequiredArgsConstructor
 public class PermissionController {
 

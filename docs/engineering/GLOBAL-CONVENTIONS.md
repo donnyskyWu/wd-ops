@@ -67,7 +67,7 @@
 
 1. **数据字典表** `sys_dict_type` + `sys_dict_data`（沿用 yudao 框架）
 2. **字典项** 通过 `## 9. 系统管理` 的字典管理维护
-3. **API** 提供 `GET /admin-api/system/dict/type?type={dict_type}` 拉取字典项
+3. **API** 提供 `GET /admin-api/oa/dict/data?type={dict_type}` 拉取字典项（ADR-006）
 4. **前端** 使用 `<DictSelect dict-type="dict_content_type" />` 组件自动加载
 5. **后端校验**：使用 `@InDict(type="dict_content_type")` 自研注解，校验入参必须在字典内
 
@@ -352,7 +352,7 @@ public class AccountCreateReq {
 
 - 表：`sys_dict_type`（字典类型）、`sys_dict_data`（字典项）
 - 维护入口：`## 9. 系统管理 > 字典管理`
-- API：`GET /admin-api/system/dict/type?type={dictType}`
+- API：`GET /admin-api/oa/dict/data?type={dictType}`（ADR-006）
 
 ### 6.2 字典项结构
 

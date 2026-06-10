@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/admin-api/system/tenant")
+@RequestMapping({"/admin-api/oa/system/tenant", "/admin-api/system/tenant"})
 @Validated
 @RequiredArgsConstructor
 public class TenantController {

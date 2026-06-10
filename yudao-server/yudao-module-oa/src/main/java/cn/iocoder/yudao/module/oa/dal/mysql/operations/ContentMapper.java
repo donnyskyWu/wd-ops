@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Select;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 @Mapper
@@ -38,4 +39,31 @@ public interface ContentMapper extends BaseMapper<ContentDO> {
                                  @Param("accountIds") Collection<Long> accountIds,
                                  @Param("startDate") LocalDateTime startDate,
                                  @Param("endDate") LocalDateTime endDate);
+
+    // S-R21-Mike / ADR-008：按 author_id（sys_user.id）聚合内容 KPI
+    @Select("""
+            <script>
+            SELECT
+              author_id                                              AS userId,
+              COUNT(*)                                               AS contentOutput,
+              COALESCE(ROUND(AVG(read_count)), 0)                   AS avgRead,
+              0                                                      AS avgPlay,
+              SUM(CASE WHEN is_hit = 1 THEN 1 ELSE 0 END)            AS hitCount
+            FROM oa_content
+            WHERE tenant_id = #{tenantId}
+              AND deleted = 0
+              AND author_id IS NOT NULL
+              AND author_id IN
+              <foreach collection='userIds' item='id' open='(' separator=',' close=')'>
+                #{id}
+              </foreach>
+              <if test='startDate != null'>AND publish_time &gt;= #{startDate}</if>
+              <if test='endDate != null'>AND publish_time &lt;= #{endDate}</if>
+            GROUP BY author_id
+            </script>
+            """)
+    List<Map<String, Object>> sumByUser(@Param("tenantId") Long tenantId,
+                                        @Param("userIds") Collection<Long> userIds,
+                                        @Param("startDate") LocalDateTime startDate,
+                                        @Param("endDate") LocalDateTime endDate);
 }
