@@ -25,7 +25,7 @@ public interface InternalContentService {
      * @param page         页码（从 1 开始）
      * @param size         每页条数
      */
-    PageResult<InternalContentVO> list(String platformType, String dataSource,
+    PageResult<InternalContentVO> list(String platformType, String dataSource, String contentType,
                                        Long ipGroupId, String keyword,
                                        LocalDate startDate, LocalDate endDate,
                                        Integer page, Integer size);

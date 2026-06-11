@@ -12,6 +12,7 @@ public class ContentAnalysisVO {
     private String accountName;
     private String title;
     private String platformType;
+    private String ipGroupName;
     private String contentType;
     private LocalDateTime publishTime;
     private Long readCount;

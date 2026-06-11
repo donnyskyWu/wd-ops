@@ -154,6 +154,11 @@ public class UserServiceImpl implements UserService {
         sysUserMapper.deleteById(id);
     }
 
+    @Override
+    public UserRespVO profile() {
+        return toResp(getRequiredInTenant(TenantContextHolder.getUserId()));
+    }
+
     private void bindRoles(Long userId, List<Long> roleIds) {
         for (Long roleId : roleIds) {
             SysUserRoleDO rel = new SysUserRoleDO();

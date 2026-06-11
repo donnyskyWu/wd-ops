@@ -132,6 +132,7 @@ public class AiModelConfigServiceImpl implements AiModelConfigService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M8-ai-model", action = "test-connection")
     public boolean testConnection(Long id) {
         AiModelConfigDO existing = getRequired(id);
         if (StrUtil.isBlank(existing.getApiEndpoint())) {

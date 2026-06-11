@@ -32,6 +32,7 @@
 | 参数 | 字典 |
 |------|------|
 | platformType | `dict_platform_type` |
+| contentType | `dict_content_type` |
 | ipGroupId | - |
 | industry | 固定值 |
 | startDate / endDate | - |
@@ -72,6 +73,7 @@
 | `monitorFreq` | `dict_monitor_freq` | 5min/30min/1h/24h | 1503 |
 | `alertLevel` | `dict_alert_level` | 低/中/高/紧急 | 1503 |
 | `workType` | `dict_work_type` | 视频/图文/直播/动态 | 1503 |
+| `contentType` | `dict_content_type` | 短视频/文章/直播（与 M1 内部作品一致） | 1503 |
 | `alertType` | `dict_alert_type` | 流量异常/评论异常/删除/限流 | 1503 |
 
 ### 使用规范

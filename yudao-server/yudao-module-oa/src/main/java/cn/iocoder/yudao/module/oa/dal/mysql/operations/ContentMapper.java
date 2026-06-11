@@ -33,12 +33,16 @@ public interface ContentMapper extends BaseMapper<ContentDO> {
               </foreach>
               <if test='startDate != null'>AND publish_time &gt;= #{startDate}</if>
               <if test='endDate != null'>AND publish_time &lt;= #{endDate}</if>
+              <if test='platformType != null and platformType != ""'>AND platform_type = #{platformType}</if>
+              <if test='contentType != null and contentType != ""'>AND content_type = #{contentType}</if>
             </script>
             """)
     Map<String, Object> sumStats(@Param("tenantId") Long tenantId,
                                  @Param("accountIds") Collection<Long> accountIds,
                                  @Param("startDate") LocalDateTime startDate,
-                                 @Param("endDate") LocalDateTime endDate);
+                                 @Param("endDate") LocalDateTime endDate,
+                                 @Param("platformType") String platformType,
+                                 @Param("contentType") String contentType);
 
     // S-R21-Mike / ADR-008：按 author_id（sys_user.id）聚合内容 KPI
     @Select("""

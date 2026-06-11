@@ -46,13 +46,25 @@ export function updatePlatformAccount(data: Record<string, unknown>) {
 /**
  * 获取粉丝趋势数据
  */
-export function getFollowerTrend(accountId: number): Promise<FollowerTrendPoint[]> {
-  return request.get({ url: `/oa/account/${accountId}/follower-trend` }) as unknown as Promise<FollowerTrendPoint[]>
+export function getFollowerTrend(
+  accountId: number,
+  params?: { startDate?: string; endDate?: string },
+): Promise<FollowerTrendPoint[]> {
+  return request.get({
+    url: `/oa/account-analysis/${accountId}/follower-trend`,
+    params,
+  }) as unknown as Promise<FollowerTrendPoint[]>
 }
 
 /**
- * 获取内容趋势数据
+ * 获取内容产出趋势（按日发布数）
  */
-export function getContentTrend(accountId: number): Promise<ContentTrendPoint[]> {
-  return request.get({ url: `/oa/account/${accountId}/content-trend` }) as unknown as Promise<ContentTrendPoint[]>
+export function getContentTrend(
+  accountId: number,
+  params?: { startDate?: string; endDate?: string },
+): Promise<ContentTrendPoint[]> {
+  return request.get({
+    url: `/oa/account-analysis/${accountId}/content-trend`,
+    params,
+  }) as unknown as Promise<ContentTrendPoint[]>
 }

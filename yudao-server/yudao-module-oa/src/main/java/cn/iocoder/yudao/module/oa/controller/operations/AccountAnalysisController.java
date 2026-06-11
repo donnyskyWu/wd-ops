@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/admin-api/oa/account-analysis")
@@ -52,5 +53,21 @@ public class AccountAnalysisController {
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer size) {
         return CommonResult.success(accountAnalysisService.listAccountContents(accountId, page, size));
+    }
+
+    @GetMapping("/{id}/follower-trend")
+    public CommonResult<List<Map<String, Object>>> followerTrend(
+            @PathVariable("id") Long accountId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return CommonResult.success(accountAnalysisService.accountFollowerTrend(accountId, startDate, endDate));
+    }
+
+    @GetMapping("/{id}/content-trend")
+    public CommonResult<List<Map<String, Object>>> contentTrend(
+            @PathVariable("id") Long accountId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return CommonResult.success(accountAnalysisService.accountContentTrend(accountId, startDate, endDate));
     }
 }

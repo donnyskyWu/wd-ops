@@ -116,4 +116,30 @@ class M1WorksAnalysisStatsIT extends OaITBase {
                 .andExpect(jsonPath("$.data.total").value(greaterThanOrEqualTo(0)))
                 .andExpect(jsonPath("$.data.list").isArray());
     }
+
+    @Test
+    @DisplayName("contentType=ARTICLE 过滤作品列表")
+    void listContentTypeFilter() throws Exception {
+        mockMvc.perform(get("/admin-api/oa/content-analysis/list")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT)
+                        .param("contentType", "ARTICLE")
+                        .param("page", "1")
+                        .param("size", "50"))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.list").isArray());
+    }
+
+    @Test
+    @DisplayName("internal-content contentType 过滤")
+    void internalContentTypeFilter() throws Exception {
+        mockMvc.perform(get("/admin-api/oa/internal-content/list")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT)
+                        .param("contentType", "SHORT_VIDEO")
+                        .param("page", "1")
+                        .param("size", "20"))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.list").isArray());
+    }
 }

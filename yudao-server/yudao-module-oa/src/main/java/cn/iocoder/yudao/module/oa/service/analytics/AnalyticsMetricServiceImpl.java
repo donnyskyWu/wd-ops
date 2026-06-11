@@ -13,6 +13,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.perf.MetricDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfTemplateItemDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.MetricMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateItemMapper;
+import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.service.support.SqlSafetySupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -49,6 +50,7 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M6-metric", action = "create")
     public Long create(MetricCreateReq req) {
         Long tenantId = requireTenantId();
         assertCodeUnique(tenantId, req.getMetricCode(), null);
@@ -69,6 +71,7 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M6-metric", action = "update")
     public void update(MetricUpdateReq req) {
         MetricDO existing = getRequired(req.getId());
         assertCodeUnique(existing.getTenantId(), req.getMetricCode(), existing.getId());
@@ -93,6 +96,7 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M6-metric", action = "delete")
     public void delete(Long id) {
         MetricDO existing = getRequired(id);
         Long refCount = perfTemplateItemMapper.selectCount(new LambdaQueryWrapper<PerfTemplateItemDO>()

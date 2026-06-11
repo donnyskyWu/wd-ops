@@ -21,6 +21,8 @@ public class SysDictDataDO {
     private String dictValue;
     private Integer sort;
     private String status;
+    private String colorType;
+    private String remark;
     private String creator;
     private LocalDateTime createTime;
     private String updater;

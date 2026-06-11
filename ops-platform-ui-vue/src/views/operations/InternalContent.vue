@@ -1,13 +1,16 @@
 <template>
   <div class="internal-content-page">
     <!-- 7平台Tab -->
-    <el-tabs v-model="activePlatform" @tab-click="handleTabChange" class="platform-tabs">
+    <el-tabs v-model="activePlatform" @tab-change="handleTabChange" class="platform-tabs">
       <el-tab-pane v-for="platform in platforms" :key="platform.value" :label="platform.label" :name="platform.value" />
     </el-tabs>
 
     <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
       <el-form-item label="IP组">
         <IpGroupTreeSelect v-model="searchForm.ipGroupId" />
+      </el-form-item>
+      <el-form-item label="内容类型">
+        <DictSelect v-model="searchForm.contentType" dict-type="dict_content_type" placeholder="全部" clearable />
       </el-form-item>
       <el-form-item label="关键词"><el-input v-model="searchForm.keyword" placeholder="内容标题" clearable /></el-form-item>
       <el-form-item label="日期范围">
@@ -28,14 +31,26 @@
     <div class="action-bar">
       <span class="total-info">共 {{ pagination.total }} 条</span>
       <el-button type="primary" plain @click="openMyImports">我的补录</el-button>
+      <el-button type="warning" plain @click="openImportReview">补录审核</el-button>
     </div>
 
     <ContentWrap>
       <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%">
         <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="platformName" label="平台" width="100" />
+        <el-table-column prop="contentType" label="类型" width="90" align="center">
+          <template #default="{ row }">
+            <DictLabel dict-type="dict_content_type" :value="row.contentType" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="platformType" label="平台" width="100">
+          <template #default="{ row }">
+            <DictLabel dict-type="dict_platform_type" :value="row.platformType" />
+          </template>
+        </el-table-column>
         <el-table-column prop="accountName" label="账号" width="140" />
-        <el-table-column prop="publishTime" label="发布时间" width="160" />
+        <el-table-column prop="publishTime" label="发布时间" width="160">
+          <template #default="{ row }">{{ formatDateTime(row.publishTime) }}</template>
+        </el-table-column>
         <el-table-column prop="readCount" label="阅读量" width="100" align="right">
           <template #default="{ row }">{{ (row.readCount || 0).toLocaleString() }}</template>
         </el-table-column>
@@ -76,8 +91,8 @@
       <div ref="trendChartRef" style="height: 400px;"></div>
     </el-drawer>
 
-    <!-- 我的补录对话框 -->
-    <el-dialog v-model="myImportsVisible" title="我的补录" width="900px">
+    <!-- 补录列表（我的补录 / 待审核） -->
+    <el-dialog v-model="myImportsVisible" :title="myImportsDialogTitle" width="900px">
       <el-table v-loading="myImportsLoading" :data="myImportsList" border stripe>
         <el-table-column prop="contentTitle" label="内容标题" min-width="180" show-overflow-tooltip />
         <el-table-column prop="statDate" label="数据日期" width="120" />
@@ -97,7 +112,9 @@
         </el-table-column>
         <el-table-column prop="submitterName" label="提交人" width="120" />
         <el-table-column prop="remark" label="备注" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="createTime" label="提交时间" width="170" />
+        <el-table-column prop="createTime" label="提交时间" width="170">
+          <template #default="{ row }">{{ formatDateTime(row.createTime) }}</template>
+        </el-table-column>
         <el-table-column label="操作" width="180" align="center" fixed="right">
           <template #default="{ row }">
             <el-button v-if="row.reviewStatus === 0" link type="success" size="small" @click="handleReview(row, 1)">通过</el-button>
@@ -156,7 +173,8 @@
 
 <script setup lang="ts">
 // P-GATE-UNMOCK-R S-R2-E：去 mock 接真 API
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
@@ -167,7 +185,11 @@ import TableSearch from '@/components/TableSearch.vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
+import { formatDateTime } from '@/utils'
+
+const route = useRoute()
 
 // 补录类型：前端不再硬编码 mapping，由 DictSelect 直接显示 dict_content_import_type 真实值
 // （S-R5 P2：之前硬编码 4 个含 2 个 dict 没有的 ACCOUNT_BANNED/OTHER，删）
@@ -192,6 +214,7 @@ function getDefaultWeekRange(): string[] {
 
 const searchForm = reactive({
   keyword: '',
+  contentType: undefined as string | undefined,
   dateRange: [] as string[],
   ipGroupId: undefined as number | undefined,
   // S-R7-B4：删 importType（content 列表表无此字段，importType 是 oa_content_import 表的字段）
@@ -205,11 +228,16 @@ const trendChartRef = ref<HTMLElement>()
 const trendDateRange = ref<string[]>(getDefaultWeekRange())
 const trendQuickRange = ref<'7d' | '30d' | 'custom'>('7d')
 
-// ==================== 我的补录 ====================
+// ==================== 我的补录 / 补录审核 ====================
 const myImportsVisible = ref(false)
 const myImportsLoading = ref(false)
 const myImportsList = ref<any[]>([])
 const myImportsPagination = reactive({ pageNo: 1, pageSize: 10, total: 0 })
+const myImportsReviewOnly = ref(false)
+const importReviewStatusFilter = ref<number | undefined>(undefined)
+const myImportsDialogTitle = computed(() =>
+  myImportsReviewOnly.value ? '补录审核（待处理）' : '我的补录',
+)
 // S-R5 P2：审核状态 + 补录类型 label 映射（与 dict_content_import_type 对齐）
 const REVIEW_STATUS_MAP: Record<number, { label: string; tag: 'info' | 'success' | 'danger' }> = {
   0: { label: '待审核', tag: 'info' },
@@ -299,6 +327,7 @@ const loadData = async () => {
     const params = {
       // S-R3：用 normalize 转换（前端 ALL→后端 ALL，其他按 alias）
       platformType: activePlatform.value === 'ALL' ? undefined : normalizePlatform(activePlatform.value),
+      contentType: searchForm.contentType || undefined,
       ipGroupId: searchForm.ipGroupId,
       keyword: searchForm.keyword || undefined,
       // S-R7-B4：删 importType（content 列表表无此字段）
@@ -330,6 +359,7 @@ const handleTabChange = () => { pagination.pageNo = 1; pagination.total = 0; loa
 const handleSearch = () => { pagination.pageNo = 1; pagination.total = 0; loadData() }
 const handleReset = () => {
   searchForm.keyword = ''
+  searchForm.contentType = undefined
   searchForm.dateRange = []
   searchForm.ipGroupId = undefined
   // S-R7-B4：删 importType reset
@@ -404,10 +434,29 @@ const handleViewTrend = async (row: any) => {
   await renderTrendChart(row)
 }
 
-onMounted(() => loadData())
+onMounted(async () => {
+  await loadData()
+  const importsQuery = route.query.imports as string | undefined
+  if (importsQuery === 'review' || importsQuery === '1') {
+    const reviewStatus = route.query.reviewStatus != null
+      ? Number(route.query.reviewStatus)
+      : importsQuery === 'review' ? 0 : undefined
+    await openImportReview(reviewStatus)
+  }
+})
 
-// ==================== 我的补录方法 ====================
+// ==================== 我的补录 / 补录审核方法 ====================
 const openMyImports = async () => {
+  myImportsReviewOnly.value = false
+  importReviewStatusFilter.value = undefined
+  myImportsVisible.value = true
+  myImportsPagination.pageNo = 1
+  await loadMyImports()
+}
+
+const openImportReview = async (reviewStatus = 0) => {
+  myImportsReviewOnly.value = true
+  importReviewStatusFilter.value = reviewStatus
   myImportsVisible.value = true
   myImportsPagination.pageNo = 1
   await loadMyImports()
@@ -416,10 +465,14 @@ const openMyImports = async () => {
 const loadMyImports = async () => {
   myImportsLoading.value = true
   try {
-    const res: any = await getContentImportList({
+    const params: Record<string, unknown> = {
       page: myImportsPagination.pageNo,
       size: myImportsPagination.pageSize,
-    })
+    }
+    if (importReviewStatusFilter.value != null) {
+      params.reviewStatus = importReviewStatusFilter.value
+    }
+    const res: any = await getContentImportList(params)
     myImportsList.value = res?.list || []
     myImportsPagination.total = res?.total ?? 0
   } catch (e) {

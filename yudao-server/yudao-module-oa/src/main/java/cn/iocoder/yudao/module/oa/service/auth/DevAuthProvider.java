@@ -53,6 +53,7 @@ public class DevAuthProvider implements AuthProvider {
                 .tenantId(user.getTenantId())
                 .username(user.getUsername())
                 .nickname(user.getNickname())
+                .email(user.getEmail())
                 .authorities(authorities)
                 .dataScope(resolveDataScope(roles))
                 .ipGroupId(user.getIpGroupId())

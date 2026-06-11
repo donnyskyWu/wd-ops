@@ -95,10 +95,9 @@ export const mockDictMap: Record<string, Array<{ label: string; value: string; c
   ],
   // 内容类型
   dict_content_type: [
-    { label: '文章', value: 'article' },
-    { label: '短视频', value: 'short_video' },
-    { label: '直播', value: 'live' },
-    { label: '图文', value: 'image_text' },
+    { label: '文章', value: 'ARTICLE' },
+    { label: '短视频', value: 'SHORT_VIDEO' },
+    { label: '直播', value: 'LIVE' },
   ],
   // 绩效等级
   dict_perf_grade: [
@@ -266,21 +265,21 @@ export const mockDictMap: Record<string, Array<{ label: string; value: string; c
     { label: '天', value: 'DAY' },
     { label: '周', value: 'WEEK' },
   ],
-  // 采集状态
+  // 采集状态（STATE-M10 / GLOBAL-CONVENTIONS：5 态执行状态）
   dict_collect_status: [
-    { label: '启用', value: 'ENABLED', colorType: 'success' },
-    { label: '停用', value: 'DISABLED', colorType: 'info' },
+    { label: '待执行', value: 'PENDING', colorType: 'info' },
     { label: '执行中', value: 'RUNNING', colorType: 'primary' },
     { label: '成功', value: 'SUCCESS', colorType: 'success' },
     { label: '失败', value: 'FAILED', colorType: 'danger' },
     { label: '部分成功', value: 'PARTIAL', colorType: 'warning' },
   ],
-  // 质量检查类型
+  // 质量检查类型（PRD-M10 §4.2.3 / API-M10 COMPLETENESS 示例）
   dict_quality_check_type: [
-    { label: '非空', value: 'NOT_NULL' },
-    { label: '范围', value: 'RANGE' },
-    { label: '一致性', value: 'CONSISTENT' },
-    { label: '分布', value: 'DISTRIBUTION' },
+    { label: '完整性', value: 'COMPLETENESS' },
+    { label: '准确性', value: 'ACCURACY' },
+    { label: '一致性', value: 'CONSISTENCY' },
+    { label: '时效性', value: 'TIMELINESS' },
+    { label: '唯一性', value: 'UNIQUENESS' },
   ],
   // 质量级别
   dict_quality_level: [

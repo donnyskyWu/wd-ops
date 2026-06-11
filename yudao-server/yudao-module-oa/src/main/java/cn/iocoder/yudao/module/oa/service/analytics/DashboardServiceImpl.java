@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.oa.api.dto.analytics.DashboardCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.analytics.DashboardVO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.analytics.DashboardDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.analytics.DashboardMapper;
+import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M6-dashboard", action = "create")
     public Long create(DashboardCreateReq req) {
         Long tenantId = requireTenantId();
         DashboardDO entity = new DashboardDO();
@@ -57,6 +59,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M6-dashboard", action = "update-config")
     public void updateConfig(Long id, String layout) {
         DashboardDO entity = getRequired(id);
         entity.setLayoutJson(layout);

@@ -1,6 +1,9 @@
 <template>
   <div class="hot-works-page">
     <TableSearch v-model="searchForm" @search="loadData" @reset="handleReset">
+      <el-form-item label="作品类型">
+        <DictSelect v-model="searchForm.contentType" dict-type="dict_content_type" placeholder="全部" clearable />
+      </el-form-item>
       <el-form-item label="爆款阈值"><el-input-number v-model="searchForm.threshold" :min="1000" :step="1000" style="width: 150px" /> <span style="margin-left: 8px; color: #909399; font-size: 12px">播放量≥阈值</span></el-form-item>
     </TableSearch>
     <el-row :gutter="16" class="stats-row">
@@ -12,7 +15,16 @@
     <el-table :data="hotWorksList" v-loading="loading" stripe>
       <el-table-column prop="rank" label="排名" width="80" align="center"><template #default="{ row }"><el-tag :type="row.rank <= 3 ? 'danger' : ''">{{ row.rank }}</el-tag></template></el-table-column>
       <el-table-column prop="title" label="作品标题" min-width="200" />
-      <el-table-column prop="platform" label="平台" width="100" />
+      <el-table-column prop="contentType" label="类型" width="100" align="center">
+        <template #default="{ row }">
+          <DictLabel dict-type="dict_content_type" :value="row.contentType" />
+        </template>
+      </el-table-column>
+      <el-table-column prop="platform" label="平台" width="100">
+        <template #default="{ row }">
+          <DictLabel dict-type="dict_platform_type" :value="row.platform" />
+        </template>
+      </el-table-column>
       <el-table-column prop="views" label="播放量" width="120"><template #default="{ row }">{{ row.views.toLocaleString() }}</template></el-table-column>
       <el-table-column prop="likes" label="点赞" width="100"><template #default="{ row }">{{ row.likes.toLocaleString() }}</template></el-table-column>
       <el-table-column prop="hotScore" label="爆款指数" width="120"><template #default="{ row }"><el-rate v-model="row.hotScore" disabled /></template></el-table-column>
@@ -26,6 +38,9 @@
     <el-drawer v-model="detailVisible" title="爆款作品详情" size="520px">
       <el-descriptions v-if="currentRow" :column="1" border>
         <el-descriptions-item label="作品标题">{{ currentRow.title }}</el-descriptions-item>
+        <el-descriptions-item label="作品类型">
+          <DictLabel dict-type="dict_content_type" :value="currentRow.contentType" />
+        </el-descriptions-item>
         <el-descriptions-item label="平台">{{ currentRow.platform }}</el-descriptions-item>
         <el-descriptions-item label="播放量">{{ currentRow.views?.toLocaleString() }}</el-descriptions-item>
         <el-descriptions-item label="点赞">{{ currentRow.likes?.toLocaleString() }}</el-descriptions-item>
@@ -39,12 +54,15 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import TableSearch from '@/components/TableSearch.vue'
+import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import { getHitWorkList } from '@/api/monitor'
 import { mapExternalWork, pickMonitorPage } from '@/utils/monitor-map'
 
 interface HotWorkRow {
   rank: number
   title: string
+  contentType?: string
   platform: string
   views: number
   likes: number
@@ -52,7 +70,7 @@ interface HotWorkRow {
 }
 
 const loading = ref(false)
-const searchForm = reactive({ threshold: 1000000 })
+const searchForm = reactive({ threshold: 1000000, contentType: undefined as string | undefined })
 const stats = reactive({ totalHot: 0, totalViews: 0, avgLikes: 0, avgShares: 0 })
 const hotWorksList = ref<HotWorkRow[]>([])
 const detailVisible = ref(false)
@@ -68,7 +86,11 @@ const calcHotScore = (views: number) => {
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getHitWorkList({ pageNum: 1, pageSize: 100 })
+    const res = await getHitWorkList({
+      pageNum: 1,
+      pageSize: 100,
+      contentType: searchForm.contentType || undefined,
+    })
     const page = pickMonitorPage(res)
     const rows = page.list
       .map((raw, i) => mapExternalWork(raw as unknown as Record<string, unknown>, i))
@@ -76,6 +98,7 @@ const loadData = async () => {
       .map((w, i) => ({
         rank: i + 1,
         title: w.title,
+        contentType: w.contentType,
         platform: w.platform,
         views: w.playCount,
         likes: w.likeCount,
@@ -101,6 +124,7 @@ const handleDetail = (row: HotWorkRow) => {
 
 const handleReset = () => {
   searchForm.threshold = 1000000
+  searchForm.contentType = undefined
   loadData()
 }
 

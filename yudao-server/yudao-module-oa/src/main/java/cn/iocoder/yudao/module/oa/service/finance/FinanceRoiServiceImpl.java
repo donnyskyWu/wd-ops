@@ -14,6 +14,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.finance.AccountCostMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.OrderAttributionMapper;
+import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.service.support.OaTenantSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
@@ -123,6 +124,7 @@ public class FinanceRoiServiceImpl implements FinanceRoiService {
     }
 
     @Override
+    @AuditLog(module = "M5-finance-roi", action = "export")
     public ExportJobVO export(LocalDate startDate, LocalDate endDate) {
         OaTenantSupport.requireDateRange(startDate, endDate);
         return OaTenantSupport.stubExportJob();

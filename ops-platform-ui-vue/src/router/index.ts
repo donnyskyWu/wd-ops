@@ -15,6 +15,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/Dashboard.vue'),
         meta: { title: '首页仪表盘' }
       },
+      {
+        path: '/workbench-todos',
+        name: 'WorkbenchTodos',
+        component: () => import('@/views/WorkbenchTodos.vue'),
+        meta: { title: '全部待办' }
+      },
       // 旧路由 /dashboard-simple 和 /dashboard-full 已删除（统一用 /dashboard）
       // 运营管理
       {

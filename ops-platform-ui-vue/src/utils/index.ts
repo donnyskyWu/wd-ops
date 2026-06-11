@@ -2,6 +2,7 @@
  * 通用工具函数库
  */
 import { ElMessage } from 'element-plus'
+import dayjs from 'dayjs'
 
 /** 兼容 axios 直返与 { data } 包装两种响应形态 */
 export function unwrapApiData<T>(response: T | { data?: T }): T {
@@ -130,6 +131,13 @@ export function formatDate(date: Date, format: string = 'YYYYMMDD_HHmmss'): stri
     .replace('HH', hours)
     .replace('mm', minutes)
     .replace('ss', seconds)
+}
+
+/** 统一展示 yyyy-MM-dd HH:mm:ss */
+export function formatDateTime(value: string | Date | null | undefined): string {
+  if (value == null || value === '') return '-'
+  const parsed = dayjs(value)
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm:ss') : String(value)
 }
 
 /**

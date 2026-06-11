@@ -32,6 +32,7 @@ public class InternalContentController {
     public CommonResult<PageResult<InternalContentVO>> list(
             @RequestParam(required = false) String platformType,
             @RequestParam(required = false) String dataSource,
+            @RequestParam(required = false) String contentType,
             // S-R7-Bug4：补 4 个筛选项（之前 Spring 忽略）
             @RequestParam(required = false) Long ipGroupId,
             @RequestParam(required = false) String keyword,
@@ -39,7 +40,8 @@ public class InternalContentController {
             @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer size) {
-        return CommonResult.success(internalContentService.list(platformType, dataSource, ipGroupId, keyword, startDate, endDate, page, size));
+        return CommonResult.success(internalContentService.list(platformType, dataSource, contentType,
+                ipGroupId, keyword, startDate, endDate, page, size));
     }
 
     @PostMapping("/import")

@@ -15,12 +15,22 @@ export function getLowScoreWorkList(params: Record<string, unknown>) {
   return request.get({ url: '/oa/monitor/low-score/list', params })
 }
 
-export function getHighFollowerWorkList(params: Record<string, unknown>) {
+export function getHighFollowerAccountList(params: Record<string, unknown>) {
   return request.get({ url: '/oa/monitor/high-follower/list', params })
 }
 
-export function getLowFollowerWorkList(params: Record<string, unknown>) {
+export function getLowFollowerAccountList(params: Record<string, unknown>) {
   return request.get({ url: '/oa/monitor/low-follower/list', params })
+}
+
+/** @deprecated use getHighFollowerAccountList */
+export function getHighFollowerWorkList(params: Record<string, unknown>) {
+  return getHighFollowerAccountList(params)
+}
+
+/** @deprecated use getLowFollowerAccountList */
+export function getLowFollowerWorkList(params: Record<string, unknown>) {
+  return getLowFollowerAccountList(params)
 }
 
 export function getIpThemeStats(id: number) {

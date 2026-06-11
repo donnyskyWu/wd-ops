@@ -11,6 +11,7 @@ public class ExternalWorkVO {
     private Long id;
     private Long accountId;
     private String platformType;
+    private String contentType;
     private String title;
     private String workUrl;
     private Long playCount;

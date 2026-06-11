@@ -21,7 +21,7 @@ export type PlatformType =
 /**
  * 内容类型枚举
  */
-export type ContentType = 'ARTICLE' | 'VIDEO' | 'LIVE'
+export type ContentType = 'ARTICLE' | 'SHORT_VIDEO' | 'LIVE' | 'VIDEO'
 
 /**
  * 排序字段枚举

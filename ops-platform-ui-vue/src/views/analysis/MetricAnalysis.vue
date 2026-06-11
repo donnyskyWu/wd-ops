@@ -52,29 +52,32 @@
       </el-col>
     </el-row>
 
-    <el-card class="chart-card" shadow="never">
-      <template #header><div class="card-header"><span>指标趋势</span></div></template>
-      <div ref="trendChartRef" style="height: 400px" v-loading="loading" />
-    </el-card>
-
-    <el-card class="table-card" shadow="never">
-      <template #header><div class="card-header"><span>指标明细</span></div></template>
-      <el-table :data="metricList" border stripe v-loading="loading">
-        <template #empty><el-empty description="请选择指标并运行分析" /></template>
-        <el-table-column prop="metricName" label="指标名称" width="180" />
-        <el-table-column prop="metricType" label="类型" width="100">
-          <template #default="{ row }"><DictLabel dict-type="dict_perf_metric_type" :value="row.metricType" /></template>
-        </el-table-column>
-        <el-table-column prop="currentValue" label="当前值" width="120" align="right" />
-        <el-table-column prop="unit" label="单位" width="80" align="center" />
-        <el-table-column prop="rowCount" label="明细行数" width="100" align="right" />
-        <el-table-column prop="status" label="状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'qualified' ? 'success' : 'danger'">{{ row.status === 'qualified' ? '有数据' : '无数据' }}</el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+    <el-tabs v-model="activeViewTab" class="metric-view-tabs">
+      <el-tab-pane label="指标趋势" name="trend">
+        <el-card class="chart-card" shadow="never">
+          <div ref="trendChartRef" style="height: 400px" v-loading="loading" />
+        </el-card>
+      </el-tab-pane>
+      <el-tab-pane label="指标明细" name="detail">
+        <el-card class="table-card" shadow="never">
+          <el-table :data="metricList" border stripe v-loading="loading">
+            <template #empty><el-empty description="请选择指标并运行分析" /></template>
+            <el-table-column prop="metricName" label="指标名称" width="180" />
+            <el-table-column prop="metricType" label="类型" width="100">
+              <template #default="{ row }"><DictLabel dict-type="dict_perf_metric_type" :value="row.metricType" /></template>
+            </el-table-column>
+            <el-table-column prop="currentValue" label="当前值" width="120" align="right" />
+            <el-table-column prop="unit" label="单位" width="80" align="center" />
+            <el-table-column prop="rowCount" label="明细行数" width="100" align="right" />
+            <el-table-column prop="status" label="状态" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 'qualified' ? 'success' : 'danger'">{{ row.status === 'qualified' ? '有数据' : '无数据' }}</el-tag>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 
@@ -108,6 +111,7 @@ interface MetricResultRow {
 
 const queryFormRef = ref<FormInstance>()
 const loading = ref(false)
+const activeViewTab = ref<'trend' | 'detail'>('trend')
 const metricOptions = ref<MetricOption[]>([])
 
 const queryForm = reactive({
@@ -247,6 +251,9 @@ onMounted(() => loadMetricOptions())
       &.success { color: #67c23a; }
       &.danger { color: #f56c6c; }
     }
+  }
+  .metric-view-tabs {
+    margin-top: 8px;
   }
   .chart-card, .table-card {
     margin-bottom: 16px;

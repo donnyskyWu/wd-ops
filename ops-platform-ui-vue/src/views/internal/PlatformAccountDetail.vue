@@ -15,10 +15,10 @@
         <div class="header">
           <div>
             <h2 style="margin: 0">
-              <el-tag size="default">{{ detail.platformName }}</el-tag>
+              <el-tag size="default">{{ platformLabel(detail.platformType || detail.platformName) }}</el-tag>
               {{ detail.accountName }}
-              <el-tag :type="detail.status === 1 ? 'success' : 'info'" size="default" style="margin-left: 8px">
-                {{ detail.status === 1 ? '在用' : '停用' }}
+              <el-tag :type="detail.status === 'NORMAL' ? 'success' : 'info'" size="default" style="margin-left: 8px">
+                {{ detail.status === 'NORMAL' ? '正常' : detail.status === 'DISABLED' ? '停用' : detail.status }}
               </el-tag>
             </h2>
             <p class="meta">
@@ -43,7 +43,7 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="平台">
-                <el-input :model-value="detail.platformName" disabled />
+                <el-input :model-value="platformLabel(detail.platformType || detail.platformName)" disabled />
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -111,6 +111,9 @@
         </el-col>
       </el-row>
     </template>
+    <el-empty v-else-if="loadError" :description="loadError">
+      <el-button type="primary" @click="loadDetail">重试</el-button>
+    </el-empty>
   </div>
 </template>
 
@@ -127,11 +130,15 @@ import PhoneSelect from '@/components/selectors/PhoneSelect.vue'
 import {
   getPlatformAccountDetail,
   updatePlatformAccount as updatePlatformAccountV2,
+  getFollowerTrend,
+  getContentTrend,
 } from '@/api/account'
+import { PLATFORM_LABEL, type PlatformType } from '@/utils/enum-alias'
 
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
+const loadError = ref('')
 const editMode = ref(false)
 const submitting = ref(false)
 const detail = ref<any>(null)
@@ -178,8 +185,12 @@ const initContentChart = (dates: string[] = [], vals: number[] = []) => {
   })
 }
 
+const platformLabel = (platform: string) =>
+  PLATFORM_LABEL[platform as PlatformType] || platform || '-'
+
 const loadDetail = async () => {
   loading.value = true
+  loadError.value = ''
   try {
     const id = Number(route.params.id)
     const a: any = await getPlatformAccountDetail(id)
@@ -187,9 +198,9 @@ const loadDetail = async () => {
       ...a,
       platformName: a.platformType || a.platformName,
       platformAccountId: a.externalAccountId,
-      ipGroupName: a.ipGroupId ? `IP组#${a.ipGroupId}` : '-',
-      followerCount: a.followerCount || 0,
-      workCount: a.workCount || 0,
+      ipGroupName: a.ipGroupName || (a.ipGroupId ? `IP组#${a.ipGroupId}` : '-'),
+      followerCount: a.followerCount ?? 0,
+      workCount: a.workCount ?? 0,
     }
     Object.assign(form, {
       accountName: a.accountName,
@@ -201,7 +212,7 @@ const loadDetail = async () => {
     })
     // 趋势图：尝试调 getFollowerTrend/getContentTrend
     try {
-      const fts: any = await (await import('@/api/account')).getFollowerTrend(id)
+      const fts: any = await getFollowerTrend(id)
       const dates = (fts || []).map((p: any) => p.date || p.day || '')
       const vals = (fts || []).map((p: any) => p.followerCount || p.value || 0)
       initFollowerChart(dates, vals)
@@ -209,15 +220,18 @@ const loadDetail = async () => {
       initFollowerChart()
     }
     try {
-      const cts: any = await (await import('@/api/account')).getContentTrend(id)
+      const cts: any = await getContentTrend(id)
       const dates = (cts || []).map((p: any) => p.date || p.day || '')
       const vals = (cts || []).map((p: any) => p.workCount || p.value || 0)
       initContentChart(dates, vals)
     } catch {
       initContentChart()
     }
-  } catch {
+  } catch (e: any) {
     detail.value = null
+    loadError.value = e?.message?.includes('403') || e?.message?.includes('无权限')
+      ? '无权限查看该账号，请联系管理员'
+      : '账号详情加载失败，请稍后重试'
   } finally {
     loading.value = false
   }

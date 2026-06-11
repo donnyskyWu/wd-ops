@@ -1,12 +1,20 @@
 package cn.iocoder.yudao.module.oa.service.monitor;
 
+import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.api.dto.monitor.ExternalWorkVO;
+import cn.iocoder.yudao.module.oa.api.dto.monitor.MonitorFollowerAccountVO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.config.ThresholdConfigDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.monitor.ExternalWorkDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.operations.FollowerDailyDO;
+import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.config.ThresholdConfigMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.monitor.ExternalWorkMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +22,9 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,43 +37,49 @@ public class MonitorServiceImpl implements MonitorService {
     private static final long HIT_PLAY_THRESHOLD = 1_000_000L;
     private static final BigDecimal LOW_SCORE_THRESHOLD = new BigDecimal("0.20");
 
+    private static final long DEFAULT_HIGH_FANS = 1_000_000L;
+    private static final long DEFAULT_LOW_FANS = 10_000L;
+
     private final ExternalWorkMapper externalWorkMapper;
+    private final AccountMapper accountMapper;
+    private final FollowerDailyMapper followerDailyMapper;
+    private final ThresholdConfigMapper thresholdConfigMapper;
 
     @Override
-    public PageResult<ExternalWorkVO> externalList(String platformType, Long ipGroupId, String industry,
+    public PageResult<ExternalWorkVO> externalList(String platformType, String contentType, Long ipGroupId, String industry,
                                                    LocalDate startDate, LocalDate endDate,
                                                    Integer pageNum, Integer pageSize) {
-        return query(buildBaseWrapper(platformType, ipGroupId, industry, startDate, endDate), pageNum, pageSize);
+        return query(buildBaseWrapper(platformType, contentType, ipGroupId, industry, startDate, endDate), pageNum, pageSize);
     }
 
     @Override
-    public PageResult<ExternalWorkVO> hitList(String platformType, Long ipGroupId, LocalDate startDate, LocalDate endDate,
+    public PageResult<ExternalWorkVO> hitList(String platformType, String contentType, Long ipGroupId,
+                                              LocalDate startDate, LocalDate endDate,
                                               Integer pageNum, Integer pageSize) {
-        LambdaQueryWrapper<ExternalWorkDO> wrapper = buildBaseWrapper(platformType, ipGroupId, null, startDate, endDate);
+        LambdaQueryWrapper<ExternalWorkDO> wrapper = buildBaseWrapper(platformType, contentType, ipGroupId, null, startDate, endDate);
         wrapper.ge(ExternalWorkDO::getPlayCount, HIT_PLAY_THRESHOLD);
         return query(wrapper, pageNum, pageSize);
     }
 
     @Override
-    public PageResult<ExternalWorkVO> lowScoreList(String platformType, Long ipGroupId, LocalDate startDate, LocalDate endDate,
-                                                   Integer pageNum, Integer pageSize) {
-        LambdaQueryWrapper<ExternalWorkDO> wrapper = buildBaseWrapper(platformType, ipGroupId, null, startDate, endDate);
+    public PageResult<ExternalWorkVO> lowScoreList(String platformType, String contentType, Long ipGroupId,
+                                                 LocalDate startDate, LocalDate endDate,
+                                                 Integer pageNum, Integer pageSize) {
+        LambdaQueryWrapper<ExternalWorkDO> wrapper = buildBaseWrapper(platformType, contentType, ipGroupId, null, startDate, endDate);
         wrapper.lt(ExternalWorkDO::getCompletionRate, LOW_SCORE_THRESHOLD);
         return query(wrapper, pageNum, pageSize);
     }
 
     @Override
-    public PageResult<ExternalWorkVO> highFollowerList(Long ipGroupId, Integer pageNum, Integer pageSize) {
-        LambdaQueryWrapper<ExternalWorkDO> wrapper = buildBaseWrapper(null, ipGroupId, null, null, null);
-        wrapper.orderByDesc(ExternalWorkDO::getPlayCount);
-        return query(wrapper, pageNum, pageSize);
+    public PageResult<MonitorFollowerAccountVO> highFollowerList(String platformType, Long ipGroupId,
+                                                                 Integer pageNum, Integer pageSize) {
+        return followerAccountList(platformType, ipGroupId, true, pageNum, pageSize);
     }
 
     @Override
-    public PageResult<ExternalWorkVO> lowFollowerList(Long ipGroupId, Integer pageNum, Integer pageSize) {
-        LambdaQueryWrapper<ExternalWorkDO> wrapper = buildBaseWrapper(null, ipGroupId, null, null, null);
-        wrapper.orderByAsc(ExternalWorkDO::getPlayCount);
-        return query(wrapper, pageNum, pageSize);
+    public PageResult<MonitorFollowerAccountVO> lowFollowerList(String platformType, Long ipGroupId,
+                                                                Integer pageNum, Integer pageSize) {
+        return followerAccountList(platformType, ipGroupId, false, pageNum, pageSize);
     }
 
     @Override
@@ -90,18 +107,92 @@ public class MonitorServiceImpl implements MonitorService {
         return result;
     }
 
+    private PageResult<MonitorFollowerAccountVO> followerAccountList(String platformType, Long ipGroupId,
+                                                                   boolean highFollower,
+                                                                   Integer pageNum, Integer pageSize) {
+        Long tenantId = requireTenantId();
+        List<AccountDO> accounts = accountMapper.selectList(new LambdaQueryWrapper<AccountDO>()
+                .eq(AccountDO::getTenantId, tenantId)
+                .eq(StrUtil.isNotBlank(platformType), AccountDO::getPlatformType, platformType)
+                .eq(ipGroupId != null, AccountDO::getIpGroupId, ipGroupId));
+        if (accounts.isEmpty()) {
+            return PageResult.empty();
+        }
+
+        long threshold = resolveFansThreshold(tenantId, platformType, highFollower);
+        List<MonitorFollowerAccountVO> matched = new ArrayList<>();
+        for (AccountDO account : accounts) {
+            FollowerDailyDO latest = followerDailyMapper.selectOne(new LambdaQueryWrapper<FollowerDailyDO>()
+                    .eq(FollowerDailyDO::getTenantId, tenantId)
+                    .eq(FollowerDailyDO::getAccountId, account.getId())
+                    .orderByDesc(FollowerDailyDO::getStatDate)
+                    .last("LIMIT 1"));
+            if (latest == null || latest.getFollowerCount() == null) {
+                continue;
+            }
+            long followerCount = latest.getFollowerCount();
+            boolean pass = highFollower ? followerCount >= threshold : followerCount <= threshold;
+            if (!pass) {
+                continue;
+            }
+            MonitorFollowerAccountVO vo = new MonitorFollowerAccountVO();
+            vo.setAccountId(account.getId());
+            vo.setAccountName(account.getAccountName());
+            vo.setPlatformType(account.getPlatformType());
+            vo.setIpGroupId(account.getIpGroupId());
+            vo.setFollowerCount(followerCount);
+            vo.setNetGrowth(latest.getNetGrowth());
+            vo.setGrowthRate(latest.getGrowthRate());
+            vo.setStatDate(latest.getStatDate());
+            matched.add(vo);
+        }
+
+        Comparator<MonitorFollowerAccountVO> comparator = highFollower
+                ? Comparator.comparing(MonitorFollowerAccountVO::getFollowerCount).reversed()
+                : Comparator.comparing(MonitorFollowerAccountVO::getFollowerCount);
+        matched.sort(comparator);
+
+        int pn = pageNum == null ? 1 : pageNum;
+        int ps = pageSize == null ? 20 : pageSize;
+        int from = (pn - 1) * ps;
+        if (from >= matched.size()) {
+            return new PageResult<>(Collections.emptyList(), (long) matched.size());
+        }
+        int to = Math.min(from + ps, matched.size());
+        return new PageResult<>(matched.subList(from, to), (long) matched.size());
+    }
+
+    private long resolveFansThreshold(Long tenantId, String platformType, boolean highFollower) {
+        ThresholdConfigDO cfg = thresholdConfigMapper.selectOne(new LambdaQueryWrapper<ThresholdConfigDO>()
+                .eq(ThresholdConfigDO::getTenantId, tenantId)
+                .eq(ThresholdConfigDO::getThresholdCategory, "FANS")
+                .eq(ThresholdConfigDO::getStatus, "ENABLED")
+                .eq(StrUtil.isNotBlank(platformType), ThresholdConfigDO::getPlatformType, platformType)
+                .orderByDesc(ThresholdConfigDO::getId)
+                .last("LIMIT 1"));
+        if (cfg == null) {
+            return highFollower ? DEFAULT_HIGH_FANS : DEFAULT_LOW_FANS;
+        }
+        if (highFollower) {
+            return cfg.getHighFans() != null ? cfg.getHighFans() : DEFAULT_HIGH_FANS;
+        }
+        return cfg.getLowFans() != null ? cfg.getLowFans() : DEFAULT_LOW_FANS;
+    }
+
     private PageResult<ExternalWorkVO> query(LambdaQueryWrapper<ExternalWorkDO> wrapper, Integer pageNum, Integer pageSize) {
         Page<ExternalWorkDO> page = externalWorkMapper.selectPage(
                 new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize), wrapper);
         return new PageResult<>(page.getRecords().stream().map(this::toVO).collect(Collectors.toList()), page.getTotal());
     }
 
-    private LambdaQueryWrapper<ExternalWorkDO> buildBaseWrapper(String platformType, Long ipGroupId, String industry,
+    private LambdaQueryWrapper<ExternalWorkDO> buildBaseWrapper(String platformType, String contentType,
+                                                              Long ipGroupId, String industry,
                                                               LocalDate startDate, LocalDate endDate) {
         return new LambdaQueryWrapper<ExternalWorkDO>()
                 .eq(ExternalWorkDO::getTenantId, requireTenantId())
                 .eq(ExternalWorkDO::getIsExternal, 1)
                 .eq(platformType != null, ExternalWorkDO::getPlatformType, platformType)
+                .eq(StrUtil.isNotBlank(contentType), ExternalWorkDO::getContentType, contentType)
                 .eq(ipGroupId != null, ExternalWorkDO::getIpGroupId, ipGroupId)
                 .eq(industry != null, ExternalWorkDO::getIndustry, industry)
                 .ge(startDate != null, ExternalWorkDO::getPublishTime, startDate == null ? null : startDate.atStartOfDay())
@@ -114,6 +205,7 @@ public class MonitorServiceImpl implements MonitorService {
         vo.setId(row.getId());
         vo.setAccountId(row.getAccountId());
         vo.setPlatformType(row.getPlatformType());
+        vo.setContentType(row.getContentType());
         vo.setTitle(row.getTitle());
         vo.setWorkUrl(row.getWorkUrl());
         vo.setPlayCount(row.getPlayCount());

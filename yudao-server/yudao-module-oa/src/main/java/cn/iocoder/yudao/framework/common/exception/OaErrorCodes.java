@@ -71,6 +71,10 @@ public final class OaErrorCodes {
     /** M0 首页 */
     public static final ErrorCode HOME_TREND_TYPE_INVALID = ErrorCode.of(2019, "趋势类型不合法");
 
+    /** M9 字典管理 */
+    public static final ErrorCode DICT_TYPE_DUPLICATE = ErrorCode.of(2027, "字典 type 重复");
+    public static final ErrorCode DICT_VALUE_DUPLICATE = ErrorCode.of(2028, "字典 value 重复");
+
     /** M11 字典 */
     public static final ErrorCode DICT_TYPE_NOT_FOUND = ErrorCode.of(2020, "字典 type 不存在");
     public static final ErrorCode BAD_REQUEST = ErrorCode.of(1400, "请求参数不合法");

@@ -20,6 +20,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.analytics.FunnelStepMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.MetricMapper;
+import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.service.support.OaTenantSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -58,6 +59,7 @@ public class FunnelServiceImpl implements FunnelService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M6-funnel", action = "create")
     public Long create(FunnelCreateReq req) {
         Long tenantId = requireTenantId();
         FunnelDO funnel = new FunnelDO();
@@ -113,6 +115,7 @@ public class FunnelServiceImpl implements FunnelService {
     }
 
     @Override
+    @AuditLog(module = "M6-funnel", action = "export")
     public ExportJobVO export(Long id) {
         getRequired(id);
         return OaTenantSupport.stubExportJob();

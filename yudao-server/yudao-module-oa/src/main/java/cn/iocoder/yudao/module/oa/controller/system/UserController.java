@@ -40,6 +40,12 @@ public class UserController {
         return CommonResult.success(userService.list(username, nickname, roleId, deptId, status, pageNo, pageSize));
     }
 
+    @GetMapping("/profile")
+    @PreAuthorize("hasAuthority('oa:user:profile')")
+    public CommonResult<UserRespVO> profile() {
+        return CommonResult.success(userService.profile());
+    }
+
     @PostMapping("/create")
     @PreAuthorize("hasAuthority('oa:user:create')")
     public CommonResult<Long> create(@Valid @RequestBody UserCreateReq req) {

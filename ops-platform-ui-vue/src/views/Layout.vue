@@ -178,18 +178,49 @@
         </div>
         
         <div class="header-right">
-          <el-badge :value="5" class="notification-badge">
-            <el-icon :size="20"><Bell /></el-icon>
-          </el-badge>
-          <el-dropdown>
+          <el-popover
+            placement="bottom-end"
+            width="360"
+            trigger="click"
+            @show="loadUnreadMessages"
+          >
+            <template #reference>
+              <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99" class="notification-badge">
+                <el-icon :size="20"><Bell /></el-icon>
+              </el-badge>
+            </template>
+            <div class="message-popover">
+              <div class="popover-title">
+                <span>未读消息</span>
+                <el-button link type="primary" @click="loadUnreadMessages">刷新</el-button>
+              </div>
+              <el-empty v-if="unreadMessages.length === 0" description="暂无未读消息" :image-size="72" />
+              <el-scrollbar v-else max-height="320px">
+                <div
+                  v-for="message in unreadMessages"
+                  :key="message.id"
+                  class="message-item"
+                  @click="openMessage(message)"
+                >
+                  <div class="message-title">{{ message.title }}</div>
+                  <div class="message-meta">
+                    <el-tag size="small" effect="plain">{{ messageCategoryLabel(message.category) }}</el-tag>
+                    <span>{{ message.sendTime || '-' }}</span>
+                  </div>
+                  <div class="message-content">{{ message.content }}</div>
+                </div>
+              </el-scrollbar>
+            </div>
+          </el-popover>
+          <el-dropdown @command="handleUserCommand">
             <div class="user-info">
-              <el-avatar :size="32" src="https://cube.elemecdn.com/0/887eb20769b446af6a2126ecf2e.jpg" />
-              <span class="username">管理员</span>
+              <el-avatar :size="32">{{ avatarText }}</el-avatar>
+              <span class="username">{{ displayName }}</span>
             </div>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item>个人中心</el-dropdown-item>
-                <el-dropdown-item divided>退出登录</el-dropdown-item>
+                <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -202,22 +233,125 @@
       </el-main>
     </el-container>
   </el-container>
+
+  <el-drawer v-model="profileVisible" title="个人中心" size="420px">
+    <el-skeleton v-if="profileLoading" :rows="6" animated />
+    <el-descriptions v-else :column="1" border>
+      <el-descriptions-item label="用户ID">{{ userProfile?.id || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="用户名">{{ userProfile?.username || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="昵称">{{ userProfile?.nickname || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="邮箱">{{ userProfile?.email || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="手机号">{{ userProfile?.phoneMasked || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="岗位">{{ userProfile?.position || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="部门">{{ userProfile?.deptName || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="角色">
+        {{ userProfile?.roleNames?.length ? userProfile.roleNames.join('、') : '-' }}
+      </el-descriptions-item>
+      <el-descriptions-item label="状态">{{ userProfile?.status || '-' }}</el-descriptions-item>
+    </el-descriptions>
+  </el-drawer>
+
+  <el-drawer v-model="messageVisible" title="消息详情" size="460px">
+    <el-empty v-if="!activeMessage" description="请选择消息" />
+    <el-descriptions v-else :column="1" border>
+      <el-descriptions-item label="标题">{{ activeMessage.title }}</el-descriptions-item>
+      <el-descriptions-item label="类型">{{ messageCategoryLabel(activeMessage.category) }}</el-descriptions-item>
+      <el-descriptions-item label="发送时间">{{ activeMessage.sendTime || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="接收人">{{ activeMessage.receiver || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="内容">
+        <div class="message-detail-content">{{ activeMessage.content }}</div>
+      </el-descriptions-item>
+    </el-descriptions>
+  </el-drawer>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { DataAnalysis, User, Fold, Expand, Bell, DataBoard, Document, Money, OfficeBuilding, TrendCharts, Coin, VideoCamera, Setting, Tools } from '@element-plus/icons-vue'
+import { fetchUserProfile, type UserVO } from '@/api/system-user'
+import {
+  fetchUnreadMessageCount,
+  fetchUnreadMessages,
+  markMessageRead,
+  MESSAGE_CATEGORY_LABEL,
+  type MessageVO,
+} from '@/api/system-message'
 
 const route = useRoute()
+const router = useRouter()
 const isCollapse = ref(false)
+const userProfile = ref<UserVO | null>(null)
+const profileVisible = ref(false)
+const profileLoading = ref(false)
+const unreadCount = ref(0)
+const unreadMessages = ref<MessageVO[]>([])
+const activeMessage = ref<MessageVO | null>(null)
+const messageVisible = ref(false)
 
 const activeMenu = computed(() => route.path)
 const currentRoute = computed(() => route)
+const displayName = computed(() => userProfile.value?.nickname || userProfile.value?.username || '管理员')
+const avatarText = computed(() => displayName.value.slice(0, 1).toUpperCase())
 
 const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value
 }
+
+const messageCategoryLabel = (category: string) => MESSAGE_CATEGORY_LABEL[category] || category || '-'
+
+const loadProfile = async () => {
+  profileLoading.value = true
+  try {
+    userProfile.value = await fetchUserProfile()
+  } finally {
+    profileLoading.value = false
+  }
+}
+
+const loadUnreadCount = async () => {
+  unreadCount.value = await fetchUnreadMessageCount()
+}
+
+const loadUnreadMessages = async () => {
+  const page = await fetchUnreadMessages({ pageNo: 1, pageSize: 10 })
+  unreadMessages.value = page.list || []
+  unreadCount.value = page.total || 0
+}
+
+const openProfile = async () => {
+  profileVisible.value = true
+  await loadProfile()
+}
+
+const openMessage = async (message: MessageVO) => {
+  activeMessage.value = message
+  messageVisible.value = true
+  await markMessageRead(message.id)
+  await loadUnreadMessages()
+}
+
+const handleUserCommand = async (command: string) => {
+  if (command === 'profile') {
+    await openProfile()
+    return
+  }
+  if (command === 'logout') {
+    localStorage.removeItem('token')
+    localStorage.removeItem('userInfo')
+    ElMessage.success('已退出登录')
+    await router.push('/login')
+  }
+}
+
+onMounted(async () => {
+  try {
+    await Promise.all([loadProfile(), loadUnreadCount()])
+  } catch (error) {
+    console.warn('头部信息加载失败', error)
+  }
+})
 </script>
 
 <style scoped lang="scss">
@@ -292,5 +426,63 @@ const toggleCollapse = () => {
       color: #303133;
     }
   }
+}
+
+.message-popover {
+  .popover-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .message-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #ebeef5;
+    cursor: pointer;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      .message-title {
+        color: #409eff;
+      }
+    }
+  }
+
+  .message-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #303133;
+    margin-bottom: 6px;
+  }
+
+  .message-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #909399;
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .message-content {
+    color: #606266;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+}
+
+.message-detail-content {
+  white-space: pre-wrap;
+  line-height: 1.6;
 }
 </style>

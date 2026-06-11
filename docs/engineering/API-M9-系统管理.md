@@ -138,7 +138,32 @@
 
 ---
 
-## 6. 错误码
+## 7. 头部个人中心 / 消息中心 API
+
+### 7.1 GET `/admin-api/oa/system/user/profile`
+
+返回当前登录用户只读资料：`id`、`username`、`nickname`、`email`、`phoneMasked`、`position`、`deptName`、`roleNames`、`status`。不返回密码、token、明文手机号等敏感字段。
+
+### 7.2 GET `/admin-api/oa/system/message/unread-count`
+
+返回当前登录用户未读站内消息数。收件人匹配当前登录用户的 `userId` / `username` / `nickname` / `email`，并限定同租户、`status=SENT`、`read_time IS NULL`。
+
+### 7.3 GET `/admin-api/oa/system/message/unread`
+
+| 参数 | 说明 |
+|------|------|
+| pageNo | 默认 1 |
+| pageSize | 默认 10 |
+
+返回当前登录用户未读消息分页，响应项沿用 `MessageVO`，新增 `read`、`readTime`。
+
+### 7.4 PUT `/admin-api/oa/system/message/read?id=`
+
+将当前登录用户有权查看的消息标记为已读，写入 `sys_message.read_time`。
+
+---
+
+## 8. 错误码
 
 | 错误码 | 含义 |
 |--------|------|

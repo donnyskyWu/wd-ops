@@ -32,10 +32,12 @@ public class ContentAnalysisController {
             @RequestParam(required = false) Long ipGroupId,
             @RequestParam(required = false) Long accountId,
             @RequestParam(required = false) String platformType,
+            @RequestParam(required = false) String contentType,
             @RequestParam(required = false) Boolean isHit,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer size) {
-        return CommonResult.success(contentAnalysisService.list(startDate, endDate, ipGroupId, accountId, platformType, isHit, page, size));
+        return CommonResult.success(contentAnalysisService.list(startDate, endDate, ipGroupId, accountId,
+                platformType, contentType, isHit, page, size));
     }
 
     @GetMapping("/stats")
@@ -43,8 +45,11 @@ public class ContentAnalysisController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) Long ipGroupId,
-            @RequestParam(required = false) Long accountId) {
-        return CommonResult.success(contentAnalysisService.stats(startDate, endDate, ipGroupId, accountId));
+            @RequestParam(required = false) Long accountId,
+            @RequestParam(required = false) String platformType,
+            @RequestParam(required = false) String contentType) {
+        return CommonResult.success(contentAnalysisService.stats(startDate, endDate, ipGroupId, accountId,
+                platformType, contentType));
     }
 
     // P-GATE-UNMOCK-R S-R2-D：作品数据趋势（按日聚合）

@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.oa.service.home;
 
+import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
@@ -20,6 +21,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.content.ProductionContentDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.home.HomeAlertDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.operations.ContentDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.operations.ContentDataImportDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.operations.FollowerDailyDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfRecordDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.sop.SopReviewDO;
@@ -31,6 +33,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.content.ProductionContentMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.home.HomeAlertMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentDataImportMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfRecordMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.SopReviewMapper;
@@ -77,6 +80,7 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
     private final IpGroupMapper ipGroupMapper;
     private final AuthorMapper authorMapper;
     private final ContentMapper contentMapper;
+    private final ContentDataImportMapper contentDataImportMapper;
     private final TaskMapper taskMapper;
     private final PerfRecordMapper perfRecordMapper;
     private final AccountMapper accountMapper;
@@ -296,6 +300,7 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
     public List<TrendPointVO> getTrend(Long ipGroupId, LocalDate startDate, LocalDate endDate,
                                        String platformType, String type, String groupBy) {
         validatePlatformType(platformType);
+        final String resolvedPlatformType = StrUtil.isBlank(platformType) ? null : platformType;
         String trendType = type == null || type.isBlank() ? TREND_CONTENT : type.toUpperCase();
         if (!TREND_CONTENT.equals(trendType) && !TREND_FOLLOWER.equals(trendType)) {
             throw new ServiceException(OaErrorCodes.HOME_TREND_TYPE_INVALID);
@@ -306,13 +311,13 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
         }
         String finalTrendType = trendType;
         String finalGroupBy = resolvedGroupBy;
-        return cached("trend", ipGroupId, startDate, endDate, platformType, trendType + ":" + finalGroupBy, null, () -> {
+        return cached("trend", ipGroupId, startDate, endDate, resolvedPlatformType, trendType + ":" + finalGroupBy, null, () -> {
             DateRange range = resolveDateRange(startDate, endDate, 7);
             QueryContext ctx = buildContext(ipGroupId, range);
             if (TREND_FOLLOWER.equals(finalTrendType)) {
-                return buildFollowerTrend(ctx, range, platformType);
+                return buildFollowerTrend(ctx, range, resolvedPlatformType);
             }
-            return buildContentTrend(ctx, range, platformType, finalGroupBy);
+            return buildContentTrend(ctx, range, resolvedPlatformType, finalGroupBy);
         });
     }
 
@@ -349,54 +354,101 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
         return cached("todos", ipGroupId, null, null, null, null, top, () -> {
             QueryContext ctx = buildContext(ipGroupId, null);
             List<TodoVO> todos = new ArrayList<>();
-            List<SopReviewDO> reviews = sopReviewMapper.selectList(new LambdaQueryWrapper<SopReviewDO>()
-                    .eq(SopReviewDO::getTenantId, ctx.tenantId())
-                    .eq(SopReviewDO::getStatus, "PENDING")
-                    .orderByDesc(SopReviewDO::getCreateTime)
-                    .last("LIMIT " + top));
-            for (SopReviewDO review : reviews) {
-                TaskDO task = taskMapper.selectById(review.getTaskId());
-                TodoVO vo = new TodoVO();
-                vo.setTitle(task == null ? "SOP 待审核" : "SOP《" + task.getPlanName() + "》待审核");
-                vo.setSource("SOP");
-                vo.setTime(toOffset(review.getCreateTime()));
-                vo.setActionUrl("/ops/sop/review/" + review.getId());
-                todos.add(vo);
+            // 补录审核优先展示（避免被 SOP/发布待办挤占）
+            appendImportReviewTodos(todos, ctx, top);
+            if (todos.size() < top) {
+                appendSopReviewTodos(todos, ctx, top - todos.size());
             }
             if (todos.size() < top) {
-                List<ProductionContentDO> contents = productionContentMapper.selectList(
-                        new LambdaQueryWrapper<ProductionContentDO>()
-                                .eq(ProductionContentDO::getTenantId, ctx.tenantId())
-                                .in(ProductionContentDO::getStatus, "PENDING_FIRST_REVIEW", "PENDING_SECOND_REVIEW")
-                                .orderByDesc(ProductionContentDO::getCreateTime)
-                                .last("LIMIT " + (top - todos.size())));
-                for (ProductionContentDO content : contents) {
-                    TodoVO vo = new TodoVO();
-                    vo.setTitle("内容《" + content.getTitle() + "》待审核");
-                    vo.setSource("PUBLISH");
-                    vo.setTime(toOffset(content.getCreateTime()));
-                    vo.setActionUrl("/ops/content/review/" + content.getId());
-                    todos.add(vo);
-                }
+                appendPublishReviewTodos(todos, ctx, top - todos.size());
             }
             if (todos.size() < top) {
-                List<PerfRecordDO> drafts = perfRecordMapper.selectList(new LambdaQueryWrapper<PerfRecordDO>()
-                        .eq(PerfRecordDO::getTenantId, ctx.tenantId())
-                        .eq(PerfRecordDO::getStatus, "DRAFT")
-                        .in(!ctx.ipGroupIds().isEmpty(), PerfRecordDO::getIpGroupId, ctx.ipGroupIds())
-                        .orderByDesc(PerfRecordDO::getCreateTime)
-                        .last("LIMIT " + (top - todos.size())));
-                for (PerfRecordDO record : drafts) {
-                    TodoVO vo = new TodoVO();
-                    vo.setTitle("绩效草稿待核算（用户" + record.getTargetUserId() + "）");
-                    vo.setSource("PERF");
-                    vo.setTime(toOffset(record.getCreateTime()));
-                    vo.setActionUrl("/ops/perf/record/" + record.getId());
-                    todos.add(vo);
-                }
+                appendPerfDraftTodos(todos, ctx, top - todos.size());
             }
             return todos.stream().limit(top).collect(Collectors.toList());
         });
+    }
+
+    private void appendImportReviewTodos(List<TodoVO> todos, QueryContext ctx, int max) {
+        if (max <= 0) {
+            return;
+        }
+        List<ContentDataImportDO> pendingImports = contentDataImportMapper.selectList(
+                new LambdaQueryWrapper<ContentDataImportDO>()
+                        .eq(ContentDataImportDO::getTenantId, ctx.tenantId())
+                        .eq(ContentDataImportDO::getReviewStatus, 0)
+                        .orderByDesc(ContentDataImportDO::getCreateTime)
+                        .last("LIMIT " + max));
+        for (ContentDataImportDO imp : pendingImports) {
+            ContentDO content = contentMapper.selectById(imp.getContentId());
+            TodoVO vo = new TodoVO();
+            vo.setTitle("数据补录待审核"
+                    + (content != null ? "《" + content.getTitle() + "》" : "（ID=" + imp.getId() + "）"));
+            vo.setSource("IMPORT");
+            vo.setTime(toOffset(imp.getCreateTime()));
+            vo.setActionUrl("/ops/internal-content?imports=review&reviewStatus=0&importId=" + imp.getId());
+            todos.add(vo);
+        }
+    }
+
+    private void appendSopReviewTodos(List<TodoVO> todos, QueryContext ctx, int max) {
+        if (max <= 0) {
+            return;
+        }
+        List<SopReviewDO> reviews = sopReviewMapper.selectList(new LambdaQueryWrapper<SopReviewDO>()
+                .eq(SopReviewDO::getTenantId, ctx.tenantId())
+                .eq(SopReviewDO::getStatus, "PENDING")
+                .orderByDesc(SopReviewDO::getCreateTime)
+                .last("LIMIT " + max));
+        for (SopReviewDO review : reviews) {
+            TaskDO task = taskMapper.selectById(review.getTaskId());
+            TodoVO vo = new TodoVO();
+            vo.setTitle(task == null ? "SOP 待审核" : "SOP《" + task.getPlanName() + "》待审核");
+            vo.setSource("SOP");
+            vo.setTime(toOffset(review.getCreateTime()));
+            vo.setActionUrl("/ops/sop/review");
+            todos.add(vo);
+        }
+    }
+
+    private void appendPublishReviewTodos(List<TodoVO> todos, QueryContext ctx, int max) {
+        if (max <= 0) {
+            return;
+        }
+        List<ProductionContentDO> contents = productionContentMapper.selectList(
+                new LambdaQueryWrapper<ProductionContentDO>()
+                        .eq(ProductionContentDO::getTenantId, ctx.tenantId())
+                        .in(ProductionContentDO::getStatus, "PENDING_FIRST_REVIEW", "PENDING_SECOND_REVIEW")
+                        .orderByDesc(ProductionContentDO::getCreateTime)
+                        .last("LIMIT " + max));
+        for (ProductionContentDO content : contents) {
+            TodoVO vo = new TodoVO();
+            vo.setTitle("内容《" + content.getTitle() + "》待审核");
+            vo.setSource("PUBLISH");
+            vo.setTime(toOffset(content.getCreateTime()));
+            vo.setActionUrl("/ops/content/review");
+            todos.add(vo);
+        }
+    }
+
+    private void appendPerfDraftTodos(List<TodoVO> todos, QueryContext ctx, int max) {
+        if (max <= 0) {
+            return;
+        }
+        List<PerfRecordDO> drafts = perfRecordMapper.selectList(new LambdaQueryWrapper<PerfRecordDO>()
+                .eq(PerfRecordDO::getTenantId, ctx.tenantId())
+                .eq(PerfRecordDO::getStatus, "DRAFT")
+                .in(!ctx.ipGroupIds().isEmpty(), PerfRecordDO::getIpGroupId, ctx.ipGroupIds())
+                .orderByDesc(PerfRecordDO::getCreateTime)
+                .last("LIMIT " + max));
+        for (PerfRecordDO record : drafts) {
+            TodoVO vo = new TodoVO();
+            vo.setTitle("绩效草稿待核算（用户" + record.getTargetUserId() + "）");
+            vo.setSource("PERF");
+            vo.setTime(toOffset(record.getCreateTime()));
+            vo.setActionUrl("/ops/perf/record/" + record.getId());
+            todos.add(vo);
+        }
     }
 
     @Override
@@ -448,7 +500,7 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
         List<ContentDO> contents = contentMapper.selectList(new LambdaQueryWrapper<ContentDO>()
                 .eq(ContentDO::getTenantId, ctx.tenantId())
                 .in(!ctx.accountIds().isEmpty(), ContentDO::getAccountId, ctx.accountIds())
-                .eq(platformType != null, ContentDO::getPlatformType, platformType)
+                .eq(StrUtil.isNotBlank(platformType), ContentDO::getPlatformType, platformType)
                 .ge(ContentDO::getPublishTime, range.start().atStartOfDay())
                 .le(ContentDO::getPublishTime, range.end().plusDays(1).atStartOfDay()));
 

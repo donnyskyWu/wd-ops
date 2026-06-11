@@ -19,6 +19,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfItemRecordMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfRecordMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateMapper;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
+import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -113,6 +114,7 @@ public class PerfResultServiceImpl implements PerfResultService {
     }
 
     @Override
+    @AuditLog(module = "M3-perf", action = "export-result")
     public ExportJobVO export(PerfExportReq req) {
         ExportJobVO vo = new ExportJobVO();
         vo.setJobId("perf-export-" + UUID.randomUUID());

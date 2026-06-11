@@ -15,4 +15,6 @@ public interface UserService {
     void update(UserUpdateReq req);
 
     void delete(Long id);
+
+    UserRespVO profile();
 }

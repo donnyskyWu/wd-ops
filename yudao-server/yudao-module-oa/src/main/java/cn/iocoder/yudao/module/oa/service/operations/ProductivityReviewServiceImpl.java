@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.OrderAttributionMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
+import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -171,6 +172,7 @@ public class ProductivityReviewServiceImpl implements ProductivityReviewService 
     }
 
     @Override
+    @AuditLog(module = "M1-productivity-review", action = "export")
     public String exportCsv(LocalDate startDate, LocalDate endDate, String timeDimension,
                             Long ipGroupId, Long userId, String position, String keyword) {
         // 简化：直接复用 list 拿全量（不传分页）

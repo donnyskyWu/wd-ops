@@ -436,7 +436,7 @@
 | GET | `/admin-api/oa/internal-content/list` | 内部作品列表 |
 | GET | `/admin-api/oa/internal-content/{id}/trend` | 趋势（抽屉默认近 7 日） |
 
-**`/list` 关键参数**：`startDate`、`endDate`（可选；前端默认不传=全量）、`ipGroupId`、`keyword`、`platformType`、`page`、`size`
+**`/list` 关键参数**：`startDate`、`endDate`（可选；前端默认不传=全量）、`ipGroupId`、`keyword`、`platformType`、`contentType`、`page`、`size`
 | POST | `/admin-api/oa/internal-content/export` | 导出 |
 | **POST** | **`/admin-api/oa/internal-content/import`** | **数据补录（v9.1 新增）** |
 | GET | `/admin-api/oa/internal-content/import/list` | 补录记录列表 |

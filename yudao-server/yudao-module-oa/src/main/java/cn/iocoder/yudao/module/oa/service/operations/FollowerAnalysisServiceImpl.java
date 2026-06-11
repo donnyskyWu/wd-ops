@@ -13,6 +13,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.operations.FollowerDailyDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
+import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -239,6 +240,7 @@ public class FollowerAnalysisServiceImpl implements FollowerAnalysisService {
     }
 
     @Override
+    @AuditLog(module = "M1-follower-analysis", action = "export")
     public byte[] exportCsv(LocalDate startDate, LocalDate endDate, Long ipGroupId,
                             Long accountId, String platformType, String dimension) {
         Long tenantId = requireTenantId();

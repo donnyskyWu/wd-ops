@@ -172,6 +172,8 @@ public class CollectConfigServiceImpl implements CollectConfigService {
     }
 
     @Override
+    @Transactional
+    @AuditLog(module = "M8-collect", action = "test-connection")
     public boolean testConnection(String scope, Long id) {
         CollectConfigDO existing = getRequiredInScope(scope, id);
         if (CollectConfigScope.GENERAL.equals(scope)) {
@@ -192,6 +194,7 @@ public class CollectConfigServiceImpl implements CollectConfigService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M8-collect", action = "import-external")
     public cn.iocoder.yudao.module.oa.api.dto.config.ImportResultVO importExternalAccounts(String csvContent) {
         cn.iocoder.yudao.module.oa.api.dto.config.ImportResultVO result =
                 new cn.iocoder.yudao.module.oa.api.dto.config.ImportResultVO();

@@ -6,11 +6,41 @@ export const MONITOR_PLATFORM_TAB: Record<string, string> = {
   channels: 'WECHAT_VIDEO',
 }
 
+export interface MonitorAccountRow {
+  accountId: number
+  accountName: string
+  platform: string
+  followerCount: number
+  netGrowth?: number
+  growthRate?: number
+  statDate?: string
+  rank?: number
+}
+
+export function mapFollowerAccount(raw: Record<string, unknown>, index?: number): MonitorAccountRow {
+  const accountId = Number(raw.accountId ?? raw.account_id ?? 0)
+  return {
+    accountId,
+    accountName: String(raw.accountName ?? raw.account_name ?? `账号 #${accountId}`),
+    platform: String(raw.platformType ?? raw.platform_type ?? '-'),
+    followerCount: Number(raw.followerCount ?? raw.follower_count ?? 0),
+    netGrowth: raw.netGrowth != null ? Number(raw.netGrowth) : raw.net_growth != null ? Number(raw.net_growth) : undefined,
+    growthRate: raw.growthRate != null ? Number(raw.growthRate) : raw.growth_rate != null ? Number(raw.growth_rate) : undefined,
+    statDate: raw.statDate != null ? String(raw.statDate) : raw.stat_date != null ? String(raw.stat_date) : undefined,
+    rank: index != null ? index + 1 : undefined,
+  }
+}
+
+export function pickMonitorAccountPage(res: unknown) {
+  return pickListPage<MonitorAccountRow>(unwrapApiData(res) as { list?: MonitorAccountRow[]; records?: MonitorAccountRow[]; total?: number })
+}
+
 export interface MonitorWorkRow {
   id: number
   accountId: number
   accountName: string
   platform: string
+  contentType?: string
   title: string
   playCount: number
   likeCount: number
@@ -31,6 +61,7 @@ export function mapExternalWork(raw: Record<string, unknown>, index?: number): M
     accountId,
     accountName: String(raw.accountName ?? raw.account_name ?? `账号 #${accountId}`),
     platform: String(raw.platformType ?? raw.platform_type ?? '-'),
+    contentType: raw.contentType != null ? String(raw.contentType) : raw.content_type != null ? String(raw.content_type) : undefined,
     title: String(raw.title ?? '-'),
     playCount: Number(raw.playCount ?? raw.play_count ?? 0),
     likeCount: Number(raw.likeCount ?? raw.like_count ?? 0),

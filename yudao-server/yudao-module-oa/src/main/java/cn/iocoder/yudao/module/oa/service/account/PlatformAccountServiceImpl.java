@@ -11,16 +11,24 @@ import cn.iocoder.yudao.module.oa.api.dto.account.AccountRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.account.AccountUpdateReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.company.CompanyDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.operations.ContentDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.operations.FollowerDailyDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.phone.PhoneDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.realname.RealnameDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.simcard.SimCardDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.company.CompanyMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.phone.PhoneMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.realname.RealnameMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.simcard.SimCardMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
+import cn.iocoder.yudao.module.oa.framework.auth.LoginUser;
+import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -45,6 +53,9 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
     private final RealnameMapper realnameMapper;
     private final PhoneMapper phoneMapper;
     private final SimCardMapper simCardMapper;
+    private final IpGroupMapper ipGroupMapper;
+    private final FollowerDailyMapper followerDailyMapper;
+    private final ContentMapper contentMapper;
     private final AesUtil aesUtil;
 
     @Override
@@ -73,11 +84,30 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
     @Override
     public AccountRespVO get(Long id) {
         AccountDO entity = getRequiredInTenant(id);
-        return toResp(entity,
+        assertAccountReadable(entity);
+        AccountRespVO vo = toResp(entity,
                 loadCompanyName(entity.getCompanyId()),
                 loadRealName(entity.getRealnameId()),
                 maskPhone(entity.getPhoneId()),
                 maskSim(entity.getSimCardId()));
+        if (entity.getIpGroupId() != null) {
+            IpGroupDO group = ipGroupMapper.selectById(entity.getIpGroupId());
+            if (group != null) {
+                vo.setIpGroupName(group.getGroupName());
+            }
+        }
+        FollowerDailyDO latestFollower = followerDailyMapper.selectOne(new LambdaQueryWrapper<FollowerDailyDO>()
+                .eq(FollowerDailyDO::getTenantId, entity.getTenantId())
+                .eq(FollowerDailyDO::getAccountId, entity.getId())
+                .orderByDesc(FollowerDailyDO::getStatDate)
+                .last("LIMIT 1"));
+        vo.setFollowerCount(latestFollower != null && latestFollower.getFollowerCount() != null
+                ? latestFollower.getFollowerCount() : 0L);
+        long workCount = contentMapper.selectCount(new LambdaQueryWrapper<ContentDO>()
+                .eq(ContentDO::getTenantId, entity.getTenantId())
+                .eq(ContentDO::getAccountId, entity.getId()));
+        vo.setWorkCount(Math.toIntExact(workCount));
+        return vo;
     }
 
     @Override
@@ -407,6 +437,20 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
             throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
         }
         return entity;
+    }
+
+    /** BR-006：IP 组数据范围用户仅可查看本组账号；ALL 范围不限制 */
+    private void assertAccountReadable(AccountDO entity) {
+        LoginUser user = LoginUserContext.get();
+        if (user == null || DataScopeSupport.ALL.equals(user.getDataScope())) {
+            return;
+        }
+        if (DataScopeSupport.IP_GROUP.equals(user.getDataScope())) {
+            Long scopeIpGroupId = user.getIpGroupId();
+            if (scopeIpGroupId != null && !Objects.equals(scopeIpGroupId, entity.getIpGroupId())) {
+                throw new ServiceException(OaErrorCodes.FORBIDDEN);
+            }
+        }
     }
 
     private Long requireTenantId() {

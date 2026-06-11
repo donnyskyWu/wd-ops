@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.oa.api.dto.operations.FollowerAnalysisVO;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 public interface AccountAnalysisService {
 
@@ -22,4 +23,8 @@ public interface AccountAnalysisService {
      * 账号作品详情（分页）
      */
     PageResult<ContentAnalysisVO> listAccountContents(Long accountId, Integer pageNo, Integer pageSize);
+
+    List<Map<String, Object>> accountFollowerTrend(Long accountId, LocalDate startDate, LocalDate endDate);
+
+    List<Map<String, Object>> accountContentTrend(Long accountId, LocalDate startDate, LocalDate endDate);
 }

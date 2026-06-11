@@ -16,7 +16,7 @@ export function getContentAnalysisList(params: ContentAnalysisQuery): Promise<Pa
 }
 
 export function getContentStats(
-  params: Pick<ContentAnalysisQuery, 'ipGroupId' | 'platformType' | 'accountId' | 'startDate' | 'endDate'>,
+  params: Pick<ContentAnalysisQuery, 'ipGroupId' | 'platformType' | 'contentType' | 'accountId' | 'startDate' | 'endDate'>,
 ): Promise<ContentStats> {
   return request.get({ url: '/oa/content-analysis/stats', params })
 }

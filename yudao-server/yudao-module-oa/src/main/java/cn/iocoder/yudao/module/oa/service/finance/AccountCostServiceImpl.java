@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.finance.AccountCostDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.finance.AccountCostMapper;
+import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +56,7 @@ public class AccountCostServiceImpl implements AccountCostService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M5-account-cost", action = "create")
     public Long create(AccountCostCreateReq req) {
         assertAmount(req.getAmount());
         AccountDO account = requireAccount(req.getAccountId());
@@ -76,6 +78,7 @@ public class AccountCostServiceImpl implements AccountCostService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M5-account-cost", action = "update")
     public void update(AccountCostUpdateReq req) {
         assertAmount(req.getAmount());
         AccountCostDO existing = getRequired(req.getId());
@@ -94,6 +97,7 @@ public class AccountCostServiceImpl implements AccountCostService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M5-account-cost", action = "delete")
     public void delete(Long id) {
         AccountCostDO existing = getRequired(id);
         accountCostMapper.deleteById(existing.getId());

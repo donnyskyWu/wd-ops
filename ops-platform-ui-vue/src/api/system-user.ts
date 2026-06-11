@@ -62,6 +62,10 @@ export function fetchUserList(params: {
   return request.get<UserPageResult>({ url: '/oa/system/user/list', params })
 }
 
+export function fetchUserProfile() {
+  return request.get<UserVO>({ url: '/oa/system/user/profile' })
+}
+
 export function createUser(data: {
   username: string
   nickname: string

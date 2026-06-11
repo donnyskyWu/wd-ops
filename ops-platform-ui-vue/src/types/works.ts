@@ -14,6 +14,7 @@ export interface ContentAnalysisVO {
   title: string
   platformType: string
   contentType: string
+  ipGroupName?: string
   publishTime: string
   readCount: number
   likeCount: number

@@ -49,59 +49,56 @@
       </el-col>
     </el-row>
 
-    <!-- 内容区 -->
+    <!-- 内容区：趋势 / 列表 并行 Tab -->
     <ContentWrap>
-      <!-- 粉丝增长趋势图 -->
-      <el-card class="trend-chart-card">
-        <template #header>
-          <div class="card-header">
-            <span>粉丝增长趋势</span>
-          </div>
-        </template>
-        <div ref="trendChartRef" style="height: 350px;"></div>
-      </el-card>
+      <el-tabs v-model="activeViewTab" class="fans-view-tabs">
+        <el-tab-pane label="粉丝趋势" name="trend">
+          <div ref="trendChartRef" style="height: 350px;"></div>
+        </el-tab-pane>
+        <el-tab-pane label="粉丝列表" name="list">
+          <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%;">
+            <el-table-column prop="statDate" label="时间" width="160">
+              <template #default="{ row }">{{ formatDateTime(row.statDate) }}</template>
+            </el-table-column>
+            <el-table-column prop="accountName" label="账号名称" min-width="150" />
+            <el-table-column prop="ipGroupName" label="所属IP组" width="100" />
+            <el-table-column prop="followerCount" label="粉丝总数" width="120" align="right">
+              <template #default="{ row }">
+                {{ formatNumber(row.followerCount) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="newFollower" label="新增" width="90" align="right">
+              <template #default="{ row }">
+                <span class="text-success">+{{ row.newFollower || 0 }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="unfollowCount" label="取消" width="90" align="right">
+              <template #default="{ row }">
+                <span class="text-danger">-{{ row.unfollowCount || 0 }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="netGrowth" label="净增" width="90" align="right">
+              <template #default="{ row }">
+                <span class="text-primary">+{{ row.netGrowth || 0 }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="growthRate" label="增长率" width="100" align="right">
+              <template #default="{ row }">
+                {{ (row.growthRate || 0).toFixed(2) }}%
+              </template>
+            </el-table-column>
+          </el-table>
 
-      <!-- 数据明细表格 -->
-      <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%; margin-top: 16px;">
-        <el-table-column prop="statDate" label="时间" width="120" />
-        <el-table-column prop="accountName" label="账号名称" min-width="150" />
-        <el-table-column prop="ipGroupName" label="所属IP组" width="100" />
-        <el-table-column prop="followerCount" label="粉丝总数" width="120" align="right">
-          <template #default="{ row }">
-            {{ formatNumber(row.followerCount) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="newFollower" label="新增" width="90" align="right">
-          <template #default="{ row }">
-            <span class="text-success">+{{ row.newFollower || 0 }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="unfollowCount" label="取消" width="90" align="right">
-          <template #default="{ row }">
-            <span class="text-danger">-{{ row.unfollowCount || 0 }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="netGrowth" label="净增" width="90" align="right">
-          <template #default="{ row }">
-            <span class="text-primary">+{{ row.netGrowth || 0 }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="growthRate" label="增长率" width="100" align="right">
-          <template #default="{ row }">
-            {{ (row.growthRate || 0).toFixed(2) }}%
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <Pagination
-        :current-page="pagination.pageNo"
-        :page-size="pagination.pageSize"
-        :total="pagination.total"
-        @update:current-page="(val) => pagination.pageNo = val"
-        @update:page-size="(val) => { pagination.pageSize = val; loadData() }"
-        @change="loadData"
-      />
+          <Pagination
+            :current-page="pagination.pageNo"
+            :page-size="pagination.pageSize"
+            :total="pagination.total"
+            @update:current-page="(val) => pagination.pageNo = val"
+            @update:page-size="(val) => { pagination.pageSize = val; loadData() }"
+            @change="loadData"
+          />
+        </el-tab-pane>
+      </el-tabs>
     </ContentWrap>
   </div>
 </template>
@@ -120,7 +117,9 @@ import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { normalizePlatform, normalizeTimeDimension } from '@/utils/enum-alias'
-import { exportToExcel } from '@/utils'
+import { exportToExcel, formatDateTime } from '@/utils'
+
+const activeViewTab = ref<'trend' | 'list'>('trend')
 
 // ==================== 响应式数据 ====================
 
@@ -385,6 +384,10 @@ onMounted(() => {
         margin-top: 6px;
       }
     }
+  }
+
+  .fans-view-tabs {
+    margin-top: 8px;
   }
 
   .trend-chart-card {

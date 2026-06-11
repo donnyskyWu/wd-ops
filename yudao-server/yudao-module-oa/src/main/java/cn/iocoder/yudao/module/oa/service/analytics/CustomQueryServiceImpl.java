@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.oa.api.dto.analytics.CustomQueryPreviewReq;
 import cn.iocoder.yudao.module.oa.api.dto.analytics.CustomQueryUpdateReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.analytics.CustomQueryDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.analytics.CustomQueryMapper;
+import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.service.support.SqlSafetySupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -44,6 +45,7 @@ public class CustomQueryServiceImpl implements CustomQueryService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M6-custom-query", action = "create")
     public Long create(CustomQueryCreateReq req) {
         SqlSafetySupport.assertSelectOnly(req.getSqlText());
         Long tenantId = requireTenantId();
@@ -61,6 +63,7 @@ public class CustomQueryServiceImpl implements CustomQueryService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M6-custom-query", action = "update")
     public void update(CustomQueryUpdateReq req) {
         CustomQueryDO existing = getRequired(req.getId());
         SqlSafetySupport.assertSelectOnly(req.getSqlText());
@@ -103,6 +106,7 @@ public class CustomQueryServiceImpl implements CustomQueryService {
 
     @Override
     @Transactional
+    @AuditLog(module = "M6-custom-query", action = "publish")
     public void publish(Long id) {
         CustomQueryDO query = getRequired(id);
         query.setStatus("PUBLISHED");

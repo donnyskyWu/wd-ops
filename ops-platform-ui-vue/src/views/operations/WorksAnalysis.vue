@@ -57,10 +57,21 @@
     <ContentWrap>
       <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%">
         <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="contentType" label="类型" width="90" align="center" />
+        <el-table-column prop="contentType" label="类型" width="90" align="center">
+          <template #default="{ row }">
+            <DictLabel dict-type="dict_content_type" :value="row.contentType" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="platformType" label="平台" width="100">
+          <template #default="{ row }">
+            <DictLabel dict-type="dict_platform_type" :value="row.platformType" />
+          </template>
+        </el-table-column>
         <el-table-column prop="accountName" label="账号" width="140" />
         <el-table-column prop="ipGroupName" label="IP组" width="100" />
-        <el-table-column prop="publishTime" label="发布时间" width="160" />
+        <el-table-column prop="publishTime" label="发布时间" width="160">
+          <template #default="{ row }">{{ formatDateTime(row.publishTime) }}</template>
+        </el-table-column>
         <el-table-column prop="readCount" label="阅读量" width="110" align="right">
           <template #default="{ row }">
             {{ formatNumber(row.readCount) }}
@@ -101,8 +112,10 @@
         <el-descriptions-item label="标题" :span="2">{{ currentContent.title || '-' }}</el-descriptions-item>
         <el-descriptions-item label="账号">{{ currentContent.accountName || '-' }}</el-descriptions-item>
         <el-descriptions-item label="IP组">{{ currentContent.ipGroupName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="类型">{{ currentContent.contentType || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="发布时间">{{ currentContent.publishTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="类型">
+          <DictLabel dict-type="dict_content_type" :value="currentContent.contentType" />
+        </el-descriptions-item>
+        <el-descriptions-item label="发布时间">{{ formatDateTime(currentContent.publishTime) }}</el-descriptions-item>
         <el-descriptions-item label="阅读量">{{ formatNumber(currentContent.readCount) }}</el-descriptions-item>
         <el-descriptions-item label="点赞">{{ formatNumber(currentContent.likeCount) }}</el-descriptions-item>
         <el-descriptions-item label="评论">{{ formatNumber(currentContent.commentCount) }}</el-descriptions-item>
@@ -146,8 +159,9 @@ import TableSearch from '@/components/TableSearch.vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
-import { exportToExcel } from '@/utils'
+import { exportToExcel, formatDateTime } from '@/utils'
 import { normalizePlatform } from '@/utils/enum-alias'
 
 function getDefaultWeekRange(): string[] {
@@ -403,6 +417,7 @@ const handleExport = () => {
   const columns = [
     { key: 'title', label: '标题' },
     { key: 'contentType', label: '类型' },
+    { key: 'platformType', label: '平台' },
     { key: 'accountName', label: '账号' },
     { key: 'ipGroupName', label: 'IP组' },
     { key: 'publishTime', label: '发布时间' },

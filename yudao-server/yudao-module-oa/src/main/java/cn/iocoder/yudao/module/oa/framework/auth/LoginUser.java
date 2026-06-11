@@ -13,6 +13,7 @@ public class LoginUser {
     private Long tenantId;
     private String username;
     private String nickname;
+    private String email;
     private Set<String> authorities;
     private String dataScope;
     private Long ipGroupId;

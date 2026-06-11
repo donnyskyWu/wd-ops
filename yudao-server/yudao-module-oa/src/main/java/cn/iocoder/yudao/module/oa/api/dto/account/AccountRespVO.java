@@ -23,6 +23,9 @@ public class AccountRespVO {
     private Long intermediaryId;
     private String intermediaryName;
     private Long ipGroupId;
+    private String ipGroupName;
+    private Long followerCount;
+    private Integer workCount;
     private String status;
     private Boolean hasCookie;
     private LocalDateTime linkedAt;

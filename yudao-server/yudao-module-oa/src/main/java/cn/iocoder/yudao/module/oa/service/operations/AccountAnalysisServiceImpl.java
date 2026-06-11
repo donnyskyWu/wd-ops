@@ -23,7 +23,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -105,6 +107,51 @@ public class AccountAnalysisServiceImpl implements AccountAnalysisService {
                 new Page<>(pageNo == null ? 1 : pageNo, pageSize == null ? 20 : pageSize), wrapper);
         List<ContentAnalysisVO> list = page.getRecords().stream().map(this::toContentVO).collect(Collectors.toList());
         return new PageResult<>(list, page.getTotal());
+    }
+
+    @Override
+    public List<Map<String, Object>> accountFollowerTrend(Long accountId, LocalDate startDate, LocalDate endDate) {
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        LocalDate start = startDate != null ? startDate : end.minusDays(29);
+        return listAccountFollowers(accountId, start, end).stream()
+                .sorted((a, b) -> a.getStatDate().compareTo(b.getStatDate()))
+                .map(row -> {
+                    Map<String, Object> point = new HashMap<>();
+                    point.put("date", row.getStatDate().toString());
+                    point.put("followerCount", row.getFollowerCount());
+                    point.put("value", row.getFollowerCount());
+                    return point;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Map<String, Object>> accountContentTrend(Long accountId, LocalDate startDate, LocalDate endDate) {
+        Long tenantId = requireTenantId();
+        AccountDO account = accountMapper.selectById(accountId);
+        if (account == null || !account.getTenantId().equals(tenantId)) {
+            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "账号不存在");
+        }
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        LocalDate start = startDate != null ? startDate : end.minusDays(29);
+        LambdaQueryWrapper<ContentDO> wrapper = new LambdaQueryWrapper<ContentDO>()
+                .eq(ContentDO::getTenantId, tenantId)
+                .eq(ContentDO::getAccountId, accountId)
+                .ge(ContentDO::getPublishTime, start.atStartOfDay())
+                .le(ContentDO::getPublishTime, end.plusDays(1).atStartOfDay());
+        return contentMapper.selectList(wrapper).stream()
+                .filter(c -> c.getPublishTime() != null)
+                .collect(Collectors.groupingBy(c -> c.getPublishTime().toLocalDate()))
+                .entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> {
+                    Map<String, Object> point = new HashMap<>();
+                    point.put("date", e.getKey().toString());
+                    point.put("workCount", e.getValue().size());
+                    point.put("value", e.getValue().size());
+                    return point;
+                })
+                .collect(Collectors.toList());
     }
 
     private ContentAnalysisVO toContentVO(ContentDO c) {

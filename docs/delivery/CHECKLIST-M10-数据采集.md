@@ -45,7 +45,7 @@
 
 - [ ] PRD 同步
 - [ ] Swagger 文档
-- [ ] 字典项已登记
+- [x] 字典项已登记（V53：`dict_collect_status` / `dict_quality_check_type`）
 
 ## 7. Sign-off
 

@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.oa.controller.monitor;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.monitor.ExternalWorkVO;
+import cn.iocoder.yudao.module.oa.api.dto.monitor.MonitorFollowerAccountVO;
 import cn.iocoder.yudao.module.oa.service.monitor.MonitorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -27,51 +28,59 @@ public class MonitorController {
     @GetMapping("/external/list")
     public CommonResult<PageResult<ExternalWorkVO>> externalList(
             @RequestParam(required = false) String platformType,
+            @RequestParam(required = false) String contentType,
             @RequestParam(required = false) Long ipGroupId,
             @RequestParam(required = false) String industry,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
-        return CommonResult.success(monitorService.externalList(platformType, ipGroupId, industry, startDate, endDate, pageNum, pageSize));
+        return CommonResult.success(monitorService.externalList(platformType, contentType, ipGroupId, industry,
+                startDate, endDate, pageNum, pageSize));
     }
 
     @GetMapping("/hit/list")
     public CommonResult<PageResult<ExternalWorkVO>> hitList(
             @RequestParam(required = false) String platformType,
+            @RequestParam(required = false) String contentType,
             @RequestParam(required = false) Long ipGroupId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
-        return CommonResult.success(monitorService.hitList(platformType, ipGroupId, startDate, endDate, pageNum, pageSize));
+        return CommonResult.success(monitorService.hitList(platformType, contentType, ipGroupId, startDate, endDate,
+                pageNum, pageSize));
     }
 
     @GetMapping("/low-score/list")
     public CommonResult<PageResult<ExternalWorkVO>> lowScoreList(
             @RequestParam(required = false) String platformType,
+            @RequestParam(required = false) String contentType,
             @RequestParam(required = false) Long ipGroupId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
-        return CommonResult.success(monitorService.lowScoreList(platformType, ipGroupId, startDate, endDate, pageNum, pageSize));
+        return CommonResult.success(monitorService.lowScoreList(platformType, contentType, ipGroupId, startDate, endDate,
+                pageNum, pageSize));
     }
 
     @GetMapping("/high-follower/list")
-    public CommonResult<PageResult<ExternalWorkVO>> highFollowerList(
+    public CommonResult<PageResult<MonitorFollowerAccountVO>> highFollowerList(
+            @RequestParam(required = false) String platformType,
             @RequestParam(required = false) Long ipGroupId,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
-        return CommonResult.success(monitorService.highFollowerList(ipGroupId, pageNum, pageSize));
+        return CommonResult.success(monitorService.highFollowerList(platformType, ipGroupId, pageNum, pageSize));
     }
 
     @GetMapping("/low-follower/list")
-    public CommonResult<PageResult<ExternalWorkVO>> lowFollowerList(
+    public CommonResult<PageResult<MonitorFollowerAccountVO>> lowFollowerList(
+            @RequestParam(required = false) String platformType,
             @RequestParam(required = false) Long ipGroupId,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
-        return CommonResult.success(monitorService.lowFollowerList(ipGroupId, pageNum, pageSize));
+        return CommonResult.success(monitorService.lowFollowerList(platformType, ipGroupId, pageNum, pageSize));
     }
 
     @GetMapping("/ip-theme/{id}")

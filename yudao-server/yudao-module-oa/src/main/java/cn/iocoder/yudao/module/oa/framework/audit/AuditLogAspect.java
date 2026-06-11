@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.oa.framework.audit;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.oa.service.system.OperationLogRecorder;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
@@ -10,7 +12,10 @@ import org.springframework.stereotype.Component;
 @Aspect
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class AuditLogAspect {
+
+    private final OperationLogRecorder operationLogRecorder;
 
     @AfterReturning("@annotation(auditLog)")
     public void afterSuccess(JoinPoint joinPoint, AuditLog auditLog) {
@@ -20,5 +25,6 @@ public class AuditLogAspect {
                 auditLog.module(),
                 auditLog.action(),
                 joinPoint.getSignature().toShortString());
+        operationLogRecorder.record(auditLog, joinPoint.getSignature().toShortString());
     }
 }

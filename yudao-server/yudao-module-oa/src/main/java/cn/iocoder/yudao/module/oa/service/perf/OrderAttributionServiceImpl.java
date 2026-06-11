@@ -19,6 +19,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.author.AuthorMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.OrderAttributionMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.OrderMapper;
+import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -106,6 +107,7 @@ public class OrderAttributionServiceImpl implements OrderAttributionService {
     }
 
     @Override
+    @AuditLog(module = "M3-order-attribution", action = "export")
     public ExportJobVO export(LocalDate startDate, LocalDate endDate) {
         requireDateRange(startDate, endDate);
         ExportJobVO vo = new ExportJobVO();

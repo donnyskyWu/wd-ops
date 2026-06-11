@@ -123,7 +123,10 @@
     <!-- 待办提醒 -->
     <el-card shadow="hover" class="todo-section">
       <template #header>
-        <span class="card-header">待办提醒</span>
+        <div class="card-header todo-header">
+          <span>待办提醒</span>
+          <el-button link type="primary" @click="navigateTo('/workbench-todos')">全部</el-button>
+        </div>
       </template>
       <el-table :data="todoList" stripe style="width: 100%" @row-click="handleTodoClick">
         <el-table-column prop="title" label="标题" min-width="240" show-overflow-tooltip />
@@ -132,7 +135,9 @@
             <el-tag size="small" type="info">{{ formatTodoSource(row.source) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="time" label="时间" width="180" />
+        <el-table-column prop="time" label="时间" width="180">
+          <template #default="{ row }">{{ formatDateTime(row.time) }}</template>
+        </el-table-column>
         <el-table-column label="操作" width="100" align="center">
           <template #default="{ row }">
             <el-button link type="primary" @click.stop="navigateTo(resolveOpsUrl(row.actionUrl))">处理</el-button>
@@ -154,7 +159,8 @@ import {
 import dayjs from 'dayjs'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import DictSelect from '@/components/DictSelect.vue'
-import { PLATFORM_LABEL, type PlatformType } from '@/utils/enum-alias'
+import { PLATFORM_LABEL, type PlatformType, normalizePlatform } from '@/utils/enum-alias'
+import { formatDateTime } from '@/utils'
 import {
   getHomeMetrics,
   getHomeTrend,
@@ -229,6 +235,7 @@ const SOURCE_LABEL: Record<string, string> = {
   PUBLISH: '发布',
   PERF: '绩效',
   INTEGRATION: '集成',
+  IMPORT: '数据补录',
 }
 
 const QUICK_ICON_MAP: Record<string, typeof User> = {
@@ -265,21 +272,37 @@ function resolveOpsUrl(url: string): string {
     '/ops/ip-group': '/ip-group',
     '/ops/author': '/author',
     '/ops/account': '/internal-account',
+    '/ops/internal-content': '/internal-content',
     '/ops/sop': '/sop',
     '/ops/perf': '/perf-template',
     '/ops/report': '/data-report',
     '/ops/system/user': '/system-user',
     '/ops/system/tenant': '/system-tenant',
+    '/ops/workbench/todos': '/workbench-todos',
   }
+  const [pathOnly, query = ''] = url.split('?')
+  let resolved = pathOnly
   for (const [from, to] of Object.entries(map)) {
-    if (url === from || url.startsWith(from + '/')) {
-      return url.replace(from, to)
+    if (resolved === from || resolved.startsWith(from + '/')) {
+      resolved = resolved.replace(from, to)
+      break
     }
   }
-  if (url.startsWith('/ops/')) {
-    return url.replace('/ops/', '/')
+  if (resolved.startsWith('/ops/')) {
+    resolved = resolved.replace('/ops/', '/')
   }
-  return url
+  // 列表页路由不存在带 ID 的子路径时，回退到列表页
+  const listFallback: Record<string, string> = {
+    '/sop/review': '/sop/review',
+    '/content/review': '/content/review',
+  }
+  for (const [prefix, target] of Object.entries(listFallback)) {
+    if (resolved.startsWith(prefix + '/')) {
+      resolved = target
+      break
+    }
+  }
+  return query ? `${resolved}?${query}` : resolved
 }
 
 function resolveQuickIcon(icon: string) {
@@ -318,7 +341,7 @@ async function loadAllData() {
   try {
     const [m, trend, dist, todos, actions] = await Promise.all([
       getHomeMetrics(params),
-      getHomeTrend({ ...params, platformType: chartPlatform.value, groupBy: trendGroupBy.value }),
+      getHomeTrend({ ...params, platformType: normalizePlatform(chartPlatform.value), groupBy: trendGroupBy.value }),
       getPlatformDist(params),
       getHomeTodos({ ipGroupId: params.ipGroupId, limit: 10 }),
       getQuickActions(),
@@ -342,7 +365,7 @@ async function loadAllData() {
 async function loadTrendOnly() {
   try {
     const params = buildQueryParams()
-    trendPoints.value = await getHomeTrend({ ...params, platformType: chartPlatform.value, groupBy: trendGroupBy.value })
+    trendPoints.value = await getHomeTrend({ ...params, platformType: normalizePlatform(chartPlatform.value), groupBy: trendGroupBy.value })
     await nextTick()
     renderTrendChart()
   } catch (e) {
@@ -400,7 +423,7 @@ function renderTrendChart() {
         }]
   } else {
     const platforms = chartPlatform.value
-      ? [chartPlatform.value]
+      ? [normalizePlatform(chartPlatform.value)!]
       : [...new Set(points.map(p => p.platform).filter(Boolean))] as string[]
     series = platforms.length
       ? platforms.map(platform => ({
@@ -670,6 +693,12 @@ onBeforeUnmount(() => {
   .todo-section {
     border: none;
     border-radius: 12px;
+
+    .todo-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
 
     :deep(.el-table__row) {
       cursor: pointer;

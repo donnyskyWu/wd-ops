@@ -49,7 +49,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-company", action = "create")
+    @AuditLog(module = "公司管理", action = "新增公司")
     public Long create(CompanyCreateReq req) {
         Long tenantId = requireTenantId();
         assertCreditCodeUnique(tenantId, req.getCreditCode(), null);
@@ -77,7 +77,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-company", action = "update")
+    @AuditLog(module = "公司管理", action = "修改公司")
     public void update(CompanyUpdateReq req) {
         CompanyDO existing = getRequiredInTenant(req.getId());
         if (StrUtil.isNotBlank(req.getCompanyName())) {
@@ -108,7 +108,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-company", action = "delete")
+    @AuditLog(module = "公司管理", action = "删除公司")
     public void delete(Long id) {
         CompanyDO existing = getRequiredInTenant(id);
         if (existing.getMpRegisteredCount() != null && existing.getMpRegisteredCount() > 0) {
@@ -119,7 +119,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-company", action = "expand")
+    @AuditLog(module = "公司管理", action = "公司扩容")
     public void expand(Long id, CompanyExpandReq req) {
         CompanyDO existing = getRequiredInTenant(id);
         int current = existing.getMpCapacityStandard() == null ? 0 : existing.getMpCapacityStandard();

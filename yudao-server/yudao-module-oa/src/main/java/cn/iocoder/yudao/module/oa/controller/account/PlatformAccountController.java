@@ -44,6 +44,7 @@ public class PlatformAccountController {
     }
 
     @GetMapping("/get")
+    @PreAuthorize("hasAuthority('oa:account:list')")
     public CommonResult<AccountRespVO> get(@RequestParam Long id) {
         return CommonResult.success(platformAccountService.get(id));
     }

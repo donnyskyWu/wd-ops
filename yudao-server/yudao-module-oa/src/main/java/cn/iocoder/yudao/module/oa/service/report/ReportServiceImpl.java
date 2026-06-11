@@ -19,6 +19,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMemberMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.OrderAttributionMapper;
+import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.service.support.OaTenantSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -121,6 +122,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
+    @AuditLog(module = "M7-report", action = "export-unified-account")
     public ExportJobVO unifiedAccountExport(LocalDate startDate, LocalDate endDate) {
         OaTenantSupport.requireDateRange(startDate, endDate);
         return OaTenantSupport.stubExportJob();
@@ -220,6 +222,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
+    @AuditLog(module = "M7-report", action = "export-account-status")
     public ExportJobVO accountStatusExport(LocalDate startDate, LocalDate endDate) {
         OaTenantSupport.requireDateRange(startDate, endDate);
         return OaTenantSupport.stubExportJob();
@@ -313,6 +316,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
+    @AuditLog(module = "M7-report", action = "export-video-output")
     public ExportJobVO videoOutputExport(LocalDate startDate, LocalDate endDate) {
         return OaTenantSupport.stubExportJob();
     }
@@ -366,6 +370,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
+    @AuditLog(module = "M7-report", action = "export-live-duration")
     public ExportJobVO liveDurationExport(LocalDate startDate, LocalDate endDate) {
         return OaTenantSupport.stubExportJob();
     }
@@ -404,6 +409,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
+    @AuditLog(module = "M7-report", action = "export-cost-allocation")
     public ExportJobVO costAllocationExport(LocalDate startDate, LocalDate endDate) {
         return OaTenantSupport.stubExportJob();
     }
@@ -438,6 +444,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
+    @AuditLog(module = "M7-report", action = "export-roi")
     public ExportJobVO roiExport(LocalDate startDate, LocalDate endDate) {
         return OaTenantSupport.stubExportJob();
     }
@@ -538,6 +545,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
+    @AuditLog(module = "M7-report", action = "export-account-alert")
     public ExportJobVO accountAlertExport(LocalDate startDate, LocalDate endDate) {
         return OaTenantSupport.stubExportJob();
     }

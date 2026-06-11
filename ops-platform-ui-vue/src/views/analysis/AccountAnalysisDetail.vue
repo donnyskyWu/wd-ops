@@ -7,7 +7,9 @@
       <el-tab-pane label="粉丝详情" name="followers">
         <ContentWrap>
           <el-table v-loading="followerLoading" :data="followerList" border stripe style="width: 100%">
-            <el-table-column prop="statDate" label="日期" width="120" />
+            <el-table-column prop="statDate" label="日期" width="160">
+              <template #default="{ row }">{{ formatDateTime(row.statDate) }}</template>
+            </el-table-column>
             <el-table-column prop="accountName" label="账号" min-width="150" />
             <el-table-column prop="ipGroupName" label="所属IP组" width="140" />
             <el-table-column prop="followerCount" label="粉丝总数" width="120" align="right">
@@ -40,8 +42,14 @@
         <ContentWrap>
           <el-table v-loading="contentLoading" :data="contentList" border stripe style="width: 100%">
             <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="contentType" label="类型" width="100" align="center" />
-            <el-table-column prop="publishTime" label="发布时间" width="160" />
+            <el-table-column prop="contentType" label="类型" width="100" align="center">
+              <template #default="{ row }">
+                <DictLabel dict-type="dict_content_type" :value="row.contentType" />
+              </template>
+            </el-table-column>
+            <el-table-column prop="publishTime" label="发布时间" width="160">
+              <template #default="{ row }">{{ formatDateTime(row.publishTime) }}</template>
+            </el-table-column>
             <el-table-column prop="readCount" label="阅读量" width="110" align="right">
               <template #default="{ row }">{{ formatNumber(row.readCount) }}</template>
             </el-table-column>
@@ -77,6 +85,8 @@ import { ElMessage } from 'element-plus'
 import { getAccountFollowerDetail, getAccountContentDetail } from '@/api/account-analysis'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
+import DictLabel from '@/components/DictLabel.vue'
+import { formatDateTime } from '@/utils'
 
 const route = useRoute()
 const router = useRouter()

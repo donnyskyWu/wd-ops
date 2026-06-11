@@ -48,7 +48,7 @@ public class InternalContentServiceImpl implements InternalContentService {
     private final ContentDailyMapper contentDailyMapper;
 
     @Override
-    public PageResult<InternalContentVO> list(String platformType, String dataSource,
+    public PageResult<InternalContentVO> list(String platformType, String dataSource, String contentType,
                                               Long ipGroupId, String keyword,
                                               LocalDate startDate, LocalDate endDate,
                                               Integer page, Integer size) {
@@ -71,6 +71,7 @@ public class InternalContentServiceImpl implements InternalContentService {
                 .eq(ContentDO::getTenantId, tenantId)
                 .eq(StrUtil.isNotBlank(platformType), ContentDO::getPlatformType, platformType)
                 .eq(StrUtil.isNotBlank(dataSource), ContentDO::getDataSource, dataSource)
+                .eq(StrUtil.isNotBlank(contentType), ContentDO::getContentType, contentType)
                 .in(accountIdsFilter != null, ContentDO::getAccountId, accountIdsFilter);
         // S-R7-B2：keyword 模糊匹配 title（不能用 .like(boolean) 因为 condition 为 true 但 keyword 仍可能为空字符串）
         if (StrUtil.isNotBlank(keyword)) {
