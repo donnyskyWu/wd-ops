@@ -1,0 +1,9 @@
+# 本地钉钉凭证（勿提交 git）
+# 复制为 application-dev-local.yml 并填入真实值
+oa:
+  dingtalk:
+    enabled: true
+    client-id: your-app-key
+    client-secret: your-app-secret
+    corp-id: your-corp-id
+    agent-id: 0

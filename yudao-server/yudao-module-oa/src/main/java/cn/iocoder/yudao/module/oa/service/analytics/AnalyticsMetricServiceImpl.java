@@ -5,18 +5,25 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.api.dto.analytics.MetricCreateReq;
+import cn.iocoder.yudao.module.oa.api.dto.analytics.MetricPreviewReq;
+import cn.iocoder.yudao.module.oa.api.dto.analytics.MetricPreviewVO;
 import cn.iocoder.yudao.module.oa.api.dto.analytics.MetricUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.analytics.MetricVO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.MetricDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfTemplateItemDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.MetricMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateItemMapper;
+import cn.iocoder.yudao.module.oa.service.support.SqlSafetySupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -26,6 +33,7 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
 
     private final MetricMapper metricMapper;
     private final PerfTemplateItemMapper perfTemplateItemMapper;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public PageResult<MetricVO> list(String metricType, Integer pageNum, Integer pageSize) {
@@ -50,6 +58,8 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
         entity.setMetricCode(req.getMetricCode());
         entity.setUnit(req.getUnit());
         entity.setCategory(req.getMetricType() != null ? req.getMetricType() : "ANALYTICS");
+        entity.setMetricFormula(req.getMetricFormula());
+        entity.setDataSource(req.getDataSource());
         entity.setStatus(1);
         entity.setCreator(TenantContextHolder.getUsername());
         entity.setUpdater(TenantContextHolder.getUsername());
@@ -68,6 +78,12 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
         if (req.getMetricType() != null) {
             existing.setCategory(req.getMetricType());
         }
+        if (req.getMetricFormula() != null) {
+            existing.setMetricFormula(req.getMetricFormula());
+        }
+        if (req.getDataSource() != null) {
+            existing.setDataSource(req.getDataSource());
+        }
         if (req.getStatus() != null) {
             existing.setStatus(req.getStatus());
         }
@@ -85,6 +101,20 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
             throw new ServiceException(OaErrorCodes.ENTITY_ALREADY_BOUND);
         }
         metricMapper.deleteById(existing.getId());
+    }
+
+    @Override
+    public MetricPreviewVO preview(MetricPreviewReq req) {
+        SqlSafetySupport.assertSelectOnly(req.getMetricFormula());
+        Long tenantId = requireTenantId();
+        String sql = req.getMetricFormula().trim().replace(":tenantId", String.valueOf(tenantId));
+        if (!sql.toUpperCase(Locale.ROOT).contains(" LIMIT ")) {
+            sql = sql + " LIMIT 20";
+        }
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
+        MetricPreviewVO vo = new MetricPreviewVO();
+        vo.setRows(rows);
+        return vo;
     }
 
     private MetricDO getRequired(Long id) {
@@ -118,6 +148,8 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
         vo.setMetricType(row.getCategory());
         vo.setCategory(row.getCategory());
         vo.setUnit(row.getUnit());
+        vo.setMetricFormula(row.getMetricFormula());
+        vo.setDataSource(row.getDataSource());
         vo.setStatus(row.getStatus());
         return vo;
     }

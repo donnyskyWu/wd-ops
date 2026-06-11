@@ -1,6 +1,6 @@
 # UX-M6-数据分析
 
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v1.2 | 2026-06-11
 > **关联 PRD**：[`PRD-M6-数据分析.md`](./PRD-M6-数据分析.md)
 > **全局规范**：[`GLOBAL-CONVENTIONS.md`](../engineering/GLOBAL-CONVENTIONS.md)
 
@@ -54,7 +54,10 @@
 | F-NAME | `<Input />` |
 | F-CODE | `<Input />` |
 | F-METRIC-TYPE | `<DictSelect dict-type="dict_perf_metric_type" />` |
-| F-FORMULA | `<CodeEditor language="sql" />` |
+| F-BUILDER | `<MetricBuilder />`（非 COMPOSITE） | 数据源/计算/汇总/joins/过滤 → SQL |
+| F-FORMULA | `<CodeEditor />` 或 Builder 输出（COMPOSITE 仅手输） |
+| F-DESCRIPTION | `<TextArea />` | 仅前端，未持久化 |
+| BTN-PREVIEW | 按钮 | 调用 `POST /metric/preview` |
 | TBL-METRIC | 表格 |
 
 ---
@@ -79,9 +82,11 @@
 
 详细字段见各报表详细设计（5.26.A~H）。
 
+**实现**：表格列绑定 snake_case 字段；枚举列用 `<DictLabel />`。
+
 ---
 
-## 5. P-M6-011 漏斗分析
+## 5. P-M6-011 / P-M6-012 漏斗分析
 
 ### 5.1 预置漏斗
 
@@ -92,7 +97,12 @@
 | 互动转化 | 阅读 → 点赞 → 评论 → 转发 |
 | 订单转化 | 加购 → 提交订单 → 支付 |
 
-### 5.2 漏斗图
+### 5.2 自定义漏斗（P-M6-012）
+
+- 步骤配置：每步 `<Select />` 选 `oa_metric`（`/metric/list`）
+- 无预设 eventCode 下拉
+
+### 5.3 漏斗图
 
 ```
 [曝光 100%] ████████████
@@ -104,11 +114,30 @@
 
 ## 6. P-M6-013 自定义查询
 
-- 左侧：表/字段树
-- 中间：可视化拖拽（条件、聚合）
-- 右侧：SQL 预览 + 结果
+### 6.1 页级 Tab
 
-### 6.1 状态
+```
+[自定义查询] [我的查询]
+```
+
+### 6.2 自定义查询 Tab 布局
+
+```
+[可折叠: 查询配置]
+  QueryBuilder（数据源 / 字段 / 过滤 / 聚合 / 排序）
+  [预览] [保存]
+[QueryResultPanel]
+  条件摘要条
+  [结果列表 | 图表展示]
+  - 结果列表：中文表头
+  - 图表展示：基于当前结果（柱状/折线）
+```
+
+### 6.3 我的查询 Tab
+
+已保存查询表格：名称、状态、更新时间；操作：执行 / 编辑 / 删除。
+
+### 6.4 状态
 
 | 控件 | 字典 |
 |------|------|

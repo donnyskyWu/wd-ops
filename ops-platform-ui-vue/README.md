@@ -1,169 +1,82 @@
-# 运营数据分析平台 - Vue3版本
+﻿# ops-platform-ui-vue · 运营数据平台前端
 
-## 技术栈
+Vue 3 + Vite + Element Plus。本地开发通过 Vite 代理访问后端 `http://localhost:8080`。
 
-- **前端框架**: Vue 3.4 + Composition API
-- **构建工具**: Vite 5
-- **UI组件库**: Element Plus 2.6
-- **状态管理**: Pinia 2.1
-- **路由管理**: Vue Router 4.3
-- **HTTP客户端**: Axios 1.6
-- **图表库**: ECharts 5.5 + vue-echarts 6.6
-- **样式预处理**: Sass
-- **语言**: TypeScript 5.4
+后端启动说明见 [`yudao-server/README.md`](../yudao-server/README.md)。
 
-## 项目结构
+## 前置
 
-```
-ops-platform-ui-vue/
-├── src/
-│   ├── api/              # API接口
-│   ├── components/       # 公共组件
-│   ├── router/          # 路由配置
-│   ├── stores/          # Pinia状态管理
-│   ├── styles/          # 全局样式
-│   ├── types/           # TypeScript类型定义
-│   ├── utils/           # 工具函数
-│   ├── views/           # 页面组件
-│   │   ├── operations/  # 运营管理模块
-│   │   ├── production/  # 内容生产模块
-│   │   ├── performance/ # 绩效核算模块
-│   │   ├── internal/    # 内部管理模块
-│   │   ├── finance/     # 财务管理模块
-│   │   ├── analysis/    # 数据分析模块
-│   │   ├── monitor/     # 作品监测模块
-│   │   ├── system/      # 系统管理模块
-│   │   └── data-collection/ # 数据采集模块
-│   ├── App.vue
-│   └── main.ts
-├── index.html
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── README.md
-```
+| 依赖 | 说明 |
+|------|------|
+| Node.js | 建议 18+（与 Vite 5 兼容） |
+| npm | 随 Node 安装 |
 
-## 快速开始
+## 安装与开发
 
-### 安装依赖
-
-```bash
+```powershell
+cd ops-platform-ui-vue
 npm install
-```
-
-### 启动开发服务器
-
-```bash
 npm run dev
 ```
 
-访问 http://localhost:3000
+- 开发地址：`http://localhost:3000`（`vite.config.ts` 中 `server.port: 3000`）
+- API 代理：`/admin-api` → `http://localhost:8080`（需先启动后端）
 
-### 构建生产版本
+## Dev Token 与租户
 
-```bash
+请求封装见 `src/utils/request.ts`：
+
+- `Authorization: Bearer <token>`
+- `X-Tenant-Id`（默认 `1`）
+
+本地开发可在项目根目录创建 `.env.local`（勿提交密钥仓库外泄）：
+
+```env
+VITE_API_TOKEN=dev-token-oa-admin
+VITE_TENANT_ID=1
+```
+
+也可在浏览器 `localStorage` 设置 `token`、`tenantId`。与后端 dev profile 固定 Token 一致即可联调。
+
+## 构建
+
+```powershell
 npm run build
 ```
 
-### 预览生产构建
+产物目录：`dist/`。部署到 Nginx 或其他静态托管，并将 `/admin-api` 反向代理到生产后端地址。
 
-```bash
+本地预览构建结果：
+
+```powershell
 npm run preview
 ```
 
-## 开发规范
+## E2E 测试
 
-严格遵循以下规范：
-- PRD v9.0 完整需求文档
-- AI开发规范 - 全局开发规范
-- 各模块页面规格文档
+```powershell
+npm run test:e2e
+```
 
-## 模块清单
+联调类用例：`npm run test:e2e:integration`（需后端可用）。
 
-### 1. 概览
-- ✅ 首页仪表盘
+## 本地全栈流程
 
-### 2. 运营管理 (7个模块)
-- IP组管理
-- 作者管理
-- 账号分析
-- 粉丝分析
-- 作品分析
-- 内部内容分析
-- 人效盘点
+1. 启动后端：`yudao-server/yudao-module-oa`，profile `dev`，端口 **8080**
+2. 本目录 `npm run dev`，端口 **3000**
+3. 打开 `http://localhost:3000`
+4. 确认 `.env.local` 或 localStorage 中 Token / 租户与后端一致
 
-### 3. 内容生产 (5个模块)
-- SOP管理
-- 计划管理
-- 任务管理
-- 内容管理
-- 内容知识库
+## 部署说明（简要）
 
-### 4. 绩效核算 (4个模块)
-- 考核模板
-- 考核执行
-- 绩效结果
-- 订单归因分析
+- 构建：`npm run build` → 上传 `dist/` 至静态服务器
+- 生产环境通过 Nginx（或网关）配置 API 反向代理，**不要**在前端仓库硬编码生产密钥
+- 生产 API 基址可通过构建时环境变量或网关统一前缀调整（当前 dev 使用相对路径 `/admin-api`）
 
-### 5. 内部管理 (7个模块)
-- 公司管理
-- 实名人管理
-- 手机管理
-- 手机卡管理
-- 内部平台账号管理
-- 个人账号管理
-- 三方关联统计
+## 常见问题
 
-### 6. 财务管理 (3个模块)
-- 账号成本管理
-- ROI分析
-- 总体财务分析
-
-### 7. 数据分析 (8个模块)
-- 指标管理
-- 数据报表
-- 总体财务分析
-- 漏斗分析
-- 自定义查询
-- 数据大屏
-- 大屏配置
-- 微信数据分析
-
-### 8. 作品监测 (5个模块)
-- 爆款分析
-- 低分分析
-- 外部作品监控
-- 高粉/低粉账号
-- IP主题与行业数据
-
-### 9. 数据采集 (2个模块)
-- 采集任务管理
-- 数据质量
-
-### 10. 系统管理 (4个模块)
-- 配置管理
-- 角色权限
-- 用户管理
-- 操作日志
-
-**总计**: 42个功能模块
-
-## Mock数据
-
-所有模块使用Mock数据进行展示，确保界面效果符合PRD要求。
-
-## 注意事项
-
-1. 本项目严格按照PRD v9.0和AI开发规范实现
-2. 使用Element Plus组件库，符合管理系统设计规范
-3. 采用深色侧边栏 + 浅色内容区布局
-4. 所有API路径遵循 `/admin-api/oa` 前缀规范
-5. 分页参数统一使用 `pageNo/pageSize`
-6. TypeScript接口字段使用 camelCase
-7. 错误码范围 1001-1999
-
-## 版本信息
-
-- 版本: v1.0.0
-- 创建日期: 2026-05-28
-- 技术栈: Vue 3 + Element Plus + TypeScript
+| 现象 | 处理 |
+|------|------|
+| 接口 404 / 网络错误 | 确认后端 8080 已启动；检查 Vite proxy 是否指向正确地址 |
+| 401 / 无权限 | 检查 `VITE_API_TOKEN`、`X-Tenant-Id` 与 dev 用户权限 |
+| 端口 3000 占用 | 修改 `vite.config.ts` 中 `server.port` 或结束占用进程 |

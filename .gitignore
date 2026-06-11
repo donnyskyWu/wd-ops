@@ -36,6 +36,8 @@ __pycache__/
 .env
 .env.local
 .env.*.local
+application-dev-local.yml
+**/application-dev-local.yml
 *.pem
 *.key
 zhangwu

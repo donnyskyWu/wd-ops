@@ -1,6 +1,6 @@
 # UX-M0-首页
 
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v1.1 | 2026-06-11
 > **关联 PRD**：[`PRD-M0-首页.md`](./PRD-M0-首页.md)
 > **全局规范**：[`docs/engineering/GLOBAL-CONVENTIONS.md`](./../engineering/GLOBAL-CONVENTIONS.md)
 
@@ -58,6 +58,7 @@
 |---------|------|------------|----------|------------|
 | F-IP | `<IpGroupTreeSelect />` | "IP 组筛选"（默认"全部"） | `oa_ip_group` | FR-M0-001 / AC-M0-001-2 |
 | F-DATE-RANGE | `<DateRangePicker />` | 近 7 天 | - | FR-M0-001 |
+| F-GROUP-BY | `<Select />` | "按平台"（默认）/ "按 IP 小组" | PLATFORM / IP_GROUP | FR-M0-001（实现 2026-06-11） |
 | F-PLATFORM | `<DictSelect dict-type="dict_platform_type" />` | "全部" | `dict_platform_type` | FR-M0-001 / AC-M0-001-4 |
 | BTN-REFRESH | 主按钮 | "刷新" | - | FR-M0-001 / AC-M0-001-5 |
 | CARD-AUTHORS | 卡片 | "总作者数 {N}" | - | FR-M0-001 / AC-M0-001-1 |

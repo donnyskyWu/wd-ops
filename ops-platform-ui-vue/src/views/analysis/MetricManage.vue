@@ -5,10 +5,7 @@
         <el-input v-model="searchForm.keyword" placeholder="搜索指标" clearable />
       </el-form-item>
       <el-form-item label="指标类型">
-        <el-select v-model="searchForm.metricType" placeholder="请选择" clearable style="width: 140px">
-          <el-option label="基础指标" value="BASIC" />
-          <el-option label="复合指标" value="COMPOSITE" />
-        </el-select>
+        <DictSelect v-model="searchForm.metricType" dict-type="dict_perf_metric_type" placeholder="全部" clearable style="width: 140px" />
       </el-form-item>
     </TableSearch>
 
@@ -20,13 +17,15 @@
 
     <el-table :data="metricList" v-loading="loading" stripe>
       <el-table-column prop="id" label="ID" width="70" align="center" />
-      <el-table-column prop="metricName" label="指标名称" min-width="160" show-overflow-tooltip />
-      <el-table-column prop="metricCode" label="指标编码" width="180" show-overflow-tooltip />
+      <el-table-column prop="metricName" label="指标名称" min-width="140" show-overflow-tooltip />
+      <el-table-column prop="metricCode" label="指标编码" width="160" show-overflow-tooltip />
       <el-table-column prop="metricType" label="类型" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :type="getTypeColor(row.metricType)" size="small">{{ getTypeName(row.metricType) }}</el-tag>
+          <DictLabel dict-type="dict_perf_metric_type" :value="row.metricType" />
         </template>
       </el-table-column>
+      <el-table-column prop="dataSource" label="数据源" width="140" show-overflow-tooltip />
+      <el-table-column prop="metricFormula" label="计算公式" min-width="180" show-overflow-tooltip />
       <el-table-column prop="unit" label="单位" width="80" align="center" />
       <el-table-column prop="status" label="状态" width="80" align="center">
         <template #default="{ row }">
@@ -54,23 +53,58 @@
       @update:page-size="(v) => { searchForm.pageSize = v; searchForm.pageNum = 1; loadList() }"
     />
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px" @closed="handleDialogClosed">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="960px" @closed="handleDialogClosed">
       <el-form :model="formData" ref="formRef" :rules="formRules" label-width="100px">
-        <el-form-item label="指标名称" prop="metricName">
-          <el-input v-model="formData.metricName" placeholder="1-50字，全局唯一" maxlength="50" />
-        </el-form-item>
-        <el-form-item label="指标编码" prop="metricCode">
-          <el-input v-model="formData.metricCode" placeholder="英文+下划线，全局唯一" />
-        </el-form-item>
-        <el-form-item label="指标类型" prop="metricType">
-          <el-radio-group v-model="formData.metricType">
-            <el-radio label="BASIC">基础</el-radio>
-            <el-radio label="COMPOSITE">复合</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="单位">
-          <el-input v-model="formData.unit" placeholder="如：人/元/%/次/分" />
-        </el-form-item>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="指标名称" prop="metricName">
+              <el-input v-model="formData.metricName" placeholder="1-50字，全局唯一" maxlength="50" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="指标编码" prop="metricCode">
+              <el-input v-model="formData.metricCode" placeholder="英文+下划线，全局唯一" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="指标类型" prop="metricType">
+              <DictSelect v-model="formData.metricType" dict-type="dict_perf_metric_type" placeholder="请选择指标类型" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="单位">
+              <el-input v-model="formData.unit" placeholder="如：人/元/%/次/分" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <template v-if="formData.metricType !== 'COMPOSITE'">
+          <el-divider content-position="left">可视化公式构建</el-divider>
+          <MetricBuilder
+            v-model:data-source="formData.dataSource"
+            v-model:metric-formula="formData.metricFormula"
+          />
+        </template>
+        <template v-else>
+          <el-form-item label="数据源" prop="dataSource">
+            <el-select v-model="formData.dataSource" placeholder="可选" filterable clearable style="width: 100%">
+              <el-option v-for="item in METRIC_DATA_SOURCES" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="计算公式" prop="metricFormula">
+            <el-input
+              v-model="formData.metricFormula"
+              type="textarea"
+              :rows="4"
+              placeholder="引用其他指标编码进行运算，如 metric_a / metric_b * 100"
+              spellcheck="false"
+            />
+            <div class="form-tip">复合指标：引用已创建指标的 metric_code 进行四则运算</div>
+          </el-form-item>
+        </template>
+
         <el-form-item label="备注">
           <el-input v-model="formData.description" type="textarea" :rows="2" placeholder="指标说明（可选）" />
         </el-form-item>
@@ -89,13 +123,24 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Download } from '@element-plus/icons-vue'
 import { exportToExcel } from '@/utils'
 import TableSearch from '@/components/TableSearch.vue'
-import { getMetricList, createMetric, updateMetric, deleteMetric } from '@/api/metric'
+import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
+import MetricBuilder from '@/components/MetricBuilder.vue'
+import {
+  getMetricList,
+  createMetric,
+  updateMetric,
+  deleteMetric,
+  METRIC_DATA_SOURCES,
+} from '@/api/metric'
 
 interface MetricVO {
   id: number
   metricName: string
   metricCode: string
   metricType: string
+  dataSource?: string
+  metricFormula?: string
   unit: string
   category: string
   status: number
@@ -123,6 +168,8 @@ const formData = reactive({
   metricName: '',
   metricCode: '',
   metricType: 'BASIC',
+  dataSource: '',
+  metricFormula: '',
   unit: '',
   description: '',
 })
@@ -137,16 +184,18 @@ const formRules = {
     { pattern: /^[A-Za-z][A-Za-z0-9_]*$/, message: '编码需以字母开头，仅含字母数字下划线', trigger: 'blur' },
   ],
   metricType: [{ required: true, message: '请选择指标类型', trigger: 'change' }],
-}
-
-const getTypeName = (type: string) => {
-  const map: Record<string, string> = { BASIC: '基础', COMPOSITE: '复合' }
-  return map[type] || type || '-'
-}
-
-const getTypeColor = (type: string) => {
-  const map: Record<string, string> = { BASIC: '', COMPOSITE: 'warning' }
-  return map[type] || ''
+  dataSource: [{
+    validator: (_rule: unknown, value: string, callback: (err?: Error) => void) => {
+      if (formData.metricType === 'COMPOSITE') {
+        callback()
+        return
+      }
+      if (!value) callback(new Error('请选择数据源'))
+      else callback()
+    },
+    trigger: 'change',
+  }],
+  metricFormula: [{ required: true, message: '请填写计算公式', trigger: 'blur' }],
 }
 
 const loadList = async () => {
@@ -195,7 +244,9 @@ const handleExport = () => {
     id: row.id,
     metricName: row.metricName,
     metricCode: row.metricCode,
-    metricType: getTypeName(row.metricType),
+    metricType: row.metricType,
+    dataSource: row.dataSource || '',
+    metricFormula: row.metricFormula || '',
     unit: row.unit,
     status: row.status === 1 ? '启用' : '停用',
   }))
@@ -204,16 +255,31 @@ const handleExport = () => {
     { key: 'metricName', label: '指标名称' },
     { key: 'metricCode', label: '指标编码' },
     { key: 'metricType', label: '类型' },
+    { key: 'dataSource', label: '数据源' },
+    { key: 'metricFormula', label: '计算公式' },
     { key: 'unit', label: '单位' },
     { key: 'status', label: '状态' },
   ]
   exportToExcel(rows, columns, '指标列表')
 }
 
+const resetFormData = () => {
+  Object.assign(formData, {
+    id: undefined,
+    metricName: '',
+    metricCode: '',
+    metricType: 'BASIC',
+    dataSource: '',
+    metricFormula: '',
+    unit: '',
+    description: '',
+  })
+}
+
 const handleAdd = () => {
   isEdit.value = false
   dialogTitle.value = '新增指标'
-  Object.assign(formData, { id: undefined, metricName: '', metricCode: '', metricType: 'BASIC', unit: '', description: '' })
+  resetFormData()
   dialogVisible.value = true
 }
 
@@ -225,6 +291,8 @@ const handleEdit = (row: MetricVO) => {
     metricName: row.metricName,
     metricCode: row.metricCode,
     metricType: row.metricType || row.category || 'BASIC',
+    dataSource: row.dataSource || '',
+    metricFormula: row.metricFormula || '',
     unit: row.unit || '',
     description: row.description || '',
   })
@@ -244,6 +312,8 @@ const handleSubmit = async () => {
       metricName: formData.metricName,
       metricCode: formData.metricCode,
       metricType: formData.metricType,
+      dataSource: formData.dataSource,
+      metricFormula: formData.metricFormula,
       unit: formData.unit || undefined,
       description: formData.description || undefined,
     }
@@ -281,4 +351,5 @@ onMounted(() => loadList())
 .action-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
 .total-info { color: #909399; font-size: 14px; }
 .pagination { margin-top: 16px; display: flex; justify-content: flex-end; }
+.form-tip { margin-top: 6px; color: #909399; font-size: 12px; line-height: 1.5; }
 </style>

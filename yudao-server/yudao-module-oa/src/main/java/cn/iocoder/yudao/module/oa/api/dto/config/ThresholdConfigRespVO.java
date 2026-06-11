@@ -9,9 +9,21 @@ import java.time.LocalDateTime;
 public class ThresholdConfigRespVO {
 
     private Long id;
+    private String thresholdCategory;
+    private String thresholdType;
     private String metricName;
     private String metricType;
     private String platformType;
+    private String contentType;
+    private String judgeMode;
+    private Long lowFans;
+    private Long highFans;
+    private Integer dailyLow;
+    private Integer dailyHigh;
+    private Long hotValue;
+    private Long lowValue;
+    private Long overrideAccountId;
+    private Long overrideValue;
     private Long ipGroupId;
     private String compareOperator;
     private BigDecimal thresholdValue;

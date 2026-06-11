@@ -27,6 +27,8 @@ public class UserUpdateReq {
 
     private Long ipGroupId;
 
+    private Long deptId;
+
     @InDict("dict_user_status")
     private String status;
 

@@ -29,7 +29,7 @@ public interface HomeDashboardService {
     HomeMetricsVO getMetrics(Long ipGroupId, LocalDate startDate, LocalDate endDate);
 
     List<TrendPointVO> getTrend(Long ipGroupId, LocalDate startDate, LocalDate endDate,
-                                String platformType, String type);
+                                String platformType, String type, String groupBy);
 
     List<PlatformDistVO> getPlatformDist(Long ipGroupId, LocalDate startDate, LocalDate endDate);
 

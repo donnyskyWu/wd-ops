@@ -48,7 +48,7 @@
 
 ## 1. 全局进度总表
 
-> **最后更新**：2026-06-10 · **当前阶段**：S7 ✅ + 走查/补丁切片 · **执行**：单人全栈（见 [TASK-PROGRESS-MASTER](./TASK-PROGRESS-MASTER.md)）· **进入「上线前补强 + 持续走查 + Phase 2 决策」阶段**
+> **最后更新**：2026-06-11 · **当前阶段**：S7 ✅ + 走查/补丁切片 + 文档同步 · **执行**：单人全栈（见 [TASK-PROGRESS-MASTER](./TASK-PROGRESS-MASTER.md)）· **进入「上线前补强 + 持续走查 + Phase 2 决策」阶段**
 
 | Gate | 阶段 | 周次 | 模块 / 横切 | 开发 | 测试 | Seed | Gate | 通过日期 | 负责人 | 备注 |
 |------|------|------|------------|------|------|------|------|---------|--------|------|
@@ -96,6 +96,10 @@
 | 补丁 | **S-R23-Mike** | B-6 M9 路径 `/oa/system/*` 规范 + 别名 | ✅ | ADR-009 |
 | 补丁 | **S-R24** | B-7 5 页 + FansAnalysis 补 exportToExcel | ✅ | P2-#14 `missing===0` |
 | 补丁 | **S-R27a-Mike** | B-8/M3 绩效详情 + 趋势 userInfo enrich | ✅ | API-M3 §2.5/§3.2 |
+| 文档 | **DOC-SYNC-20260611** | M0/M2/M5/M6/M7/M8/M9 PRD·UX·API·CHECKLIST + ADR-013 | ✅ | 代码实现对齐 |
+| 文档 | **DOC-SYNC-M8-20260611** | `配置管理模块PRD.md` → PRD/UX/API/STATE/SLICES/CHECKLIST-M8 + ADR-014 + V49 迁移 | ✅ | M8 PRD v1.0 全量对齐 |
+| 文档 | **DOC-SYNC-20260611-2** | M8 v2.1（AccountSelect/企微Tab/个微奥创/V50-V51）+ M6 v1.2（报表snake_case/漏斗指标/自定义查询双Tab） | ✅ | 代码↔Spec 二次对齐 |
+| 文档 | **DOC-SYNC-M8-MERGE** | 根目录 `配置管理模块PRD.md` v1.0 → `PRD-M8` v2.2 全量合并；根文件改为 SSOT 跳转 | ✅ | 单一 PRD 源 |
 
 **累计走查发现并修复**：70+ 个真 bug（mock 数据 13 处、enum 不对齐 6+、KPI 聚合 8 处、分页契约 6 处、UI render bug 5 处、跨模块 9 处、schema drift 4 处、字段名错位 10 处、错码冲突 4 处、5 selector mock 切换 7 处）
 

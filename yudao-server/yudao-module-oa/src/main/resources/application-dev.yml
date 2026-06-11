@@ -8,6 +8,8 @@ spring:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
+  config:
+    import: optional:classpath:application-dev-local.yml
 
 oa:
   auth:

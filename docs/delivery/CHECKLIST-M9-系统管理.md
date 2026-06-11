@@ -1,6 +1,6 @@
 # CHECKLIST-M9-系统管理
 
-> **M9 自检清单** | 版本 v1.0 | 2026-06-07
+> **M9 自检清单** | 版本 v1.1 | 2026-06-11
 
 ---
 
@@ -9,6 +9,11 @@
 - [ ] 6 个 Slice 全部完成
 - [ ] 7 个 FR 全部实现
 - [ ] **字典管理**核心模块
+- [ ] `sys_dept` 表 + V41 迁移
+- [ ] 部门树 CRUD + `GET /dept/tree`
+- [ ] 钉钉部门/人员手动同步（`oa:dept:sync-dingtalk` / `oa:user:sync-dingtalk`）
+- [ ] 用户 `deptId` / `dingUserId` 持久化 + 列表按部门筛选
+- [ ] 钉钉 SSO **未实现**（Phase 2，见 ADR-013）
 
 ## 2. 全局规范（🔴 必查）
 

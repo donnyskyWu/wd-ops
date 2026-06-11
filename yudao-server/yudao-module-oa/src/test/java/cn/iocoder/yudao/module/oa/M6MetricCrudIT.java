@@ -99,6 +99,31 @@ class M6MetricCrudIT extends OaITBase {
     }
 
     @Test
+    @DisplayName("M6 Metric: 公式预览 SELECT")
+    void previewFormula() throws Exception {
+        mockMvc.perform(post("/admin-api/oa/metric/preview")
+                        .header("Authorization", ADMIN).header("X-Tenant-Id", TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"metricFormula":"SELECT COUNT(*) AS metric_value FROM oa_content t WHERE t.tenant_id = :tenantId AND t.deleted = 0"}
+                                """))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.rows").isArray());
+    }
+
+    @Test
+    @DisplayName("M6 Metric: 预览非 SELECT → 2017")
+    void previewRejectsUnsafe() throws Exception {
+        mockMvc.perform(post("/admin-api/oa/metric/preview")
+                        .header("Authorization", ADMIN).header("X-Tenant-Id", TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"metricFormula":"DELETE FROM oa_metric"}
+                                """))
+                .andExpect(jsonPath("$.code").value(2017));
+    }
+
+    @Test
     @DisplayName("M6 Metric: 重复 code → 2021")
     void duplicateCodeTest() throws Exception {
         String code = "IT_M_DUP_" + System.nanoTime();

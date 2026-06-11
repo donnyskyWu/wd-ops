@@ -3,6 +3,8 @@ package cn.iocoder.yudao.module.oa.controller.analytics;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.analytics.MetricCreateReq;
+import cn.iocoder.yudao.module.oa.api.dto.analytics.MetricPreviewReq;
+import cn.iocoder.yudao.module.oa.api.dto.analytics.MetricPreviewVO;
 import cn.iocoder.yudao.module.oa.api.dto.analytics.MetricUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.analytics.MetricVO;
 import cn.iocoder.yudao.module.oa.service.analytics.AnalyticsMetricService;
@@ -50,5 +52,10 @@ public class MetricController {
     public CommonResult<Boolean> delete(@PathVariable Long id) {
         analyticsMetricService.delete(id);
         return CommonResult.success(true);
+    }
+
+    @PostMapping("/preview")
+    public CommonResult<MetricPreviewVO> preview(@Valid @RequestBody MetricPreviewReq req) {
+        return CommonResult.success(analyticsMetricService.preview(req));
     }
 }

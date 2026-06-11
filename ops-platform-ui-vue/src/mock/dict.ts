@@ -110,20 +110,37 @@ export const mockDictMap: Record<string, Array<{ label: string; value: string; c
   ],
   // 成本类型
   dict_cost_type: [
-    { label: '人工成本', value: 'PERSON' },
-    { label: '内容制作', value: 'CONTENT' },
-    { label: '推广费用', value: 'PROMOTE' },
-    { label: '平台服务费', value: 'PLATFORM' },
-    { label: '其他', value: 'OTHER' },
+    { label: '购买成本', value: 'PURCHASE' },
+    { label: '人力成本', value: 'PROCESS_HUMAN' },
+    { label: '投放成本', value: 'AD_SPEND' },
   ],
-  // ROI 分析维度
+  dict_cost_pay_method: [
+    { label: '微信', value: 'WECHAT' },
+    { label: '支付宝', value: 'ALIPAY' },
+    { label: '银行卡', value: 'BANK' },
+    { label: '对公转账', value: 'CORPORATE' },
+  ],
+  dict_cost_period: [
+    { label: '一次性', value: 'ONCE' },
+    { label: '月度', value: 'MONTH' },
+    { label: '季度', value: 'QUARTER' },
+  ],
+  dict_perf_metric_type: [
+    { label: '基础指标', value: 'BASIC' },
+    { label: '复合指标', value: 'COMPOSITE' },
+  ],
+  // ROI 分析维度（与后端 FinanceRoiService dimension 一致）
   dict_roi_dimension: [
-    { label: 'IP组', value: 'ip_group' },
-    { label: '账号', value: 'account' },
-    { label: '人员', value: 'person' },
+    { label: 'IP组', value: 'IP_GROUP' },
+    { label: '账号', value: 'ACCOUNT' },
+    { label: '人员', value: 'PERSON' },
   ],
   // 通用启用/停用
   dict_status_enabled: [
+    { label: '启用', value: 'ENABLED', colorType: 'success' },
+    { label: '停用', value: 'DISABLED', colorType: 'info' },
+  ],
+  dict_config_status: [
     { label: '启用', value: 'ENABLED', colorType: 'success' },
     { label: '停用', value: 'DISABLED', colorType: 'info' },
   ],

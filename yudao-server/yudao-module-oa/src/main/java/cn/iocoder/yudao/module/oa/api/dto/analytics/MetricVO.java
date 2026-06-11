@@ -11,6 +11,8 @@ public class MetricVO {
     private String metricType;
     private String unit;
     private String category;
+    private String metricFormula;
+    private String dataSource;
     private Integer status;
     private String description;
 }

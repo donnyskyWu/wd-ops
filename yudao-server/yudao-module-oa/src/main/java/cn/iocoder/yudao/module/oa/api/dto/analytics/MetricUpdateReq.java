@@ -22,5 +22,7 @@ public class MetricUpdateReq {
 
     private String unit;
     private String description;
+    private String metricFormula;
+    private String dataSource;
     private Integer status;
 }

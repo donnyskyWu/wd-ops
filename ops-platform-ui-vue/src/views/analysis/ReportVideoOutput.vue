@@ -34,19 +34,27 @@
     <ContentWrap title="账号产出排行" style="margin-top: 16px">
       <el-table :data="ranking" border stripe>
         <el-table-column type="index" label="#" width="60" align="center" />
-        <el-table-column prop="account_name" label="账号" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="platform" label="平台" width="100" align="center">
+        <el-table-column label="账号" min-width="200" show-overflow-tooltip>
+          <template #default="{ row }">{{ reportField(row, 'account_name', 'accountName') }}</template>
+        </el-table-column>
+        <el-table-column label="平台" width="100" align="center">
           <template #default="{ row }">
-            <el-tag size="small">{{ row.platform || row.platform_type }}</el-tag>
+            <el-tag size="small">
+              <DictLabel dict-type="dict_platform_type" :value="reportField(row, 'platform', 'platform_type') || reportField(row, 'platform_type', 'platformType')" />
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="output_count" label="产出数" width="100" align="right" />
-        <el-table-column prop="avg_view" label="均播放" width="120" align="right">
-          <template #default="{ row }">{{ formatK(row.avg_view) }}</template>
+        <el-table-column label="产出数" width="100" align="right">
+          <template #default="{ row }">{{ reportField(row, 'output_count', 'outputCount') }}</template>
         </el-table-column>
-        <el-table-column prop="top_count" label="爆款数" width="100" align="right">
+        <el-table-column label="均播放" width="120" align="right">
+          <template #default="{ row }">{{ formatK(reportField(row, 'avg_view', 'avgView')) }}</template>
+        </el-table-column>
+        <el-table-column label="爆款数" width="100" align="right">
           <template #default="{ row }">
-            <el-tag :type="(row.top_count || 0) > 3 ? 'success' : 'info'" size="small">{{ row.top_count || 0 }}</el-tag>
+            <el-tag :type="Number(reportField(row, 'top_count', 'topCount') || 0) > 3 ? 'success' : 'info'" size="small">
+              {{ reportField(row, 'top_count', 'topCount') || 0 }}
+            </el-tag>
           </template>
         </el-table-column>
       </el-table>
@@ -54,12 +62,26 @@
 
     <ContentWrap title="产出明细" style="margin-top: 16px">
       <el-table :data="list" border stripe v-loading="loading">
-        <el-table-column prop="date" label="日期" width="120" />
-        <el-table-column prop="account_name" label="账号" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="platform_type" label="平台" width="100" align="center" />
-        <el-table-column prop="output_count" label="产出数" width="100" align="right" />
-        <el-table-column prop="read_count" label="阅读数" width="120" align="right" />
-        <el-table-column prop="like_count" label="点赞数" width="100" align="right" />
+        <el-table-column label="日期" width="120">
+          <template #default="{ row }">{{ reportField(row, 'date', 'statDate') }}</template>
+        </el-table-column>
+        <el-table-column label="账号" min-width="160" show-overflow-tooltip>
+          <template #default="{ row }">{{ reportField(row, 'account_name', 'accountName') }}</template>
+        </el-table-column>
+        <el-table-column label="标题" min-width="200" show-overflow-tooltip>
+          <template #default="{ row }">{{ reportField(row, 'title') }}</template>
+        </el-table-column>
+        <el-table-column label="平台" width="100" align="center">
+          <template #default="{ row }">
+            <DictLabel dict-type="dict_platform_type" :value="reportField(row, 'platform_type', 'platformType')" />
+          </template>
+        </el-table-column>
+        <el-table-column label="阅读数" width="120" align="right">
+          <template #default="{ row }">{{ reportField(row, 'read_count', 'readCount') }}</template>
+        </el-table-column>
+        <el-table-column label="点赞数" width="100" align="right">
+          <template #default="{ row }">{{ reportField(row, 'like_count', 'likeCount') }}</template>
+        </el-table-column>
       </el-table>
       <el-pagination
         :current-page="pageNum"
@@ -80,10 +102,11 @@ import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
 import { getVideoOutputList, getVideoOutputTrend, getVideoOutputRanking } from '@/api/report'
-import { unwrapApiData, pickListPage } from '@/utils'
+import { unwrapApiData, pickListPage, reportField } from '@/utils'
 
 const loading = ref(false)
 const filter = reactive({

@@ -3,8 +3,8 @@
 > **业务域**：M6 数据分析
 > **功能模块**：指标管理 + 8 张报表 + 漏斗 + 自定义查询 + 大屏
 > **详细设计章节**：5.25、5.26、5.27、5.28、5.29、5.30、5.31
-> **版本**：v1.0 | 2026-06-07
-> **状态**：Draft
+> **版本**：v1.2 | 2026-06-11
+> **状态**：Draft（报表/漏斗/自定义查询实现已对齐）
 > **全局规范**：[`docs/engineering/GLOBAL-CONVENTIONS.md`](./../engineering/GLOBAL-CONVENTIONS.md)
 
 ---
@@ -74,17 +74,21 @@
 |------|------|------|
 | `metric_name` | `<Input />` | - |
 | `metric_code` | `<Input />` | -（英文+下划线+唯一） |
-| `metric_formula` | `<CodeEditor language="sql" />` | - |
-| `data_source` | `<Select />` | 预定义表名 |
+| `metric_formula` | `<MetricBuilder />` 生成 SQL 或 `<CodeEditor />` 手输 | - |
+| `data_source` | `<MetricBuilder />` 数据源下拉 | 预定义表（`metricSchema.ts`） |
 | `metric_type` | `<DictSelect dict-type="dict_perf_metric_type" />` | 字典 |
 | `unit` | `<Input />` | - |
-| `description` | `<TextArea />` | - |
+| `description` | `<TextArea />` | 可选；**后端未持久化**（仅前端表单） |
 
 #### 业务规则
 
 - 指标编码全局唯一
 - 基础/计算/派生 三种类型
 - 被引用时不可删除（错误码 1502）
+- **V40 迁移**：`oa_metric` 新增 `metric_formula`、`data_source` 列
+- **可视化构建**（`metricType ≠ COMPOSITE`）：数据源、计算方式、汇总字段、关联表、过滤条件 → 自动生成 SQL
+- **COMPOSITE**：仍用手动输入 `metric_formula`（无 MetricBuilder）
+- **预览**：保存前可调用 `POST /oa/metric/preview` 校验 SQL 并返回样例结果
 
 #### 验收
 
@@ -111,6 +115,13 @@
 
 详细字段见 5.26.x 子章节。
 
+#### 实现补充（2026-06-11）
+
+- 列表/统计 API 响应字段为 **snake_case**（`ReportServiceImpl.reportField()` 映射）
+- 枚举列前端用 `<DictLabel />` 展示（如 `dict_platform_type`、`dict_roi_dimension`）
+- ROI 维度字典：`dict_roi_dimension`（V42 迁移）
+- 种子指标：V44 `seed_metrics`；漏斗步骤种子：V45
+
 ---
 
 ### FR-M6-004 漏斗分析（5.28）
@@ -126,8 +137,9 @@
 
 #### 自定义漏斗
 
-- 用户配置步骤（每步一个事件）
-- 计算每步转化率
+- 用户配置步骤；**每步选择一个已定义指标**（`GET /oa/metric/list`，非预设 eventCode）
+- 步骤保存 `metricId` / `metricCode`；计算每步转化率
+- 前端 `FunnelAnalysis.vue` 自定义 Tab：指标下拉 + 步骤排序
 
 #### 验收
 
@@ -142,7 +154,28 @@
 
 #### 描述
 
-自由拼接 SQL 或可视化拖拽生成查询。
+可视化查询构建 + SQL 预览；支持保存草稿/发布。
+
+#### 页面结构（实现）
+
+| 层级 | 内容 |
+|------|------|
+| 页级 Tab | **自定义查询** \| **我的查询** |
+| 自定义查询 | 可折叠「查询配置」+ `QueryBuilder`（表/字段/条件/聚合） |
+| 结果区 | `QueryResultPanel`：条件摘要 + Tab「结果列表」\|「图表展示」 |
+| 我的查询 | 已保存查询列表；执行/编辑/删除 |
+
+#### 交互
+
+- 表头中文映射（字段 label）
+- 查询配置/查询条件区块可展开收起
+- 图表展示基于当前结果集（配置未持久化）
+
+#### API
+
+- `POST /oa/query/preview` — 试跑（不落库）
+- `POST /oa/query/create` / `PUT /oa/query/update` — `paramsJson` 存 QueryBuilder 配置
+- `POST /oa/query/{id}/execute` — 执行已保存查询
 
 #### 验收
 

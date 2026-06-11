@@ -1,95 +1,130 @@
 <template>
   <div class="external-collect-config">
-    <ContentWrap title="外部采集配置" subtitle="外部平台数据采集配置">
-      <el-alert 
-        title="外部采集配置用于管理第三方平台的数据采集接口（蝉妈妈、飞瓜等）" 
-        type="info" 
-        :closable="false" 
-        style="margin-bottom: 16px" 
+    <ContentWrap title="外部采集配置" subtitle="外部账号监控与关键词配置">
+      <el-alert
+        title="管理待监控的外部账号与内容监测关键词，外部账号支持 CSV 批量导入"
+        type="info"
+        :closable="false"
+        style="margin-bottom: 16px"
       />
-      
-      <!-- 搜索区 -->
-      <TableSearch>
-        <el-form :inline="true" :model="searchForm">
-          <el-form-item label="平台类型">
-            <DictSelect v-model="searchForm.platformType" dict-type="dict_third_platform" placeholder="请选择" style="width: 150px" />
-          </el-form-item>
-          <el-form-item label="状态">
-            <DictSelect v-model="searchForm.status" dict-type="dict_status_enabled" placeholder="请选择" style="width: 120px" />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" @click="handleSearch">
-              <el-icon><Search /></el-icon>
-              查询
-            </el-button>
-            <el-button @click="handleReset">
-              <el-icon><Refresh /></el-icon>
-              重置
-            </el-button>
-          </el-form-item>
-        </el-form>
-      </TableSearch>
 
-      <!-- 工具栏 -->
-      <div style="margin-bottom: 16px">
-        <el-button type="primary" @click="handleCreate">
-          <el-icon><Plus /></el-icon>
-          新增配置
-        </el-button>
-        <el-button 
-          type="danger" 
-          :disabled="selectedRows.length === 0"
-          @click="handleBatchDelete"
-        >
-          <el-icon><Delete /></el-icon>
-          删除选中
-        </el-button>
-      </div>
+      <el-tabs v-model="activeTab" @tab-change="handleTabChange">
+        <el-tab-pane label="外部账号" name="account" />
+        <el-tab-pane label="关键词配置" name="keyword" />
+      </el-tabs>
 
-      <!-- 数据表格 -->
-      <el-table 
-        :data="displayList" 
-        border 
-        stripe 
-        v-loading="loading"
-        @selection-change="handleSelectionChange"
-      >
-        <el-table-column type="selection" width="55" align="center" />
-        <el-table-column prop="configName" label="配置名称" min-width="150" />
-        <el-table-column prop="platformType" label="平台类型" width="120" align="center">
-          <template #default="{ row }">
-            <el-tag :type="getPlatformTagType(row.platformType)">
-              {{ getPlatformLabel(row.platformType) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="apiUrl" label="API地址" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="syncFrequency" label="同步频率" width="100" align="center">
-          <template #default="{ row }">
-            {{ getFrequencyLabel(row.syncFrequency) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'ENABLED' ? 'success' : 'danger'">
-              {{ row.status === 'ENABLED' ? '启用' : '停用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="lastSyncTime" label="最后同步时间" width="180" />
-        <el-table-column label="操作" width="240" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="success" @click="handleTest(row)">测试连接</el-button>
-            <el-button link type="warning" @click="handleToggleStatus(row)">
-              {{ row.status === 'ENABLED' ? '停用' : '启用' }}
-            </el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <!-- 外部账号 Tab -->
+      <template v-if="activeTab === 'account'">
+        <TableSearch>
+          <el-form :inline="true" :model="accountSearch">
+            <el-form-item label="账号名称">
+              <el-input v-model="accountSearch.configName" placeholder="模糊搜索" clearable style="width: 160px" />
+            </el-form-item>
+            <el-form-item label="平台">
+              <DictSelect v-model="accountSearch.platformType" dict-type="dict_third_platform" placeholder="请选择" style="width: 150px" />
+            </el-form-item>
+            <el-form-item label="状态">
+              <DictSelect v-model="accountSearch.status" dict-type="dict_config_status" placeholder="请选择" style="width: 120px" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleSearch"><el-icon><Search /></el-icon>查询</el-button>
+              <el-button @click="handleReset"><el-icon><Refresh /></el-icon>重置</el-button>
+            </el-form-item>
+          </el-form>
+        </TableSearch>
 
-      <!-- 分页 -->
+        <div style="margin-bottom: 16px">
+          <el-button type="primary" @click="handleCreateAccount"><el-icon><Plus /></el-icon>新增账号</el-button>
+          <el-button @click="triggerImport"><el-icon><Upload /></el-icon>CSV 导入</el-button>
+          <input ref="fileInputRef" type="file" accept=".csv,text/csv" style="display: none" @change="handleImportFile" />
+        </div>
+
+        <el-table :data="accountList" border stripe v-loading="loading">
+          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column prop="platformType" label="平台" width="120" align="center">
+            <template #default="{ row }">
+              <DictLabel dict-type="dict_third_platform" :value="row.platformType" />
+            </template>
+          </el-table-column>
+          <el-table-column prop="configName" label="账号名称" min-width="140" />
+          <el-table-column prop="accountIdentifier" label="账号标识" min-width="140" />
+          <el-table-column prop="status" label="状态" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'ENABLED' ? 'success' : 'danger'">
+                {{ row.status === 'ENABLED' ? '启用' : '停用' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="updateTime" label="更新时间" width="170" />
+          <el-table-column label="操作" width="200" fixed="right" align="center">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="handleEditAccount(row)">编辑</el-button>
+              <el-button link type="warning" @click="handleToggleAccountStatus(row)">
+                {{ row.status === 'ENABLED' ? '停用' : '启用' }}
+              </el-button>
+              <el-button link type="danger" @click="handleDeleteAccount(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </template>
+
+      <!-- 关键词 Tab -->
+      <template v-else>
+        <TableSearch>
+          <el-form :inline="true" :model="keywordSearch">
+            <el-form-item label="平台">
+              <DictSelect v-model="keywordSearch.platform" dict-type="dict_platform_type" placeholder="请选择" style="width: 150px" />
+            </el-form-item>
+            <el-form-item label="关键词">
+              <el-input v-model="keywordSearch.keyword" placeholder="模糊搜索" clearable style="width: 160px" />
+            </el-form-item>
+            <el-form-item label="状态">
+              <DictSelect v-model="keywordSearch.status" dict-type="dict_config_status" placeholder="请选择" style="width: 120px" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleSearch"><el-icon><Search /></el-icon>查询</el-button>
+              <el-button @click="handleReset"><el-icon><Refresh /></el-icon>重置</el-button>
+            </el-form-item>
+          </el-form>
+        </TableSearch>
+
+        <div style="margin-bottom: 16px">
+          <el-button type="primary" @click="handleCreateKeyword"><el-icon><Plus /></el-icon>新增关键词</el-button>
+        </div>
+
+        <el-table :data="keywordList" border stripe v-loading="loading">
+          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column prop="platform" label="平台" width="120" align="center">
+            <template #default="{ row }">
+              <DictLabel dict-type="dict_platform_type" :value="row.platform" />
+            </template>
+          </el-table-column>
+          <el-table-column prop="keyword" label="关键词" min-width="160" />
+          <el-table-column prop="matchType" label="匹配类型" width="110" align="center">
+            <template #default="{ row }">
+              <DictLabel dict-type="dict_match_type" :value="row.matchType" />
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'ENABLED' ? 'success' : 'danger'">
+                {{ row.status === 'ENABLED' ? '启用' : '停用' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="updateTime" label="更新时间" width="170" />
+          <el-table-column label="操作" width="200" fixed="right" align="center">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="handleEditKeyword(row)">编辑</el-button>
+              <el-button link type="warning" @click="handleToggleKeywordStatus(row)">
+                {{ row.status === 'ENABLED' ? '停用' : '启用' }}
+              </el-button>
+              <el-button link type="danger" @click="handleDeleteKeyword(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </template>
+
       <Pagination
         :total="total"
         :current-page="pageNo"
@@ -99,62 +134,47 @@
       />
     </ContentWrap>
 
-    <!-- 新增/编辑弹窗 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogTitle"
-      width="700px"
-      :close-on-click-modal="false"
-    >
-      <el-form
-        ref="formRef"
-        :model="formData"
-        :rules="rules"
-        label-width="120px"
-      >
-        <el-form-item label="配置名称" prop="configName">
-          <el-input v-model="formData.configName" placeholder="请输入配置名称" />
+    <!-- 外部账号弹窗 -->
+    <el-dialog v-model="accountDialogVisible" :title="accountDialogTitle" width="560px" :close-on-click-modal="false">
+      <el-form ref="accountFormRef" :model="accountForm" :rules="accountRules" label-width="100px">
+        <el-form-item label="平台" prop="platformType">
+          <DictSelect v-model="accountForm.platformType" dict-type="dict_third_platform" placeholder="请选择平台" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="平台类型" prop="platformType">
-          <DictSelect v-model="formData.platformType" dict-type="dict_third_platform" placeholder="请选择平台类型" style="width: 100%" />
+        <el-form-item label="账号名称" prop="configName">
+          <el-input v-model="accountForm.configName" placeholder="请输入账号名称" />
         </el-form-item>
-        <el-form-item label="API地址" prop="apiUrl">
-          <el-input v-model="formData.apiUrl" placeholder="请输入API地址" />
-        </el-form-item>
-        <el-form-item label="API密钥" prop="apiKey">
-          <el-input 
-            v-model="formData.apiKey" 
-            type="password"
-            show-password
-            placeholder="请输入API密钥（加密存储）" 
-          />
-        </el-form-item>
-        <el-form-item label="同步频率" prop="syncFrequency">
-          <DictSelect v-model="formData.syncFrequency" dict-type="dict_sync_frequency" placeholder="请选择同步频率" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input 
-            v-model="formData.remark" 
-            type="textarea"
-            :rows="3"
-            placeholder="请输入备注信息" 
-          />
+        <el-form-item label="账号标识" prop="accountIdentifier">
+          <el-input v-model="accountForm.accountIdentifier" placeholder="请输入账号标识" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-switch 
-            v-model="formData.status" 
-            active-value="ENABLED" 
-            inactive-value="DISABLED"
-            active-text="启用"
-            inactive-text="停用"
-          />
+          <el-switch v-model="accountForm.status" active-value="ENABLED" inactive-value="DISABLED" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
-          确认
-        </el-button>
+        <el-button @click="accountDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="handleSubmitAccount">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 关键词弹窗 -->
+    <el-dialog v-model="keywordDialogVisible" :title="keywordDialogTitle" width="560px" :close-on-click-modal="false">
+      <el-form ref="keywordFormRef" :model="keywordForm" :rules="keywordRules" label-width="100px">
+        <el-form-item label="平台" prop="platform">
+          <DictSelect v-model="keywordForm.platform" dict-type="dict_platform_type" placeholder="请选择平台" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="关键词" prop="keyword">
+          <el-input v-model="keywordForm.keyword" placeholder="请输入关键词" />
+        </el-form-item>
+        <el-form-item label="匹配类型" prop="matchType">
+          <DictSelect v-model="keywordForm.matchType" dict-type="dict_match_type" placeholder="请选择" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-switch v-model="keywordForm.status" active-value="ENABLED" inactive-value="DISABLED" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="keywordDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="handleSubmitKeyword">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -163,244 +183,308 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Search, Refresh, Plus, Delete } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Upload } from '@element-plus/icons-vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import TableSearch from '@/components/TableSearch.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
-import { externalCollectApi, type CollectConfigVO } from '@/api/config'
+import DictLabel from '@/components/DictLabel.vue'
+import {
+  externalCollectApi,
+  type CollectConfigVO,
+  type KeywordConfigVO,
+} from '@/api/config'
 
-interface ConfigItem {
-  id: number
-  configName: string
-  platformType: string
-  apiUrl: string
-  apiKey?: string
-  syncFrequency: string
-  status: 'ENABLED' | 'DISABLED'
-  lastSyncTime: string
-  remark?: string
-}
-
+const activeTab = ref<'account' | 'keyword'>('account')
 const loading = ref(false)
 const submitLoading = ref(false)
-const dialogVisible = ref(false)
-const formRef = ref<FormInstance>()
-
-const searchForm = reactive({
-  platformType: '',
-  status: ''
-})
-
 const pageNo = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-const configList = ref<ConfigItem[]>([])
-const selectedRows = ref<ConfigItem[]>([])
+const fileInputRef = ref<HTMLInputElement>()
 
-const formData = reactive<Partial<ConfigItem>>({
-  configName: '',
+const accountList = ref<CollectConfigVO[]>([])
+const keywordList = ref<KeywordConfigVO[]>([])
+
+const accountSearch = reactive({ configName: '', platformType: '', status: '' })
+const keywordSearch = reactive({ platform: '', keyword: '', status: '' })
+
+const accountDialogVisible = ref(false)
+const keywordDialogVisible = ref(false)
+const accountFormRef = ref<FormInstance>()
+const keywordFormRef = ref<FormInstance>()
+
+const accountForm = reactive({
+  id: undefined as number | undefined,
   platformType: '',
-  apiUrl: '',
-  apiKey: '',
-  syncFrequency: 'DAILY',
-  status: 'ENABLED',
-  remark: ''
+  configName: '',
+  accountIdentifier: '',
+  status: 'ENABLED' as 'ENABLED' | 'DISABLED',
 })
 
-const rules: FormRules = {
-  configName: [
-    { required: true, message: '请输入配置名称', trigger: 'blur' },
-    { min: 1, max: 50, message: '长度1-50个字符', trigger: 'blur' }
-  ],
-  platformType: [
-    { required: true, message: '请选择平台类型', trigger: 'change' }
-  ],
-  apiUrl: [
-    { required: true, message: '请输入API地址', trigger: 'blur' }
-  ],
-  syncFrequency: [
-    { required: true, message: '请选择同步频率', trigger: 'change' }
-  ]
+const keywordForm = reactive({
+  id: undefined as number | undefined,
+  platform: '',
+  keyword: '',
+  matchType: 'FUZZY',
+  status: 'ENABLED' as 'ENABLED' | 'DISABLED',
+})
+
+const accountRules: FormRules = {
+  platformType: [{ required: true, message: '请选择平台', trigger: 'change' }],
+  configName: [{ required: true, message: '请输入账号名称', trigger: 'blur' }],
+  accountIdentifier: [{ required: true, message: '请输入账号标识', trigger: 'blur' }],
 }
 
-function mapRow(row: CollectConfigVO): ConfigItem {
-  return {
-    id: row.id,
-    configName: row.configName,
-    platformType: row.platformType || '',
-    apiUrl: row.apiUrl || '',
-    syncFrequency: row.collectFrequency || '',
-    status: (row.status as 'ENABLED' | 'DISABLED') || 'ENABLED',
-    lastSyncTime: row.createTime || '-',
-    remark: row.remark,
-  }
+const keywordRules: FormRules = {
+  platform: [{ required: true, message: '请选择平台', trigger: 'change' }],
+  keyword: [{ required: true, message: '请输入关键词', trigger: 'blur' }],
+  matchType: [{ required: true, message: '请选择匹配类型', trigger: 'change' }],
 }
 
-const displayList = computed(() => configList.value)
+const accountDialogTitle = computed(() => (accountForm.id ? '编辑外部账号' : '新增外部账号'))
+const keywordDialogTitle = computed(() => (keywordForm.id ? '编辑关键词' : '新增关键词'))
 
-const dialogTitle = computed(() => (formData.id ? '编辑配置' : '新增配置'))
-
-const loadList = async () => {
+const loadAccountList = async () => {
   loading.value = true
   try {
     const res = await externalCollectApi.list({
-      platformType: searchForm.platformType || undefined,
-      status: searchForm.status || undefined,
+      subType: 'account',
+      configName: accountSearch.configName || undefined,
+      platformType: accountSearch.platformType || undefined,
+      status: accountSearch.status || undefined,
       pageNo: pageNo.value,
       pageSize: pageSize.value,
     })
-    configList.value = (res.list || []).map(mapRow)
+    accountList.value = res.list || []
     total.value = res.total || 0
   } finally {
     loading.value = false
   }
 }
 
-// ==================== 辅助函数 ====================
-const getPlatformLabel = (platformType: string) => {
-  const map: Record<string, string> = {
-    CHANMAMA: '蝉妈妈',
-    FEIGUA: '飞瓜数据',
-    XINBANG: '新榜',
-    KAOGUJIA: '考古加',
-    HUITUN: '灰豚数据'
+const loadKeywordList = async () => {
+  loading.value = true
+  try {
+    const res = await externalCollectApi.keywordList({
+      platform: keywordSearch.platform || undefined,
+      keyword: keywordSearch.keyword || undefined,
+      status: keywordSearch.status || undefined,
+      pageNo: pageNo.value,
+      pageSize: pageSize.value,
+    })
+    keywordList.value = res.list || []
+    total.value = res.total || 0
+  } finally {
+    loading.value = false
   }
-  return map[platformType] || platformType
 }
 
-const getPlatformTagType = (platformType: string) => {
-  const map: Record<string, any> = {
-    CHANMAMA: '',
-    FEIGUA: 'success',
-    XINBANG: 'warning',
-    KAOGUJIA: 'danger',
-    HUITUN: 'info'
+const loadList = () => {
+  if (activeTab.value === 'account') {
+    loadAccountList()
+  } else {
+    loadKeywordList()
   }
-  return map[platformType] || ''
 }
 
-const getFrequencyLabel = (frequency: string) => {
-  const map: Record<string, string> = {
-    HOURLY: '每小时',
-    DAILY: '每日',
-    WEEKLY: '每周'
-  }
-  return map[frequency] || frequency
+const handleTabChange = () => {
+  pageNo.value = 1
+  loadList()
 }
 
-// ==================== 事件处理 ====================
 const handleSearch = () => {
   pageNo.value = 1
   loadList()
 }
 
 const handleReset = () => {
-  searchForm.platformType = ''
-  searchForm.status = ''
+  if (activeTab.value === 'account') {
+    accountSearch.configName = ''
+    accountSearch.platformType = ''
+    accountSearch.status = ''
+  } else {
+    keywordSearch.platform = ''
+    keywordSearch.keyword = ''
+    keywordSearch.status = ''
+  }
   pageNo.value = 1
   loadList()
 }
 
-const handleCreate = () => {
-  formData.id = undefined
-  formData.configName = ''
-  formData.platformType = ''
-  formData.apiUrl = ''
-  formData.apiKey = ''
-  formData.syncFrequency = 'DAILY'
-  formData.status = 'ENABLED'
-  formData.remark = ''
-  dialogVisible.value = true
+const handleCreateAccount = () => {
+  Object.assign(accountForm, {
+    id: undefined,
+    platformType: '',
+    configName: '',
+    accountIdentifier: '',
+    status: 'ENABLED',
+  })
+  accountDialogVisible.value = true
 }
 
-const handleEdit = (row: ConfigItem) => {
-  Object.assign(formData, { ...row, apiKey: '' })
-  dialogVisible.value = true
+const handleEditAccount = (row: CollectConfigVO) => {
+  Object.assign(accountForm, {
+    id: row.id,
+    platformType: row.platformType || '',
+    configName: row.configName,
+    accountIdentifier: row.accountIdentifier || '',
+    status: row.status || 'ENABLED',
+  })
+  accountDialogVisible.value = true
 }
 
-const handleSubmit = async () => {
-  if (!formRef.value) return
-  const valid = await formRef.value.validate().catch(() => false)
+const handleSubmitAccount = async () => {
+  if (!accountFormRef.value) return
+  const valid = await accountFormRef.value.validate().catch(() => false)
   if (!valid) return
 
   submitLoading.value = true
   try {
-    const payload: Record<string, unknown> = {
-      configName: formData.configName,
-      platformType: formData.platformType,
-      apiUrl: formData.apiUrl,
-      collectFrequency: formData.syncFrequency,
-      status: formData.status,
-      remark: formData.remark,
+    const payload = {
+      subType: 'account',
+      platformType: accountForm.platformType,
+      configName: accountForm.configName,
+      accountIdentifier: accountForm.accountIdentifier,
+      status: accountForm.status,
     }
-    if (formData.apiKey) {
-      payload.apiKey = formData.apiKey
-    }
-    if (formData.id) {
-      payload.id = formData.id
-      await externalCollectApi.update(payload)
+    if (accountForm.id) {
+      await externalCollectApi.update({ id: accountForm.id, ...payload })
       ElMessage.success('编辑成功')
     } else {
       await externalCollectApi.create(payload)
       ElMessage.success('新增成功')
     }
-    dialogVisible.value = false
-    await loadList()
+    accountDialogVisible.value = false
+    await loadAccountList()
   } finally {
     submitLoading.value = false
   }
 }
 
-const handleTest = (row: ConfigItem) => {
-  ElMessage.success(`测试连接成功: ${row.configName}`)
-}
-
-const handleToggleStatus = async (row: ConfigItem) => {
+const handleToggleAccountStatus = async (row: CollectConfigVO) => {
   const newStatus = row.status === 'ENABLED' ? 'DISABLED' : 'ENABLED'
   try {
     await ElMessageBox.confirm(
-      `确定${newStatus === 'ENABLED' ? '启用' : '停用'}配置「${row.configName}」吗？`,
+      `确定${newStatus === 'ENABLED' ? '启用' : '停用'}账号「${row.configName}」吗？`,
       '提示',
-      { type: 'warning' }
+      { type: 'warning' },
     )
-    await externalCollectApi.update({ id: row.id, status: newStatus })
+    await externalCollectApi.toggleStatus(row.id, newStatus)
     ElMessage.success('操作成功')
-    await loadList()
+    await loadAccountList()
   } catch {}
 }
 
-const handleDelete = async (row: ConfigItem) => {
+const handleDeleteAccount = async (row: CollectConfigVO) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除配置「${row.configName}」吗？`,
-      '删除确认',
-      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
-    )
+    await ElMessageBox.confirm(`确定删除账号「${row.configName}」吗？`, '删除确认', { type: 'warning' })
     await externalCollectApi.delete(row.id)
     ElMessage.success('删除成功')
-    await loadList()
+    await loadAccountList()
   } catch {}
 }
 
-const handleSelectionChange = (selection: ConfigItem[]) => {
-  selectedRows.value = selection
+const handleCreateKeyword = () => {
+  Object.assign(keywordForm, {
+    id: undefined,
+    platform: '',
+    keyword: '',
+    matchType: 'FUZZY',
+    status: 'ENABLED',
+  })
+  keywordDialogVisible.value = true
 }
 
-const handleBatchDelete = async () => {
+const handleEditKeyword = (row: KeywordConfigVO) => {
+  Object.assign(keywordForm, {
+    id: row.id,
+    platform: row.platform,
+    keyword: row.keyword,
+    matchType: row.matchType,
+    status: row.status,
+  })
+  keywordDialogVisible.value = true
+}
+
+const handleSubmitKeyword = async () => {
+  if (!keywordFormRef.value) return
+  const valid = await keywordFormRef.value.validate().catch(() => false)
+  if (!valid) return
+
+  submitLoading.value = true
+  try {
+    const payload = {
+      platform: keywordForm.platform,
+      keyword: keywordForm.keyword,
+      matchType: keywordForm.matchType,
+      status: keywordForm.status,
+    }
+    if (keywordForm.id) {
+      await externalCollectApi.keywordUpdate({ id: keywordForm.id, ...payload })
+      ElMessage.success('编辑成功')
+    } else {
+      await externalCollectApi.keywordCreate(payload)
+      ElMessage.success('新增成功')
+    }
+    keywordDialogVisible.value = false
+    await loadKeywordList()
+  } finally {
+    submitLoading.value = false
+  }
+}
+
+const handleToggleKeywordStatus = async (row: KeywordConfigVO) => {
+  const newStatus = row.status === 'ENABLED' ? 'DISABLED' : 'ENABLED'
   try {
     await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedRows.value.length} 条配置吗？`,
-      '批量删除确认',
-      { type: 'warning' }
+      `确定${newStatus === 'ENABLED' ? '启用' : '停用'}关键词「${row.keyword}」吗？`,
+      '提示',
+      { type: 'warning' },
     )
-    for (const row of selectedRows.value) {
-      await externalCollectApi.delete(row.id)
-    }
-    ElMessage.success('批量删除成功')
-    selectedRows.value = []
-    await loadList()
+    await externalCollectApi.keywordUpdate({ id: row.id, status: newStatus })
+    ElMessage.success('操作成功')
+    await loadKeywordList()
   } catch {}
+}
+
+const handleDeleteKeyword = async (row: KeywordConfigVO) => {
+  try {
+    await ElMessageBox.confirm(`确定删除关键词「${row.keyword}」吗？`, '删除确认', { type: 'warning' })
+    await externalCollectApi.keywordDelete(row.id)
+    ElMessage.success('删除成功')
+    await loadKeywordList()
+  } catch {}
+}
+
+const triggerImport = () => {
+  fileInputRef.value?.click()
+}
+
+const handleImportFile = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.error('文件大小不能超过 5MB')
+    input.value = ''
+    return
+  }
+  try {
+    const content = await file.text()
+    const result = await externalCollectApi.importCsv(content)
+    const msg = `导入完成：成功 ${result.successCount} 条，失败 ${result.failCount} 条`
+    if (result.failCount > 0 && result.failReasons?.length) {
+      ElMessage.warning(`${msg}；${result.failReasons.slice(0, 3).join('；')}`)
+    } else {
+      ElMessage.success(msg)
+    }
+    await loadAccountList()
+  } catch {
+    ElMessage.error('导入失败')
+  } finally {
+    input.value = ''
+  }
 }
 
 const handlePageChange = (page: number) => {

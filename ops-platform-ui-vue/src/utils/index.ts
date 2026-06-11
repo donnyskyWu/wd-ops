@@ -17,6 +17,17 @@ export function pickListPage<T>(page: { list?: T[]; records?: T[]; total?: numbe
   return { list, total: page?.total ?? list.length }
 }
 
+/** 报表行字段：优先 snake_case，兼容旧 camelCase API */
+export function reportField(row: Record<string, unknown> | null | undefined, snake: string, camel?: string): unknown {
+  if (!row) return undefined
+  const v = row[snake]
+  if (v != null && v !== '') return v
+  const camelKey = camel ?? snake.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
+  const v2 = row[camelKey]
+  if (v2 != null && v2 !== '') return v2
+  return v ?? v2
+}
+
 /**
  * 导出表格数据为Excel文件（使用Blob）
  * @param data 表格数据数组

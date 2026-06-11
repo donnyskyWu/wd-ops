@@ -1,6 +1,6 @@
 # API-M9-系统管理
 
-> **版本**：v1.1 | 2026-06-10（S-R23 路径规范）
+> **版本**：v1.2 | 2026-06-11（ADR-013 部门 + 钉钉同步）
 > **关联 ADR**：[`ADR-009`](../adr/ADR-009-API路径前缀分配.md)
 > **关联全局规范**：[`GLOBAL-CONVENTIONS.md`](./GLOBAL-CONVENTIONS.md)
 >
@@ -8,17 +8,35 @@
 
 ---
 
-## 1. 用户 API
+## 1. 部门 API（ADR-013，前缀 `/admin-api/oa/system/dept`）
 
-### 1.1 GET `/admin-api/oa/system/user/list`
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | `/tree` | `oa:dept:list` | 部门树 |
+| POST | `/create` | `oa:dept:create` | 本地创建 |
+| PUT | `/update` | `oa:dept:update` | 本地更新 |
+| DELETE | `/delete?id=` | `oa:dept:delete` | 有子部门或用户 → 1502 |
+| POST | `/sync-dingtalk` | `oa:dept:sync-dingtalk` | 全量同步钉钉部门 |
+| POST | `/sync-dingtalk-users` | `oa:user:sync-dingtalk` | 按已同步部门拉取钉钉用户 |
+
+**数据模型** `sys_dept`：`tenant_id`, `parent_id`, `name`, `ding_dept_id`, `sort`, `status`
+
+兼容别名：`/admin-api/system/dept/*`
+
+---
+
+## 2. 用户 API
+
+### 2.1 GET `/admin-api/oa/system/user/list`
 
 | 参数 | 字典 |
 |------|------|
 | status | `dict_user_status` |
-| deptId | - |
+| deptId | `sys_dept.id`（左侧树选中筛选） |
 | position | `dict_position` |
+| username / realName | 模糊搜索 |
 
-### 1.2 POST `/admin-api/oa/system/user/create`
+### 2.2 POST `/admin-api/oa/system/user/create`
 
 ```json
 {
@@ -27,6 +45,8 @@
   "email": "zhangsan@xxx.com",
   "phone": "13800001111",
   "position": "OPS_LEADER",
+  "deptId": 10,
+  "dingUserId": "ding_xxx",
   "ipGroupId": 1,
   "status": 1
 }
@@ -35,29 +55,34 @@
 **校验**：
 - `position` `@InDict(type="dict_position")`
 - `status` `@InDict(type="dict_user_status")`
-- `ipGroupId` `@NotNull`
+- `deptId` 可选，存在且同租户
+- `dingUserId` 可选，`(tenant_id, ding_user_id)` 唯一
+
+**钉钉同步规则**（手动触发）：
+- 部门：以 `ding_dept_id + tenant_id` 幂等 upsert
+- 用户：以 `ding_user_id` upsert；`username = ding_user_id`；新用户默认 `OPS_OPERATOR`；不删除已有本地用户
 
 ---
 
-## 2. 角色 API
+## 3. 角色 API
 
-### 2.1 GET `/admin-api/oa/system/role/list`
+### 3.1 GET `/admin-api/oa/system/role/list`
 
-### 2.2 POST `/admin-api/oa/system/role/assign-permission`
-
----
-
-## 3. 租户 API
-
-### 3.1 GET `/admin-api/oa/system/tenant/list`
-
-### 3.2 POST `/admin-api/oa/system/tenant/create`
+### 3.2 POST `/admin-api/oa/system/role/assign-permission`
 
 ---
 
-## 4. 字典 API（⭐）
+## 4. 租户 API
 
-### 4.1 GET `/admin-api/oa/system/dict/type?type={type}`
+### 4.1 GET `/admin-api/oa/system/tenant/list`
+
+### 4.2 POST `/admin-api/oa/system/tenant/create`
+
+---
+
+## 5. 字典 API（⭐）
+
+### 5.1 GET `/admin-api/oa/system/dict/type?type={type}`
 
 **响应**：
 
@@ -71,11 +96,11 @@
 }
 ```
 
-### 4.2 GET `/admin-api/oa/system/dict/type-list`
+### 5.2 GET `/admin-api/oa/system/dict/type-list`
 
 字典 type 列表（用于下拉选择 dict_type）
 
-### 4.3 POST `/admin-api/oa/system/dict/create`
+### 5.3 POST `/admin-api/oa/system/dict/create`
 
 ```json
 {
@@ -92,24 +117,24 @@
 - `dictValue` 命名 `（具体值详见相应章节）
 - `dictType` 唯一
 
-### 4.4 PUT `/admin-api/oa/system/dict/update`
+### 5.4 PUT `/admin-api/oa/system/dict/update`
 
-### 4.5 DELETE `/admin-api/oa/system/dict/{id}`
+### 5.5 DELETE `/admin-api/oa/system/dict/{id}`
 
 **业务**：停用后可删；启用且被引用 → 错误码 1502
 
 ---
 
-## 5. 日志 API
+## 6. 日志 API
 
-### 5.1 GET `/admin-api/oa/system/log/operation`
+### 6.1 GET `/admin-api/oa/system/log/operation`
 
 | 参数 | 字典 |
 |------|------|
 | module | `dict_log_module` |
 | level | `dict_log_level` |
 
-### 5.2 GET `/admin-api/oa/system/log/login`
+### 6.2 GET `/admin-api/oa/system/log/login`
 
 ---
 

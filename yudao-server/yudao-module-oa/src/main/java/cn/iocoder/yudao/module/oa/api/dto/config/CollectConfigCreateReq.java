@@ -20,6 +20,44 @@ public class CollectConfigCreateReq {
 
     private Long accountId;
 
+    @Size(max = 100)
+    private String accountIdentifier;
+
+    @Size(max = 100)
+    private String appId;
+
+    @Size(max = 512)
+    private String appSecret;
+
+    private String cookie;
+
+    @Size(max = 512)
+    private String authToken;
+
+    private String fieldMapping;
+
+    private Boolean isLive;
+
+    @Size(max = 50)
+    private String dbHost;
+
+    private Integer dbPort;
+
+    @Size(max = 100)
+    private String dbName;
+
+    @Size(max = 100)
+    private String dbUsername;
+
+    @Size(max = 512)
+    private String dbPassword;
+
+    @Size(max = 100)
+    private String tableName;
+
+    @InDict("dict_sync_mode")
+    private String syncMode;
+
     @InDict("dict_collect_frequency")
     private String collectFrequency;
 

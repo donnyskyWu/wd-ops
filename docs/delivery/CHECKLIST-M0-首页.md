@@ -1,6 +1,6 @@
 # CHECKLIST-M0-首页
 
-> **M0 自检清单** | 版本 v1.0 | 2026-06-07
+> **M0 自检清单** | 版本 v1.1 | 2026-06-11
 > **使用方**：开发完成后 PR 提交前逐条勾选
 > **关联**：[`SLICES-M0-首页.md`](./SLICES-M0-首页.md)、[`GLOBAL-CONVENTIONS.md`](../engineering/GLOBAL-CONVENTIONS.md)
 
@@ -17,6 +17,10 @@
 - [ ] IP 组筛选联动 5 个接口（AC-M0-001-2）
 - [ ] IP 组选择器仅显示启用 + 用户权限范围（AC-M0-001-3）
 - [ ] 平台字典筛选仅影响图表（AC-M0-001-4）
+- [ ] 趋势 `groupBy` PLATFORM / IP_GROUP 切换正确（实现 2026-06-11）
+- [ ] 大组筛选含旗下所有小组账号（`resolveIpGroupScope`）
+- [ ] V39 seed 近 7 天趋势/分布非空
+- [ ] `Dashboard.vue` 真 API + ECharts + 错误 Banner
 - [ ] 手动刷新正常工作（AC-M0-001-5）
 - [ ] 快捷入口基于权限动态显示（AC-M0-001-6）
 

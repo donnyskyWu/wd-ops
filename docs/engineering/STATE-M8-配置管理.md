@@ -1,81 +1,56 @@
 # STATE-M8-配置管理
 
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v2.1 | 2026-06-11
+> **ADR**：[`ADR-014`](../adr/ADR-014-M8-配置管理数据模型.md)
 
 ---
 
-## 1. 采集配置状态
+## 1. 配置启用状态
 
-`dict_collect_status`：
-- 待执行 / 执行中 / 成功 / 失败 / 部分成功
+`dict_config_status`：ENABLED ↔ DISABLED。无复杂状态机。
+
+## 2. 连接状态
+
+`dict_conn_status`：DISCONNECTED → CONNECTED（测试成功后更新）。
+
+适用：订单采集、AI 模型。
+
+## 3. AI 默认模型
+
+- 同时仅一条 `is_default=1`
+- 设新默认时取消旧默认
+- 默认模型不可删除
+
+## 4. 提示词版本
+
+新增 v1；每次编辑 version 数字 +1（v2, v3…）。
+
+## 5. 阈值优先级
+
+账号覆盖 > 全局阈值（粉丝/作品/预警各自独立）。
+
+## 6. 业务规则
+
+- **BR-M8-001**：INTERNAL 账号标识租户内唯一（建议）
+- **BR-M8-002**：奥创配置每租户一条
+- **BR-M8-003**：跨租户 → 1504
+- **BR-M8-004**：默认 AI 模型删除 → 业务错误
+- **BR-M8-005**：CSV 导入 ≤5MB
+- **BR-M8-006**：内部采集平台 Tab 的 `accountId` 必须关联 M4 `oa_account`（与账号管理·平台账号同源）；列表 join 展示 `accountName`
+- **BR-M8-007**：企业微信 Tab 不走 `oa_collect_config`，复用 `oa_wework_account` + `/oa/internal/wework/*`
+- **BR-M8-008**：个人微信 Tab 仅展示 `oa_aocreate_api`，无内部采集账号列表
+- **BR-M8-009**：外部账号列表过滤 `subType=account`；平台枚举 `dict_third_platform`（非 `dict_platform_type`）
 
 ---
 
-## 2. 阈值配置（无状态机）
+## 字典引用
 
-阈值配置为只读 + 启用/停用，无状态机。
-
----
-
-*下一步：SLICES / CHECKLIST / TESTCASES。*
-
-
----
-
-## 全局规范引用
-
-> 本文档遵循 [`GLOBAL-CONVENTIONS.md`](./GLOBAL-CONVENTIONS.md) 中定义的全局规范：
-> - 强关联属性 → 强制使用 5 类选择器组件（RealNameSelect / PhoneSelect / SimCardSelect / CompanySelect / AccountSelect），禁用手动输入
-> - 枚举属性（方式/状态/类型/平台/阶段）→ 统一从数据字典（`dict_*`）选择，页面只读下拉
-> - 跨租户 + 状态校验 → 错误码 1500-1504 统一语义
-> - 数据安全 → 敏感字段（身份证/手机/API 密钥）强制脱敏展示，凭证类字段 AES-256 加密存储
-> - 详见 [`GLOBAL-CONVENTIONS.md § 2`](./GLOBAL-CONVENTIONS.md) (字典)、[`§ 3`](./GLOBAL-CONVENTIONS.md) (选择器)、[`§ 4`](./GLOBAL-CONVENTIONS.md) (错误码)
-
----
-
-## 1. 核心状态机
-
-### 1.1 字典项状态机
-
-```mermaid
-stateDiagram-v2
-    [*] --> 启用
-    启用 --> 停用: 管理员停用
-    停用 --> 启用: 重新启用
-    启用 --> 弃用: 系统升级
-    弃用 --> [*]
-    停用 --> [*]
-```
-
-### 1.2 系统配置状态机
-
-```mermaid
-stateDiagram-v2
-    [*] --> 未发布
-    未发布 --> 已发布: 管理员发布
-    已发布 --> 灰度中: 灰度
-    灰度中 --> 全量: 灰度完成
-    灰度中 --> 已回滚: 灰度失败
-    全量 --> 已回滚: 全量失败
-    全量 --> 已废弃: 配置过期
-    已回滚 --> 未发布
-    已废弃 --> [*]
-    灰度中 --> [*]
-```
-
-### 1.3 字典引用
-
-| 字段 | dict-type | 取值 |
-|------|-----------|------|
-| configType | `dict_config_type` | 系统/业务/集成/界面 |
-| valueType | `dict_value_type` | 字符串/数字/布尔/JSON |
-| effectiveRange | `dict_effective_range` | 全局/IP组/用户/作者 |
-
-### 1.4 业务规则
-
-- **BR-M8-001**：dictType 唯一
-- **BR-M8-002**：禁用前检查是否被引用
-- **BR-M8-003**：跨租户 → 错误码 1504
-- **BR-M8-004**：仅 admin 可操作 → 错误码 1403
-
-详见 [`GLOBAL-CONVENTIONS.md § 4`](../GLOBAL-CONVENTIONS.md)
+| 字段 | dict-type |
+|------|-----------|
+| status | dict_config_status |
+| connStatus | dict_conn_status |
+| thresholdCategory | dict_threshold_category |
+| syncMode | dict_sync_mode |
+| matchType | dict_match_type |
+| externalPlatform | dict_third_platform（外部账号 Tab） |
+| internalPlatform | dict_platform_type（内部平台 Tab / 关键词） |

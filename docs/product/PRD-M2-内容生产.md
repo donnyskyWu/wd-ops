@@ -3,8 +3,8 @@
 > **业务域**：M2 内容生产
 > **功能模块**：SOP 管理 + 计划管理 + 任务管理 + 内容管理 + 知识库
 > **详细设计章节**：5.8、5.9、5.10、5.11
-> **版本**：v1.0 | 2026-06-07
-> **状态**：Draft
+> **版本**：v1.1 | 2026-06-11
+> **状态**：Draft（SOP 编辑实现已对齐）
 > **全局规范**：[`docs/engineering/GLOBAL-CONVENTIONS.md`](./../engineering/GLOBAL-CONVENTIONS.md)
 
 ---
@@ -133,6 +133,20 @@
 - **节点数上限**：单模板 ≤ 50 节点
 - **岗位下拉**：使用 `<DictSelect dict-type="dict_position" />`
 - **审核要求**：`need_review=1` 时 `reviewer_role` 必填
+
+#### 4.1.5.1 实现补充（2026-06-11，`sop/edit.vue`）
+
+| 项 | 实现 |
+|----|------|
+| 布局 | `el-row` 栅格 **4 + 14 + 6 = 24**（节点库 / LogicFlow 画布 / 属性面板） |
+| 保存持久化 | `persistNodes()`：新节点 `POST create` → ID remap → 全量 `PUT update`（含 `predecessors`） |
+| 连线锚点 | 新建节点后 `applyIdRemap` 同步 LogicFlow 边与 `nodes`/`edges` 的 ID |
+| 执行/审核岗位 | 属性面板 `<DictSelect dict-type="dict_position" />` |
+
+**已知缺口（Out of Scope 本期）**：
+
+- 前端可删除画布节点，但**无后端节点 DELETE API**；已持久化节点删除仅本地生效，刷新后恢复
+- SOP 版本管理仍为 Out of Scope（§3.2）
 
 #### 4.1.6 数据项
 

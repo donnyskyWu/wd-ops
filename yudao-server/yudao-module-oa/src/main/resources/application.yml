@@ -25,6 +25,12 @@ oa:
     mode: dev-fixed
   crypto:
     aes-key: MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=
+  dingtalk:
+    enabled: ${DINGTALK_ENABLED:false}
+    client-id: ${DINGTALK_CLIENT_ID:}
+    client-secret: ${DINGTALK_CLIENT_SECRET:}
+    corp-id: ${DINGTALK_CORP_ID:}
+    agent-id: ${DINGTALK_AGENT_ID:}
 
 logging:
   level:

@@ -28,14 +28,22 @@
     </ContentWrap>
     <ContentWrap title="状态日志" style="margin-top: 16px">
       <el-table :data="logList" border stripe v-loading="loading">
-        <el-table-column prop="date" label="日期" width="120" />
-        <el-table-column prop="account_name" label="账号" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="status" label="状态" width="100" align="center">
+        <el-table-column label="日期" width="120">
+          <template #default="{ row }">{{ reportField(row, 'date', 'statDate') }}</template>
+        </el-table-column>
+        <el-table-column label="账号" min-width="200" show-overflow-tooltip>
+          <template #default="{ row }">{{ reportField(row, 'account_name', 'accountName') }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)" size="small">{{ row.status || '-' }}</el-tag>
+            <el-tag :type="getStatusType(String(reportField(row, 'status') || ''))" size="small">
+              {{ statusLabel(String(reportField(row, 'status') || '')) }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="remark" label="备注" min-width="200" show-overflow-tooltip />
+        <el-table-column label="备注" min-width="200" show-overflow-tooltip>
+          <template #default="{ row }">{{ reportField(row, 'remark') || '-' }}</template>
+        </el-table-column>
       </el-table>
       <el-pagination :current-page="pageNum" :page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next"
         class="pagination" @update:current-page="(v) => { pageNum = v; loadData() }"
@@ -49,7 +57,7 @@ import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
 import { getAccountStatusTrend, getAccountStatusSummary, getAccountStatusLog } from '@/api/report'
-import { unwrapApiData, pickListPage } from '@/utils'
+import { unwrapApiData, pickListPage, reportField } from '@/utils'
 
 const loading = ref(false)
 const filter = reactive({ accountId: undefined as number | undefined, dateRange: [] as string[] })
@@ -62,8 +70,22 @@ const trendRef = ref<HTMLDivElement | null>(null)
 let chart: echarts.ECharts | null = null
 
 const getStatusType = (s: string) => {
-  const map: Record<string, string> = { ONLINE: 'success', ABNORMAL: 'warning', OFFLINE: 'danger', RECOVERED: 'info' }
+  const map: Record<string, string> = {
+    NORMAL: 'success', ONLINE: 'success',
+    WARNING: 'warning', ABNORMAL: 'warning',
+    OFFLINE: 'danger',
+    RECOVERED: 'info',
+  }
   return map[s] || ''
+}
+
+const statusLabel = (s: string) => {
+  const map: Record<string, string> = {
+    NORMAL: '正常', ONLINE: '在线',
+    WARNING: '预警', ABNORMAL: '异常',
+    OFFLINE: '掉线', RECOVERED: '已恢复',
+  }
+  return map[s] || s || '-'
 }
 
 const buildQ = () => {

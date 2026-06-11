@@ -5,17 +5,21 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.api.dto.analytics.CustomQueryCreateReq;
+import cn.iocoder.yudao.module.oa.api.dto.analytics.CustomQueryPreviewReq;
+import cn.iocoder.yudao.module.oa.api.dto.analytics.CustomQueryUpdateReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.analytics.CustomQueryDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.analytics.CustomQueryMapper;
 import cn.iocoder.yudao.module.oa.service.support.SqlSafetySupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -24,6 +28,7 @@ import java.util.Objects;
 public class CustomQueryServiceImpl implements CustomQueryService {
 
     private final CustomQueryMapper customQueryMapper;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public PageResult<CustomQueryDO> list(String status, Integer pageNum, Integer pageSize) {
@@ -55,12 +60,44 @@ public class CustomQueryServiceImpl implements CustomQueryService {
     }
 
     @Override
+    @Transactional
+    public void update(CustomQueryUpdateReq req) {
+        CustomQueryDO existing = getRequired(req.getId());
+        SqlSafetySupport.assertSelectOnly(req.getSqlText());
+        existing.setQueryName(req.getQueryName());
+        if (req.getStatus() != null) {
+            existing.setStatus(req.getStatus());
+        }
+        existing.setSqlText(req.getSqlText());
+        existing.setParamsJson(req.getParams());
+        existing.setUpdater(TenantContextHolder.getUsername());
+        customQueryMapper.updateById(existing);
+    }
+
+    @Override
+    public Map<String, Object> preview(CustomQueryPreviewReq req) {
+        return runSelectSql(req.getSqlText(), null);
+    }
+
+    @Override
     public Map<String, Object> execute(Long id) {
         CustomQueryDO query = getRequired(id);
-        SqlSafetySupport.assertSelectOnly(query.getSqlText());
+        return runSelectSql(query.getSqlText(), id);
+    }
+
+    private Map<String, Object> runSelectSql(String sqlText, Long queryId) {
+        SqlSafetySupport.assertSelectOnly(sqlText);
+        Long tenantId = requireTenantId();
+        String sql = sqlText.trim().replace(":tenantId", String.valueOf(tenantId));
+        if (!sql.toUpperCase(Locale.ROOT).contains(" LIMIT ")) {
+            sql = sql + " LIMIT 100";
+        }
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
         Map<String, Object> result = new HashMap<>();
-        result.put("queryId", id);
-        result.put("rows", List.of(Map.of("message", "stub execute ok")));
+        if (queryId != null) {
+            result.put("queryId", queryId);
+        }
+        result.put("rows", rows);
         return result;
     }
 

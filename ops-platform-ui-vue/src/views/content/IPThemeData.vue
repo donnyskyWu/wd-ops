@@ -14,13 +14,8 @@
         <div class="tab-content">
           <el-card shadow="never" class="filter-card">
             <el-form :model="ipThemeForm" inline>
-              <el-form-item label="IP主题">
-                <el-select v-model="ipThemeForm.ipThemeId" placeholder="全部" clearable style="width: 160px">
-                  <el-option label="科技评测" value="1" />
-                  <el-option label="美食探店" value="2" />
-                  <el-option label="旅行日记" value="3" />
-                  <el-option label="美妆时尚" value="4" />
-                </el-select>
+              <el-form-item label="IP组">
+                <IpGroupTreeSelect v-model="ipThemeForm.ipGroupId" style="width: 220px" @change="loadIpThemeData" />
               </el-form-item>
             </el-form>
           </el-card>
@@ -183,27 +178,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick, watch } from 'vue'
+import { ref, reactive, onMounted, nextTick, watch, computed } from 'vue'
 import { Document, Refresh } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
-import { exportToExcel } from '@/utils'
+import { exportToExcel, unwrapApiData } from '@/utils'
+import { getIpThemeStats, getIndustryStats, getExternalWorkList } from '@/api/monitor'
+import { mapExternalWork, pickMonitorPage } from '@/utils/monitor-map'
+import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 
 const router = useRouter()
 const activeTab = ref('ip-theme')
 const loading = ref(false)
 
 // IP主题数据
-const ipThemeForm = reactive({ ipThemeId: undefined as string | undefined })
-const ipThemeStats = reactive({ relatedAccountCount: 23, totalInteraction: 45678, avgGrowthRate: 5.6 })
-const competitorList = ref([
-  { platform: '抖音', accountName: '科技小达人', followerCount: 5200000, interactionCount: 1250000, contentCount: 328 },
-  { platform: '抖音', accountName: '数码测评官', followerCount: 2800000, interactionCount: 680000, contentCount: 256 },
-  { platform: '抖音', accountName: '手机评测师', followerCount: 1800000, interactionCount: 420000, contentCount: 189 },
-  { platform: '公众号', accountName: '科技前沿', followerCount: 890000, interactionCount: 85000, contentCount: 520 },
-  { platform: '公众号', accountName: '数码之家', followerCount: 560000, interactionCount: 52000, contentCount: 380 },
-  { platform: '视频号', accountName: '科技爱好者', followerCount: 320000, interactionCount: 28000, contentCount: 180 },
-])
+const ipThemeForm = reactive({ ipGroupId: undefined as number | undefined })
+const ipThemeStats = reactive({ relatedAccountCount: 0, totalInteraction: 0, avgGrowthRate: 0 })
+const competitorList = ref<Array<{ platform: string; accountName: string; followerCount: number; interactionCount: number; contentCount: number }>>([])
 
 // 行业数据
 const industryForm = reactive({
@@ -240,7 +231,38 @@ const handleExport = () => {
   exportToExcel(competitorList.value, columns, 'IP主题-竞品数据')
 }
 // 刷新
-const handleRefresh = () => { loadCharts() }
+const handleRefresh = () => { loadIpThemeData() }
+
+const loadIpThemeData = async () => {
+  if (!ipThemeForm.ipGroupId) return
+  loading.value = true
+  try {
+    const [themeRes, worksRes] = await Promise.all([
+      getIpThemeStats(ipThemeForm.ipGroupId),
+      getExternalWorkList({ ipGroupId: ipThemeForm.ipGroupId, pageNum: 1, pageSize: 100 }),
+    ])
+    const theme = unwrapApiData(themeRes) as { workCount?: number; totalPlay?: number; topTitles?: string[] }
+    ipThemeStats.relatedAccountCount = theme.workCount ?? 0
+    ipThemeStats.totalInteraction = theme.totalPlay ?? 0
+    ipThemeStats.avgGrowthRate = 0
+    const page = pickMonitorPage(worksRes)
+    competitorList.value = page.list.map((raw, i) => {
+      const w = mapExternalWork(raw as unknown as Record<string, unknown>, i)
+      return {
+        platform: w.platform,
+        accountName: w.title,
+        followerCount: w.playCount,
+        interactionCount: w.likeCount,
+        contentCount: 1,
+      }
+    })
+    loadCharts()
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loading.value = false
+  }
+}
 // 跳转外部账号分析
 const goToExternalAccount = (row: any) => { router.push('/external-account') }
 

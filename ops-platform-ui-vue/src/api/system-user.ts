@@ -12,6 +12,9 @@ export interface UserVO {
   phoneMasked?: string
   position?: string
   ipGroupId?: number
+  deptId?: number
+  deptName?: string
+  dingUserId?: string
   status: string
   remark?: string
   roleIds?: number[]
@@ -51,6 +54,7 @@ export function fetchUserList(params: {
   username?: string
   nickname?: string
   roleId?: number
+  deptId?: number
   status?: string
   pageNo?: number
   pageSize?: number
@@ -65,6 +69,7 @@ export function createUser(data: {
   phone?: string
   position?: string
   ipGroupId?: number
+  deptId?: number
   status?: string
   roleIds: number[]
   remark?: string
@@ -79,6 +84,7 @@ export function updateUser(data: {
   phone?: string
   position?: string
   ipGroupId?: number
+  deptId?: number
   status?: string
   roleIds?: number[]
   remark?: string

@@ -3,8 +3,8 @@
 > **业务域**：M0 首页
 > **功能模块**：首页仪表盘（HOME-001）
 > **详细设计章节**：5.0
-> **版本**：v1.0 | 2026-06-07
-> **状态**：Draft
+> **版本**：v1.1 | 2026-06-11
+> **状态**：Draft（实现已对齐）
 > **全局规范**：[`docs/engineering/GLOBAL-CONVENTIONS.md`](./../engineering/GLOBAL-CONVENTIONS.md)
 
 ---
@@ -117,6 +117,8 @@
 #### 4.1.5 业务规则
 
 - **IP 组筛选联动**：选择 IP 组后，所有指标 + 图表 + 待办统一刷新
+- **大组含子组**（实现 2026-06-11）：选择 `group_type=1` 的大组时，后端 `resolveIpGroupScope` 展开其下所有启用小组的 `account_id` 再聚合；选小组仅自身
+- **趋势分组**（实现 2026-06-11）：内容发布趋势支持 `groupBy=PLATFORM`（默认，按平台多序列）或 `IP_GROUP`（按 IP 小组多序列）
 - **一次性加载**：首次进入加载所有数据，**不轮询**
 - **手动刷新**：右上角"刷新"按钮触发全量重新加载
 - **数据来源**：API 采集 + IMPORT 补录（聚合）
@@ -145,7 +147,8 @@
 **内容发布趋势（折线图）**：
 - X 轴：日期
 - Y 轴：内容数量
-- 维度：可选平台（`<DictSelect dict-type="dict_platform_type" />`）
+- 分组：`groupBy` = `PLATFORM`（按平台）/ `IP_GROUP`（按 IP 小组）
+- 筛选：可选平台（`<DictSelect dict-type="dict_platform_type" />`，仅过滤数据，与 `groupBy` 独立）
 
 **平台分布（饼图）**：
 - 分类：`dict_platform_type`
@@ -254,6 +257,8 @@
 | 编号 | 问题 | 决策 | 原因 | 日期 |
 |------|------|------|------|------|
 | ADR-M0-001 | 首页是否需要实时刷新 | 不轮询，手动刷新 + 缓存 5min | 减少服务器压力，避免误读数据 | 2026-06-07 |
+| IMPL-M0-001 | 趋势/分布测试数据 | V39 `seed_dashboard_content` 灌入近 7 天 `oa_content` | 联调折线/饼图非空 | 2026-06-11 |
+| IMPL-M0-002 | 前端实现 | `Dashboard.vue` 重写：真 API + ECharts + 错误 Banner | 替换 mock/占位 | 2026-06-11 |
 
 ---
 

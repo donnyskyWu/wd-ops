@@ -47,6 +47,11 @@ public class AiPromptConfigController {
         return CommonResult.success(true);
     }
 
+    @GetMapping("/get")
+    public CommonResult<AiPromptConfigRespVO> get(@RequestParam Long id) {
+        return CommonResult.success(aiPromptConfigService.get(id));
+    }
+
     @DeleteMapping("/delete")
     public CommonResult<Boolean> delete(@RequestParam Long id) {
         aiPromptConfigService.delete(id);

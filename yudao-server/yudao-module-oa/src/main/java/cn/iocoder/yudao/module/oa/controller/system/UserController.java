@@ -33,10 +33,11 @@ public class UserController {
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String nickname,
             @RequestParam(required = false) Long roleId,
+            @RequestParam(required = false) Long deptId,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") Integer pageNo,
             @RequestParam(defaultValue = "10") Integer pageSize) {
-        return CommonResult.success(userService.list(username, nickname, roleId, status, pageNo, pageSize));
+        return CommonResult.success(userService.list(username, nickname, roleId, deptId, status, pageNo, pageSize));
     }
 
     @PostMapping("/create")

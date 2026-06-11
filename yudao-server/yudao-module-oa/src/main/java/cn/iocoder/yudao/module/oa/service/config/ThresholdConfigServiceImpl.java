@@ -26,11 +26,12 @@ public class ThresholdConfigServiceImpl implements ThresholdConfigService {
     private final ThresholdConfigMapper thresholdConfigMapper;
 
     @Override
-    public PageResult<ThresholdConfigRespVO> list(String metricName, String metricType, String status,
-                                                  Integer pageNo, Integer pageSize) {
+    public PageResult<ThresholdConfigRespVO> list(String thresholdCategory, String metricName, String metricType,
+                                                  String status, Integer pageNo, Integer pageSize) {
         Long tenantId = ConfigTenantSupport.requireTenantId();
         LambdaQueryWrapper<ThresholdConfigDO> wrapper = new LambdaQueryWrapper<ThresholdConfigDO>()
                 .eq(ThresholdConfigDO::getTenantId, tenantId)
+                .eq(StrUtil.isNotBlank(thresholdCategory), ThresholdConfigDO::getThresholdCategory, thresholdCategory)
                 .like(StrUtil.isNotBlank(metricName), ThresholdConfigDO::getMetricName, metricName)
                 .eq(StrUtil.isNotBlank(metricType), ThresholdConfigDO::getMetricType, metricType)
                 .eq(StrUtil.isNotBlank(status), ThresholdConfigDO::getStatus, status)
@@ -46,9 +47,21 @@ public class ThresholdConfigServiceImpl implements ThresholdConfigService {
     @AuditLog(module = "M8-threshold", action = "create")
     public Long create(ThresholdConfigCreateReq req) {
         ThresholdConfigDO entity = new ThresholdConfigDO();
+        entity.setThresholdCategory(req.getThresholdCategory());
+        entity.setThresholdType(req.getThresholdType());
         entity.setMetricName(req.getMetricName());
         entity.setMetricType(req.getMetricType());
         entity.setPlatformType(req.getPlatformType());
+        entity.setContentType(req.getContentType());
+        entity.setJudgeMode(StrUtil.blankToDefault(req.getJudgeMode(), "AND"));
+        entity.setLowFans(req.getLowFans());
+        entity.setHighFans(req.getHighFans());
+        entity.setDailyLow(req.getDailyLow());
+        entity.setDailyHigh(req.getDailyHigh());
+        entity.setHotValue(req.getHotValue());
+        entity.setLowValue(req.getLowValue());
+        entity.setOverrideAccountId(req.getOverrideAccountId());
+        entity.setOverrideValue(req.getOverrideValue());
         entity.setIpGroupId(req.getIpGroupId());
         entity.setCompareOperator(StrUtil.blankToDefault(req.getCompareOperator(), "GTE"));
         entity.setThresholdValue(req.getThresholdValue());
@@ -96,6 +109,42 @@ public class ThresholdConfigServiceImpl implements ThresholdConfigService {
         if (req.getRemark() != null) {
             existing.setRemark(req.getRemark());
         }
+        if (req.getThresholdCategory() != null) {
+            existing.setThresholdCategory(req.getThresholdCategory());
+        }
+        if (req.getThresholdType() != null) {
+            existing.setThresholdType(req.getThresholdType());
+        }
+        if (req.getContentType() != null) {
+            existing.setContentType(req.getContentType());
+        }
+        if (req.getJudgeMode() != null) {
+            existing.setJudgeMode(req.getJudgeMode());
+        }
+        if (req.getLowFans() != null) {
+            existing.setLowFans(req.getLowFans());
+        }
+        if (req.getHighFans() != null) {
+            existing.setHighFans(req.getHighFans());
+        }
+        if (req.getDailyLow() != null) {
+            existing.setDailyLow(req.getDailyLow());
+        }
+        if (req.getDailyHigh() != null) {
+            existing.setDailyHigh(req.getDailyHigh());
+        }
+        if (req.getHotValue() != null) {
+            existing.setHotValue(req.getHotValue());
+        }
+        if (req.getLowValue() != null) {
+            existing.setLowValue(req.getLowValue());
+        }
+        if (req.getOverrideAccountId() != null) {
+            existing.setOverrideAccountId(req.getOverrideAccountId());
+        }
+        if (req.getOverrideValue() != null) {
+            existing.setOverrideValue(req.getOverrideValue());
+        }
         ConfigTenantSupport.fillUpdate(existing);
         thresholdConfigMapper.updateById(existing);
     }
@@ -116,9 +165,21 @@ public class ThresholdConfigServiceImpl implements ThresholdConfigService {
     private ThresholdConfigRespVO toResp(ThresholdConfigDO entity) {
         ThresholdConfigRespVO vo = new ThresholdConfigRespVO();
         vo.setId(entity.getId());
+        vo.setThresholdCategory(entity.getThresholdCategory());
+        vo.setThresholdType(entity.getThresholdType());
         vo.setMetricName(entity.getMetricName());
         vo.setMetricType(entity.getMetricType());
         vo.setPlatformType(entity.getPlatformType());
+        vo.setContentType(entity.getContentType());
+        vo.setJudgeMode(entity.getJudgeMode());
+        vo.setLowFans(entity.getLowFans());
+        vo.setHighFans(entity.getHighFans());
+        vo.setDailyLow(entity.getDailyLow());
+        vo.setDailyHigh(entity.getDailyHigh());
+        vo.setHotValue(entity.getHotValue());
+        vo.setLowValue(entity.getLowValue());
+        vo.setOverrideAccountId(entity.getOverrideAccountId());
+        vo.setOverrideValue(entity.getOverrideValue());
         vo.setIpGroupId(entity.getIpGroupId());
         vo.setCompareOperator(entity.getCompareOperator());
         vo.setThresholdValue(entity.getThresholdValue());

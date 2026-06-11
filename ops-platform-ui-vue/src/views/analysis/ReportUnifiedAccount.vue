@@ -35,13 +35,29 @@
     </ContentWrap>
     <ContentWrap title="账号明细" style="margin-top: 16px">
       <el-table :data="list" border stripe v-loading="loading">
-        <el-table-column prop="account_name" label="账号" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="platform_type" label="平台" width="100" align="center" />
-        <el-table-column prop="ip_group_name" label="IP 组" width="150" />
-        <el-table-column prop="follower_count" label="粉丝数" width="120" align="right" />
-        <el-table-column prop="revenue" label="营收" width="120" align="right" />
-        <el-table-column prop="cost" label="成本" width="120" align="right" />
-        <el-table-column prop="roi" label="ROI" width="100" align="right" />
+        <el-table-column label="账号" min-width="200" show-overflow-tooltip>
+          <template #default="{ row }">{{ reportField(row, 'account_name', 'accountName') }}</template>
+        </el-table-column>
+        <el-table-column label="平台" width="100" align="center">
+          <template #default="{ row }">
+            <DictLabel dict-type="dict_platform_type" :value="reportField(row, 'platform_type', 'platformType')" />
+          </template>
+        </el-table-column>
+        <el-table-column label="IP 组" width="150">
+          <template #default="{ row }">{{ reportField(row, 'ip_group_name', 'ipGroupName') }}</template>
+        </el-table-column>
+        <el-table-column label="粉丝数" width="120" align="right">
+          <template #default="{ row }">{{ reportField(row, 'follower_count', 'followerCount') }}</template>
+        </el-table-column>
+        <el-table-column label="营收" width="120" align="right">
+          <template #default="{ row }">{{ reportField(row, 'revenue') }}</template>
+        </el-table-column>
+        <el-table-column label="成本" width="120" align="right">
+          <template #default="{ row }">{{ reportField(row, 'cost') }}</template>
+        </el-table-column>
+        <el-table-column label="ROI" width="100" align="right">
+          <template #default="{ row }">{{ reportField(row, 'roi') }}</template>
+        </el-table-column>
       </el-table>
       <el-pagination :current-page="pageNum" :page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next"
         class="pagination" @update:current-page="(v) => { pageNum = v; loadData() }"
@@ -52,9 +68,10 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import ContentWrap from '@/components/ContentWrap.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { getUnifiedAccountList, getUnifiedAccountStats } from '@/api/report'
-import { unwrapApiData, pickListPage } from '@/utils'
+import { unwrapApiData, pickListPage, reportField } from '@/utils'
 
 const loading = ref(false)
 const filter = reactive({ ipGroupId: undefined as number | undefined, platformType: undefined as string | undefined, dateRange: [] as string[] })

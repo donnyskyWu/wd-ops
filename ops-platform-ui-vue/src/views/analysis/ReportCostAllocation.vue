@@ -17,15 +17,23 @@
     </ContentWrap>
     <ContentWrap title="成本分摊明细" style="margin-top: 16px">
       <el-table :data="list" border stripe v-loading="loading">
-        <el-table-column prop="account_name" label="账号" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="cost_type" label="成本类型" width="120" align="center" />
-        <el-table-column prop="amount" label="金额(元)" width="140" align="right">
-          <template #default="{ row }">¥ {{ Number(row.amount || 0).toFixed(2) }}</template>
+        <el-table-column label="账号" min-width="200" show-overflow-tooltip>
+          <template #default="{ row }">{{ reportField(row, 'account_name', 'accountName') }}</template>
         </el-table-column>
-        <el-table-column prop="share_ratio" label="占比" width="100" align="right">
-          <template #default="{ row }">{{ ((row.share_ratio || 0) * 100).toFixed(2) }}%</template>
+        <el-table-column label="成本类型" width="120" align="center">
+          <template #default="{ row }">
+            <DictLabel dict-type="dict_cost_type" :value="reportField(row, 'cost_type', 'costType')" />
+          </template>
         </el-table-column>
-        <el-table-column prop="remark" label="备注" min-width="200" show-overflow-tooltip />
+        <el-table-column label="金额(元)" width="140" align="right">
+          <template #default="{ row }">¥ {{ Number(reportField(row, 'amount') || 0).toFixed(2) }}</template>
+        </el-table-column>
+        <el-table-column label="占比" width="100" align="right">
+          <template #default="{ row }">{{ (Number(reportField(row, 'share_ratio', 'shareRatio') || 0) * 100).toFixed(2) }}%</template>
+        </el-table-column>
+        <el-table-column label="备注" min-width="200" show-overflow-tooltip>
+          <template #default="{ row }">{{ reportField(row, 'remark') || '-' }}</template>
+        </el-table-column>
       </el-table>
       <el-pagination :current-page="pageNum" :page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next"
         class="pagination" @update:current-page="(v) => { pageNum = v; loadData() }"
@@ -36,8 +44,10 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import ContentWrap from '@/components/ContentWrap.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
 import { getCostAllocationList } from '@/api/report'
+import { unwrapApiData, pickListPage, reportField } from '@/utils'
 
 const loading = ref(false)
 const filter = reactive({ accountId: undefined as number | undefined, dateRange: [] as string[] })
@@ -56,10 +66,10 @@ const buildQuery = () => {
 const loadData = async () => {
   loading.value = true
   try {
-    const res: any = await getCostAllocationList(buildQuery())
-    const data = res?.data ?? res
-    list.value = data?.list ?? data?.records ?? []
-    total.value = data?.total ?? list.value.length
+    const res = await getCostAllocationList(buildQuery())
+    const page = pickListPage(unwrapApiData(res))
+    list.value = page.list
+    total.value = page.total
   } catch (e) { console.error(e); list.value = [] }
   finally { loading.value = false }
 }

@@ -3,7 +3,7 @@
 > **业务域**：M9 系统管理
 > **功能模块**：用户 + 角色 + 租户 + 字典 + 日志 + 消息
 > **详细设计章节**：5.35
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v1.1 | 2026-06-11
 > **全局规范**：[`docs/engineering/GLOBAL-CONVENTIONS.md`](./../engineering/GLOBAL-CONVENTIONS.md)
 
 ---
@@ -21,6 +21,19 @@
 ## 1. 概述
 
 系统级管理：用户/角色/权限/租户/字典/日志/消息。**字典管理是核心**（关联所有模块）。
+
+### 实现补充（2026-06-11，ADR-013）
+
+**FR-M9-001 扩展**：用户管理页左侧部门树 + 钉钉组织同步。
+
+| 能力 | 说明 |
+|------|------|
+| 部门树 | `sys_dept` 表；左侧 `el-tree` 筛选 `GET /user/list?deptId=` |
+| 部门 CRUD | 本地创建/编辑/删除（有子部门或用户 → 1502） |
+| 钉钉同步 | 手动触发 `sync-dingtalk`（部门）、`sync-dingtalk-users`（人员） |
+| 用户扩展 | `sys_user.dept_id`、`ding_user_id`；`ding_user_id` 供后续消息/SSO（Phase 2） |
+
+**Out of Scope**：钉钉 OAuth 登录、同步删除本地用户、定时自动同步（见 ADR-013）。
 
 ---
 

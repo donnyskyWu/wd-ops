@@ -12,11 +12,19 @@
       <el-card class="search-card" shadow="never">
         <el-form :model="queryForm" inline>
           <el-form-item label="选择漏斗">
-            <el-select v-model="queryForm.funnelId" placeholder="请选择" style="width: 240px" :loading="loadingFunnels">
+            <el-select v-model="queryForm.funnelId" placeholder="请选择" style="width: 240px" :loading="loadingFunnels" @change="loadFunnelData">
               <el-option v-for="f in funnelOptions" :key="f.id" :label="f.funnelName" :value="f.id" />
             </el-select>
           </el-form-item>
+          <el-form-item label="时间范围">
+            <el-date-picker v-model="queryForm.dateRange" type="daterange" range-separator="至" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" />
+          </el-form-item>
+          <el-form-item label="平台">
+            <DictSelect v-model="queryForm.platformType" dict-type="dict_platform_type" placeholder="全部" clearable style="width: 140px" />
+          </el-form-item>
           <el-form-item>
+            <el-button type="primary" @click="loadFunnelData">查询</el-button>
+            <el-button @click="handleReset">重置</el-button>
             <el-button type="success" @click="handleExport">导出报告</el-button>
           </el-form-item>
         </el-form>
@@ -81,18 +89,16 @@
           <el-input v-model="funnelForm.funnelName" placeholder="请输入漏斗名称" maxlength="50" />
         </el-form-item>
         <el-form-item label="漏斗类型">
-          <el-select v-model="funnelForm.funnelType" placeholder="请选择" style="width: 200px">
-            <el-option label="内容漏斗" value="CONTENT" />
-            <el-option label="粉丝漏斗" value="FOLLOWER" />
-            <el-option label="订单漏斗" value="ORDER" />
-          </el-select>
+          <DictSelect v-model="funnelForm.funnelType" dict-type="dict_funnel_type" placeholder="请选择" style="width: 200px" />
         </el-form-item>
         <el-form-item label="步骤列表">
           <div class="steps-list">
             <div v-for="(step, index) in funnelForm.steps" :key="index" class="step-item">
               <span class="step-index">{{ index + 1 }}.</span>
-              <el-input v-model="step.stepName" placeholder="步骤名称" style="width: 200px" />
-              <el-input v-model="step.eventCode" placeholder="事件码（例：exposure/read/like/order）" style="width: 280px; margin-left: 8px" />
+              <el-input v-model="step.stepName" placeholder="步骤名称" style="width: 180px" />
+              <el-select v-model="step.eventCode" placeholder="选择指标" filterable style="width: 280px; margin-left: 8px">
+                <el-option v-for="m in metricOptions" :key="m.metricCode" :label="`${m.metricName} (${m.metricCode})`" :value="m.metricCode" />
+              </el-select>
               <el-button type="danger" link @click="removeStep(index)">删除</el-button>
             </div>
             <el-button @click="addStep" style="margin-top: 8px">+ 添加步骤</el-button>
@@ -112,7 +118,9 @@ import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as echarts from 'echarts'
 import { getFunnelList, getFunnelData, createFunnel } from '@/api/funnel'
-import { exportToExcel } from '@/utils'
+import { getMetricList } from '@/api/metric'
+import DictSelect from '@/components/DictSelect.vue'
+import { exportToExcel, unwrapApiData, pickListPage } from '@/utils'
 
 interface FunnelVO {
   id: number
@@ -137,20 +145,25 @@ const saving = ref(false)
 const funnelList = ref<FunnelVO[]>([])
 const funnelSteps = ref<FunnelStepVO[]>([])
 const customFunnelList = ref<FunnelVO[]>([])
+const metricOptions = ref<{ metricName: string; metricCode: string }[]>([])
 
 const queryForm = reactive({
   funnelId: null as number | null,
+  dateRange: [] as string[],
+  platformType: '' as string,
 })
 
 const funnelOptions = computed(() => funnelList.value)
 
+const defaultFunnelSteps = () => [
+  { stepName: '阅读总量', eventCode: 'CONTENT_READ_TOTAL', stepOrder: 1 },
+  { stepName: '互动总量', eventCode: 'CONTENT_INTERACTION_TOTAL', stepOrder: 2 },
+]
+
 const funnelForm = reactive({
   funnelName: '',
-  funnelType: 'CONTENT',
-  steps: [
-    { stepName: '访问首页', eventCode: 'exposure', stepOrder: 1 },
-    { stepName: '点击商品', eventCode: 'read', stepOrder: 2 },
-  ],
+  funnelType: 'CUSTOM',
+  steps: defaultFunnelSteps(),
 })
 
 const funnelChartRef = ref<HTMLElement>()
@@ -186,11 +199,37 @@ const loadFunnelList = async () => {
   }
 }
 
+const loadMetricOptions = async () => {
+  try {
+    const res = await getMetricList({ pageNum: 1, pageSize: 200, status: 1 })
+    const page = pickListPage(unwrapApiData(res))
+    metricOptions.value = page.list
+      .filter((m: { status?: number; metricFormula?: string; metricCode?: string; metricName?: string }) =>
+        m.status === 1 && m.metricCode && m.metricName && !!m.metricFormula)
+      .map((m: { metricName: string; metricCode: string }) => ({
+        metricName: m.metricName,
+        metricCode: m.metricCode,
+      }))
+  } catch (e) {
+    console.error('load metrics failed', e)
+  }
+}
+
+const buildDataQuery = () => {
+  const q: Record<string, unknown> = {}
+  if (queryForm.dateRange?.length === 2) {
+    q.startDate = queryForm.dateRange[0]
+    q.endDate = queryForm.dateRange[1]
+  }
+  if (queryForm.platformType) q.platformType = queryForm.platformType
+  return q
+}
+
 const loadFunnelData = async () => {
   if (!queryForm.funnelId) return
   loadingData.value = true
   try {
-    const res: any = await getFunnelData(queryForm.funnelId)
+    const res: any = await getFunnelData(queryForm.funnelId, buildDataQuery())
     const data = res?.data ?? res
     funnelSteps.value = data?.steps ?? []
     await nextTick()
@@ -203,23 +242,11 @@ const loadFunnelData = async () => {
   }
 }
 
-const watchFunnel = (() => {
-  let last: number | null = null
-  return () => {
-    if (queryForm.funnelId && queryForm.funnelId !== last) {
-      last = queryForm.funnelId
-      loadFunnelData()
-    }
-  }
-})()
-
-const handleQuery = () => {
-  watchFunnel()
-}
-
 const handleReset = () => {
-  queryForm.funnelId = null
-  funnelSteps.value = []
+  queryForm.dateRange = []
+  queryForm.platformType = ''
+  if (queryForm.funnelId) loadFunnelData()
+  else funnelSteps.value = []
 }
 
 const handleExport = () => {
@@ -254,11 +281,8 @@ const removeStep = (index: number) => {
 
 const openCreateDialog = () => {
   funnelForm.funnelName = ''
-  funnelForm.funnelType = 'CONTENT'
-  funnelForm.steps = [
-    { stepName: '访问首页', eventCode: 'exposure', stepOrder: 1 },
-    { stepName: '点击商品', eventCode: 'read', stepOrder: 2 },
-  ]
+  funnelForm.funnelType = 'CUSTOM'
+  funnelForm.steps = defaultFunnelSteps()
   showCreateDialog.value = true
 }
 
@@ -272,7 +296,7 @@ const handleSave = async () => {
     return
   }
   if (funnelForm.steps.some(s => !s.stepName || !s.eventCode)) {
-    ElMessage.warning('每个步骤必须填写名称和事件码')
+    ElMessage.warning('每个步骤必须填写名称和指标')
     return
   }
   saving.value = true
@@ -346,6 +370,7 @@ const initFunnelChart = () => {
 
 onMounted(() => {
   loadFunnelList()
+  loadMetricOptions()
 })
 </script>
 

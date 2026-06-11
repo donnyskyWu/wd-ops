@@ -95,7 +95,7 @@ class M9UserRoleS01IT extends OaITBase {
                         .header("X-Tenant-Id", TENANT))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.data.length()").value(21));
+                .andExpect(jsonPath("$.data.length()").value(27));
 
         mockMvc.perform(post("/admin-api/oa/system/role/assign-permission")
                         .header("Authorization", AUTH)

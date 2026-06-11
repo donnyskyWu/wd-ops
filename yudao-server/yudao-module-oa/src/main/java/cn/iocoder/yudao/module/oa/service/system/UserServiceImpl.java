@@ -9,9 +9,11 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.api.dto.system.UserCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.system.UserRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.system.UserUpdateReq;
+import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysDeptDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysRoleDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserRoleDO;
+import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysDeptMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysRoleMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserRoleMapper;
@@ -34,18 +36,20 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final SysUserMapper sysUserMapper;
+    private final SysDeptMapper sysDeptMapper;
     private final SysRoleMapper sysRoleMapper;
     private final SysUserRoleMapper sysUserRoleMapper;
     private final AesUtil aesUtil;
 
     @Override
-    public PageResult<UserRespVO> list(String username, String nickname, Long roleId, String status,
+    public PageResult<UserRespVO> list(String username, String nickname, Long roleId, Long deptId, String status,
                                        Integer pageNo, Integer pageSize) {
         Long tenantId = requireTenantId();
         LambdaQueryWrapper<SysUserDO> wrapper = new LambdaQueryWrapper<SysUserDO>()
                 .eq(SysUserDO::getTenantId, tenantId)
                 .like(StrUtil.isNotBlank(username), SysUserDO::getUsername, username)
                 .like(StrUtil.isNotBlank(nickname), SysUserDO::getNickname, nickname)
+                .eq(deptId != null, SysUserDO::getDeptId, deptId)
                 .eq(StrUtil.isNotBlank(status), SysUserDO::getStatus, status)
                 .orderByDesc(SysUserDO::getId);
 
@@ -72,6 +76,9 @@ public class UserServiceImpl implements UserService {
         Long tenantId = requireTenantId();
         assertUsernameUnique(tenantId, req.getUsername(), null);
         assertRolesInTenant(tenantId, req.getRoleIds());
+        if (req.getDeptId() != null) {
+            assertDeptInTenant(tenantId, req.getDeptId());
+        }
 
         SysUserDO entity = new SysUserDO();
         entity.setTenantId(tenantId);
@@ -81,6 +88,7 @@ public class UserServiceImpl implements UserService {
         applyPhone(entity, req.getPhone());
         entity.setPosition(req.getPosition());
         entity.setIpGroupId(req.getIpGroupId());
+        entity.setDeptId(req.getDeptId());
         entity.setRemark(req.getRemark());
         entity.setStatus(StrUtil.blankToDefault(req.getStatus(), "ENABLED"));
         entity.setCreator(TenantContextHolder.getUsername());
@@ -112,6 +120,10 @@ public class UserServiceImpl implements UserService {
         }
         if (req.getIpGroupId() != null) {
             existing.setIpGroupId(req.getIpGroupId());
+        }
+        if (req.getDeptId() != null) {
+            assertDeptInTenant(existing.getTenantId(), req.getDeptId());
+            existing.setDeptId(req.getDeptId());
         }
         if (req.getRemark() != null) {
             existing.setRemark(req.getRemark());
@@ -162,6 +174,14 @@ public class UserServiceImpl implements UserService {
         vo.setPhoneMasked(maskPhone(entity.getPhoneEncrypted()));
         vo.setPosition(entity.getPosition());
         vo.setIpGroupId(entity.getIpGroupId());
+        vo.setDeptId(entity.getDeptId());
+        vo.setDingUserId(entity.getDingUserId());
+        if (entity.getDeptId() != null) {
+            SysDeptDO dept = sysDeptMapper.selectById(entity.getDeptId());
+            if (dept != null) {
+                vo.setDeptName(dept.getName());
+            }
+        }
         vo.setStatus(entity.getStatus());
         vo.setRemark(entity.getRemark());
         vo.setCreateTime(entity.getCreateTime());
@@ -224,6 +244,16 @@ public class UserServiceImpl implements UserService {
         }
         if (sysUserMapper.selectCount(wrapper) > 0) {
             throw new ServiceException(OaErrorCodes.DUPLICATE_ENTITY.getCode(), "用户名已存在");
+        }
+    }
+
+    private void assertDeptInTenant(Long tenantId, Long deptId) {
+        SysDeptDO dept = sysDeptMapper.selectById(deptId);
+        if (dept == null) {
+            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "部门不存在");
+        }
+        if (!tenantId.equals(dept.getTenantId())) {
+            throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
         }
     }
 

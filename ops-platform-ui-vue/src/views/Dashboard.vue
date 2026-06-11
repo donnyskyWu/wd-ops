@@ -1,8 +1,71 @@
 <template>
-  <div class="dashboard">
-    <!-- 核心KPI卡片 -->
+  <div class="dashboard" v-loading="loading">
+    <!-- 顶部操作栏 F-IP / F-DATE-RANGE / BTN-REFRESH -->
+    <el-card shadow="never" class="toolbar-card">
+      <div class="toolbar">
+        <el-form :inline="true" class="toolbar-form">
+          <el-form-item label="IP 组筛选">
+            <IpGroupTreeSelect v-model="filters.ipGroupId" placeholder="全部" clearable style="width: 220px" />
+          </el-form-item>
+          <el-form-item label="日期范围">
+            <el-date-picker
+              v-model="filters.dateRange"
+              type="daterange"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+              :shortcuts="dateShortcuts"
+              style="width: 260px"
+            />
+          </el-form-item>
+        </el-form>
+        <el-button type="primary" :loading="refreshing" @click="handleRefresh">
+          <el-icon><Refresh /></el-icon>
+          刷新
+        </el-button>
+      </div>
+    </el-card>
+
+    <el-alert
+      v-if="loadError"
+      type="error"
+      :title="loadError"
+      show-icon
+      class="error-banner"
+      :closable="false"
+    >
+      <template #default>
+        <el-button type="primary" link @click="loadAllData">重试</el-button>
+      </template>
+    </el-alert>
+
+    <!-- 快捷入口 -->
+    <el-card v-if="quickActions.length" class="quick-access" shadow="hover">
+      <template #header>
+        <span class="card-header">快捷入口</span>
+      </template>
+      <el-row :gutter="16">
+        <el-col :xs="12" :sm="8" :md="6" :lg="3" v-for="(item, index) in quickActions" :key="index">
+          <div
+            class="quick-item"
+            role="link"
+            tabindex="0"
+            @click="navigateTo(resolveOpsUrl(item.url))"
+            @keydown.enter="navigateTo(resolveOpsUrl(item.url))"
+          >
+            <div class="quick-icon">
+              <el-icon :size="28"><component :is="resolveQuickIcon(item.icon)" /></el-icon>
+            </div>
+            <div class="quick-label">{{ item.name }}</div>
+          </div>
+        </el-col>
+      </el-row>
+    </el-card>
+
+    <!-- 4 个核心指标卡 -->
     <div class="kpi-cards">
-      <el-card shadow="hover" class="kpi-card" v-for="(card, index) in kpiCards" :key="index" @click="navigateTo(card.route)">
+      <el-card shadow="hover" class="kpi-card" v-for="card in kpiCards" :key="card.key">
         <div class="kpi-content">
           <div class="kpi-icon" :style="{ backgroundColor: card.bgColor }">
             <el-icon :size="24" :color="card.color">
@@ -10,394 +73,428 @@
             </el-icon>
           </div>
           <div class="kpi-info">
-            <div class="kpi-value">
-              <template v-if="kpiData && typeof kpiData[card.key] === 'number'">
-                {{ card.format ? card.format(kpiData[card.key]) : formatNumber(kpiData[card.key]) }}
-              </template>
-              <template v-else>-</template>
-            </div>
+            <div class="kpi-value">{{ formatMetricValue(card) }}</div>
             <div class="kpi-label">{{ card.label }}</div>
-            <div v-if="card.changeKey && kpiData && typeof kpiData[card.changeKey] === 'number'" 
-                 class="kpi-change" 
-                 :class="kpiData[card.changeKey] > 0 ? 'positive' : 'negative'">
-              {{ kpiData[card.changeKey] > 0 ? '+' : '' }}{{ kpiData[card.changeKey] }}%
-            </div>
           </div>
         </div>
       </el-card>
     </div>
 
-    <!-- 快捷入口 -->
-    <el-card class="quick-access" shadow="hover">
-      <template #header>
-        <div class="card-header">
-          <span>快捷入口</span>
-        </div>
-      </template>
-      <el-row :gutter="16">
-        <el-col :xs="12" :sm="8" :md="6" :lg="4" v-for="(item, index) in quickAccess" :key="index">
-          <div class="quick-item" role="link" tabindex="0" @click="navigateTo(item.route)" @keydown.enter="navigateTo(item.route)">
-            <div class="quick-icon">
-              <el-icon :size="28"><component :is="item.icon" /></el-icon>
-            </div>
-            <div class="quick-label">{{ item.label }}</div>
-          </div>
-        </el-col>
-      </el-row>
-    </el-card>
-
-    <!-- 图表区域 -->
+    <!-- 图表区 -->
     <el-row :gutter="16" class="chart-section">
-      <el-col :xs="24" :lg="12">
+      <el-col :xs="24" :lg="14">
         <el-card shadow="hover">
           <template #header>
-            <div class="card-header">
-              <span>账号数据概览</span>
+            <div class="card-header chart-header">
+              <span>内容发布趋势</span>
+              <div class="chart-filter">
+                <span class="filter-label">分组</span>
+                <el-select v-model="trendGroupBy" style="width: 120px" @change="loadTrendOnly">
+                  <el-option label="按平台" value="PLATFORM" />
+                  <el-option label="按 IP 小组" value="IP_GROUP" />
+                </el-select>
+                <span class="filter-label">平台</span>
+                <DictSelect
+                  v-model="chartPlatform"
+                  dict-type="dict_platform_type"
+                  placeholder="全部"
+                  clearable
+                  style="width: 160px"
+                  @change="loadTrendOnly"
+                />
+              </div>
             </div>
           </template>
-          <div ref="accountChartRef" style="height: 300px" @click="navigateTo('/account-analysis')"></div>
+          <div ref="trendChartRef" class="chart-box"></div>
+          <el-empty v-if="!loading && trendPoints.length === 0" description="暂无趋势数据" :image-size="60" />
         </el-card>
       </el-col>
-      <el-col :xs="24" :lg="12">
+      <el-col :xs="24" :lg="10">
         <el-card shadow="hover">
           <template #header>
-            <div class="card-header">
-              <span>近7天内容发布趋势</span>
-            </div>
+            <span class="card-header">平台分布</span>
           </template>
-          <div ref="contentChartRef" style="height: 300px"></div>
+          <div ref="pieChartRef" class="chart-box"></div>
+          <el-empty v-if="!loading && platformDist.length === 0" description="暂无分布数据" :image-size="60" />
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 待办和预警 -->
-    <el-row :gutter="16" class="todo-alert-section">
-      <el-col :xs="24" :lg="12">
-        <el-card shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>待办事项</span>
-              <el-button type="primary" link @click="navigateTo('/task')">查看全部</el-button>
-            </div>
+    <!-- 待办提醒 -->
+    <el-card shadow="hover" class="todo-section">
+      <template #header>
+        <span class="card-header">待办提醒</span>
+      </template>
+      <el-table :data="todoList" stripe style="width: 100%" @row-click="handleTodoClick">
+        <el-table-column prop="title" label="标题" min-width="240" show-overflow-tooltip />
+        <el-table-column prop="source" label="来源" width="120">
+          <template #default="{ row }">
+            <el-tag size="small" type="info">{{ formatTodoSource(row.source) }}</el-tag>
           </template>
-          <div class="todo-list">
-            <div v-for="(item, index) in displayTodoData" :key="index" class="todo-item" @click="navigateTo(item.route)">
-              <div class="todo-dot" :style="{ backgroundColor: getTodoColor(item.type) }"></div>
-              <div class="todo-info">
-                <div class="todo-title">{{ item.title }}</div>
-                <div class="todo-count">{{ item.count }} 项待处理</div>
-              </div>
-              <el-icon><ArrowRight /></el-icon>
-            </div>
-            <el-empty v-if="displayTodoData.length === 0" description="暂无待办事项" :image-size="60" />
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :lg="12">
-        <el-card shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>预警通知</span>
-              <el-button type="primary" link>查看全部</el-button>
-            </div>
+        </el-table-column>
+        <el-table-column prop="time" label="时间" width="180" />
+        <el-table-column label="操作" width="100" align="center">
+          <template #default="{ row }">
+            <el-button link type="primary" @click.stop="navigateTo(resolveOpsUrl(row.actionUrl))">处理</el-button>
           </template>
-          <div class="alert-list">
-            <div v-for="(item, index) in displayAlertData" :key="index" class="alert-item">
-              <el-tag :type="getAlertLevelType(item.alertLevel)" size="small">{{ getAlertLevelText(item.alertLevel) }}</el-tag>
-              <div class="alert-info">
-                <div class="alert-content">{{ item.alertContent }}</div>
-                <div class="alert-time">{{ item.triggerTime }}</div>
-              </div>
-            </div>
-            <el-empty v-if="displayAlertData.length === 0" description="暂无预警通知" :image-size="60" />
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </el-table-column>
+      </el-table>
+      <el-empty v-if="!loading && todoList.length === 0" description="暂无待办" :image-size="80" />
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
-import { 
-  User, Star, DocumentCopy, Bell, TrendCharts, DataAnalysis,
-  Files, ArrowRight
+import {
+  User, Star, DocumentCopy, TrendCharts, DataAnalysis, Files, Refresh, Setting, OfficeBuilding,
 } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
+import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
+import DictSelect from '@/components/DictSelect.vue'
+import { PLATFORM_LABEL, type PlatformType } from '@/utils/enum-alias'
 import {
-  getDashboardKpi,
-  getAccountOverview,
-  getContentOverview,
-  getAlertList,
-  getTodoList
+  getHomeMetrics,
+  getHomeTrend,
+  getPlatformDist,
+  getHomeTodos,
+  getQuickActions,
+  refreshHome,
+  type HomeMetricsVO,
+  type TrendPointVO,
+  type PlatformDistVO,
+  type HomeTodoVO,
+  type QuickActionVO,
+  type HomeQueryParams,
 } from '@/api/dashboard'
-import type {
-  DashboardHomeKpiVO,
-  DashboardAccountOverviewVO,
-  DashboardContentOverviewVO,
-  DashboardAlertItemVO,
-  DashboardTodoItemVO,
-} from '@/types/dashboard'
-import {
-  mockDashboardKpi,
-  mockAccountOverview,
-  mockContentOverview,
-  mockAlertList,
-  mockTodoList
-} from '@/mock/dashboard'
 
 const router = useRouter()
 
-// 当前日期
-const currentDate = dayjs().format('YYYY年MM月DD日 dddd')
-
-// 加载状态
 const loading = ref(false)
+const refreshing = ref(false)
+const loadError = ref('')
 
-// KPI数据 - 初始值使用Mock数据
-const kpiData = ref<DashboardHomeKpiVO | null>(mockDashboardKpi)
-
-// 账号数据概览 - 初始值使用Mock数据
-const accountData = ref<DashboardAccountOverviewVO[]>([...mockAccountOverview])
-
-// 内容数据概览 - 初始值使用Mock数据
-const contentData = ref<DashboardContentOverviewVO[]>([...mockContentOverview])
-
-// 预警通知列表 - 初始值使用Mock数据
-const alertData = ref<DashboardAlertItemVO[]>([...mockAlertList])
-
-// 过滤并限制显示的预警通知（最多3条）
-const displayAlertData = computed(() => {
-  return alertData.value.slice(0, 3)
+const filters = reactive({
+  ipGroupId: undefined as number | undefined,
+  dateRange: getDefaultDateRange() as string[],
 })
 
-// 待办事项列表 - 初始值使用Mock数据
-const todoData = ref<DashboardTodoItemVO[]>([...mockTodoList])
+const chartPlatform = ref<string | undefined>(undefined)
+const trendGroupBy = ref<'PLATFORM' | 'IP_GROUP'>('PLATFORM')
 
-// 过滤并限制显示的待办事项（最多3条，过滤count=0的项）
-const displayTodoData = computed(() => {
-  return todoData.value
-    .filter(item => item.count > 0)
-    .slice(0, 3)
-})
+const metrics = ref<HomeMetricsVO | null>(null)
+const trendPoints = ref<TrendPointVO[]>([])
+const platformDist = ref<PlatformDistVO[]>([])
+const todoList = ref<HomeTodoVO[]>([])
+const quickActions = ref<QuickActionVO[]>([])
 
-// KPI卡片配置（用于显示）- 添加点击跳转路由
+const trendChartRef = ref<HTMLElement>()
+const pieChartRef = ref<HTMLElement>()
+let trendChart: echarts.ECharts | null = null
+let pieChart: echarts.ECharts | null = null
+
+const dateShortcuts = [
+  {
+    text: '今天',
+    value: () => {
+      const d = dayjs().format('YYYY-MM-DD')
+      return [d, d]
+    },
+  },
+  {
+    text: '近 7 天',
+    value: () => getDefaultDateRange(),
+  },
+  {
+    text: '近 30 天',
+    value: () => {
+      const end = dayjs()
+      const start = end.subtract(29, 'day')
+      return [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')]
+    },
+  },
+]
+
 const kpiCards = [
-  { label: '平台账号数', key: 'totalAccounts' as const, changeKey: 'accountChangeRate' as const, icon: User, color: '#f97316', bgColor: '#fef3c7', route: '/account-analysis' },
-  { label: '粉丝总量', key: 'totalFollowers' as const, changeKey: 'followerChangeRate' as const, icon: Star, color: '#ec4899', bgColor: '#fce7f3', format: (val: number) => (val / 10000).toFixed(1) + '万', route: '/fans-analysis' },
-  { label: '今日内容', key: 'todayContentCount' as const, changeKey: 'contentChangeRate' as const, icon: DocumentCopy, color: '#8b5cf6', bgColor: '#ede9fe', route: '/content' },
-  { label: '待审核', key: 'pendingReviewCount' as const, icon: Bell, color: '#ef4444', bgColor: '#fee2e2', route: '/content' },
-  { label: '预警数', key: 'alertCount' as const, icon: Bell, color: '#eab308', bgColor: '#fef9c3', route: '/data-report' },
+  { label: '总作者数', key: 'totalAuthors' as const, icon: User, color: '#1890ff', bgColor: '#e6f7ff', isPercent: false },
+  { label: '内容总数', key: 'totalContent' as const, icon: DocumentCopy, color: '#8b5cf6', bgColor: '#ede9fe', isPercent: false },
+  { label: 'SOP 完成率', key: 'sopCompletionRate' as const, icon: TrendCharts, color: '#52c41a', bgColor: '#f6ffed', isPercent: true },
+  { label: '平均绩效', key: 'avgPerfGrade' as const, icon: Star, color: '#fa8c16', bgColor: '#fff7e6', isPercent: false, isGrade: true },
 ]
 
-// 快捷入口（符合PRD定义）
-const quickAccess = [
-  { label: 'IP组管理', icon: User, route: '/ip-group' },
-  { label: '作者管理', icon: Star, route: '/author' },
-  { label: '账号分析', icon: DataAnalysis, route: '/account-analysis' },
-  { label: '内容管理', icon: Files, route: '/content' },
-  { label: 'ROI分析', icon: TrendCharts, route: '/roi-analysis' },
-  { label: '数据报表', icon: DocumentCopy, route: '/report' },
-]
+const SOURCE_LABEL: Record<string, string> = {
+  SOP: 'SOP',
+  PUBLISH: '发布',
+  PERF: '绩效',
+  INTEGRATION: '集成',
+}
 
-// 图表引用
-const accountChartRef = ref<HTMLElement>()
-const contentChartRef = ref<HTMLElement>()
+const QUICK_ICON_MAP: Record<string, typeof User> = {
+  'icon-ip-group': User,
+  'icon-author': Star,
+  'icon-account': DataAnalysis,
+  'icon-sop': Files,
+  'icon-perf': TrendCharts,
+  'icon-report': DocumentCopy,
+  'icon-user': Setting,
+  'icon-tenant': OfficeBuilding,
+}
 
-// 加载Dashboard数据
-const loadDashboardData = async () => {
+function getDefaultDateRange(): string[] {
+  const end = dayjs()
+  const start = end.subtract(6, 'day')
+  return [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')]
+}
+
+function buildQueryParams(): HomeQueryParams {
+  const params: HomeQueryParams = {
+    ipGroupId: filters.ipGroupId,
+  }
+  if (filters.dateRange?.length === 2) {
+    params.startDate = filters.dateRange[0]
+    params.endDate = filters.dateRange[1]
+  }
+  return params
+}
+
+function resolveOpsUrl(url: string): string {
+  if (!url) return '/dashboard'
+  const map: Record<string, string> = {
+    '/ops/ip-group': '/ip-group',
+    '/ops/author': '/author',
+    '/ops/account': '/internal-account',
+    '/ops/sop': '/sop',
+    '/ops/perf': '/perf-template',
+    '/ops/report': '/data-report',
+    '/ops/system/user': '/system-user',
+    '/ops/system/tenant': '/system-tenant',
+  }
+  for (const [from, to] of Object.entries(map)) {
+    if (url === from || url.startsWith(from + '/')) {
+      return url.replace(from, to)
+    }
+  }
+  if (url.startsWith('/ops/')) {
+    return url.replace('/ops/', '/')
+  }
+  return url
+}
+
+function resolveQuickIcon(icon: string) {
+  return QUICK_ICON_MAP[icon] || Files
+}
+
+function formatCompactNumber(num: number): string {
+  if (num >= 1_000_000) return '100w+'
+  if (num >= 10_000) return (num / 10_000).toFixed(1) + 'w'
+  return num.toLocaleString()
+}
+
+function formatMetricValue(card: (typeof kpiCards)[number]): string {
+  if (!metrics.value) return '-'
+  const raw = metrics.value[card.key]
+  if (card.isGrade) {
+    return raw && raw !== '-' ? String(raw) : '-'
+  }
+  if (typeof raw !== 'number') return '-'
+  if (card.isPercent) return `${raw.toFixed(2)}%`
+  return formatCompactNumber(raw)
+}
+
+function formatTodoSource(source: string) {
+  return SOURCE_LABEL[source] || source
+}
+
+function platformLabel(platform: string) {
+  return PLATFORM_LABEL[platform as PlatformType] || platform
+}
+
+async function loadAllData() {
   loading.value = true
+  loadError.value = ''
+  const params = buildQueryParams()
   try {
-    // 并行请求所有API
-    const [kpi, accounts, contents, alerts, todos] = await Promise.all([
-      getDashboardKpi(),
-      getAccountOverview(),
-      getContentOverview(),
-      getAlertList(),
-      getTodoList()
+    const [m, trend, dist, todos, actions] = await Promise.all([
+      getHomeMetrics(params),
+      getHomeTrend({ ...params, platformType: chartPlatform.value, groupBy: trendGroupBy.value }),
+      getPlatformDist(params),
+      getHomeTodos({ ipGroupId: params.ipGroupId, limit: 10 }),
+      getQuickActions(),
     ])
-    
-    kpiData.value = kpi || mockDashboardKpi
-    accountData.value = accounts || [...mockAccountOverview]
-    contentData.value = contents || [...mockContentOverview]
-    alertData.value = alerts || [...mockAlertList]
-    todoData.value = todos || [...mockTodoList]
-  } catch (error) {
-    console.error('加载Dashboard数据失败，降级使用Mock数据:', error)
-    // 降级使用Mock数据
-    kpiData.value = mockDashboardKpi
-    accountData.value = [...mockAccountOverview]
-    contentData.value = [...mockContentOverview]
-    alertData.value = [...mockAlertList]
-    todoData.value = [...mockTodoList]
+    metrics.value = m
+    trendPoints.value = trend || []
+    platformDist.value = dist || []
+    todoList.value = todos || []
+    quickActions.value = actions || []
+    await nextTick()
+    renderTrendChart()
+    renderPieChart()
+  } catch (e: any) {
+    loadError.value = '首页加载失败，请稍后重试'
+    console.error('[Dashboard] load failed:', e)
   } finally {
     loading.value = false
   }
 }
 
-// 初始化图表
+async function loadTrendOnly() {
+  try {
+    const params = buildQueryParams()
+    trendPoints.value = await getHomeTrend({ ...params, platformType: chartPlatform.value, groupBy: trendGroupBy.value })
+    await nextTick()
+    renderTrendChart()
+  } catch (e) {
+    console.error('[Dashboard] trend load failed:', e)
+  }
+}
+
+async function handleRefresh() {
+  refreshing.value = true
+  try {
+    await refreshHome()
+    await loadAllData()
+  } finally {
+    refreshing.value = false
+  }
+}
+
+function renderTrendChart() {
+  if (!trendChartRef.value) return
+  if (trendChartRef.value.getBoundingClientRect().width === 0) {
+    setTimeout(renderTrendChart, 100)
+    return
+  }
+  if (!trendChart) {
+    trendChart = echarts.init(trendChartRef.value)
+    window.addEventListener('resize', handleResize)
+  }
+
+  const points = trendPoints.value
+  if (!points.length) {
+    trendChart.clear()
+    return
+  }
+
+  const dates = [...new Set(points.map(p => p.date))].sort()
+
+  let series: Array<{ name: string; type: 'line'; smooth: boolean; data: number[] }>
+  if (trendGroupBy.value === 'IP_GROUP') {
+    const groupNames = [...new Set(points.map(p => p.ipGroupName).filter(Boolean))] as string[]
+    series = groupNames.length
+      ? groupNames.map(name => ({
+          name,
+          type: 'line' as const,
+          smooth: true,
+          data: dates.map(date => {
+            const hit = points.find(p => p.date === date && p.ipGroupName === name)
+            return hit?.count ?? 0
+          }),
+        }))
+      : [{
+          name: '内容数',
+          type: 'line' as const,
+          smooth: true,
+          data: dates.map(date => points.filter(p => p.date === date).reduce((s, p) => s + p.count, 0)),
+        }]
+  } else {
+    const platforms = chartPlatform.value
+      ? [chartPlatform.value]
+      : [...new Set(points.map(p => p.platform).filter(Boolean))] as string[]
+    series = platforms.length
+      ? platforms.map(platform => ({
+          name: platformLabel(platform),
+          type: 'line' as const,
+          smooth: true,
+          data: dates.map(date => {
+            const hit = points.find(p => p.date === date && p.platform === platform)
+            return hit?.count ?? 0
+          }),
+        }))
+      : [{
+          name: '内容数',
+          type: 'line' as const,
+          smooth: true,
+          data: dates.map(date => points.filter(p => p.date === date).reduce((s, p) => s + p.count, 0)),
+        }]
+  }
+
+  trendChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: series.map(s => s.name), bottom: 0 },
+    grid: { left: '3%', right: '4%', bottom: '12%', containLabel: true },
+    xAxis: { type: 'category', boundaryGap: false, data: dates.map(d => d.substring(5)) },
+    yAxis: { type: 'value', minInterval: 1 },
+    series,
+  }, true)
+}
+
+function renderPieChart() {
+  if (!pieChartRef.value) return
+  if (pieChartRef.value.getBoundingClientRect().width === 0) {
+    setTimeout(renderPieChart, 100)
+    return
+  }
+  if (!pieChart) {
+    pieChart = echarts.init(pieChartRef.value)
+    window.addEventListener('resize', handleResize)
+  }
+
+  const data = platformDist.value
+  if (!data.length) {
+    pieChart.clear()
+    return
+  }
+
+  pieChart.setOption({
+    tooltip: { trigger: 'item' },
+    legend: { bottom: '5%', left: 'center' },
+    series: [{
+      name: '平台分布',
+      type: 'pie',
+      radius: ['40%', '70%'],
+      itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
+      label: { show: true, formatter: '{b}: {d}%' },
+      data: data.map(item => ({
+        name: platformLabel(item.platform),
+        value: item.count,
+      })),
+    }],
+  }, true)
+}
+
+function handleResize() {
+  trendChart?.resize()
+  pieChart?.resize()
+}
+
+async function navigateTo(route: string) {
+  if (route) await router.push(route)
+}
+
+function handleTodoClick(row: HomeTodoVO) {
+  navigateTo(resolveOpsUrl(row.actionUrl))
+}
+
+watch(
+  () => [filters.ipGroupId, filters.dateRange?.[0], filters.dateRange?.[1]],
+  () => {
+    loadAllData()
+  },
+)
+
 onMounted(() => {
-  loadDashboardData()
-  initAccountChart()
-  initContentChart()
+  loadAllData()
 })
 
-// 账号数据概览饼图
-let accountChart: echarts.ECharts | null = null
-const initAccountChart = () => {
-  if (!accountChartRef.value || accountChartRef.value.getBoundingClientRect().width === 0) {
-    setTimeout(initAccountChart, 100)
-    return
-  }
-  if (accountChart) {
-    accountChart.dispose()
-    accountChart = null
-  }
-  const chart = echarts.init(accountChartRef.value)
-  accountChart = chart
-  
-  // 监听数据变化，更新图表
-  const updateChart = () => {
-    const data = accountData.value.length > 0 ? accountData.value : mockAccountOverview
-    
-    const platformNames: Record<string, string> = {
-      WECHAT_MP: '公众号',
-      DOUYIN: '抖音',
-      KUAISHOU: '快手',
-      XIAOHONGSHU: '小红书',
-      VIDEO_ACCOUNT: '视频号',
-      SERVICE_ACCOUNT: '服务号',
-    }
-    
-    const option = {
-      tooltip: { trigger: 'item' },
-      legend: { bottom: '5%', left: 'center' },
-      series: [
-        {
-          name: '账号分布',
-          type: 'pie',
-          radius: ['40%', '70%'],
-          avoidLabelOverlap: false,
-          itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
-          label: { show: true, formatter: '{b}: {d}%' },
-          data: data.map(item => ({
-            value: item.accountCount,
-            name: platformNames[item.platformType] || item.platformType
-          }))
-        }
-      ]
-    }
-    chart.setOption(option)
-  }
-  
-  updateChart()
-  window.addEventListener('resize', () => chart.resize())
-}
-
-// 内容发布趋势折线图
-let contentChart: echarts.ECharts | null = null
-const initContentChart = () => {
-  if (!contentChartRef.value || contentChartRef.value.getBoundingClientRect().width === 0) {
-    setTimeout(initContentChart, 100)
-    return
-  }
-  if (contentChart) {
-    contentChart.dispose()
-    contentChart = null
-  }
-  const chart = echarts.init(contentChartRef.value)
-  
-  // 监听数据变化，更新图表
-  const updateChart = () => {
-    const data = contentData.value.length > 0 ? contentData.value : mockContentOverview
-    
-    const dates = data.map(item => item.date.substring(5)) // 提取MM-DD
-    const wechatData = data.map(item => item.wechatCount)
-    const douyinData = data.map(item => item.douyinCount)
-    const xiaohongshuData = data.map(item => item.xiaohongshuCount)
-    
-    const option = {
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['公众号', '抖音', '小红书'] },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: {
-        type: 'category',
-        boundaryGap: false,
-        data: dates
-      },
-      yAxis: { type: 'value' },
-      series: [
-        {
-          name: '公众号',
-          type: 'line',
-          smooth: true,
-          data: wechatData,
-          itemStyle: { color: '#1890ff' }
-        },
-        {
-          name: '抖音',
-          type: 'line',
-          smooth: true,
-          data: douyinData,
-          itemStyle: { color: '#ff4d4f' }
-        },
-        {
-          name: '小红书',
-          type: 'line',
-          smooth: true,
-          data: xiaohongshuData,
-          itemStyle: { color: '#faad14' }
-        }
-      ]
-    }
-    chart.setOption(option)
-  }
-  
-  updateChart()
-  window.addEventListener('resize', () => chart.resize())
-}
-
-// 路由跳转
-const navigateTo = async (route: string) => {
-  await router.push(route)
-}
-
-// 格式化数字（千分位）
-const formatNumber = (num: number) => {
-  return num.toLocaleString()
-}
-
-// 获取待办颜色
-const getTodoColor = (type: string) => {
-  const colors: Record<string, string> = {
-    REVIEW: '#ef4444',
-    TASK: '#3b82f6',
-    EXPIRE: '#eab308',
-  }
-  return colors[type] || '#909399'
-}
-
-// 获取预警级别类型
-const getAlertLevelType = (level: string) => {
-  const types: Record<string, string> = {
-    CRITICAL: 'danger',
-    WARNING: 'warning',
-    INFO: 'info',
-  }
-  return types[level] || 'info'
-}
-
-// 获取预警级别文本
-const getAlertLevelText = (level: string) => {
-  const texts: Record<string, string> = {
-    CRITICAL: '严重',
-    WARNING: '警告',
-    INFO: '提示',
-  }
-  return texts[level] || level
-}
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+  trendChart?.dispose()
+  pieChart?.dispose()
+  trendChart = null
+  pieChart = null
+})
 </script>
 
 <style scoped lang="scss">
@@ -406,60 +503,120 @@ const getAlertLevelText = (level: string) => {
   background-color: #f0f2f5;
   min-height: calc(100vh - 60px);
 
-  // 页面标题栏
-  .dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding: 0 4px;
+  .toolbar-card {
+    margin-bottom: 16px;
+    border: none;
+    border-radius: 12px;
 
-    .page-title {
-      font-size: 20px;
-      font-weight: 600;
-      color: #303133;
-      margin: 0;
+    :deep(.el-card__body) {
+      padding: 12px 20px;
     }
+  }
 
-    .header-actions {
-      display: flex;
-      gap: 8px;
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
 
-      .el-button {
-        background: #fff;
-        border: 1px solid #ebeef5;
-        color: #606266;
+    .toolbar-form {
+      margin-bottom: 0;
 
-        &:hover {
-          background: #ecf5ff;
-          border-color: #1890ff;
-          color: #1890ff;
-        }
+      :deep(.el-form-item) {
+        margin-bottom: 0;
+        margin-right: 16px;
       }
     }
   }
 
+  .error-banner {
+    margin-bottom: 16px;
+  }
 
-  .kpi-cards {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 16px;
-    margin-bottom: 20px;
+  .card-header {
+    font-size: 16px;
+    font-weight: 600;
+    color: #303133;
+  }
 
-    @media (max-width: 1200px) {
-      grid-template-columns: repeat(3, 1fr);
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    .chart-filter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: normal;
+      font-size: 14px;
+
+      .filter-label {
+        color: #909399;
+      }
     }
+  }
 
-    .kpi-card {
+  .quick-access {
+    margin-bottom: 16px;
+    border: none;
+    border-radius: 12px;
+
+    .quick-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 8px;
+      border-radius: 10px;
       cursor: pointer;
-      border: none;
-      border-radius: 12px;
       transition: all 0.3s ease;
 
       &:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        background: #f5f7fa;
+        transform: translateY(-2px);
+
+        .quick-icon {
+          background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+          color: #fff;
+        }
       }
+
+      .quick-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: #e6f7ff;
+        color: #1890ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 8px;
+        transition: all 0.3s ease;
+      }
+
+      .quick-label {
+        font-size: 13px;
+        color: #606266;
+        text-align: center;
+      }
+    }
+  }
+
+  .kpi-cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+
+    @media (max-width: 1200px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .kpi-card {
+      border: none;
+      border-radius: 12px;
 
       :deep(.el-card__body) {
         padding: 20px;
@@ -471,214 +628,51 @@ const getAlertLevelText = (level: string) => {
         gap: 16px;
 
         .kpi-icon {
-          width: 56px;
-          height: 56px;
-          border-radius: 14px;
+          width: 52px;
+          height: 52px;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
         }
 
-        .kpi-info {
-          flex: 1;
-          min-width: 0;
+        .kpi-value {
+          font-size: 24px;
+          font-weight: 700;
+          color: #303133;
+          line-height: 1.2;
+        }
 
-          .kpi-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #303133;
-            line-height: 1.2;
-          }
-
-          .kpi-label {
-            font-size: 14px;
-            color: #909399;
-            margin-top: 6px;
-          }
-
-          .kpi-change {
-            font-size: 12px;
-            margin-top: 4px;
-            font-weight: 500;
-
-            &.positive {
-              color: #67c23a;
-            }
-
-            &.negative {
-              color: #f56c6c;
-            }
-          }
+        .kpi-label {
+          font-size: 14px;
+          color: #909399;
+          margin-top: 4px;
         }
       }
     }
   }
 
-  // 快捷入口
-  .quick-access {
-    margin-bottom: 20px;
+  .chart-section {
+    margin-bottom: 16px;
+
+    .el-card {
+      border: none;
+      border-radius: 12px;
+    }
+
+    .chart-box {
+      height: 300px;
+      width: 100%;
+    }
+  }
+
+  .todo-section {
     border: none;
     border-radius: 12px;
 
-    :deep(.el-card__header) {
-      padding: 16px 20px;
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    :deep(.el-card__body) {
-      padding: 16px 20px;
-    }
-
-    .card-header {
-      font-size: 16px;
-      font-weight: 600;
-      color: #303133;
-    }
-
-    .quick-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px 12px;
-      border-radius: 10px;
+    :deep(.el-table__row) {
       cursor: pointer;
-      transition: all 0.3s ease;
-
-      &:hover {
-        background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
-        transform: translateY(-4px);
-
-        .quick-icon {
-          background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
-          color: #fff;
-          transform: scale(1.1);
-        }
-      }
-
-      .quick-icon {
-        width: 52px;
-        height: 52px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, #e6f7ff 0%, #b3e0ff 100%);
-        color: #1890ff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 12px;
-        transition: all 0.3s ease;
-      }
-
-      .quick-label {
-        font-size: 14px;
-        font-weight: 500;
-        color: #606266;
-      }
-    }
-  }
-
-  // 图表区域
-  .chart-section {
-    margin-bottom: 20px;
-
-    .el-card {
-      border: none;
-      border-radius: 12px;
-      height: 100%;
-
-      :deep(.el-card__header) {
-        padding: 16px 20px;
-        border-bottom: 1px solid #f0f0f0;
-      }
-
-      :deep(.el-card__body) {
-        padding: 16px 20px;
-      }
-
-      .card-header {
-        font-size: 16px;
-        font-weight: 600;
-        color: #303133;
-      }
-    }
-  }
-
-  // 待办和预警
-  .todo-alert-section {
-    .el-card {
-      border: none;
-      border-radius: 12px;
-      height: 100%;
-
-      :deep(.el-card__header) {
-        padding: 16px 20px;
-        border-bottom: 1px solid #f0f0f0;
-      }
-
-      :deep(.el-card__body) {
-        padding: 12px 20px;
-      }
-
-      .card-header {
-        font-size: 16px;
-        font-weight: 600;
-        color: #303133;
-      }
-    }
-
-    .todo-list, .alert-list {
-      .todo-item, .alert-item {
-        display: flex;
-        align-items: center;
-        padding: 14px 12px;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-        cursor: pointer;
-        margin-bottom: 8px;
-        background: #fafafa;
-
-        &:last-child {
-          margin-bottom: 0;
-        }
-
-        &:hover {
-          background: linear-gradient(135deg, #e6f7ff 0%, #b3e0ff 100%);
-          transform: translateX(4px);
-        }
-
-        .todo-dot {
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          margin-right: 14px;
-          flex-shrink: 0;
-        }
-
-        .todo-info, .alert-info {
-          flex: 1;
-          min-width: 0;
-
-          .todo-title, .alert-content {
-            font-size: 14px;
-            font-weight: 500;
-            color: #303133;
-            margin-bottom: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-
-          .todo-count, .alert-time {
-            font-size: 12px;
-            color: #909399;
-          }
-        }
-
-        .el-tag {
-          margin-right: 12px;
-          flex-shrink: 0;
-        }
-      }
     }
   }
 }

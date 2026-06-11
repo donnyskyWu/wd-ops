@@ -86,6 +86,7 @@ class M8ConfigS01IT extends OaITBase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "thresholdCategory": "ALERT",
                                   "metricName": "爆款阈值",
                                   "metricType": "HIT_THRESHOLD",
                                   "platformType": "DOUYIN",

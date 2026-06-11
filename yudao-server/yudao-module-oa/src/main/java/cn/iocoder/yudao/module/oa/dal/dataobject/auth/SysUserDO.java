@@ -22,6 +22,8 @@ public class SysUserDO {
     private String phoneHash;
     private String position;
     private Long ipGroupId;
+    private Long deptId;
+    private String dingUserId;
     private String remark;
     private String status;
     private String creator;

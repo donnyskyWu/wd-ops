@@ -1,0 +1,49 @@
+﻿[OK 200] /oa/report/unified-account/stats
+{"code":0,"msg":"ok","data":{"totalAccounts":12,"totalFollowers":233960,"totalContents":40,"totalReads":1541500,"totalRevenue":167400.00,"overallRoi":4.00,"items":[{"accountId":9001,"accountName":"SEED-å¬ä¼å·A1","followerCount":110820},{"accountId":9002,"accountName":"SEED-å¬ä¼å·A2","followerCount":70670},{"accountId":9003,"accountName":"SEED-æå¡å·A3","followerCount":0},{"accountId":9004,"accountName":"SEED-è§é¢å·B1","followerCount":0},{"accountId":9005,"accountName":"SEED-è§é¢å·B2","followerCount":0},{"accountId":9006,"accountName":"SEED-æé³å·1","followerCount":0},{"accoun
+
+[OK 200] /oa/report/account-status/trend
+{"code":0,"msg":"ok","data":[{"date":"2026-03-14","stat_date":"2026-03-14","online":0,"abnormal":3,"offline":0},{"date":"2026-03-15","stat_date":"2026-03-15","online":3,"abnormal":0,"offline":0},{"date":"2026-03-16","stat_date":"2026-03-16","online":3,"abnormal":0,"offline":0},{"date":"2026-03-17","stat_date":"2026-03-17","online":3,"abnormal":0,"offline":0},{"date":"2026-03-18","stat_date":"2026-03-18","online":3,"abnormal":0,"offline":0},{"date":"2026-03-19","stat_date":"2026-03-19","online":0,"abnormal":3,"offline":0},{"date":"2026-03-20","stat_date":"2026-03-20","online":3,"abnormal":0,"of
+
+[OK 200] /oa/report/account-status/summary
+{"code":0,"msg":"ok","data":{"online":207,"abnormal":54,"offline":0,"recovered":0,"totalDays":261}}
+
+[OK 200] /oa/report/account-status/log?pageNum=1&pageSize=2
+{"code":0,"msg":"ok","data":{"list":[{"account_id":9010,"account_name":"SEED-å¬ä¼å·B1","date":"2026-06-08","status":"NORMAL","follower_count":61150,"remark":"è¿è¡æ­£å¸¸"},{"account_id":9002,"account_name":"SEED-å¬ä¼å·A2","date":"2026-06-08","status":"NORMAL","follower_count":81150,"remark":"è¿è¡æ­£å¸¸"}],"total":270}}
+
+[OK 200] /oa/report/video-output/list?pageNum=1&pageSize=2
+{"code":0,"msg":"ok","data":{"list":[{"content_id":9414,"title":"SEED-dashboard-06-11-dy","account_id":9007,"account_name":"SEED-æé³å·2","platform_type":"DOUYIN","date":"2026-06-11","output_count":1,"read_count":48000,"like_count":2400},{"content_id":9412,"title":"SEED-dashboard-06-10-ks","account_id":9008,"account_name":"SEED-å¿«æå·1","platform_type":"KUAISHOU","date":"2026-06-10","output_count":1,"read_count":35000,"like_count":1750}],"total":18}}
+
+[OK 200] /oa/report/video-output/trend
+{"code":0,"msg":"ok","data":[{"date":"2026-05-03","stat_date":"2026-05-03","platform":"DOUYIN","platform_type":"DOUYIN","output_count":1},{"date":"2026-05-04","stat_date":"2026-05-04","platform":"DOUYIN","platform_type":"DOUYIN","output_count":1},{"date":"2026-05-07","stat_date":"2026-05-07","platform":"WECHAT_VIDEO","platform_type":"WECHAT_VIDEO","output_count":1},{"date":"2026-05-08","stat_date":"2026-05-08","platform":"KUAISHOU","platform_type":"KUAISHOU","output_count":1},{"date":"2026-05-11","stat_date":"2026-05-11","platform":"DOUYIN","platform_type":"DOUYIN","output_count":1},{"date":"2
+
+[OK 200] /oa/report/video-output/ranking?limit=3
+{"code":0,"msg":"ok","data":[{"account_id":9006,"account_name":"SEED-æé³å·1","platform":"DOUYIN","platform_type":"DOUYIN","output_count":6,"avg_view":47500,"top_count":3},{"account_id":9007,"account_name":"SEED-æé³å·2","platform":"DOUYIN","platform_type":"DOUYIN","output_count":5,"avg_view":39700,"top_count":1},{"account_id":9008,"account_name":"SEED-å¿«æå·1","platform":"KUAISHOU","platform_type":"KUAISHOU","output_count":4,"avg_view":35500,"top_count":1}]}
+
+[OK 200] /oa/report/live-duration/list?pageNum=1&pageSize=2
+{"code":0,"msg":"ok","data":{"list":[{"date":"2026-06-11","account_id":9012,"account_name":"å¬ä¼å·1","session_count":1,"total_duration":90,"avg_duration":90,"peak_viewers":250},{"date":"2026-06-11","account_id":9011,"account_name":"ç¥é±¼1","session_count":4,"total_duration":300,"avg_duration":75,"peak_viewers":200},{"date":"2026-06-11","account_id":9010,"account_name":"SEED-å¬ä¼å·B1","session_count":3,"total_duration":180,"avg_duration":60,"peak_viewers":150},{"date":"2026-06-11","account_id":9009,"account_name":"SEED-å°çº¢ä¹¦1","session_count":2,"total_duration":240,"avg_duration":120
+
+[OK 200] /oa/report/live-duration/trend?startDate=2026-06-01&endDate=2026-06-03
+{"code":0,"msg":"ok","data":[{"date":"2026-06-01","stat_date":"2026-06-01","session_count":2,"total_duration":160},{"date":"2026-06-02","stat_date":"2026-06-02","session_count":3,"total_duration":300},{"date":"2026-06-03","stat_date":"2026-06-03","session_count":4,"total_duration":480}]}
+
+[OK 200] /oa/report/cost-allocation/list?pageNum=1&pageSize=3
+{"code":0,"msg":"ok","data":{"list":[{"account_id":9012,"account_name":"å¬ä¼å·1","cost_type":"AD_SPEND","amount":66.01,"pay_date":"2026-06-11","share_ratio":0.3056,"remark":null},{"account_id":9012,"account_name":"å¬ä¼å·1","cost_type":"PURCHASE","amount":50.01,"pay_date":"2026-06-11","share_ratio":0.2315,"remark":null},{"account_id":9012,"account_name":"å¬ä¼å·1","cost_type":"PROCESS_HUMAN","amount":100.01,"pay_date":"2026-06-11","share_ratio":0.4629,"remark":null}],"total":15}}
+
+[OK 200] /oa/report/roi/list?pageNum=1&pageSize=2
+{"code":0,"msg":"ok","data":{"list":[{"date":"2026-06-08","ip_group_name":"SEED-ç¾å¦ä¸ç»","platform":"DOUYIN","account_id":9006,"revenue":16700.00,"cost":4175.00,"roi":4.0000},{"date":"2026-06-07","ip_group_name":"SEED-è¿è¥å°ç»","platform":"WECHAT_OFFICIAL","account_id":9003,"revenue":9900.00,"cost":2475.00,"roi":4.0000}],"total":12}}
+
+[OK 200] /oa/report/team-config/list
+{"code":0,"msg":"ok","data":[{"ip_group_id":9001,"ip_group_name":"SEED-è¿è¥å°ç»","user_count":2,"account_count":5,"avg_account_per_user":2.50,"revenue_per_user":51450.00,"efficiency":20580.00},{"ip_group_id":9002,"ip_group_name":"SEED-ç¾å¦ä¸ç»","user_count":1,"account_count":5,"avg_account_per_user":5.00,"revenue_per_user":64500.00,"efficiency":12900.00},{"ip_group_id":9005,"ip_group_name":"åå®¹å°ç»1","user_count":1,"account_count":0,"avg_account_per_user":0.00,"revenue_per_user":0.00,"efficiency":0},{"ip_group_id":9000,"ip_group_name":"SEED-è¿è¥å¤§ç»","user_count":0,"account_co
+
+[OK 200] /oa/report/account-alert/list?pageNum=1&pageSize=3
+{"code":0,"msg":"ok","data":{"list":[{"account_id":9010,"account_name":"SEED-å¬ä¼å·B1","date":"2026-06-07","level":"IMPORTANT","type":"ç²ä¸æ³¢å¨","message":"ç²ä¸æ³¢å¨é¢è­¦ï¼å½åç²ä¸ 60800"},{"account_id":9002,"account_name":"SEED-å¬ä¼å·A2","date":"2026-06-07","level":"INFO","type":"ç²ä¸æ³¢å¨","message":"ç²ä¸æ³¢å¨é¢è­¦ï¼å½åç²ä¸ 80800"},{"account_id":9001,"account_name":"SEED-å¬ä¼å·A1","date":"2026-06-07","level":"IMPORTANT","type":"ç²ä¸æ³¢å¨","message":"ç²ä¸æ³¢å¨é¢è­¦ï¼å½åç²ä¸ 121800"}],"total":54}}
+
+[OK 200] /oa/metric/list?pageNum=1&pageSize=50
+{"code":0,"msg":"ok","data":{"list":[{"id":9617,"metricName":"å¨å¹³å°ç²ä¸æ»é","metricCode":"FOLLOWER_LATEST_TOTAL","metricType":"BASIC","unit":"äºº","category":"BASIC","metricFormula":"SELECT COALESCE(SUM(fd.follower_count), 0) AS metric_value FROM oa_follower_daily fd WHERE fd.tenant_id = :tenantId AND fd.deleted = 0 AND fd.stat_date = (SELECT MAX(stat_date) FROM oa_follower_daily WHERE tenant_id = :tenantId AND deleted = 0)","dataSource":"oa_follower_daily","status":1,"description":null},{"id":9616,"metricName":"çæ¬¾åå®¹æ°","metricCode":"CONTENT_HIT_COUNT","metricType":"BASIC","u
+
+[OK 200] /oa/funnel/list?pageNum=1&pageSize=20
+{"code":0,"msg":"ok","data":{"list":[{"id":9803,"funnelName":"SEED-åå®¹äºå¨æ¼æ(çå®ææ )","funnelType":"CUSTOM","status":1},{"id":9802,"funnelName":"SEED-ç²ä¸å¢é¿æ¼æ","funnelType":"CUSTOM","status":1},{"id":9801,"funnelName":"SEED-åå®¹è½¬åæ¼æ","funnelType":"CONVERSION","status":1}],"total":3}}
+
+[OK 200] /oa/funnel/9803/data
+{"code":0,"msg":"ok","data":{"funnelId":9803,"steps":[{"stepOrder":1,"name":"æå","count":40,"conversionRate":100.0},{"stepOrder":1,"name":"éè¯»æ»é","count":1541500,"conversionRate":3853750.0},{"stepOrder":2,"name":"éè¯»","count":1541500,"conversionRate":3853750.0},{"stepOrder":2,"name":"äºå¨æ»é","count":73492,"conversionRate":183730.0},{"stepOrder":3,"name":"ç¹èµ","count":64670,"conversionRate":161675.0},{"stepOrder":3,"name":"ç¹èµæ»é","count":64670,"conversionRate":161675.0},{"stepOrder":4,"name":"è¯è®ºæ»é","count":2131,"conversionRate":5327.5},{"stepOrder":5,"name"
+
+[OK preview] {"code":0,"msg":"ok","data":{"rows":[{"metric_value":40}]}}

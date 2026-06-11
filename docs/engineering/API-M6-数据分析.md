@@ -1,6 +1,6 @@
 # API-M6-数据分析
 
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v1.2 | 2026-06-11
 > **关联 PRD**：[`PRD-M6-数据分析.md`](../product/PRD-M6-数据分析.md)
 > **关联全局规范**：[`GLOBAL-CONVENTIONS.md`](./GLOBAL-CONVENTIONS.md)
 
@@ -38,6 +38,34 @@
 ### 1.4 DELETE `/admin-api/oa/metric/{id}`
 
 **业务**：被引用 → 错误码 1502
+
+### 1.5 POST `/admin-api/oa/metric/preview`（实现 2026-06-11）
+
+校验并试跑指标 SQL（只读 SELECT，经 `SqlSafetySupport` 白名单校验）。
+
+**请求** `MetricPreviewReq`：
+
+```json
+{
+  "metricFormula": "SELECT COUNT(*) AS cnt FROM oa_content WHERE tenant_id = ?"
+}
+```
+
+**响应** `MetricPreviewVO`：
+
+```json
+{
+  "rows": [{ "cnt": 1234 }]
+}
+```
+
+（最多返回 20 行；SQL 无 `LIMIT` 时自动追加 `LIMIT 20`）
+
+**说明**：
+
+- 原 PRD 未定义预览端点；本期实现后补登本 API 规格
+- `metric_formula` / `data_source` 持久化字段见 `V40__metric_formula_datasource.sql`
+- 前端 `MetricBuilder`（`metricSchema.ts`）支持数据源、计算方式、group by、joins、filters 生成 SQL；`COMPOSITE` 类型除外
 
 ---
 
@@ -98,6 +126,10 @@
 | startDate / endDate | Date | - |
 | timeDimension | String | 固定 DAY/WEEK/MONTH |
 
+**响应字段**：列表/统计 VO 使用 **snake_case** 键名（`ReportServiceImpl` + `reportField()`）；前端 `DictLabel` 渲染枚举。
+
+**ROI 维度**：`dict_roi_dimension`（V42）。
+
 ---
 
 ## 3. 漏斗 API
@@ -111,11 +143,13 @@
   "funnelName": "我的漏斗",
   "funnelType": "CUSTOM",
   "steps": [
-    {"stepOrder": 1, "eventCode": "VIEW"},
-    {"stepOrder": 2, "eventCode": "FOLLOW"}
+    {"stepOrder": 1, "metricId": 1, "metricCode": "ARTICLE_PUBLISH_COUNT"},
+    {"stepOrder": 2, "metricId": 2, "metricCode": "FANS_GROWTH"}
   ]
 }
 ```
+
+**说明**：自定义漏斗步骤绑定 **已定义指标**（`oa_metric`），非预设 eventCode。种子步骤见 V45。
 
 **校验**：
 - `funnelType` `@InDict(type="dict_funnel_type")`
@@ -147,24 +181,47 @@
 |------|------|
 | status | `dict_query_status` |
 
-### 4.2 POST `/admin-api/oa/query/create`
+### 4.2 POST `/admin-api/oa/query/preview`（实现 2026-06-11）
+
+试跑 QueryBuilder 生成的 SQL，不落库。
+
+**请求**：
+
+```json
+{
+  "sqlText": "SELECT ...",
+  "paramsJson": "{\"tables\":[...],\"filters\":[...]}"
+}
+```
+
+**响应**：`{ "columns": [...], "rows": [...] }`（列名可映射中文 label）
+
+### 4.3 POST `/admin-api/oa/query/create`
 
 ```json
 {
   "queryName": "近 30 天抖音粉丝增长",
   "status": "DRAFT",
   "sqlText": "SELECT date, count FROM ...",
-  "params": {}
+  "paramsJson": "{...}"
 }
 ```
 
 **校验**：
 - `status` `@InDict(type="dict_query_status")`
-- `sqlText` SQL 注入检查
+- `sqlText` SQL 注入检查（`SqlSafetySupport`）
 
-### 4.3 POST `/admin-api/oa/query/{id}/execute`
+### 4.4 PUT `/admin-api/oa/query/update`
 
-### 4.4 POST `/admin-api/oa/query/{id}/publish`
+同 create 字段；更新已保存查询。
+
+### 4.5 POST `/admin-api/oa/query/{id}/execute`
+
+执行已保存查询，返回 columns + rows。
+
+### 4.6 POST `/admin-api/oa/query/{id}/publish`
+
+草稿 → 已发布。
 
 ---
 

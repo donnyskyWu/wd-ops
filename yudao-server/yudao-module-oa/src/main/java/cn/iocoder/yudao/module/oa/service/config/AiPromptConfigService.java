@@ -15,4 +15,6 @@ public interface AiPromptConfigService {
     void update(AiPromptConfigUpdateReq req);
 
     void delete(Long id);
+
+    AiPromptConfigRespVO get(Long id);
 }

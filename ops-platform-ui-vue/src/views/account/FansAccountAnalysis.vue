@@ -1,24 +1,20 @@
 <template>
   <div class="fans-account-page">
-    <el-tabs v-model="activeTab">
-      <el-tab-pane label="高粉账号" name="high">
+    <el-tabs v-model="activeTab" @tab-change="loadData">
+      <el-tab-pane label="高粉账号(高播放作品)" name="high">
         <el-table :data="highFansList" v-loading="loading" stripe>
-          <el-table-column prop="accountName" label="账号名称" min-width="150" />
-          <el-table-column prop="platform" label="平台" width="100" />
-          <el-table-column prop="followerCount" label="粉丝数" width="120" />
-          <el-table-column prop="growth" label="月增长" width="100"><template #default="{ row }"><span style="color: #67C23A">+{{ row.growth }}%</span></template></el-table-column>
-          <el-table-column prop="engagement" label="互动率" width="100" />
-          <el-table-column label="操作" width="100" fixed="right"><template #default><el-button link type="primary">详情</el-button></template></el-table-column>
+          <el-table-column prop="title" label="作品标题" min-width="200" />
+          <el-table-column prop="platform" label="平台" width="120" />
+          <el-table-column prop="playCount" label="播放量" width="120"><template #default="{ row }">{{ row.playCount.toLocaleString() }}</template></el-table-column>
+          <el-table-column prop="likeCount" label="点赞" width="100" />
         </el-table>
       </el-tab-pane>
-      <el-tab-pane label="低粉账号" name="low">
+      <el-tab-pane label="低粉账号(低播放作品)" name="low">
         <el-table :data="lowFansList" v-loading="loading" stripe>
-          <el-table-column prop="accountName" label="账号名称" min-width="150" />
-          <el-table-column prop="platform" label="平台" width="100" />
-          <el-table-column prop="followerCount" label="粉丝数" width="120" />
-          <el-table-column prop="growth" label="月增长" width="100"><template #default="{ row }"><span :style="{ color: row.growth > 0 ? '#67C23A' : '#F56C6C' }">{{ row.growth > 0 ? '+' : ''}}{{ row.growth }}%</span></template></el-table-column>
-          <el-table-column prop="status" label="状态" width="100" align="center"><template #default="{ row }"><el-tag :type="row.status === '需关注' ? 'warning' : 'success'">{{ row.status }}</el-tag></template></el-table-column>
-          <el-table-column label="操作" width="150" fixed="right"><template #default><el-button link type="primary">详情</el-button><el-button link type="warning">扶持</el-button></template></el-table-column>
+          <el-table-column prop="title" label="作品标题" min-width="200" />
+          <el-table-column prop="platform" label="平台" width="120" />
+          <el-table-column prop="playCount" label="播放量" width="120"><template #default="{ row }">{{ row.playCount.toLocaleString() }}</template></el-table-column>
+          <el-table-column prop="likeCount" label="点赞" width="100" />
         </el-table>
       </el-tab-pane>
     </el-tabs>
@@ -26,20 +22,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { getHighFollowerWorkList, getLowFollowerWorkList } from '@/api/monitor'
+import { mapExternalWork, pickMonitorPage, type MonitorWorkRow } from '@/utils/monitor-map'
 
 const loading = ref(false)
 const activeTab = ref('high')
+const highFansList = ref<MonitorWorkRow[]>([])
+const lowFansList = ref<MonitorWorkRow[]>([])
 
-const highFansList = ref([
-  { accountName: '科技达人A', platform: '抖音', followerCount: '125万', growth: 15, engagement: '5.2%' },
-  { accountName: '生活博主B', platform: '小红书', followerCount: '89万', growth: 12, engagement: '6.8%' },
-])
+const loadData = async () => {
+  loading.value = true
+  try {
+    const [highRes, lowRes] = await Promise.all([
+      getHighFollowerWorkList({ pageNum: 1, pageSize: 30 }),
+      getLowFollowerWorkList({ pageNum: 1, pageSize: 30 }),
+    ])
+    highFansList.value = pickMonitorPage(highRes).list.map((r, i) => mapExternalWork(r as unknown as Record<string, unknown>, i))
+    lowFansList.value = pickMonitorPage(lowRes).list.map((r, i) => mapExternalWork(r as unknown as Record<string, unknown>, i))
+  } catch (e) {
+    console.error(e)
+    highFansList.value = []
+    lowFansList.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
-const lowFansList = ref([
-  { accountName: '新账号C', platform: '快手', followerCount: '1200', growth: -3, status: '需关注' },
-  { accountName: '测试账号D', platform: 'B站', followerCount: '850', growth: 2, status: '正常' },
-])
+onMounted(() => loadData())
 </script>
 
 <style scoped>

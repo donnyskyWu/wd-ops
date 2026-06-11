@@ -28,12 +28,14 @@ public class ThresholdConfigController {
 
     @GetMapping("/list")
     public CommonResult<PageResult<ThresholdConfigRespVO>> list(
+            @RequestParam(required = false) String thresholdCategory,
             @RequestParam(required = false) String metricName,
             @RequestParam(required = false) String metricType,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") Integer pageNo,
             @RequestParam(defaultValue = "10") Integer pageSize) {
-        return CommonResult.success(thresholdConfigService.list(metricName, metricType, status, pageNo, pageSize));
+        return CommonResult.success(
+                thresholdConfigService.list(thresholdCategory, metricName, metricType, status, pageNo, pageSize));
     }
 
     @PostMapping("/create")

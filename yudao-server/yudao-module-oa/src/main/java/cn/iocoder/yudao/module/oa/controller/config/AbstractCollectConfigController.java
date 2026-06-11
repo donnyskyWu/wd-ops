@@ -19,17 +19,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 @RequiredArgsConstructor
 abstract class AbstractCollectConfigController {
 
-    private final CollectConfigService collectConfigService;
+    protected final CollectConfigService collectConfigService;
     private final String scope;
 
     @GetMapping("/list")
     public CommonResult<PageResult<CollectConfigRespVO>> list(
             @RequestParam(required = false) String configName,
+            @RequestParam(required = false) String subType,
             @RequestParam(required = false) String platformType,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") Integer pageNo,
             @RequestParam(defaultValue = "10") Integer pageSize) {
-        return CommonResult.success(collectConfigService.list(scope, configName, platformType, status, pageNo, pageSize));
+        return CommonResult.success(collectConfigService.list(scope, configName, subType, platformType, status, pageNo, pageSize));
     }
 
     @PostMapping("/create")
@@ -47,5 +48,19 @@ abstract class AbstractCollectConfigController {
     public CommonResult<Boolean> delete(@RequestParam Long id) {
         collectConfigService.delete(scope, id);
         return CommonResult.success(true);
+    }
+
+    @PutMapping("/toggle-status")
+    public CommonResult<Boolean> toggleStatus(@RequestBody java.util.Map<String, Object> body) {
+        Long id = Long.valueOf(body.get("id").toString());
+        String status = body.get("status").toString();
+        collectConfigService.toggleStatus(scope, id, status);
+        return CommonResult.success(true);
+    }
+
+    @PostMapping("/test-connection")
+    public CommonResult<Boolean> testConnection(@RequestBody java.util.Map<String, Object> body) {
+        Long id = Long.valueOf(body.get("id").toString());
+        return CommonResult.success(collectConfigService.testConnection(scope, id));
     }
 }

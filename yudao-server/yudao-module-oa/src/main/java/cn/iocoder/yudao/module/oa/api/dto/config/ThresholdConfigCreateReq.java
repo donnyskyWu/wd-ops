@@ -12,12 +12,32 @@ import java.math.BigDecimal;
 public class ThresholdConfigCreateReq {
 
     @NotBlank
+    @InDict("dict_threshold_category")
+    private String thresholdCategory;
+
+    @InDict("dict_threshold_type")
+    private String thresholdType;
+
     @Size(max = 128)
     private String metricName;
 
-    @NotBlank
     @InDict("dict_threshold_metric")
     private String metricType;
+
+    @InDict("dict_content_type")
+    private String contentType;
+
+    @InDict("dict_judge_mode")
+    private String judgeMode;
+
+    private Long lowFans;
+    private Long highFans;
+    private Integer dailyLow;
+    private Integer dailyHigh;
+    private Long hotValue;
+    private Long lowValue;
+    private Long overrideAccountId;
+    private Long overrideValue;
 
     @InDict("dict_platform_type")
     private String platformType;
@@ -27,7 +47,6 @@ public class ThresholdConfigCreateReq {
     @InDict("dict_compare_operator")
     private String compareOperator;
 
-    @NotNull
     private BigDecimal thresholdValue;
 
     @InDict("dict_alert_level")

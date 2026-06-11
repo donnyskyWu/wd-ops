@@ -71,6 +71,8 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
 
     private static final String TREND_CONTENT = "CONTENT";
     private static final String TREND_FOLLOWER = "FOLLOWER";
+    private static final String GROUP_BY_PLATFORM = "PLATFORM";
+    private static final String GROUP_BY_IP_GROUP = "IP_GROUP";
 
     private final IpGroupMapper ipGroupMapper;
     private final AuthorMapper authorMapper;
@@ -228,7 +230,7 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
             long draftPerf = perfRecordMapper.selectCount(new LambdaQueryWrapper<PerfRecordDO>()
                     .eq(PerfRecordDO::getTenantId, ctx.tenantId())
                     .eq(PerfRecordDO::getStatus, "DRAFT")
-                    .eq(ctx.ipGroupId() != null, PerfRecordDO::getIpGroupId, ctx.ipGroupId())).longValue();
+                    .in(!ctx.ipGroupIds().isEmpty(), PerfRecordDO::getIpGroupId, ctx.ipGroupIds())).longValue();
             if (draftPerf > 0) {
                 DashboardTodoItemVO vo = new DashboardTodoItemVO();
                 vo.setType("TASK");
@@ -252,7 +254,7 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
                     .eq(TaskDO::getTenantId, ctx.tenantId())
                     .in(TaskDO::getStatus, "PENDING", "IN_PROGRESS", "PENDING_REVIEW")
                     .lt(TaskDO::getSlaDeadline, LocalDateTime.now())
-                    .eq(ctx.ipGroupId() != null, TaskDO::getIpGroupId, ctx.ipGroupId())).longValue();
+                    .in(!ctx.ipGroupIds().isEmpty(), TaskDO::getIpGroupId, ctx.ipGroupIds())).longValue();
             if (expiredTasks > 0) {
                 DashboardTodoItemVO vo = new DashboardTodoItemVO();
                 vo.setType("EXPIRE");
@@ -273,11 +275,11 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
             long authorCount = authorMapper.selectCount(new LambdaQueryWrapper<AuthorDO>()
                     .eq(AuthorDO::getTenantId, ctx.tenantId())
                     .eq(AuthorDO::getStatus, 1)
-                    .eq(ctx.ipGroupId() != null, AuthorDO::getIpGroupId, ctx.ipGroupId()));
+                    .in(!ctx.ipGroupIds().isEmpty(), AuthorDO::getIpGroupId, ctx.ipGroupIds()));
             long contentCount = countContents(ctx.tenantId(), ctx.accountIds(), range.start(), range.end());
             List<TaskDO> tasks = taskMapper.selectList(new LambdaQueryWrapper<TaskDO>()
                     .eq(TaskDO::getTenantId, ctx.tenantId())
-                    .eq(ctx.ipGroupId() != null, TaskDO::getIpGroupId, ctx.ipGroupId()));
+                    .in(!ctx.ipGroupIds().isEmpty(), TaskDO::getIpGroupId, ctx.ipGroupIds()));
             BigDecimal sopRate = calcSopCompletionRate(tasks);
             String avgGrade = calcAvgPerfGrade(ctx);
 
@@ -292,20 +294,25 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
 
     @Override
     public List<TrendPointVO> getTrend(Long ipGroupId, LocalDate startDate, LocalDate endDate,
-                                       String platformType, String type) {
+                                       String platformType, String type, String groupBy) {
         validatePlatformType(platformType);
         String trendType = type == null || type.isBlank() ? TREND_CONTENT : type.toUpperCase();
         if (!TREND_CONTENT.equals(trendType) && !TREND_FOLLOWER.equals(trendType)) {
             throw new ServiceException(OaErrorCodes.HOME_TREND_TYPE_INVALID);
         }
+        String resolvedGroupBy = groupBy == null || groupBy.isBlank() ? GROUP_BY_PLATFORM : groupBy.toUpperCase();
+        if (!GROUP_BY_PLATFORM.equals(resolvedGroupBy) && !GROUP_BY_IP_GROUP.equals(resolvedGroupBy)) {
+            resolvedGroupBy = GROUP_BY_PLATFORM;
+        }
         String finalTrendType = trendType;
-        return cached("trend", ipGroupId, startDate, endDate, platformType, trendType, null, () -> {
+        String finalGroupBy = resolvedGroupBy;
+        return cached("trend", ipGroupId, startDate, endDate, platformType, trendType + ":" + finalGroupBy, null, () -> {
             DateRange range = resolveDateRange(startDate, endDate, 7);
             QueryContext ctx = buildContext(ipGroupId, range);
             if (TREND_FOLLOWER.equals(finalTrendType)) {
                 return buildFollowerTrend(ctx, range, platformType);
             }
-            return buildContentTrend(ctx, range, platformType);
+            return buildContentTrend(ctx, range, platformType, finalGroupBy);
         });
     }
 
@@ -376,7 +383,7 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
                 List<PerfRecordDO> drafts = perfRecordMapper.selectList(new LambdaQueryWrapper<PerfRecordDO>()
                         .eq(PerfRecordDO::getTenantId, ctx.tenantId())
                         .eq(PerfRecordDO::getStatus, "DRAFT")
-                        .eq(ctx.ipGroupId() != null, PerfRecordDO::getIpGroupId, ctx.ipGroupId())
+                        .in(!ctx.ipGroupIds().isEmpty(), PerfRecordDO::getIpGroupId, ctx.ipGroupIds())
                         .orderByDesc(PerfRecordDO::getCreateTime)
                         .last("LIMIT " + (top - todos.size())));
                 for (PerfRecordDO record : drafts) {
@@ -431,31 +438,66 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
         return vo;
     }
 
-    private List<TrendPointVO> buildContentTrend(QueryContext ctx, DateRange range, String platformType) {
+    private List<TrendPointVO> buildContentTrend(QueryContext ctx, DateRange range, String platformType, String groupBy) {
+        List<AccountDO> accounts = queryAccounts(ctx);
+        Map<Long, Long> accountIpGroupMap = accounts.stream()
+                .filter(a -> a.getIpGroupId() != null)
+                .collect(Collectors.toMap(AccountDO::getId, AccountDO::getIpGroupId, (a, b) -> a));
+        Map<Long, String> ipGroupNameMap = loadIpGroupNameMap(ctx.tenantId(), accountIpGroupMap.values());
+
         List<ContentDO> contents = contentMapper.selectList(new LambdaQueryWrapper<ContentDO>()
                 .eq(ContentDO::getTenantId, ctx.tenantId())
                 .in(!ctx.accountIds().isEmpty(), ContentDO::getAccountId, ctx.accountIds())
                 .eq(platformType != null, ContentDO::getPlatformType, platformType)
                 .ge(ContentDO::getPublishTime, range.start().atStartOfDay())
                 .le(ContentDO::getPublishTime, range.end().plusDays(1).atStartOfDay()));
-        Map<String, Long> grouped = new HashMap<>();
+
+        Map<String, TrendPointVO> grouped = new LinkedHashMap<>();
         for (ContentDO content : contents) {
             if (content.getPublishTime() == null) {
                 continue;
             }
-            String key = content.getPublishTime().toLocalDate() + "|" + content.getPlatformType();
-            grouped.merge(key, 1L, Long::sum);
+            String date = content.getPublishTime().toLocalDate().toString();
+            if (GROUP_BY_IP_GROUP.equals(groupBy)) {
+                Long ipGroupId = accountIpGroupMap.get(content.getAccountId());
+                if (ipGroupId == null) {
+                    continue;
+                }
+                String key = date + "|G|" + ipGroupId;
+                grouped.compute(key, (k, vo) -> {
+                    if (vo == null) {
+                        TrendPointVO point = new TrendPointVO();
+                        point.setDate(date);
+                        point.setIpGroupId(ipGroupId);
+                        point.setIpGroupName(ipGroupNameMap.getOrDefault(ipGroupId, "小组" + ipGroupId));
+                        point.setCount(1L);
+                        return point;
+                    }
+                    vo.setCount(vo.getCount() + 1);
+                    return vo;
+                });
+            } else {
+                String platform = content.getPlatformType();
+                String key = date + "|P|" + platform;
+                grouped.compute(key, (k, vo) -> {
+                    if (vo == null) {
+                        TrendPointVO point = new TrendPointVO();
+                        point.setDate(date);
+                        point.setPlatform(platform);
+                        point.setCount(1L);
+                        return point;
+                    }
+                    vo.setCount(vo.getCount() + 1);
+                    return vo;
+                });
+            }
         }
-        List<TrendPointVO> points = new ArrayList<>();
-        for (Map.Entry<String, Long> entry : grouped.entrySet()) {
-            String[] parts = entry.getKey().split("\\|", 2);
-            TrendPointVO vo = new TrendPointVO();
-            vo.setDate(parts[0]);
-            vo.setPlatform(parts.length > 1 ? parts[1] : null);
-            vo.setCount(entry.getValue());
-            points.add(vo);
+        List<TrendPointVO> points = new ArrayList<>(grouped.values());
+        if (GROUP_BY_IP_GROUP.equals(groupBy)) {
+            points.sort(Comparator.comparing(TrendPointVO::getDate).thenComparing(TrendPointVO::getIpGroupName));
+        } else {
+            points.sort(Comparator.comparing(TrendPointVO::getDate).thenComparing(TrendPointVO::getPlatform));
         }
-        points.sort(Comparator.comparing(TrendPointVO::getDate).thenComparing(TrendPointVO::getPlatform));
         return points;
     }
 
@@ -506,7 +548,7 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
         List<PerfRecordDO> records = perfRecordMapper.selectList(new LambdaQueryWrapper<PerfRecordDO>()
                 .eq(PerfRecordDO::getTenantId, ctx.tenantId())
                 .isNotNull(PerfRecordDO::getTotalScore)
-                .eq(ctx.ipGroupId() != null, PerfRecordDO::getIpGroupId, ctx.ipGroupId()));
+                .in(!ctx.ipGroupIds().isEmpty(), PerfRecordDO::getIpGroupId, ctx.ipGroupIds()));
         if (records.isEmpty()) {
             return "-";
         }
@@ -567,7 +609,7 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
     private List<AccountDO> queryAccounts(QueryContext ctx) {
         return accountMapper.selectList(new LambdaQueryWrapper<AccountDO>()
                 .eq(AccountDO::getTenantId, ctx.tenantId())
-                .eq(ctx.ipGroupId() != null, AccountDO::getIpGroupId, ctx.ipGroupId()));
+                .in(!ctx.ipGroupIds().isEmpty(), AccountDO::getIpGroupId, ctx.ipGroupIds()));
     }
 
     private long sumLatestFollowers(Long tenantId, List<AccountDO> accounts) {
@@ -665,11 +707,46 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
     private QueryContext buildContext(Long ipGroupId, DateRange range) {
         validateIpGroup(ipGroupId);
         Long tenantId = OaTenantSupport.requireTenantId();
+        Set<Long> ipGroupIds = resolveIpGroupScope(tenantId, ipGroupId);
         List<AccountDO> accounts = accountMapper.selectList(new LambdaQueryWrapper<AccountDO>()
                 .eq(AccountDO::getTenantId, tenantId)
-                .eq(ipGroupId != null, AccountDO::getIpGroupId, ipGroupId));
+                .in(!ipGroupIds.isEmpty(), AccountDO::getIpGroupId, ipGroupIds));
         Set<Long> accountIds = accounts.stream().map(AccountDO::getId).collect(Collectors.toCollection(HashSet::new));
-        return new QueryContext(tenantId, ipGroupId, accountIds, range);
+        return new QueryContext(tenantId, ipGroupId, ipGroupIds, accountIds, range);
+    }
+
+    /**
+     * 大组（group_type=1）展开为旗下所有小组；小组仅自身。
+     */
+    private Set<Long> resolveIpGroupScope(Long tenantId, Long ipGroupId) {
+        if (ipGroupId == null) {
+            return Set.of();
+        }
+        IpGroupDO group = ipGroupMapper.selectById(ipGroupId);
+        if (group == null) {
+            return Set.of(ipGroupId);
+        }
+        if (group.getGroupType() != null && group.getGroupType() == 1) {
+            List<IpGroupDO> children = ipGroupMapper.selectList(new LambdaQueryWrapper<IpGroupDO>()
+                    .eq(IpGroupDO::getTenantId, tenantId)
+                    .eq(IpGroupDO::getParentId, ipGroupId)
+                    .eq(IpGroupDO::getStatus, 1));
+            if (children.isEmpty()) {
+                return Set.of(ipGroupId);
+            }
+            return children.stream().map(IpGroupDO::getId).collect(Collectors.toCollection(HashSet::new));
+        }
+        return Set.of(ipGroupId);
+    }
+
+    private Map<Long, String> loadIpGroupNameMap(Long tenantId, java.util.Collection<Long> ipGroupIds) {
+        Set<Long> ids = ipGroupIds.stream().filter(Objects::nonNull).collect(Collectors.toCollection(HashSet::new));
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return ipGroupMapper.selectBatchIds(ids).stream()
+                .filter(g -> Objects.equals(g.getTenantId(), tenantId))
+                .collect(Collectors.toMap(IpGroupDO::getId, IpGroupDO::getGroupName, (a, b) -> a));
     }
 
     private OffsetDateTime toOffset(LocalDateTime time) {
@@ -703,7 +780,7 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
     private record DateRange(LocalDate start, LocalDate end) {
     }
 
-    private record QueryContext(Long tenantId, Long ipGroupId, Set<Long> accountIds, DateRange range) {
+    private record QueryContext(Long tenantId, Long ipGroupId, Set<Long> ipGroupIds, Set<Long> accountIds, DateRange range) {
     }
 
     private record CacheEntry<T>(T value, long expireAt) {

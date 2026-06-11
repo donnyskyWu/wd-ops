@@ -10,6 +10,7 @@ public class AiPromptConfigRespVO {
 
     private Long id;
     private String templateName;
+    private String version;
     private String scene;
     private String promptContent;
     private String variableDesc;

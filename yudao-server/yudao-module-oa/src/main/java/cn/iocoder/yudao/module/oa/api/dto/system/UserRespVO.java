@@ -15,6 +15,9 @@ public class UserRespVO {
     private String phoneMasked;
     private String position;
     private Long ipGroupId;
+    private Long deptId;
+    private String deptName;
+    private String dingUserId;
     private String status;
     private String remark;
     private List<Long> roleIds;

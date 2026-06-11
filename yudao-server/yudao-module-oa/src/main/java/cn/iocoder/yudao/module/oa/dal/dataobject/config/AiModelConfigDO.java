@@ -13,10 +13,14 @@ import java.math.BigDecimal;
 public class AiModelConfigDO extends TenantBaseDO {
 
     private String modelName;
+    private String modelId;
     private String modelType;
     private String apiEndpoint;
     private String apiKeyEncrypted;
     private Integer maxTokens;
+    private Integer timeout;
+    private Integer isDefault;
+    private String connStatus;
     private BigDecimal temperature;
     private BigDecimal topP;
     private String status;

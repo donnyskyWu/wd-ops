@@ -45,6 +45,7 @@ public class AiPromptConfigServiceImpl implements AiPromptConfigService {
     public Long create(AiPromptConfigCreateReq req) {
         AiPromptConfigDO entity = new AiPromptConfigDO();
         entity.setTemplateName(req.getTemplateName());
+        entity.setVersion("v1");
         entity.setScene(req.getScene());
         entity.setPromptContent(req.getPromptContent());
         entity.setVariableDesc(req.getVariableDesc());
@@ -82,8 +83,28 @@ public class AiPromptConfigServiceImpl implements AiPromptConfigService {
         if (req.getRemark() != null) {
             existing.setRemark(req.getRemark());
         }
+        if (StrUtil.isNotBlank(req.getPromptContent()) || StrUtil.isNotBlank(req.getTemplateName())) {
+            existing.setVersion(bumpVersion(existing.getVersion()));
+        }
         ConfigTenantSupport.fillUpdate(existing);
         aiPromptConfigMapper.updateById(existing);
+    }
+
+    @Override
+    public AiPromptConfigRespVO get(Long id) {
+        return toResp(getRequired(id));
+    }
+
+    private String bumpVersion(String current) {
+        if (StrUtil.isBlank(current) || !current.startsWith("v")) {
+            return "v2";
+        }
+        try {
+            int num = Integer.parseInt(current.substring(1));
+            return "v" + (num + 1);
+        } catch (NumberFormatException e) {
+            return "v2";
+        }
     }
 
     @Override
@@ -103,6 +124,7 @@ public class AiPromptConfigServiceImpl implements AiPromptConfigService {
         AiPromptConfigRespVO vo = new AiPromptConfigRespVO();
         vo.setId(entity.getId());
         vo.setTemplateName(entity.getTemplateName());
+        vo.setVersion(entity.getVersion());
         vo.setScene(entity.getScene());
         vo.setPromptContent(entity.getPromptContent());
         vo.setVariableDesc(entity.getVariableDesc());

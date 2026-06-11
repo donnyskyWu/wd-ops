@@ -51,4 +51,22 @@ public class AiModelConfigController {
         aiModelConfigService.delete(id);
         return CommonResult.success(true);
     }
+
+    @GetMapping("/stats")
+    public CommonResult<cn.iocoder.yudao.module.oa.api.dto.config.AiModelStatsVO> stats() {
+        return CommonResult.success(aiModelConfigService.stats());
+    }
+
+    @PostMapping("/test-connection")
+    public CommonResult<Boolean> testConnection(@RequestBody java.util.Map<String, Object> body) {
+        Long id = Long.valueOf(body.get("id").toString());
+        return CommonResult.success(aiModelConfigService.testConnection(id));
+    }
+
+    @PutMapping("/set-default")
+    public CommonResult<Boolean> setDefault(@RequestBody java.util.Map<String, Object> body) {
+        Long id = Long.valueOf(body.get("id").toString());
+        aiModelConfigService.setDefault(id);
+        return CommonResult.success(true);
+    }
 }

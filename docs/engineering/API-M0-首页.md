@@ -1,6 +1,6 @@
 # API-M0-首页
 
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v1.1 | 2026-06-11
 > **关联 PRD**：[`PRD-M0-首页.md`](../product/PRD-M0-首页.md)
 > **关联 UX**：[`UX-M0-首页.md`](../product/UX-M0-首页.md)
 > **关联全局规范**：[`GLOBAL-CONVENTIONS.md`](./GLOBAL-CONVENTIONS.md)
@@ -65,6 +65,7 @@
 | endDate | Date | ❌ | 结束日期 | 默认今日 |
 | platformType | String | ❌ | 平台筛选 | `@InDict(type="dict_platform_type")` |
 | type | String | ❌ | 趋势类型：CONTENT（内容）/ FOLLOWER（粉丝） | 默认 CONTENT |
+| groupBy | String | ❌ | 分组维度：PLATFORM / IP_GROUP | 默认 PLATFORM |
 
 **响应** `List<TrendPointVO>`：
 
@@ -72,11 +73,22 @@
 [
   { "date": "2026-06-01", "count": 120, "platform": "WECHAT_OFFICIAL" },
   { "date": "2026-06-01", "count": 80, "platform": "DOUYIN" },
-  ...
+  { "date": "2026-06-01", "count": 45, "ipGroupId": 101, "ipGroupName": "八卦一组" }
 ]
 ```
 
-**字典值**：`platform` 字段使用 `dict_platform_type` 的 value（如 `WECHAT_OFFICIAL`/`DOUYIN`），前端展示 label。
+**字段说明**：
+
+| 字段 | 条件 | 说明 |
+|------|------|------|
+| platform | `groupBy=PLATFORM` | `dict_platform_type` value |
+| ipGroupId / ipGroupName | `groupBy=IP_GROUP` | 账号归属的 IP 小组 |
+
+**IP 组范围**：`ipGroupId` 为大组（`group_type=1`）时，SQL 范围扩展为旗下所有启用小组关联账号；小组仅自身。
+
+**字典值**：`platform` 使用 `dict_platform_type` value，前端展示 label。
+
+**测试数据**：`V39__seed_dashboard_content.sql` 灌入近 7 天 `oa_content` 样本。
 
 ---
 

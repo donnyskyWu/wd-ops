@@ -14,15 +14,25 @@
     </ContentWrap>
     <ContentWrap title="异常预警" style="margin-top: 16px">
       <el-table :data="list" border stripe v-loading="loading">
-        <el-table-column prop="date" label="日期" width="120" />
-        <el-table-column prop="account_name" label="账号" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="level" label="级别" width="100" align="center">
+        <el-table-column label="日期" width="120">
+          <template #default="{ row }">{{ reportField(row, 'date', 'statDate') }}</template>
+        </el-table-column>
+        <el-table-column label="账号" min-width="200" show-overflow-tooltip>
+          <template #default="{ row }">{{ reportField(row, 'account_name', 'accountName') }}</template>
+        </el-table-column>
+        <el-table-column label="级别" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="getLevelType(row.level)" size="small">{{ row.level || '-' }}</el-tag>
+            <el-tag :type="getLevelType(String(reportField(row, 'level', 'alertLevel') || ''))" size="small">
+              <DictLabel dict-type="dict_alert_level" :value="reportField(row, 'level', 'alertLevel')" />
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="type" label="类型" width="120" align="center" />
-        <el-table-column prop="message" label="预警内容" min-width="240" show-overflow-tooltip />
+        <el-table-column label="类型" width="120" align="center">
+          <template #default="{ row }">{{ alertTypeLabel(String(reportField(row, 'type', 'alertType') || '')) }}</template>
+        </el-table-column>
+        <el-table-column label="预警内容" min-width="240" show-overflow-tooltip>
+          <template #default="{ row }">{{ reportField(row, 'message', 'description') }}</template>
+        </el-table-column>
       </el-table>
       <el-pagination :current-page="pageNum" :page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next"
         class="pagination" @update:current-page="(v) => { pageNum = v; loadData() }"
@@ -33,7 +43,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import ContentWrap from '@/components/ContentWrap.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import { getAccountAlertList } from '@/api/report'
+import { unwrapApiData, pickListPage, reportField } from '@/utils'
 
 const loading = ref(false)
 const filter = reactive({ dateRange: [] as string[] })
@@ -43,8 +55,21 @@ const total = ref(0)
 const list = ref<any[]>([])
 
 const getLevelType = (l: string) => {
-  const map: Record<string, string> = { URGENT: 'danger', IMPORTANT: 'warning', INFO: 'info' }
+  const map: Record<string, string> = {
+    CRITICAL: 'danger', HIGH: 'danger', URGENT: 'danger',
+    WARNING: 'warning', MEDIUM: 'warning', IMPORTANT: 'warning',
+    INFO: 'info', LOW: 'info',
+  }
   return map[l] || ''
+}
+
+const alertTypeLabel = (t: string) => {
+  const map: Record<string, string> = {
+    ACCOUNT_OFFLINE: '账号掉线',
+    DATA_ABNORMAL: '数据异常',
+    FAN_FLUCTUATION: '粉丝波动',
+  }
+  return map[t] || t || '-'
 }
 
 const buildQ = () => {
@@ -56,10 +81,10 @@ const buildQ = () => {
 const loadData = async () => {
   loading.value = true
   try {
-    const res: any = await getAccountAlertList(buildQ())
-    const data = res?.data ?? res
-    list.value = data?.list ?? data?.records ?? []
-    total.value = data?.total ?? list.value.length
+    const res = await getAccountAlertList(buildQ())
+    const page = pickListPage(unwrapApiData(res))
+    list.value = page.list
+    total.value = page.total
   } catch (e) { console.error(e); list.value = [] }
   finally { loading.value = false }
 }

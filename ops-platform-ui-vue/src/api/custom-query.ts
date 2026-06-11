@@ -15,6 +15,15 @@ export function executeCustomQuery(id: number) {
   return request.post({ url: `/oa/query/${id}/execute` })
 }
 
+/** 不保存，直接执行 SQL（自定义查询 Tab 内联结果） */
+export function previewCustomQuery(data: { sqlText: string }) {
+  return request.post({ url: '/oa/query/preview', data })
+}
+
+export function updateCustomQuery(data: Record<string, unknown>) {
+  return request.put({ url: '/oa/query/update', data })
+}
+
 export function publishCustomQuery(id: number) {
   return request.post({ url: `/oa/query/${id}/publish` })
 }

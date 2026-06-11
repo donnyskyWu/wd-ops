@@ -10,10 +10,14 @@ public class AiModelConfigRespVO {
 
     private Long id;
     private String modelName;
+    private String modelId;
     private String modelType;
     private String apiEndpoint;
     private String apiKeyMasked;
     private Integer maxTokens;
+    private Integer timeout;
+    private Boolean isDefault;
+    private String connStatus;
     private BigDecimal temperature;
     private BigDecimal topP;
     private String status;

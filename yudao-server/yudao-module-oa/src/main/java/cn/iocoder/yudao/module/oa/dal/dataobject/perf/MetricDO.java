@@ -14,5 +14,7 @@ public class MetricDO extends TenantBaseDO {
     private String metricCode;
     private String unit;
     private String category;
+    private String metricFormula;
+    private String dataSource;
     private Integer status;
 }

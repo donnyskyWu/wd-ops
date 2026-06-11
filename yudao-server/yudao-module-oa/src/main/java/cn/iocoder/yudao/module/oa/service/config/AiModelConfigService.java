@@ -14,4 +14,10 @@ public interface AiModelConfigService {
     void update(AiModelConfigUpdateReq req);
 
     void delete(Long id);
+
+    cn.iocoder.yudao.module.oa.api.dto.config.AiModelStatsVO stats();
+
+    boolean testConnection(Long id);
+
+    void setDefault(Long id);
 }

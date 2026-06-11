@@ -5,14 +5,11 @@
       <el-tab-pane label="个人微信" name="PERSONAL_WX" />
     </el-tabs>
 
-    <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
+    <TableSearch v-if="activePlatform === 'PERSONAL_WX'" v-model="searchForm" @search="handleSearch" @reset="handleReset">
       <el-form-item label="账号名称">
         <el-input v-model="searchForm.accountName" placeholder="请输入账号名称" clearable />
       </el-form-item>
-      <el-form-item v-if="activePlatform === 'WEWORK'" label="Corp ID">
-        <el-input v-model="searchForm.corpId" placeholder="请输入 Corp ID" clearable />
-      </el-form-item>
-      <el-form-item v-else label="微信号">
+      <el-form-item label="微信号">
         <el-input v-model="searchForm.wechatId" placeholder="请输入微信号" clearable />
       </el-form-item>
       <el-form-item label="状态">
@@ -23,7 +20,7 @@
       </el-form-item>
     </TableSearch>
 
-    <div class="action-bar">
+    <div v-if="activePlatform === 'PERSONAL_WX'" class="action-bar">
       <el-button type="primary" @click="handleAdd">
         <el-icon><Plus /></el-icon>
         新增账号
@@ -33,27 +30,7 @@
 
     <!-- 企微：应用配置 + 员工账号 -->
     <template v-if="activePlatform === 'WEWORK'">
-      <el-card shadow="never" class="wework-config-card">
-        <template #header>
-          <div class="card-header">
-            <span>企业微信应用配置</span>
-            <el-button type="primary" link @click="handleEditWeworkConfig">
-              {{ weworkConfig ? '编辑配置' : '新增配置' }}
-            </el-button>
-          </div>
-        </template>
-        <el-descriptions v-if="weworkConfig" :column="2" border size="small">
-          <el-descriptions-item label="账号名称">{{ weworkConfig.accountName }}</el-descriptions-item>
-          <el-descriptions-item label="Corp ID">{{ weworkConfig.corpId }}</el-descriptions-item>
-          <el-descriptions-item label="Agent ID">{{ weworkConfig.agentId }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="weworkConfig.status === 'ENABLED' ? 'success' : 'info'" size="small">
-              {{ weworkConfig.status === 'ENABLED' ? '正常' : '停用' }}
-            </el-tag>
-          </el-descriptions-item>
-        </el-descriptions>
-        <el-empty v-else description="尚未配置企业微信应用，请点击右上角新增" :image-size="64" />
-      </el-card>
+      <WeworkAppConfigPanel class="wework-config-card" @config-change="handleWeworkConfigChange" />
 
       <div class="section-title">
         <span>员工企微账号</span>
@@ -118,35 +95,6 @@
       @update:page-size="(val) => { pagination.pageSize = val; loadData() }"
       @change="loadData"
     />
-
-    <!-- 企微表单 -->
-    <el-dialog v-model="weworkDialogVisible" :title="weworkDialogTitle" width="560px">
-      <el-form :model="weworkForm" ref="weworkFormRef" :rules="weworkRules" label-width="100px">
-        <el-form-item label="账号名称" prop="accountName">
-          <el-input v-model="weworkForm.accountName" maxlength="100" />
-        </el-form-item>
-        <el-form-item label="Corp ID" prop="corpId">
-          <el-input v-model="weworkForm.corpId" maxlength="64" :disabled="!!weworkForm.id" />
-        </el-form-item>
-        <el-form-item label="Agent ID" prop="agentId">
-          <el-input v-model="weworkForm.agentId" maxlength="64" :disabled="!!weworkForm.id" />
-        </el-form-item>
-        <el-form-item label="Secret" prop="secret">
-          <el-input v-model="weworkForm.secret" type="password" show-password maxlength="128"
-            :placeholder="weworkForm.id ? '留空则不修改' : '请输入 Secret'" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="weworkForm.status" style="width: 100%">
-            <el-option label="正常" value="ENABLED" />
-            <el-option label="停用" value="DISABLED" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="weworkDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitWework">保存</el-button>
-      </template>
-    </el-dialog>
 
     <!-- 企微员工表单 -->
     <el-dialog v-model="employeeDialogVisible" :title="employeeDialogTitle" width="640px" destroy-on-close>
@@ -248,21 +196,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import Pagination from '@/components/Pagination.vue'
+import WeworkAppConfigPanel from '@/components/WeworkAppConfigPanel.vue'
 import {
   getPersonalWechatPage,
   getPersonalWechat,
   createPersonalWechat,
   updatePersonalWechat,
   deletePersonalWechat,
-  getWeworkPage,
-  createWework,
-  updateWework,
-  deleteWework,
   getWeworkEmployeePage,
   createWeworkEmployee,
   updateWeworkEmployee,
@@ -278,9 +223,8 @@ const activePlatform = ref<PlatformType>('WEWORK')
 const loading = ref(false)
 const employeeLoading = ref(false)
 const personalList = ref<PersonalWechatVO[]>([])
-const weworkList = ref<WeworkVO[]>([])
+const weworkConfig = ref<WeworkVO | null>(null)
 const employeeList = ref<WeworkEmployeeVO[]>([])
-const weworkConfig = computed(() => weworkList.value[0] ?? null)
 
 const searchForm = reactive({
   accountName: '',
@@ -290,30 +234,6 @@ const searchForm = reactive({
 })
 
 const pagination = reactive({ pageNo: 1, pageSize: 20, total: 0 })
-
-const weworkDialogVisible = ref(false)
-const weworkDialogTitle = ref('新增企微')
-const weworkFormRef = ref<any>()
-const weworkForm = reactive({
-  id: undefined as number | undefined,
-  accountName: '',
-  corpId: '',
-  agentId: '',
-  secret: '',
-  status: 'ENABLED',
-})
-const weworkRules = {
-  accountName: [{ required: true, message: '请输入账号名称', trigger: 'blur' }],
-  corpId: [{ required: true, message: '请输入 Corp ID', trigger: 'blur' }],
-  agentId: [{ required: true, message: '请输入 Agent ID', trigger: 'blur' }],
-  secret: [{
-    validator: (_: unknown, val: string, cb: (e?: Error) => void) => {
-      if (!weworkForm.id && !val) cb(new Error('请输入 Secret'))
-      else cb()
-    },
-    trigger: 'blur',
-  }],
-}
 
 const personalDialogVisible = ref(false)
 const personalDialogTitle = ref('新增个微')
@@ -382,19 +302,16 @@ const loadEmployees = async () => {
   }
 }
 
+const handleWeworkConfigChange = (config: WeworkVO | null) => {
+  weworkConfig.value = config
+  loadEmployees()
+}
+
 const loadData = async () => {
   loading.value = true
   try {
     if (activePlatform.value === 'WEWORK') {
-      const res = await getWeworkPage({
-        accountName: searchForm.accountName || undefined,
-        corpId: searchForm.corpId || undefined,
-        status: searchForm.status,
-        pageNo: pagination.pageNo,
-        pageSize: pagination.pageSize,
-      })
-      weworkList.value = res.list
-      pagination.total = res.total
+      pagination.total = weworkConfig.value ? 1 : 0
       await loadEmployees()
     } else {
       const res = await getPersonalWechatPage({
@@ -425,29 +342,11 @@ const handleSearch = () => { pagination.pageNo = 1; loadData() }
 const handleReset = () => handleTabChange()
 
 const handleAdd = () => {
-  if (activePlatform.value === 'WEWORK') {
-    handleEditWeworkConfig()
-  } else {
+  if (activePlatform.value !== 'WEWORK') {
     personalDialogTitle.value = '新增个微'
     Object.assign(personalForm, { id: undefined, accountName: '', wechatId: '', contactPhone: '', status: 'ENABLED' })
     personalDialogVisible.value = true
   }
-}
-
-const handleEditWeworkConfig = () => {
-  if (weworkConfig.value) {
-    handleEditWework(weworkConfig.value)
-  } else {
-    weworkDialogTitle.value = '新增企微应用配置'
-    Object.assign(weworkForm, { id: undefined, accountName: '', corpId: '', agentId: '', secret: '', status: 'ENABLED' })
-    weworkDialogVisible.value = true
-  }
-}
-
-const handleEditWework = (row: WeworkVO) => {
-  weworkDialogTitle.value = '编辑企微'
-  Object.assign(weworkForm, { id: row.id, accountName: row.accountName, corpId: row.corpId, agentId: row.agentId, secret: '', status: row.status })
-  weworkDialogVisible.value = true
 }
 
 const handleEditPersonal = (row: PersonalWechatVO) => {
@@ -535,30 +434,6 @@ const handleViewPersonal = async (row: PersonalWechatVO) => {
   detailVisible.value = true
 }
 
-const submitWework = async () => {
-  if (!weworkFormRef.value) return
-  await weworkFormRef.value.validate()
-  if (weworkForm.id) {
-    await updateWework({
-      id: weworkForm.id,
-      accountName: weworkForm.accountName,
-      secret: weworkForm.secret || undefined,
-      status: weworkForm.status,
-    })
-  } else {
-    await createWework({
-      accountName: weworkForm.accountName,
-      corpId: weworkForm.corpId,
-      agentId: weworkForm.agentId,
-      secret: weworkForm.secret,
-      status: weworkForm.status,
-    })
-  }
-  ElMessage.success('保存成功')
-  weworkDialogVisible.value = false
-  loadData()
-}
-
 const submitPersonal = async () => {
   if (!personalFormRef.value) return
   await personalFormRef.value.validate()
@@ -580,13 +455,6 @@ const submitPersonal = async () => {
   }
   ElMessage.success('保存成功')
   personalDialogVisible.value = false
-  loadData()
-}
-
-const handleDeleteWework = async (row: WeworkVO) => {
-  await ElMessageBox.confirm(`确定删除企微「${row.accountName}」？`, '提示', { type: 'warning' })
-  await deleteWework(row.id)
-  ElMessage.success('删除成功')
   loadData()
 }
 

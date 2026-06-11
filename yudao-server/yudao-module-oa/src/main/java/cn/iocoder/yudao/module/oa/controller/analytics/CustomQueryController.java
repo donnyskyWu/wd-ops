@@ -3,6 +3,8 @@ package cn.iocoder.yudao.module.oa.controller.analytics;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.analytics.CustomQueryCreateReq;
+import cn.iocoder.yudao.module.oa.api.dto.analytics.CustomQueryPreviewReq;
+import cn.iocoder.yudao.module.oa.api.dto.analytics.CustomQueryUpdateReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.analytics.CustomQueryDO;
 import cn.iocoder.yudao.module.oa.service.analytics.CustomQueryService;
 import jakarta.validation.Valid;
@@ -11,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -37,6 +40,17 @@ public class CustomQueryController {
     @PostMapping("/create")
     public CommonResult<Long> create(@Valid @RequestBody CustomQueryCreateReq req) {
         return CommonResult.success(customQueryService.create(req));
+    }
+
+    @PutMapping("/update")
+    public CommonResult<Boolean> update(@Valid @RequestBody CustomQueryUpdateReq req) {
+        customQueryService.update(req);
+        return CommonResult.success(true);
+    }
+
+    @PostMapping("/preview")
+    public CommonResult<Map<String, Object>> preview(@Valid @RequestBody CustomQueryPreviewReq req) {
+        return CommonResult.success(customQueryService.preview(req));
     }
 
     @PostMapping("/{id}/execute")

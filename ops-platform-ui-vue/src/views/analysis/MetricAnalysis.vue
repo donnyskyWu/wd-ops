@@ -1,45 +1,27 @@
 <template>
   <div class="metric-analysis">
-    <!-- 查询条件 -->
     <el-card class="search-card" shadow="never">
-      <el-form :model="queryForm" :rules="queryRules" ref="queryFormRef" inline>
-        <el-form-item label="指标类型" prop="metricType">
-          <el-select v-model="queryForm.metricType" placeholder="全部" clearable style="width: 150px">
-            <el-option label="流量指标" value="traffic" />
-            <el-option label="互动指标" value="interaction" />
-            <el-option label="转化指标" value="conversion" />
-            <el-option label="营收指标" value="revenue" />
+      <el-form :model="queryForm" ref="queryFormRef" inline>
+        <el-form-item label="选择指标" prop="metricIds">
+          <el-select v-model="queryForm.metricIds" multiple collapse-tags collapse-tags-tooltip placeholder="从指标库选择" style="width: 320px" filterable>
+            <el-option v-for="m in metricOptions" :key="m.id" :label="`${m.metricName} (${m.metricCode})`" :value="m.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="时间范围" prop="dateRange">
-          <el-date-picker
-            v-model="queryForm.dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-          />
-        </el-form-item>
-        <el-form-item label="IP组" prop="ipGroupId">
-          <el-select v-model="queryForm.ipGroupId" placeholder="全部" clearable style="width: 150px">
-            <el-option label="IP大组A" :value="1" />
-            <el-option label="IP大组B" :value="2" />
-          </el-select>
+        <el-form-item label="时间范围">
+          <el-date-picker v-model="queryForm.dateRange" type="daterange" range-separator="至" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleQuery">查询</el-button>
+          <el-button type="primary" :loading="loading" @click="handleQuery">运行分析</el-button>
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- 统计卡片 -->
     <el-row :gutter="16" class="stats-row">
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-item">
-            <div class="stat-label">监控指标数</div>
+            <div class="stat-label">已选指标</div>
             <div class="stat-value">{{ stats.totalMetrics }}</div>
           </div>
         </el-card>
@@ -47,7 +29,7 @@
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-item">
-            <div class="stat-label">达标指标</div>
+            <div class="stat-label">有数据指标</div>
             <div class="stat-value success">{{ stats.qualifiedMetrics }}</div>
           </div>
         </el-card>
@@ -55,7 +37,7 @@
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-item">
-            <div class="stat-label">未达标指标</div>
+            <div class="stat-label">无数据指标</div>
             <div class="stat-value danger">{{ stats.unqualifiedMetrics }}</div>
           </div>
         </el-card>
@@ -63,61 +45,32 @@
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-item">
-            <div class="stat-label">达标率</div>
+            <div class="stat-label">数据覆盖率</div>
             <div class="stat-value">{{ stats.qualificationRate }}%</div>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 指标趋势图 -->
     <el-card class="chart-card" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>指标趋势分析</span>
-        </div>
-      </template>
-      <div ref="trendChartRef" style="height: 400px"></div>
+      <template #header><div class="card-header"><span>指标趋势</span></div></template>
+      <div ref="trendChartRef" style="height: 400px" v-loading="loading" />
     </el-card>
 
-    <!-- 指标列表 -->
     <el-card class="table-card" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>指标明细</span>
-        </div>
-      </template>
+      <template #header><div class="card-header"><span>指标明细</span></div></template>
       <el-table :data="metricList" border stripe v-loading="loading">
-        <template #empty>
-          <el-empty description="暂无指标数据" />
-        </template>
+        <template #empty><el-empty description="请选择指标并运行分析" /></template>
         <el-table-column prop="metricName" label="指标名称" width="180" />
         <el-table-column prop="metricType" label="类型" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getMetricTypeTag(row.metricType)">{{ row.metricType }}</el-tag>
-          </template>
+          <template #default="{ row }"><DictLabel dict-type="dict_perf_metric_type" :value="row.metricType" /></template>
         </el-table-column>
         <el-table-column prop="currentValue" label="当前值" width="120" align="right" />
-        <el-table-column prop="targetValue" label="目标值" width="120" align="right" />
-        <el-table-column prop="achievementRate" label="达成率" width="100" align="right">
-          <template #default="{ row }">
-            <span :class="row.achievementRate >= 100 ? 'success' : 'danger'">
-              {{ row.achievementRate }}%
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="trend" label="趋势" width="100" align="center">
-          <template #default="{ row }">
-            <el-icon v-if="row.trend === 'up'" color="#67c23a"><Top /></el-icon>
-            <el-icon v-else-if="row.trend === 'down'" color="#f56c6c"><Bottom /></el-icon>
-            <el-icon v-else color="#909399"><Minus /></el-icon>
-          </template>
-        </el-table-column>
+        <el-table-column prop="unit" label="单位" width="80" align="center" />
+        <el-table-column prop="rowCount" label="明细行数" width="100" align="right" />
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'qualified' ? 'success' : 'danger'">
-              {{ row.status === 'qualified' ? '达标' : '未达标' }}
-            </el-tag>
+            <el-tag :type="row.status === 'qualified' ? 'success' : 'danger'">{{ row.status === 'qualified' ? '有数据' : '无数据' }}</el-tag>
           </template>
         </el-table-column>
       </el-table>
@@ -126,168 +79,178 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { Top, Bottom, Minus } from '@element-plus/icons-vue'
-import type { FormInstance, FormRules } from 'element-plus'
+import { ref, reactive, onMounted, nextTick } from 'vue'
+import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
+import { getMetricList, previewMetric } from '@/api/metric'
+import DictLabel from '@/components/DictLabel.vue'
+import { unwrapApiData, pickListPage } from '@/utils'
+
+interface MetricOption {
+  id: number
+  metricName: string
+  metricCode: string
+  metricType: string
+  metricFormula: string
+  unit?: string
+}
+
+interface MetricResultRow {
+  metricName: string
+  metricType: string
+  currentValue: number | string
+  unit: string
+  rowCount: number
+  status: 'qualified' | 'unqualified'
+  trendPoints: number[]
+}
 
 const queryFormRef = ref<FormInstance>()
 const loading = ref(false)
+const metricOptions = ref<MetricOption[]>([])
 
 const queryForm = reactive({
-  metricType: '',
+  metricIds: [] as number[],
   dateRange: [] as string[],
-  ipGroupId: null as number | null
-})
-
-const queryRules = reactive<FormRules>({
-  metricType: [
-    { required: true, message: '请选择指标类型', trigger: 'change' }
-  ],
-  dateRange: [
-    { required: true, message: '请选择时间范围', trigger: 'change' }
-  ]
 })
 
 const stats = reactive({
-  totalMetrics: 48,
-  qualifiedMetrics: 36,
-  unqualifiedMetrics: 12,
-  qualificationRate: 75
+  totalMetrics: 0,
+  qualifiedMetrics: 0,
+  unqualifiedMetrics: 0,
+  qualificationRate: 0,
 })
 
-const metricList = ref([
-  { metricName: '粉丝增长量', metricType: '流量', currentValue: 12500, targetValue: 10000, achievementRate: 125, trend: 'up', status: 'qualified' },
-  { metricName: '作品播放量', metricType: '流量', currentValue: 850000, targetValue: 1000000, achievementRate: 85, trend: 'down', status: 'unqualified' },
-  { metricName: '点赞数', metricType: '互动', currentValue: 45000, targetValue: 40000, achievementRate: 112.5, trend: 'up', status: 'qualified' },
-  { metricName: '评论数', metricType: '互动', currentValue: 8200, targetValue: 10000, achievementRate: 82, trend: 'stable', status: 'unqualified' },
-  { metricName: '转化率', metricType: '转化', currentValue: 3.5, targetValue: 3.0, achievementRate: 116.7, trend: 'up', status: 'qualified' },
-  { metricName: '订单数', metricType: '营收', currentValue: 2350, targetValue: 2500, achievementRate: 94, trend: 'down', status: 'unqualified' }
-])
-
+const metricList = ref<MetricResultRow[]>([])
 const trendChartRef = ref<HTMLElement>()
 
-const getMetricTypeTag = (type: string) => {
-  const map: Record<string, any> = {
-    '流量': '',
-    '互动': 'success',
-    '转化': 'warning',
-    '营收': 'danger'
+const extractScalar = (rows: Record<string, unknown>[]) => {
+  if (!rows?.length) return 0
+  const first = rows[0]
+  for (const val of Object.values(first)) {
+    if (typeof val === 'number') return val
+    if (val != null && !Number.isNaN(Number(val))) return Number(val)
   }
-  return map[type] || ''
+  return rows.length
+}
+
+const loadMetricOptions = async () => {
+  try {
+    const res = await getMetricList({ pageNum: 1, pageSize: 200 })
+    const page = pickListPage(unwrapApiData(res))
+    metricOptions.value = page.list as MetricOption[]
+  } catch (e) {
+    console.error(e)
+  }
 }
 
 const handleQuery = async () => {
-  if (!queryFormRef.value) return
-  
+  if (!queryForm.metricIds.length) {
+    ElMessage.warning('请至少选择一个指标')
+    return
+  }
+  loading.value = true
   try {
-    await queryFormRef.value.validate()
-    loading.value = true
-    // TODO: 调用API查询
-    console.log('查询指标分析', queryForm)
-    ElMessage.success('查询成功')
-  } catch (error) {
-    console.error('表单校验失败', error)
+    const selected = metricOptions.value.filter(m => queryForm.metricIds.includes(m.id))
+    const results: MetricResultRow[] = []
+    for (const m of selected) {
+      if (!m.metricFormula) {
+        results.push({
+          metricName: m.metricName,
+          metricType: m.metricType,
+          currentValue: '-',
+          unit: m.unit || '',
+          rowCount: 0,
+          status: 'unqualified',
+          trendPoints: [],
+        })
+        continue
+      }
+      const previewRes = await previewMetric({ metricFormula: m.metricFormula })
+      const data = unwrapApiData(previewRes)
+      const rows = (data?.rows ?? []) as Record<string, unknown>[]
+      const scalar = extractScalar(rows)
+      results.push({
+        metricName: m.metricName,
+        metricType: m.metricType,
+        currentValue: scalar,
+        unit: m.unit || '',
+        rowCount: rows.length,
+        status: rows.length > 0 ? 'qualified' : 'unqualified',
+        trendPoints: rows.slice(0, 7).map((_, i) => extractScalar([rows[i] ?? {}])),
+      })
+    }
+    metricList.value = results
+    stats.totalMetrics = results.length
+    stats.qualifiedMetrics = results.filter(r => r.status === 'qualified').length
+    stats.unqualifiedMetrics = results.length - stats.qualifiedMetrics
+    stats.qualificationRate = results.length ? Math.round((stats.qualifiedMetrics / results.length) * 100) : 0
+    await nextTick()
+    initTrendChart(results)
+    ElMessage.success('分析完成')
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('指标运行失败')
   } finally {
     loading.value = false
   }
 }
 
 const handleReset = () => {
-  queryForm.metricType = ''
+  queryForm.metricIds = []
   queryForm.dateRange = []
-  queryForm.ipGroupId = null
-  handleQuery()
+  metricList.value = []
+  stats.totalMetrics = 0
+  stats.qualifiedMetrics = 0
+  stats.unqualifiedMetrics = 0
+  stats.qualificationRate = 0
 }
 
 let metricTrendChart: echarts.ECharts | null = null
-const initTrendChart = () => {
-  if (!trendChartRef.value || trendChartRef.value.getBoundingClientRect().width === 0) {
-    setTimeout(initTrendChart, 100)
-    return
-  }
+const initTrendChart = (results: MetricResultRow[]) => {
+  if (!trendChartRef.value) return
   if (metricTrendChart) {
     metricTrendChart.dispose()
     metricTrendChart = null
   }
   const chart = echarts.init(trendChartRef.value)
-  const option = {
+  metricTrendChart = chart
+  const labels = results.map((_, i) => `点${i + 1}`)
+  chart.setOption({
     tooltip: { trigger: 'axis' },
-    legend: { data: ['粉丝增长', '播放量', '点赞数'] },
+    legend: { data: results.map(r => r.metricName) },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-    },
+    xAxis: { type: 'category', boundaryGap: false, data: labels },
     yAxis: { type: 'value' },
-    series: [
-      { name: '粉丝增长', type: 'line', data: [1200, 1320, 1010, 1340, 900, 2300, 2100] },
-      { name: '播放量', type: 'line', data: [22000, 18200, 19100, 23400, 29000, 33000, 31000] },
-      { name: '点赞数', type: 'line', data: [1500, 2320, 2010, 1940, 2900, 3300, 3100] }
-    ]
-  }
-  chart.setOption(option)
+    series: results.map(r => ({
+      name: r.metricName,
+      type: 'line',
+      data: r.trendPoints.length ? r.trendPoints : [r.currentValue],
+    })),
+  })
 }
 
-onMounted(() => {
-  initTrendChart()
-})
+onMounted(() => loadMetricOptions())
 </script>
 
 <style scoped lang="scss">
 .metric-analysis {
-  .search-card {
-    margin-bottom: 16px;
-  }
-
-  .stats-row {
-    margin-bottom: 16px;
-  }
-
+  .search-card { margin-bottom: 16px; }
+  .stats-row { margin-bottom: 16px; }
   .stat-item {
     text-align: center;
     padding: 10px 0;
-
-    .stat-label {
-      font-size: 14px;
-      color: #909399;
-      margin-bottom: 8px;
-    }
-
+    .stat-label { font-size: 14px; color: #909399; margin-bottom: 8px; }
     .stat-value {
-      font-size: 28px;
-      font-weight: bold;
-      color: #303133;
-
-      &.success {
-        color: #67c23a;
-      }
-
-      &.danger {
-        color: #f56c6c;
-      }
+      font-size: 28px; font-weight: bold; color: #303133;
+      &.success { color: #67c23a; }
+      &.danger { color: #f56c6c; }
     }
   }
-
-  .chart-card,
-  .table-card {
+  .chart-card, .table-card {
     margin-bottom: 16px;
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-  }
-
-  .success {
-    color: #67c23a;
-  }
-
-  .danger {
-    color: #f56c6c;
+    .card-header { display: flex; justify-content: space-between; align-items: center; }
   }
 }
 </style>

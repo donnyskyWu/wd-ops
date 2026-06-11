@@ -22,12 +22,24 @@
     </ContentWrap>
     <ContentWrap title="直播时长明细" style="margin-top: 16px">
       <el-table :data="list" border stripe v-loading="loading">
-        <el-table-column prop="date" label="日期" width="120" />
-        <el-table-column prop="account_name" label="账号" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="session_count" label="场次" width="100" align="right" />
-        <el-table-column prop="total_duration" label="总时长(分钟)" width="140" align="right" />
-        <el-table-column prop="avg_duration" label="均时长" width="120" align="right" />
-        <el-table-column prop="peak_viewers" label="峰值在线" width="120" align="right" />
+        <el-table-column label="日期" width="120">
+          <template #default="{ row }">{{ reportField(row, 'date', 'statDate') }}</template>
+        </el-table-column>
+        <el-table-column label="账号" min-width="200" show-overflow-tooltip>
+          <template #default="{ row }">{{ reportField(row, 'account_name', 'accountName') }}</template>
+        </el-table-column>
+        <el-table-column label="场次" width="100" align="right">
+          <template #default="{ row }">{{ reportField(row, 'session_count', 'sessionCount') }}</template>
+        </el-table-column>
+        <el-table-column label="总时长(分钟)" width="140" align="right">
+          <template #default="{ row }">{{ reportField(row, 'total_duration', 'totalDuration') }}</template>
+        </el-table-column>
+        <el-table-column label="均时长" width="120" align="right">
+          <template #default="{ row }">{{ reportField(row, 'avg_duration', 'avgDuration') }}</template>
+        </el-table-column>
+        <el-table-column label="峰值在线" width="120" align="right">
+          <template #default="{ row }">{{ reportField(row, 'peak_viewers', 'peakViewers') }}</template>
+        </el-table-column>
       </el-table>
       <el-pagination :current-page="pageNum" :page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next"
         class="pagination" @update:current-page="(v) => { pageNum = v; loadData() }"
@@ -41,7 +53,7 @@ import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { getLiveDurationList, getLiveDurationTrend } from '@/api/report'
-import { unwrapApiData, pickListPage } from '@/utils'
+import { unwrapApiData, pickListPage, reportField } from '@/utils'
 
 const loading = ref(false)
 const filter = reactive({ ipGroupId: undefined as number | undefined, dateRange: [] as string[] })

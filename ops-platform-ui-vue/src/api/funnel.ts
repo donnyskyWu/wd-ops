@@ -11,8 +11,8 @@ export function createFunnel(data: Record<string, unknown>) {
   return request.post({ url: '/oa/funnel/create', data })
 }
 
-export function getFunnelData(id: number) {
-  return request.get({ url: `/oa/funnel/${id}/data` })
+export function getFunnelData(id: number, params?: Record<string, unknown>) {
+  return request.get({ url: `/oa/funnel/${id}/data`, params })
 }
 
 export function exportFunnel(params: Record<string, unknown>) {

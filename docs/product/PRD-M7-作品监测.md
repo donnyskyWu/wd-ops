@@ -3,8 +3,8 @@
 > **业务域**：M7 作品监测
 > **功能模块**：外部账号分析 + 监测
 > **详细设计章节**：5.32、5.33
-> **版本**：v1.0 | 2026-06-07
-> **状态**：Draft
+> **版本**：v1.1 | 2026-06-11
+> **状态**：Draft（实现已对齐）
 > **全局规范**：[`docs/engineering/GLOBAL-CONVENTIONS.md`](./../engineering/GLOBAL-CONVENTIONS.md)
 
 ---
@@ -93,6 +93,18 @@
 **AC-M7-001-3**（低分作品）
 **AC-M7-001-4**（高/低粉账号）
 **AC-M7-001-5**（平台/IP/行业 筛选）
+
+#### 4.1.5 实现补充（2026-06-11）
+
+以下 5 个分析页表格行增加「详情」按钮 + 右侧抽屉（`el-drawer` 480px），展示当前行关键字段只读摘要：
+
+| 页面 | 文件 |
+|------|------|
+| 外部账号分析 | `ExternalAccountAnalysis.vue` |
+| 爆款作品分析 | `HotWorksAnalysis.vue` |
+| 低分作品分析 | `LowScoreAnalysis.vue` |
+| 高粉账号分析 | `HighFansAccountAnalysis.vue` |
+| 低粉账号分析 | `LowFansAccountAnalysis.vue` |
 
 ---
 

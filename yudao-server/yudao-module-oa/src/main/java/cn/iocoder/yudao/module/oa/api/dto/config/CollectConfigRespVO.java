@@ -12,6 +12,23 @@ public class CollectConfigRespVO {
     private String subType;
     private String platformType;
     private Long accountId;
+    /** M4 oa_account.account_name，accountId 关联时填充 */
+    private String accountName;
+    private String accountIdentifier;
+    private String appId;
+    private String appSecretMasked;
+    private String cookie;
+    private String authTokenMasked;
+    private String fieldMapping;
+    private Boolean isLive;
+    private String dbHost;
+    private Integer dbPort;
+    private String dbName;
+    private String dbUsername;
+    private String dbPasswordMasked;
+    private String tableName;
+    private String syncMode;
+    private String connStatus;
     private String collectFrequency;
     private String collectMethod;
     private String apiUrl;
@@ -23,4 +40,5 @@ public class CollectConfigRespVO {
     private String status;
     private String remark;
     private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }

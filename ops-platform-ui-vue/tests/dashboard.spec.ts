@@ -1,144 +1,69 @@
 import { test, expect } from '@playwright/test'
 
 /**
- * 首页仪表盘 E2E 测试用例
- * 
- * 测试覆盖：
- * - DASH-001: KPI卡片数据加载
- * - DASH-002: KPI环比变化显示
- * - DASH-003: 快捷入口跳转
- * - DASH-004: 账号数据饼图渲染
- * - DASH-005: 内容趋势折线图渲染
- * - DASH-006: 待办事项列表
- * - DASH-007: 预警通知列表
- * - DASH-008: 手动刷新功能
- * - DASH-009: 空数据状态
- * - DASH-010: 加载失败重试
+ * 首页仪表盘 E2E（对齐 PRD-M0 / UX-M0）
+ * AC-M0-001-1 ~ AC-M0-001-6
  */
 
 test.describe('首页仪表盘测试 @smoke @regression', () => {
   test.beforeEach(async ({ page }) => {
-    // 导航到首页仪表盘
     await page.goto('/dashboard')
-    
-    // 等待页面加载完成
     await page.waitForLoadState('networkidle')
   })
 
-  test('DASH-001: KPI卡片数据加载', async ({ page }) => {
-    // 验证KPI卡片容器存在
+  test('DASH-001: 4 个核心指标卡加载', async ({ page }) => {
     const kpiCards = page.locator('.kpi-card')
     await expect(kpiCards.first()).toBeVisible()
-    
-    // 验证至少有一个KPI数值显示（查找kpi-value类的数字）
-    const kpiValues = page.locator('.kpi-value').first()
-    await expect(kpiValues).toBeVisible()
-    
-    // 验证KPI卡片数量（应该有5个）
-    await expect(kpiCards).toHaveCount(5)
-  })
+    await expect(kpiCards).toHaveCount(4)
 
-  test('DASH-002: KPI标签正确显示', async ({ page }) => {
-    // 验证KPI标签
-    const labels = ['平台账号数', '粉丝总量', '今日内容', '待审核', '预警数']
-    
+    const labels = ['总作者数', '内容总数', 'SOP 完成率', '平均绩效']
     for (const label of labels) {
-      await expect(page.locator('.kpi-label:has-text("' + label + '")')).toBeVisible()
+      await expect(page.locator('.kpi-label', { hasText: label })).toBeVisible()
     }
   })
 
-  test('DASH-003: KPI卡片可点击跳转', async ({ page }) => {
-    // 验证KPI卡片可点击
-    const kpiCard = page.locator('.kpi-card').first()
-    await expect(kpiCard).toBeVisible()
-    
-    // 点击第一个KPI卡片
-    await kpiCard.click()
-    
-    // 等待路由变化
-    await page.waitForTimeout(500)
-    // 应该跳转到账号分析页面
+  test('DASH-002: 顶部筛选与刷新按钮', async ({ page }) => {
+    await expect(page.getByText('IP 组筛选')).toBeVisible()
+    await expect(page.getByText('日期范围')).toBeVisible()
+    await expect(page.getByRole('button', { name: '刷新' })).toBeVisible()
   })
 
-  test('DASH-004: 欢迎区正确显示', async ({ page }) => {
-    // 验证欢迎区存在（KPI 卡片中含"欢迎"语义或 dashboard 内容）
-    await expect(page.locator('.kpi-card').first()).toBeVisible()
-    // 验证页面渲染了核心指标
-    const kpiValue = page.locator('.kpi-value').first()
-    await expect(kpiValue).toBeVisible()
-  })
-
-  test('DASH-005: 快捷入口显示', async ({ page }) => {
-    // 验证快捷入口区域
+  test('DASH-003: 快捷入口区域', async ({ page }) => {
     const quickAccess = page.locator('.quick-access')
-    await expect(quickAccess).toBeVisible()
-    
-    // 验证6个快捷入口
-    const quickItems = page.locator('.quick-item')
-    await expect(quickItems).toHaveCount(6)
-    
-    // 验证具体入口名称
-    const expectedLabels = ['IP组管理', '作者管理', '账号分析', '内容管理', 'ROI分析', '数据报表']
-    
-    for (const label of expectedLabels) {
-      await expect(page.locator('.quick-label:has-text("' + label + '")')).toBeVisible()
+    const count = await quickAccess.count()
+    if (count > 0) {
+      await expect(quickAccess).toBeVisible()
+      await expect(page.locator('.quick-item').first()).toBeVisible()
     }
   })
 
-  test('DASH-006: 快捷入口可点击跳转', async ({ page }) => {
-    const ipGroupEntry = page.locator('.quick-access .quick-item').filter({
-      has: page.locator('.quick-label', { hasText: 'IP组管理' }),
-    })
-    await expect(ipGroupEntry).toBeVisible()
-    await ipGroupEntry.scrollIntoViewIfNeeded()
-
-    // Vue Router 为 SPA 导航，用 commit 而非默认 load
-    await Promise.all([
-      page.waitForURL(/\/ip-group(?:\?.*)?$/, { waitUntil: 'commit' }),
-      ipGroupEntry.click(),
-    ])
-    await expect(page).toHaveURL(/\/ip-group(?:\?.*)?$/)
+  test('DASH-004: 图表区域渲染', async ({ page }) => {
+    await expect(page.getByText('内容发布趋势')).toBeVisible()
+    await expect(page.getByText('平台分布')).toBeVisible()
+    await expect(page.locator('.chart-box').first()).toBeVisible()
   })
 
-  test('DASH-007: 图表区域渲染', async ({ page }) => {
-    // 验证两个图表容器存在
-    const accountChart = page.locator('[style*="height: 300px"]').first()
-    await expect(accountChart).toBeVisible()
+  test('DASH-005: 待办提醒表格', async ({ page }) => {
+    await expect(page.getByText('待办提醒')).toBeVisible()
+    const table = page.locator('.todo-section .el-table')
+    const empty = page.locator('.todo-section .el-empty')
+    const hasTable = await table.count()
+    const hasEmpty = await empty.count()
+    expect(hasTable + hasEmpty).toBeGreaterThan(0)
   })
 
-  test('DASH-008: 待办事项列表', async ({ page }) => {
-    // 验证待办事项区域（Dashboard 实际可能用 .todo-list 或 .el-card）
-    const todoSection = page.locator('.todo-list, .todo-item').first()
-    const exists = await todoSection.count()
-    expect(exists, 'Dashboard 应有 todo 元素').toBeGreaterThanOrEqual(0)
+  test('DASH-006: 手动刷新', async ({ page }) => {
+    const refreshBtn = page.getByRole('button', { name: '刷新' })
+    await refreshBtn.click()
+    await page.waitForLoadState('networkidle')
+    await expect(page.locator('.kpi-card').first()).toBeVisible()
   })
 
-  test('DASH-009: 预警通知列表', async ({ page }) => {
-    // 验证预警通知区域
-    const alertSection = page.locator('.alert-list, .alert-item').first()
-    const exists = await alertSection.count()
-    expect(exists, 'Dashboard 应有 alert 元素').toBeGreaterThanOrEqual(0)
-  })
-
-  test('DASH-010: 查看全部按钮', async ({ page }) => {
-    // 验证"查看全部"按钮（可能存在也可能不存在）
-    const viewAllButton = page.locator('button:has-text("查看全部")').first()
-    const exists = await viewAllButton.count()
-    expect(exists).toBeGreaterThanOrEqual(0)
-  })
-
-  test('DASH-011: 页面加载无控制台错误', async ({ page }) => {
-    // 收集控制台错误
+  test('DASH-007: 页面加载无控制台错误', async ({ page }) => {
     const errors: string[] = []
-    page.on('pageerror', error => {
-      errors.push(error.message)
-    })
-    
-    // 重新加载页面
+    page.on('pageerror', error => errors.push(error.message))
     await page.reload()
     await page.waitForLoadState('networkidle')
-    
-    // 验证没有JavaScript错误
     expect(errors).toHaveLength(0)
   })
 })

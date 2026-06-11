@@ -24,7 +24,9 @@ export interface HomeMetricsVO {
 export interface TrendPointVO {
   date: string
   count: number
-  platform: string
+  platform?: string
+  ipGroupId?: number
+  ipGroupName?: string
 }
 
 export interface PlatformDistVO {
@@ -53,6 +55,7 @@ export interface HomeQueryParams {
   endDate?: string
   platformType?: string
   type?: 'CONTENT' | 'FOLLOWER'
+  groupBy?: 'PLATFORM' | 'IP_GROUP'
   limit?: number
 }
 

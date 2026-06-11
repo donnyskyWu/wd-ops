@@ -24,9 +24,9 @@
 
     <el-table :data="accountRows" v-loading="loading" border stripe>
       <el-table-column prop="accountName" label="账号名称" min-width="160" show-overflow-tooltip />
-      <el-table-column prop="platformName" label="平台" width="100" align="center">
+      <el-table-column prop="platformType" label="平台" width="100" align="center">
         <template #default="{ row }">
-          <el-tag size="small">{{ row.platformName || row.platformType }}</el-tag>
+          <DictLabel dict-type="dict_platform_type" :value="row.platformType" />
         </template>
       </el-table-column>
       <el-table-column prop="purchaseCost" label="采购成本" width="120" align="right">
@@ -63,7 +63,9 @@
     <el-drawer v-model="viewVisible" :title="`账号成本详情 - ${currentAccount?.accountName || ''}`" size="640px">
       <el-descriptions v-if="currentAccount" :column="2" border size="small" style="margin-bottom: 16px">
         <el-descriptions-item label="账号名称">{{ currentAccount.accountName }}</el-descriptions-item>
-        <el-descriptions-item label="平台">{{ currentAccount.platformName || currentAccount.platformType }}</el-descriptions-item>
+        <el-descriptions-item label="平台">
+          <DictLabel dict-type="dict_platform_type" :value="currentAccount.platformType" />
+        </el-descriptions-item>
         <el-descriptions-item label="采购成本">¥{{ formatMoney(currentAccount.purchaseCost) }}</el-descriptions-item>
         <el-descriptions-item label="过程成本">¥{{ formatMoney(currentAccount.processCost) }}</el-descriptions-item>
         <el-descriptions-item label="总成本">¥{{ formatMoney(currentAccount.totalCost) }}</el-descriptions-item>
@@ -71,12 +73,20 @@
       </el-descriptions>
       <el-divider content-position="left">成本明细</el-divider>
       <el-table :data="currentCostDetails" border stripe size="small">
-        <el-table-column prop="costType" label="类型" width="110" />
+        <el-table-column prop="costType" label="类型" width="110">
+          <template #default="{ row }">
+            <DictLabel dict-type="dict_cost_type" :value="row.costType" />
+          </template>
+        </el-table-column>
         <el-table-column prop="amount" label="金额" width="100" align="right">
           <template #default="{ row }">¥{{ formatMoney(row.amount) }}</template>
         </el-table-column>
         <el-table-column prop="payDate" label="支付日期" width="110" />
-        <el-table-column prop="period" label="周期" width="80" />
+        <el-table-column prop="period" label="周期" width="80">
+          <template #default="{ row }">
+            <DictLabel dict-type="dict_cost_period" :value="row.period" />
+          </template>
+        </el-table-column>
         <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip />
       </el-table>
     </el-drawer>
@@ -112,7 +122,11 @@
           </div>
         </template>
         <el-table :data="processCosts" border stripe size="small">
-          <el-table-column prop="costType" label="类型" width="120" />
+          <el-table-column prop="costType" label="类型" width="120">
+            <template #default="{ row }">
+              <DictLabel dict-type="dict_cost_type" :value="row.costType" />
+            </template>
+          </el-table-column>
           <el-table-column prop="amount" label="金额" width="100" align="right">
             <template #default="{ row }">¥{{ formatMoney(row.amount) }}</template>
           </el-table-column>
@@ -165,6 +179,7 @@ import dayjs from 'dayjs'
 import TableSearch from '@/components/TableSearch.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import { getAccountList } from '@/api/account'
 import { getCostList, createCost, updateCost, deleteCost } from '@/api/finance'
 import { exportToExcel } from '@/utils'

@@ -15,7 +15,7 @@
             <el-input v-model="searchForm.sourceName" placeholder="请输入" clearable style="width: 180px" />
           </el-form-item>
           <el-form-item label="状态">
-            <DictSelect v-model="searchForm.status" dict-type="dict_status_enabled" placeholder="请选择" style="width: 120px" />
+            <DictSelect v-model="searchForm.status" dict-type="dict_config_status" placeholder="请选择" style="width: 120px" />
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="handleSearch">

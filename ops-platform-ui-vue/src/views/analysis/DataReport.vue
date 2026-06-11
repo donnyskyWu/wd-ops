@@ -389,64 +389,27 @@ const getChartOption = (tabName: string) => {
   return chartOptionsMap[tabName] || null
 }
 
+const tabRouteMap: Record<string, string> = {
+  'unified-account': '/analysis/report/unified-account',
+  'account-status': '/analysis/report/account-status',
+  'video-output': '/analysis/report/video-output',
+  'live-duration': '/analysis/report/live-duration',
+  'cost-allocation': '/analysis/report/cost-allocation',
+  'roi-analysis': '/analysis/report/roi',
+  'team-config': '/analysis/report/team-config',
+  'account-alert': '/analysis/report/account-alert',
+}
+
 const handleTabChange = (tabName: string | number) => {
   const tab = String(tabName)
-  console.log('切换Tab:', tab)
   activeTab.value = tab
-  handleQuery()
-  updateChart()
+  const path = tabRouteMap[tab]
+  if (path) router.push(path)
 }
 
 const handleQuery = () => {
-  loading.value = true
-  setTimeout(() => {
-    const mockDataMap: Record<string, any[]> = {
-      'unified-account': [
-        { platformType: '抖音', accountName: '科技前沿', platformAccountId: 'DY123456', ipGroupName: 'IP大组A', followerCount: 125000, accountStatus: '正常' },
-        { platformType: '快手', accountName: '生活日常', platformAccountId: 'KS789012', ipGroupName: 'IP大组B', followerCount: 98000, accountStatus: '正常' },
-        { platformType: '小红书', accountName: '职场进阶', platformAccountId: 'XHS456789', ipGroupName: 'IP大组A', followerCount: 45000, accountStatus: '正常' },
-        { platformType: '视频号', accountName: '情感驿站', platformAccountId: 'VH987654', ipGroupName: 'IP大组A', followerCount: 78000, accountStatus: '减少推荐' }
-      ],
-      'account-status': [
-        { timePeriod: '2026-05', platformType: '抖音', normalCount: 450, reduceRecommendCount: 15, banPrivateMsgCount: 8, bannedCount: 5, banRate: '1.1%' },
-        { timePeriod: '2026-05', platformType: '快手', normalCount: 320, reduceRecommendCount: 10, banPrivateMsgCount: 5, bannedCount: 8, banRate: '2.5%' },
-        { timePeriod: '2026-05', platformType: '小红书', normalCount: 280, reduceRecommendCount: 8, banPrivateMsgCount: 3, bannedCount: 4, banRate: '1.4%' }
-      ],
-      'video-output': [
-        { timePeriod: '2026-05', userName: '张三', ipGroupName: 'IP大组A', platformType: '抖音', videoCount: 28, dailyAvg: 0.93, achieveRate: '93%' },
-        { timePeriod: '2026-05', userName: '李四', ipGroupName: 'IP大组B', platformType: '快手', videoCount: 25, dailyAvg: 0.83, achieveRate: '83%' },
-        { timePeriod: '2026-05', userName: '王五', ipGroupName: 'IP大组A', platformType: '小红书', videoCount: 30, dailyAvg: 1.0, achieveRate: '100%' }
-      ],
-      'live-duration': [
-        { timePeriod: '2026-05', userName: '张三', platformType: '抖音', totalDuration: 45.5, avgDuration: 2.5, sessionCount: 18, avgViewers: '3.2万' },
-        { timePeriod: '2026-05', userName: '李四', platformType: '快手', totalDuration: 38.2, avgDuration: 2.1, sessionCount: 15, avgViewers: '2.8万' },
-        { timePeriod: '2026-05', userName: '王五', platformType: '视频号', totalDuration: 52.3, avgDuration: 2.9, sessionCount: 20, avgViewers: '4.1万' }
-      ],
-      'cost-allocation': [
-        { timePeriod: '2026-05', costType: '内容制作', ipGroupName: 'IP大组A', platformType: '抖音', contentCost: '¥12.5万', operationCost: '¥8.3万', totalCost: '¥20.8万', costPerUnit: '¥7428' },
-        { timePeriod: '2026-05', costType: '内容制作', ipGroupName: 'IP大组B', platformType: '快手', contentCost: '¥10.2万', operationCost: '¥7.1万', totalCost: '¥17.3万', costPerUnit: '¥8650' },
-        { timePeriod: '2026-05', costType: '运营推广', ipGroupName: 'IP大组A', platformType: '小红书', contentCost: '¥5.6万', operationCost: '¥1.9万', totalCost: '¥7.5万', costPerUnit: '¥5357' }
-      ],
-      'roi-analysis': [
-        { timePeriod: '2026-05', platformType: '抖音', ipGroupName: 'IP大组A', revenue: '¥85.6万', cost: '¥20.8万', roi: '4.1', roiChange: '+0.3' },
-        { timePeriod: '2026-05', platformType: '快手', ipGroupName: 'IP大组B', revenue: '¥62.3万', cost: '¥17.3万', roi: '3.6', roiChange: '-0.2' },
-        { timePeriod: '2026-05', platformType: '小红书', ipGroupName: 'IP大组A', revenue: '¥28.5万', cost: '¥7.5万', roi: '3.8', roiChange: '+0.5' }
-      ],
-      'team-config': [
-        { teamName: '运营一组', roleType: '运营', memberName: '张三', platformType: '抖音', accountCount: 8, workload: '85%' },
-        { teamName: '运营二组', roleType: '运营', memberName: '李四', platformType: '快手', accountCount: 6, workload: '90%' },
-        { teamName: '内容组', roleType: '内容', memberName: '王五', platformType: '全平台', accountCount: 12, workload: '78%' }
-      ],
-      'account-alert': [
-        { alertTime: '2026-05-28 14:30', platformType: '抖音', accountName: '科技前沿', alertType: '限流', alertLevel: '严重', description: '内容疑似违规，平台限流处理', status: '待处理' },
-        { alertTime: '2026-05-28 10:15', platformType: '快手', accountName: '生活日常', alertType: '举报', alertLevel: '一般', description: '收到用户举报，正在审核中', status: '处理中' },
-        { alertTime: '2026-05-27 16:45', platformType: '小红书', accountName: '职场进阶', alertType: '异常登录', alertLevel: '严重', description: '异地登录风险提醒', status: '已处理' }
-      ]
-    }
-    tableData.value = mockDataMap[activeTab.value] || []
-    pagination.total = tableData.value.length || 50
-    loading.value = false
-  }, 500)
+  const path = tabRouteMap[activeTab.value]
+  if (path) router.push(path)
 }
 
 const handleReset = () => {

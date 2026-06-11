@@ -131,16 +131,17 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import * as echarts from 'echarts'
-import { exportToExcel } from '@/utils'
+import { exportToExcel, unwrapApiData } from '@/utils'
 import DictSelect from '@/components/DictSelect.vue'
+import { getRoiAnalysis, getRoiBreakdown } from '@/api/finance'
 
 const searchFormRef = ref<FormInstance>()
 const loading = ref(false)
 const router = useRouter()
 
 const searchForm = reactive({
-  dateRange: ['2026-05-01', '2026-05-31'] as string[],
-  dimension: 'ip_group'
+  dateRange: [] as string[],
+  dimension: 'IP_GROUP',
 })
 
 const searchRules = reactive<FormRules>({
@@ -190,27 +191,67 @@ const getCostTypeColor = (type: string): string => {
 }
 
 const stats = reactive({
-  totalRevenue: 386420,
-  totalCost: 128800,
-  totalProfit: 257620,
-  roi: 3.00,
+  totalRevenue: 0,
+  totalCost: 0,
+  totalProfit: 0,
+  roi: 0,
 })
 
-const roiTable = ref([
-  { name: 'A组', revenue: 220000, cost: 65000, profit: 155000, roi: 3.38, trend: '📈' },
-  { name: 'B组', revenue: 166420, cost: 63800, profit: 102620, roi: 2.61, trend: '📉' },
-])
+const roiTable = ref<Array<{ name: string; revenue: number; cost: number; profit: number; roi: number; trend: string }>>([])
 
 const handleSearch = async () => {
   if (!searchFormRef.value) return
-  
   try {
     await searchFormRef.value.validate()
     loading.value = true
+    const params: Record<string, unknown> = {
+      startDate: searchForm.dateRange[0],
+      endDate: searchForm.dateRange[1],
+      dimension: searchForm.dimension,
+    }
+    const [analysisRes, breakdownRes] = await Promise.all([
+      getRoiAnalysis(params),
+      getRoiBreakdown(params),
+    ])
+    const analysis = unwrapApiData(analysisRes) as {
+      totalRevenue?: number
+      totalCost?: number
+      roi?: number
+      details?: Array<{ name: string; revenue: number; cost: number; roi: number }>
+    }
+    stats.totalRevenue = Number(analysis.totalRevenue ?? 0)
+    stats.totalCost = Number(analysis.totalCost ?? 0)
+    stats.totalProfit = stats.totalRevenue - stats.totalCost
+    stats.roi = Number(analysis.roi ?? 0)
+    roiTable.value = (analysis.details ?? []).map(d => ({
+      name: d.name,
+      revenue: Number(d.revenue ?? 0),
+      cost: Number(d.cost ?? 0),
+      profit: Number(d.revenue ?? 0) - Number(d.cost ?? 0),
+      roi: Number(d.roi ?? 0),
+      trend: Number(d.roi ?? 0) >= stats.roi ? '📈' : '📉',
+    }))
+    const breakdown = unwrapApiData(breakdownRes) as {
+      byType?: Array<{ typeLabel: string; amount: number; percentage: number }>
+      purchase?: number
+      process?: number
+    }
+    if (breakdown?.byType?.length) {
+      costDetailList.value = breakdown.byType.map((item, idx) => ({
+        type: ['primary', 'success', 'warning'][idx % 3],
+        costType: item.typeLabel,
+        amount: Number(item.amount ?? 0),
+        ratio: Number(item.percentage ?? 0) / 100,
+        avgPerAccount: 0,
+        changeRate: 0,
+        description: '',
+      }))
+      structureStats.totalCost = Number(stats.totalCost)
+    }
     ElMessage.success('查询成功')
     loadChart()
   } catch (error) {
-    console.error('表单校验失败', error)
+    console.error('ROI 查询失败', error)
   } finally {
     loading.value = false
   }
@@ -300,7 +341,15 @@ const loadChart = async () => {
   }
 }
 
-onMounted(() => loadChart())
+onMounted(() => {
+  const end = new Date()
+  const start = new Date()
+  start.setDate(end.getDate() - 30)
+  const fmt = (d: Date) => d.toISOString().slice(0, 10)
+  searchForm.dateRange = [fmt(start), fmt(end)]
+  handleSearch()
+  window.addEventListener('resize', handleResize)
+})
 
 // 监听标签页切换，重新渲染图表
 watch(activeTab, () => {

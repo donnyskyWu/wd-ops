@@ -7,6 +7,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.config.CollectConfigCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.config.CollectConfigRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.config.CollectConfigUpdateReq;
+import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.config.CollectConfigDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.config.CollectConfigMapper;
@@ -19,8 +20,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,13 +40,18 @@ public class CollectConfigServiceImpl implements CollectConfigService {
             CollectConfigScope.GENERAL, "dict_ecom_platform"
     );
 
+    /** Legacy seed sub_type values grouped under the platform tab. */
+    private static final Set<String> INTERNAL_PLATFORM_LEGACY_SUB_TYPES = Set.of(
+            "ACCOUNT_METRICS", "CONTENT_METRICS", "LIVE_METRICS"
+    );
+
     private final CollectConfigMapper collectConfigMapper;
     private final AccountMapper accountMapper;
     private final AesUtil aesUtil;
     private final DictService dictService;
 
     @Override
-    public PageResult<CollectConfigRespVO> list(String scope, String configName, String platformType,
+    public PageResult<CollectConfigRespVO> list(String scope, String configName, String subType, String platformType,
                                                  String status, Integer pageNo, Integer pageSize) {
         Long tenantId = ConfigTenantSupport.requireTenantId();
         LambdaQueryWrapper<CollectConfigDO> wrapper = new LambdaQueryWrapper<CollectConfigDO>()
@@ -51,9 +61,13 @@ public class CollectConfigServiceImpl implements CollectConfigService {
                 .eq(StrUtil.isNotBlank(platformType), CollectConfigDO::getPlatformType, platformType)
                 .eq(StrUtil.isNotBlank(status), CollectConfigDO::getStatus, status)
                 .orderByDesc(CollectConfigDO::getId);
+        applySubTypeFilter(wrapper, scope, subType);
         Page<CollectConfigDO> page = collectConfigMapper.selectPage(
                 new Page<>(pageNo == null ? 1 : pageNo, pageSize == null ? 10 : pageSize), wrapper);
-        List<CollectConfigRespVO> list = page.getRecords().stream().map(this::toResp).collect(Collectors.toList());
+        Map<Long, AccountDO> accountById = loadAccountsById(page.getRecords());
+        List<CollectConfigRespVO> list = page.getRecords().stream()
+                .map(entity -> toResp(entity, accountById.get(entity.getAccountId())))
+                .collect(Collectors.toList());
         return new PageResult<>(list, page.getTotal());
     }
 
@@ -63,10 +77,17 @@ public class CollectConfigServiceImpl implements CollectConfigService {
     public Long create(String scope, CollectConfigCreateReq req) {
         validatePlatformType(scope, req.getPlatformType());
         if (CollectConfigScope.INTERNAL.equals(scope)) {
-            if (req.getAccountId() == null) {
-                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "账号不能为空");
+            if (req.getAccountId() != null) {
+                ConfigTenantSupport.assertAccountInTenant(accountMapper, req.getAccountId());
+                enrichFromAccount(req);
+            } else if (StrUtil.isBlank(req.getAccountIdentifier())) {
+                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "账号标识不能为空");
             }
-            ConfigTenantSupport.assertAccountInTenant(accountMapper, req.getAccountId());
+        }
+        if (CollectConfigScope.EXTERNAL.equals(scope)) {
+            if (StrUtil.isBlank(req.getSubType())) {
+                req.setSubType("account");
+            }
         }
 
         CollectConfigDO entity = new CollectConfigDO();
@@ -89,6 +110,15 @@ public class CollectConfigServiceImpl implements CollectConfigService {
         if (req.getAccountId() != null) {
             ConfigTenantSupport.assertAccountInTenant(accountMapper, req.getAccountId());
             existing.setAccountId(req.getAccountId());
+            AccountDO account = accountMapper.selectById(req.getAccountId());
+            if (account != null) {
+                if (StrUtil.isBlank(req.getConfigName())) {
+                    existing.setConfigName(account.getAccountName());
+                }
+                if (StrUtil.isBlank(req.getAccountIdentifier())) {
+                    existing.setAccountIdentifier(account.getExternalAccountId());
+                }
+            }
         }
         if (StrUtil.isNotBlank(req.getConfigName())) {
             existing.setConfigName(req.getConfigName());
@@ -126,8 +156,75 @@ public class CollectConfigServiceImpl implements CollectConfigService {
         if (req.getRemark() != null) {
             existing.setRemark(req.getRemark());
         }
+        applyExtendedUpdate(existing, req);
         ConfigTenantSupport.fillUpdate(existing);
         collectConfigMapper.updateById(existing);
+    }
+
+    @Override
+    @Transactional
+    @AuditLog(module = "M8-collect", action = "toggle-status")
+    public void toggleStatus(String scope, Long id, String status) {
+        CollectConfigDO existing = getRequiredInScope(scope, id);
+        existing.setStatus(status);
+        ConfigTenantSupport.fillUpdate(existing);
+        collectConfigMapper.updateById(existing);
+    }
+
+    @Override
+    public boolean testConnection(String scope, Long id) {
+        CollectConfigDO existing = getRequiredInScope(scope, id);
+        if (CollectConfigScope.GENERAL.equals(scope)) {
+            if (StrUtil.isBlank(existing.getDbHost()) || StrUtil.isBlank(existing.getDbName())) {
+                return false;
+            }
+            existing.setConnStatus("CONNECTED");
+        } else {
+            if (StrUtil.isBlank(existing.getApiUrl()) && StrUtil.isBlank(existing.getDbHost())) {
+                return false;
+            }
+            existing.setConnStatus("CONNECTED");
+        }
+        ConfigTenantSupport.fillUpdate(existing);
+        collectConfigMapper.updateById(existing);
+        return true;
+    }
+
+    @Override
+    @Transactional
+    public cn.iocoder.yudao.module.oa.api.dto.config.ImportResultVO importExternalAccounts(String csvContent) {
+        cn.iocoder.yudao.module.oa.api.dto.config.ImportResultVO result =
+                new cn.iocoder.yudao.module.oa.api.dto.config.ImportResultVO();
+        if (StrUtil.isBlank(csvContent)) {
+            return result;
+        }
+        String[] lines = csvContent.split("\\r?\\n");
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].trim();
+            if (line.isEmpty() || (i == 0 && line.toLowerCase().contains("platform"))) {
+                continue;
+            }
+            String[] parts = line.split(",");
+            if (parts.length < 3) {
+                result.setFailCount(result.getFailCount() + 1);
+                result.getFailReasons().add("行" + (i + 1) + ": 列数不足");
+                continue;
+            }
+            try {
+                CollectConfigCreateReq req = new CollectConfigCreateReq();
+                req.setPlatformType(parts[0].trim());
+                req.setConfigName(parts[1].trim());
+                req.setAccountIdentifier(parts[2].trim());
+                req.setSubType("account");
+                req.setStatus("ENABLED");
+                create(CollectConfigScope.EXTERNAL, req);
+                result.setSuccessCount(result.getSuccessCount() + 1);
+            } catch (Exception e) {
+                result.setFailCount(result.getFailCount() + 1);
+                result.getFailReasons().add("行" + (i + 1) + ": " + e.getMessage());
+            }
+        }
+        return result;
     }
 
     @Override
@@ -164,6 +261,89 @@ public class CollectConfigServiceImpl implements CollectConfigService {
         entity.setCollectFields(req.getCollectFields());
         entity.setStatus(StrUtil.blankToDefault(req.getStatus(), "ENABLED"));
         entity.setRemark(req.getRemark());
+        applyExtendedCreate(entity, req);
+    }
+
+    private void applyExtendedCreate(CollectConfigDO entity, CollectConfigCreateReq req) {
+        entity.setAccountIdentifier(req.getAccountIdentifier());
+        entity.setAppId(req.getAppId());
+        if (StrUtil.isNotBlank(req.getAppSecret())) {
+            entity.setAppSecretEncrypted(aesUtil.encrypt(req.getAppSecret()));
+        }
+        entity.setCookie(req.getCookie());
+        if (StrUtil.isNotBlank(req.getAuthToken())) {
+            entity.setAuthTokenEncrypted(aesUtil.encrypt(req.getAuthToken()));
+        }
+        entity.setFieldMapping(req.getFieldMapping());
+        entity.setIsLive(Boolean.TRUE.equals(req.getIsLive()) ? 1 : 0);
+        entity.setDbHost(req.getDbHost());
+        entity.setDbPort(req.getDbPort());
+        entity.setDbName(req.getDbName());
+        entity.setDbUsername(req.getDbUsername());
+        if (StrUtil.isNotBlank(req.getDbPassword())) {
+            entity.setDbPasswordEncrypted(aesUtil.encrypt(req.getDbPassword()));
+        }
+        entity.setTableName(StrUtil.blankToDefault(req.getTableName(), "pay_all_order"));
+        entity.setSyncMode(StrUtil.blankToDefault(req.getSyncMode(), "INCREMENTAL"));
+        entity.setConnStatus("DISCONNECTED");
+    }
+
+    private void applyExtendedUpdate(CollectConfigDO entity, CollectConfigUpdateReq req) {
+        if (req.getAccountIdentifier() != null) {
+            entity.setAccountIdentifier(req.getAccountIdentifier());
+        }
+        if (req.getAppId() != null) {
+            entity.setAppId(req.getAppId());
+        }
+        if (StrUtil.isNotBlank(req.getAppSecret())) {
+            entity.setAppSecretEncrypted(aesUtil.encrypt(req.getAppSecret()));
+        }
+        if (req.getCookie() != null) {
+            entity.setCookie(req.getCookie());
+        }
+        if (StrUtil.isNotBlank(req.getAuthToken())) {
+            entity.setAuthTokenEncrypted(aesUtil.encrypt(req.getAuthToken()));
+        }
+        if (req.getFieldMapping() != null) {
+            entity.setFieldMapping(req.getFieldMapping());
+        }
+        if (req.getIsLive() != null) {
+            entity.setIsLive(Boolean.TRUE.equals(req.getIsLive()) ? 1 : 0);
+        }
+        if (req.getDbHost() != null) {
+            entity.setDbHost(req.getDbHost());
+        }
+        if (req.getDbPort() != null) {
+            entity.setDbPort(req.getDbPort());
+        }
+        if (req.getDbName() != null) {
+            entity.setDbName(req.getDbName());
+        }
+        if (req.getDbUsername() != null) {
+            entity.setDbUsername(req.getDbUsername());
+        }
+        if (StrUtil.isNotBlank(req.getDbPassword())) {
+            entity.setDbPasswordEncrypted(aesUtil.encrypt(req.getDbPassword()));
+        }
+        if (req.getTableName() != null) {
+            entity.setTableName(req.getTableName());
+        }
+        if (StrUtil.isNotBlank(req.getSyncMode())) {
+            entity.setSyncMode(req.getSyncMode());
+        }
+    }
+
+    private void applySubTypeFilter(LambdaQueryWrapper<CollectConfigDO> wrapper, String scope, String subType) {
+        if (StrUtil.isBlank(subType)) {
+            return;
+        }
+        if (CollectConfigScope.INTERNAL.equals(scope) && "platform".equals(subType)) {
+            wrapper.and(w -> w.eq(CollectConfigDO::getSubType, subType)
+                    .or().in(CollectConfigDO::getSubType, INTERNAL_PLATFORM_LEGACY_SUB_TYPES)
+                    .or().isNull(CollectConfigDO::getSubType));
+            return;
+        }
+        wrapper.eq(CollectConfigDO::getSubType, subType);
     }
 
     private void validatePlatformType(String scope, String platformType) {
@@ -176,13 +356,46 @@ public class CollectConfigServiceImpl implements CollectConfigService {
         }
     }
 
-    private CollectConfigRespVO toResp(CollectConfigDO entity) {
+    private Map<Long, AccountDO> loadAccountsById(List<CollectConfigDO> records) {
+        List<Long> accountIds = records.stream()
+                .map(CollectConfigDO::getAccountId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (accountIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return accountMapper.selectBatchIds(accountIds).stream()
+                .collect(Collectors.toMap(AccountDO::getId, Function.identity(), (a, b) -> a));
+    }
+
+    private void enrichFromAccount(CollectConfigCreateReq req) {
+        AccountDO account = accountMapper.selectById(req.getAccountId());
+        if (account == null) {
+            return;
+        }
+        if (StrUtil.isBlank(req.getConfigName())) {
+            req.setConfigName(account.getAccountName());
+        }
+        if (StrUtil.isBlank(req.getAccountIdentifier())) {
+            req.setAccountIdentifier(account.getExternalAccountId());
+        }
+    }
+
+    private CollectConfigRespVO toResp(CollectConfigDO entity, AccountDO account) {
         CollectConfigRespVO vo = new CollectConfigRespVO();
         vo.setId(entity.getId());
         vo.setConfigName(entity.getConfigName());
         vo.setSubType(entity.getSubType());
         vo.setPlatformType(entity.getPlatformType());
         vo.setAccountId(entity.getAccountId());
+        vo.setAccountIdentifier(entity.getAccountIdentifier());
+        if (account != null) {
+            vo.setAccountName(account.getAccountName());
+            if (StrUtil.isBlank(vo.getAccountIdentifier())) {
+                vo.setAccountIdentifier(account.getExternalAccountId());
+            }
+        }
         vo.setCollectFrequency(entity.getCollectFrequency());
         vo.setCollectMethod(entity.getCollectMethod());
         vo.setApiUrl(entity.getApiUrl());
@@ -194,6 +407,21 @@ public class CollectConfigServiceImpl implements CollectConfigService {
         vo.setStatus(entity.getStatus());
         vo.setRemark(entity.getRemark());
         vo.setCreateTime(entity.getCreateTime());
+        vo.setUpdateTime(entity.getUpdateTime());
+        vo.setAppId(entity.getAppId());
+        vo.setAppSecretMasked(StrUtil.isNotBlank(entity.getAppSecretEncrypted()) ? MASK : null);
+        vo.setCookie(entity.getCookie());
+        vo.setAuthTokenMasked(StrUtil.isNotBlank(entity.getAuthTokenEncrypted()) ? MASK : null);
+        vo.setFieldMapping(entity.getFieldMapping());
+        vo.setIsLive(entity.getIsLive() != null && entity.getIsLive() == 1);
+        vo.setDbHost(entity.getDbHost());
+        vo.setDbPort(entity.getDbPort());
+        vo.setDbName(entity.getDbName());
+        vo.setDbUsername(entity.getDbUsername());
+        vo.setDbPasswordMasked(StrUtil.isNotBlank(entity.getDbPasswordEncrypted()) ? MASK : null);
+        vo.setTableName(entity.getTableName());
+        vo.setSyncMode(entity.getSyncMode());
+        vo.setConnStatus(entity.getConnStatus());
         return vo;
     }
 }

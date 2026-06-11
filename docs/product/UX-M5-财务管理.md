@@ -33,7 +33,7 @@
 | 筛选 | `TableSearch`：账号名称关键词 | - |
 | 列表 | 表格 | 采购/过程/总成本列右对齐 |
 | 分页 | `Pagination` | pageNo/pageSize |
-| 查看抽屉 | `el-drawer` 640px | 账号信息 + 成本明细 |
+| 查看抽屉 | `el-drawer` 640px | 账号信息 + 成本明细；`DictLabel` 渲染 platform/costType/period |
 | 成本管理弹窗 | `el-dialog` 820px | 采购区 + 过程成本表 |
 | 过程成本表单 | 嵌套 `el-dialog` 520px | 类型/金额/日期/支付方式/周期 |
 
@@ -47,6 +47,9 @@
 | COL-PROCESS | 列 | 过程成本非 PURCHASE 汇总 |
 | COL-TOTAL | 列 | 采购 + 过程 |
 | BTN-VIEW | Link | 查看 → 抽屉 |
+| DL-PLATFORM | `<DictLabel dict-type="dict_platform_type" />` | 列表 + 抽屉账号平台 |
+| DL-COST-TYPE | `<DictLabel dict-type="dict_cost_type" />` | 明细表成本类型 |
+| DL-PERIOD | `<DictLabel dict-type="dict_cost_period" />` | 明细表归属周期 |
 | BTN-MANAGE | Link | 成本管理 → 弹窗 |
 | F-COST-TYPE | `<DictSelect dict-type="dict_cost_type" />` | 过程成本 |
 | F-PAY-METHOD | `<DictSelect dict-type="dict_cost_pay_method" />` | 支付方式 |

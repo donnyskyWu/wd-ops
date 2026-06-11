@@ -79,8 +79,9 @@ public class HomeDashboardController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) String platformType,
-            @RequestParam(required = false) String type) {
-        return CommonResult.success(homeDashboardService.getTrend(ipGroupId, startDate, endDate, platformType, type));
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String groupBy) {
+        return CommonResult.success(homeDashboardService.getTrend(ipGroupId, startDate, endDate, platformType, type, groupBy));
     }
 
     @GetMapping("/platform-dist")

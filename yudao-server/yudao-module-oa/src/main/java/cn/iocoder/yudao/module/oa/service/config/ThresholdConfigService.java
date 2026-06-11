@@ -7,8 +7,8 @@ import cn.iocoder.yudao.module.oa.api.dto.config.ThresholdConfigUpdateReq;
 
 public interface ThresholdConfigService {
 
-    PageResult<ThresholdConfigRespVO> list(String metricName, String metricType, String status,
-                                           Integer pageNo, Integer pageSize);
+    PageResult<ThresholdConfigRespVO> list(String thresholdCategory, String metricName, String metricType,
+                                           String status, Integer pageNo, Integer pageSize);
 
     Long create(ThresholdConfigCreateReq req);
 

@@ -10,7 +10,7 @@
 
     <!-- 工具栏 -->
     <div class="toolbar">
-      <el-button type="primary" @click="handleSave">
+      <el-button type="primary" :loading="saving" @click="handleSave">
         <el-icon><Check /></el-icon>
         保存
       </el-button>
@@ -55,7 +55,7 @@
     <!-- 主内容区 -->
     <el-row :gutter="16" class="main-content">
       <!-- 左侧节点面板 -->
-      <el-col :span="4">
+      <el-col :xs="24" :lg="4">
         <el-card shadow="never" class="node-panel">
           <template #header>
             <div class="panel-header">
@@ -123,8 +123,8 @@
         </el-card>
       </el-col>
 
-      <!-- 中间DAG画布 -->
-      <el-col :span="16">
+      <!-- 中间DAG画布（4+14+6=24，避免配置面板换行） -->
+      <el-col :xs="24" :lg="14">
         <el-card shadow="never" class="dag-canvas-card">
           <div 
             ref="containerRef" 
@@ -169,7 +169,7 @@
       </el-col>
 
       <!-- 右侧节点配置面板 -->
-      <el-col :span="6">
+      <el-col :xs="24" :lg="6">
         <el-card v-if="selectedNode" shadow="never" class="config-panel">
           <template #header>
             <div class="panel-header">
@@ -188,22 +188,22 @@
               <el-input v-model="selectedNode.nodeName" maxlength="50" @blur="updateNodeLabel" />
             </el-form-item>
             <el-form-item label="执行岗位">
-              <el-select v-model="selectedNode.executorRole" placeholder="请选择" @change="updateNodeRole">
-                <el-option label="运营组长" value="运营组长" />
-                <el-option label="公众号运营" value="公众号运营" />
-                <el-option label="剪辑" value="剪辑" />
-                <el-option label="直播运营" value="直播运营" />
-                <el-option label="销售" value="销售" />
-              </el-select>
+              <DictSelect
+                v-model="selectedNode.executorRole"
+                dict-type="dict_position"
+                placeholder="请选择"
+                @change="updateNodeRole"
+              />
             </el-form-item>
             <el-form-item label="是否需要审核">
               <el-switch v-model="selectedNode.needReview" :active-value="1" :inactive-value="0" />
             </el-form-item>
             <el-form-item v-if="selectedNode.needReview === 1" label="审核人岗位">
-              <el-select v-model="selectedNode.reviewerRole" placeholder="请选择">
-                <el-option label="运营组长" value="运营组长" />
-                <el-option label="内容总监" value="内容总监" />
-              </el-select>
+              <DictSelect
+                v-model="selectedNode.reviewerRole"
+                dict-type="dict_position"
+                placeholder="请选择"
+              />
             </el-form-item>
             <el-form-item label="前置节点">
               <el-select
@@ -247,7 +247,8 @@ import {
 } from '@element-plus/icons-vue'
 import LogicFlow, { CircleNode, CircleNodeModel, RectNode, RectNodeModel } from '@logicflow/core'
 import '@logicflow/core/dist/index.css'
-import { getSopNodeList, getSopTemplateList, validateDag } from '@/api/sop'
+import { createSopNode, getSopNodeList, getSopTemplateList, updateSopNode, validateDag } from '@/api/sop'
+import DictSelect from '@/components/DictSelect.vue'
 import type { SopNodeVO } from '@/types/sop'
 
 const route = useRoute()
@@ -258,6 +259,8 @@ const templateId = computed(() => Number(route.params.id))
 
 const templateName = ref((history.state?.templateName as string) || '')
 const loading = ref(false)
+const saving = ref(false)
+const persistedNodeIds = ref<Set<number>>(new Set())
 const nodes = ref<SopNodeVO[]>([])
 const edges = ref<any[]>([])
 const selectedNodeId = ref<number | null>(null)
@@ -479,6 +482,19 @@ const isStartNode = (node: SopNodeVO): boolean => {
   return !node.predecessors || node.predecessors.length === 0
 }
 
+// 从节点 predecessors 同步边，并过滤无效引用
+const syncEdgesFromNodes = () => {
+  const nodeIds = new Set(nodes.value.map((n) => n.id))
+  edges.value = []
+  nodes.value.forEach((node) => {
+    node.predecessors?.forEach((predId) => {
+      if (nodeIds.has(predId) && predId !== node.id) {
+        edges.value.push({ source: predId, target: node.id })
+      }
+    })
+  })
+}
+
 // 渲染图
 const renderGraph = () => {
   if (!lf) return
@@ -487,7 +503,8 @@ const renderGraph = () => {
     return
   }
 
-  console.log('🎨 开始渲染节点:', nodes.value.map(n => ({ id: n.id, name: n.nodeName, type: n.needReview === 1 ? 'audit' : 'process' })))
+  syncEdgesFromNodes()
+  const nodeIdSet = new Set(nodes.value.map((n) => String(n.id)))
 
   const graphData = {
     nodes: nodes.value.map(node => ({
@@ -500,15 +517,16 @@ const renderGraph = () => {
         ...node,
       },
     })),
-    edges: edges.value.map(edge => ({
-      id: `e${edge.source}-${edge.target}`,
-      type: 'polyline',
-      sourceNodeId: String(edge.source),
-      targetNodeId: String(edge.target),
-    })),
+    edges: edges.value
+      .filter((edge) => nodeIdSet.has(String(edge.source)) && nodeIdSet.has(String(edge.target)))
+      .map(edge => ({
+        id: `e${edge.source}-${edge.target}`,
+        type: 'polyline',
+        sourceNodeId: String(edge.source),
+        targetNodeId: String(edge.target),
+      })),
   }
 
-  console.log('渲染图数据:', graphData)
   lf.render(graphData)
 }
 
@@ -624,8 +642,9 @@ const handleDrop = (event: DragEvent) => {
     nodeName: `${getNodeTypeName(nodeType)}${nodes.value.length + 1}`,
     nodeOrder: nodes.value.length + 1,
     nodeDescription: '',
-    executorRole: '运营组长',
+    executorRole: 'OPERATOR',
     needReview: nodeType === 'audit' ? 1 : 0,
+    reviewerRole: nodeType === 'audit' ? 'OPS_LEADER' : undefined,
     predecessors: [],
   }
   
@@ -737,32 +756,31 @@ const loadTemplateMeta = async () => {
 }
 
 // 加载节点列表
-const loadNodes = async () => {
+const loadNodes = async (options?: { silent?: boolean }) => {
   loading.value = true
   try {
     const data = await getSopNodeList(templateId.value)
 
     nodes.value = data || []
-    edges.value = []
-    ;(data || []).forEach((node) => {
-      if (node.predecessors?.length) {
-        node.predecessors.forEach((predId) => {
-          edges.value.push({ source: predId, target: node.id })
-        })
-      }
-    })
+    persistedNodeIds.value = new Set((data || []).map((node) => node.id))
+    syncEdgesFromNodes()
 
-    if (!data?.length) {
-      ElMessage.info('该模板暂无节点，请从左侧节点库拖拽或点击 + 添加')
-    } else {
-      ElMessage.success(`已加载 ${data.length} 个节点`)
+    if (!options?.silent) {
+      if (!data?.length) {
+        ElMessage.info('该模板暂无节点，请从左侧节点库拖拽或点击 + 添加')
+      } else {
+        ElMessage.success(`已加载 ${data.length} 个节点`)
+      }
     }
 
     ensureCanvasReady()
   } catch (error) {
     console.error('加载节点失败:', error)
-    ElMessage.error('加载节点失败，请重试')
+    if (!options?.silent) {
+      ElMessage.error('加载节点失败，请重试')
+    }
     ensureCanvasReady()
+    throw error
   } finally {
     loading.value = false
   }
@@ -771,6 +789,7 @@ const loadNodes = async () => {
 const resetEditor = () => {
   selectedNodeId.value = null
   nodes.value = []
+  persistedNodeIds.value = new Set()
   edges.value = []
   historyStack.value = []
   historyIndex.value = -1
@@ -814,8 +833,11 @@ const handleEdgeCreated = (data: any) => {
 
   // 更新目标节点的前置节点
   const targetNode = nodes.value.find(n => n.id === targetId)
-  if (targetNode && !targetNode.predecessors.includes(sourceId)) {
-    targetNode.predecessors.push(sourceId)
+  if (targetNode) {
+    if (!targetNode.predecessors) targetNode.predecessors = []
+    if (!targetNode.predecessors.includes(sourceId)) {
+      targetNode.predecessors.push(sourceId)
+    }
   }
 
   edges.value.push({
@@ -880,7 +902,7 @@ const handleAddNode = () => {
     nodeName: `新节点${nodes.value.length + 1}`,
     nodeOrder: nodes.value.length + 1,
     nodeDescription: '',
-    executorRole: '运营组长',
+    executorRole: 'OPERATOR',
     needReview: 0,
     predecessors: [],
   }
@@ -896,6 +918,63 @@ const handleAddNode = () => {
   // 自动选中新节点
   selectedNodeId.value = newNode.id
   ElMessage.success('节点已添加，请在右侧配置')
+}
+
+const isNewNode = (nodeId: number) => !persistedNodeIds.value.has(nodeId)
+
+const buildNodePayload = (node: SopNodeVO) => ({
+  nodeName: node.nodeName.trim(),
+  nodeOrder: node.nodeOrder,
+  executorRole: node.executorRole,
+  needReview: node.needReview,
+  reviewerRole: node.needReview === 1 ? node.reviewerRole : undefined,
+  parallelGroup: node.parallelGroup || undefined,
+  slaHours: node.slaHours,
+})
+
+const remapPredecessors = (predecessors: number[], idMap: Map<number, number>) =>
+  predecessors.map((predId) => idMap.get(predId) ?? predId)
+
+const applyIdRemap = (idMap: Map<number, number>) => {
+  if (selectedNodeId.value != null && idMap.has(selectedNodeId.value)) {
+    selectedNodeId.value = idMap.get(selectedNodeId.value)!
+  }
+  for (const node of nodes.value) {
+    if (idMap.has(node.id)) {
+      node.id = idMap.get(node.id)!
+    }
+    node.predecessors = remapPredecessors(node.predecessors || [], idMap)
+  }
+}
+
+const persistNodes = async () => {
+  const idMap = new Map<number, number>()
+
+  for (const node of nodes.value) {
+    if (!isNewNode(node.id)) continue
+    const oldId = node.id
+    const newId = await createSopNode({
+      templateId: templateId.value,
+      predecessors: [],
+      ...buildNodePayload(node),
+    })
+    idMap.set(oldId, newId)
+  }
+
+  if (idMap.size > 0) {
+    applyIdRemap(idMap)
+  }
+
+  for (const node of nodes.value) {
+    await updateSopNode({
+      id: node.id,
+      predecessors: node.predecessors || [],
+      ...buildNodePayload(node),
+    })
+  }
+
+  persistedNodeIds.value = new Set(nodes.value.map((node) => node.id))
+  syncEdgesFromNodes()
 }
 
 // 选中节点
@@ -972,34 +1051,52 @@ const handleValidateDag = async () => {
 
 // 保存
 const handleSave = async () => {
-  try {
-    // 校验节点名称
-    const emptyNameNodes = nodes.value.filter(n => !n.nodeName || n.nodeName.trim() === '')
-    if (emptyNameNodes.length > 0) {
-      ElMessage.error('请为所有节点填写名称')
-      return
-    }
+  if (saving.value) return
 
-    // 校验DAG
+  const emptyNameNodes = nodes.value.filter((n) => !n.nodeName || n.nodeName.trim() === '')
+  if (emptyNameNodes.length > 0) {
+    ElMessage.error('请为所有节点填写名称')
+    return
+  }
+
+  const missingRoleNodes = nodes.value.filter((n) => !n.executorRole)
+  if (missingRoleNodes.length > 0) {
+    ElMessage.error('请为所有节点选择执行岗位')
+    return
+  }
+
+  const missingReviewerNodes = nodes.value.filter(
+    (n) => n.needReview === 1 && (!n.reviewerRole || n.reviewerRole.trim() === ''),
+  )
+  if (missingReviewerNodes.length > 0) {
+    ElMessage.error('需要审核的节点必须选择审核人岗位')
+    return
+  }
+
+  saving.value = true
+  try {
     const dagData = {
       templateId: templateId.value,
-      nodes: nodes.value.map(node => ({
+      nodes: nodes.value.map((node) => ({
         id: node.id,
-        predecessors: node.predecessors,
+        predecessors: node.predecessors || [],
       })),
     }
 
     const validationResult = await validateDag(dagData)
-
     if (!validationResult.valid) {
-      ElMessage.error(`DAG校验失败：${validationResult.message}`)
+      ElMessage.error(`DAG校验失败：${validationResult.message || '流程存在循环依赖'}`)
       return
     }
 
+    await persistNodes()
+    await loadNodes({ silent: true })
     ElMessage.success('保存成功')
   } catch (error) {
     console.error('保存失败:', error)
     ElMessage.error('保存失败，请重试')
+  } finally {
+    saving.value = false
   }
 }
 
@@ -1050,6 +1147,28 @@ onUnmounted(() => {
 
   .main-content {
     height: calc(100vh - 200px);
+
+    @media (max-width: 1199px) {
+      height: auto;
+
+      > .el-col {
+        margin-bottom: 16px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+
+      .node-panel,
+      .dag-canvas-card,
+      .config-panel {
+        height: auto;
+      }
+
+      .dag-canvas-card .dag-canvas {
+        height: 420px;
+      }
+    }
 
     .node-panel,
     .dag-canvas-card,

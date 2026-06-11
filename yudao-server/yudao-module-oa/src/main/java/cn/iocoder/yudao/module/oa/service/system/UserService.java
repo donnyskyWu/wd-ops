@@ -7,7 +7,7 @@ import cn.iocoder.yudao.module.oa.api.dto.system.UserUpdateReq;
 
 public interface UserService {
 
-    PageResult<UserRespVO> list(String username, String nickname, Long roleId, String status,
+    PageResult<UserRespVO> list(String username, String nickname, Long roleId, Long deptId, String status,
                                 Integer pageNo, Integer pageSize);
 
     Long create(UserCreateReq req);

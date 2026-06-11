@@ -1,6 +1,6 @@
 # CHECKLIST-M5-财务管理
 
-> **M5 自检清单** | 版本 v1.0 | 2026-06-07
+> **M5 自检清单** | 版本 v1.1 | 2026-06-11
 > **关联**：[`SLICES-M5-财务管理.md`](./SLICES-M5-财务管理.md)、[`GLOBAL-CONVENTIONS.md`](../engineering/GLOBAL-CONVENTIONS.md)
 
 ---
@@ -23,6 +23,7 @@
 - [ ] `costType` 用 `<DictSelect dict-type="dict_cost_type" />`
 - [ ] `payMethod` 用 `<DictSelect dict-type="dict_cost_pay_method" />`
 - [ ] `period` 用 `<DictSelect dict-type="dict_cost_period" />`
+- [ ] 成本详情抽屉 platform/costType/period 用 `<DictLabel />` 展示
 - [ ] `ipGroupId` 用 `<IpGroupTreeSelect />`
 - [ ] 所有 `*_id` 强制 ID
 - [ ] 跨租户隔离

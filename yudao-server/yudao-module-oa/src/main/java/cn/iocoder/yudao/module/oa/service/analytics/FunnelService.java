@@ -12,7 +12,8 @@ public interface FunnelService {
 
     Long create(FunnelCreateReq req);
 
-    FunnelDataVO getData(Long id);
+    FunnelDataVO getData(Long id, java.time.LocalDate startDate, java.time.LocalDate endDate,
+                         Long ipGroupId, String platformType);
 
     ExportJobVO export(Long id);
 }

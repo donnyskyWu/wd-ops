@@ -13,6 +13,12 @@ public class ThresholdConfigUpdateReq {
     @NotNull
     private Long id;
 
+    @InDict("dict_threshold_category")
+    private String thresholdCategory;
+
+    @InDict("dict_threshold_type")
+    private String thresholdType;
+
     @Size(max = 128)
     private String metricName;
 
@@ -21,6 +27,21 @@ public class ThresholdConfigUpdateReq {
 
     @InDict("dict_platform_type")
     private String platformType;
+
+    @InDict("dict_content_type")
+    private String contentType;
+
+    @InDict("dict_judge_mode")
+    private String judgeMode;
+
+    private Long lowFans;
+    private Long highFans;
+    private Integer dailyLow;
+    private Integer dailyHigh;
+    private Long hotValue;
+    private Long lowValue;
+    private Long overrideAccountId;
+    private Long overrideValue;
 
     private Long ipGroupId;
 

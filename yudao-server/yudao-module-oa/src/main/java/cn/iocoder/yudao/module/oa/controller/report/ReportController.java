@@ -58,16 +58,16 @@ public class ReportController {
     @GetMapping("/account-status/trend")
     public CommonResult<List<Map<String, Object>>> accountStatusTrend(
             @RequestParam(required = false) Long accountId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return CommonResult.success(reportService.accountStatusTrend(accountId, startDate, endDate));
     }
 
     @GetMapping("/account-status/summary")
     public CommonResult<Map<String, Object>> accountStatusSummary(
             @RequestParam(required = false) Long accountId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return CommonResult.success(reportService.accountStatusSummary(accountId, startDate, endDate));
     }
 
@@ -135,8 +135,8 @@ public class ReportController {
     @GetMapping("/live-duration/trend")
     public CommonResult<List<Map<String, Object>>> liveDurationTrend(
             @RequestParam(required = false) Long ipGroupId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return CommonResult.success(reportService.liveDurationTrend(ipGroupId, startDate, endDate));
     }
 

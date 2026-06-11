@@ -1,6 +1,5 @@
 /**
- * M8 配置管理 API
- * 契约: /admin-api/oa/config/*
+ * M8 配置管理 API — 契约见 docs/engineering/API-M8-配置管理.md
  */
 import { request } from '@/utils/request'
 
@@ -10,27 +9,51 @@ export interface CollectConfigVO {
   subType?: string
   platformType?: string
   accountId?: number
+  accountName?: string
+  accountIdentifier?: string
+  appId?: string
+  appSecretMasked?: string
+  cookie?: string
+  authTokenMasked?: string
+  fieldMapping?: string
+  isLive?: boolean
+  dbHost?: string
+  dbPort?: number
+  dbName?: string
+  dbUsername?: string
+  dbPasswordMasked?: string
+  tableName?: string
+  syncMode?: string
+  connStatus?: string
   collectFrequency?: string
   collectMethod?: string
   apiUrl?: string
   apiKeyMasked?: string
-  requestMethod?: string
-  requestParams?: string
-  responseMapping?: string
-  collectFields?: string
   status?: string
   remark?: string
   createTime?: string
+  updateTime?: string
 }
 
 export interface ThresholdConfigVO {
   id: number
+  thresholdCategory?: string
+  thresholdType?: string
   metricName: string
-  metricType: string
+  metricType?: string
   platformType?: string
-  ipGroupId?: number
+  contentType?: string
+  judgeMode?: string
+  lowFans?: number
+  highFans?: number
+  dailyLow?: number
+  dailyHigh?: number
+  hotValue?: number
+  lowValue?: number
+  overrideAccountId?: number
+  overrideValue?: number
   compareOperator?: string
-  thresholdValue: number
+  thresholdValue?: number
   alertLevel?: string
   notifyMethods?: string
   status?: string
@@ -41,10 +64,14 @@ export interface ThresholdConfigVO {
 export interface AiModelConfigVO {
   id: number
   modelName: string
+  modelId?: string
   modelType?: string
   apiEndpoint?: string
   apiKeyMasked?: string
   maxTokens?: number
+  timeout?: number
+  isDefault?: boolean
+  connStatus?: string
   temperature?: number
   topP?: number
   status?: string
@@ -52,9 +79,17 @@ export interface AiModelConfigVO {
   createTime?: string
 }
 
+export interface AiModelStatsVO {
+  total: number
+  enabled: number
+  connected: number
+  defaultCount: number
+}
+
 export interface AiPromptConfigVO {
   id: number
   templateName: string
+  version?: string
   scene?: string
   promptContent: string
   variableDesc?: string
@@ -62,6 +97,33 @@ export interface AiPromptConfigVO {
   status?: string
   remark?: string
   createTime?: string
+}
+
+export interface KeywordConfigVO {
+  id: number
+  platform: string
+  keyword: string
+  matchType: string
+  status: string
+  createTime?: string
+  updateTime?: string
+}
+
+export interface AoCreateApiVO {
+  id?: number
+  apiUrl: string
+  appId: string
+  appSecretMasked?: string
+  tokenMasked?: string
+  status?: string
+  dailyQuota?: number
+  currentUsage?: number
+}
+
+export interface ImportResultVO {
+  successCount: number
+  failCount: number
+  failReasons: string[]
 }
 
 export interface ConfigPageResult<T> {
@@ -86,21 +148,48 @@ function collectApi(scope: CollectScope) {
     delete(id: number) {
       return request.delete<boolean>({ url: `${base}/delete`, params: { id } })
     },
+    toggleStatus(id: number, status: string) {
+      return request.put<boolean>({ url: `${base}/toggle-status`, data: { id, status } })
+    },
+    testConnection(id: number) {
+      return request.post<boolean>({ url: `${base}/test-connection`, data: { id } })
+    },
   }
 }
 
-export const internalCollectApi = collectApi('internal-collect')
-export const externalCollectApi = collectApi('external-collect')
+export const internalCollectApi = {
+  ...collectApi('internal-collect'),
+  getAoCreate() {
+    return request.get<AoCreateApiVO | null>({ url: '/oa/config/internal-collect/aocreate' })
+  },
+  saveAoCreate(data: Record<string, unknown>) {
+    return request.post<boolean>({ url: '/oa/config/internal-collect/aocreate', data })
+  },
+}
+
+export const externalCollectApi = {
+  ...collectApi('external-collect'),
+  importCsv(content: string) {
+    return request.post<ImportResultVO>({ url: '/oa/config/external-collect/import', data: { content } })
+  },
+  keywordList(params?: Record<string, unknown>) {
+    return request.get<ConfigPageResult<KeywordConfigVO>>({ url: '/oa/config/external-collect/keyword/list', params })
+  },
+  keywordCreate(data: Record<string, unknown>) {
+    return request.post<number>({ url: '/oa/config/external-collect/keyword/create', data })
+  },
+  keywordUpdate(data: Record<string, unknown>) {
+    return request.put<boolean>({ url: '/oa/config/external-collect/keyword/update', data })
+  },
+  keywordDelete(id: number) {
+    return request.delete<boolean>({ url: '/oa/config/external-collect/keyword/delete', params: { id } })
+  },
+}
+
 export const externalSourceApi = collectApi('external-source')
 export const orderCollectApi = collectApi('order-collect')
 
-export function fetchThresholdList(params?: {
-  metricName?: string
-  metricType?: string
-  status?: string
-  pageNo?: number
-  pageSize?: number
-}) {
+export function fetchThresholdList(params?: Record<string, unknown>) {
   return request.get<ConfigPageResult<ThresholdConfigVO>>({ url: '/oa/config/threshold/list', params })
 }
 
@@ -116,13 +205,12 @@ export function deleteThreshold(id: number) {
   return request.delete<boolean>({ url: '/oa/config/threshold/delete', params: { id } })
 }
 
-export function fetchAiModelList(params?: {
-  modelName?: string
-  status?: string
-  pageNo?: number
-  pageSize?: number
-}) {
+export function fetchAiModelList(params?: Record<string, unknown>) {
   return request.get<ConfigPageResult<AiModelConfigVO>>({ url: '/oa/config/ai-model/list', params })
+}
+
+export function fetchAiModelStats() {
+  return request.get<AiModelStatsVO>({ url: '/oa/config/ai-model/stats' })
 }
 
 export function createAiModel(data: Record<string, unknown>) {
@@ -137,14 +225,20 @@ export function deleteAiModel(id: number) {
   return request.delete<boolean>({ url: '/oa/config/ai-model/delete', params: { id } })
 }
 
-export function fetchAiPromptList(params?: {
-  templateName?: string
-  scene?: string
-  status?: string
-  pageNo?: number
-  pageSize?: number
-}) {
+export function testAiModelConnection(id: number) {
+  return request.post<boolean>({ url: '/oa/config/ai-model/test-connection', data: { id } })
+}
+
+export function setDefaultAiModel(id: number) {
+  return request.put<boolean>({ url: '/oa/config/ai-model/set-default', data: { id } })
+}
+
+export function fetchAiPromptList(params?: Record<string, unknown>) {
   return request.get<ConfigPageResult<AiPromptConfigVO>>({ url: '/oa/config/ai-prompt/list', params })
+}
+
+export function getAiPrompt(id: number) {
+  return request.get<AiPromptConfigVO>({ url: '/oa/config/ai-prompt/get', params: { id } })
 }
 
 export function createAiPrompt(data: Record<string, unknown>) {

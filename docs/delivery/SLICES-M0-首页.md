@@ -1,7 +1,7 @@
 # SLICES-M0-首页
 
 > **切片计划**：M0 首页（FR-M0-001）
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v1.1 | 2026-06-11
 > **总切片数**：3 片
 > **预估总工时**：约 3 人日
 
@@ -51,6 +51,9 @@ graph LR
 - 后端：`/dashboard/home/trend`、`/dashboard/home/platform-dist`
 - 前端：ECharts 折线图 + 饼图
 - 字典联动：F-PLATFORM 用 `<DictSelect dict-type="dict_platform_type" />`
+- 分组：`groupBy` PLATFORM / IP_GROUP（实现 2026-06-11）
+- Seed：`V39__seed_dashboard_content.sql` 近 7 天测试数据
+- 前端：`Dashboard.vue` 重写（真 API + ECharts）
 
 **关联全局规范**：
 - `platform` 字段使用 `dict_platform_type` value

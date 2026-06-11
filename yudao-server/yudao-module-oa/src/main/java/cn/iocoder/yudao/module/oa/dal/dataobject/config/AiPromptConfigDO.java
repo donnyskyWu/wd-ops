@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 public class AiPromptConfigDO extends TenantBaseDO {
 
     private String templateName;
+    private String version;
     private String scene;
     private String promptContent;
     private String variableDesc;

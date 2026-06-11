@@ -14,6 +14,9 @@ public class AiModelConfigCreateReq {
     @Size(max = 128)
     private String modelName;
 
+    @Size(max = 100)
+    private String modelId;
+
     @InDict("dict_ai_model_type")
     private String modelType;
 
@@ -24,6 +27,8 @@ public class AiModelConfigCreateReq {
     private String apiKey;
 
     private Integer maxTokens;
+    private Integer timeout;
+    private Boolean isDefault;
     private BigDecimal temperature;
     private BigDecimal topP;
 
