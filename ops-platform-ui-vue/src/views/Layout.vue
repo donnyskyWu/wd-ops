@@ -112,7 +112,7 @@
           <el-menu-item index="/financial-analysis">总体财务分析</el-menu-item>
           <el-menu-item index="/funnel-analysis">漏斗分析</el-menu-item>
           <el-menu-item index="/custom-query">自定义查询</el-menu-item>
-          <el-menu-item index="/data-screen">数据大屏</el-menu-item>
+          <el-menu-item index="/screen">数据大屏</el-menu-item>
           <el-menu-item index="/screen-config">大屏配置</el-menu-item>
         </el-sub-menu>
 

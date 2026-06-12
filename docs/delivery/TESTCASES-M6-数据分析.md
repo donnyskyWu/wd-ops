@@ -36,7 +36,27 @@
 
 ### TC-M6-006-01 大屏展示
 
+KPI/图表/列表有数据；98601/98602 种子非空。
+
 ### TC-M6-006-02 大屏类型字典
+
+`dashboardType` → `dict_dashboard_type`。
+
+### TC-M6-006-03 全局筛选联动（2026-06-12）
+
+变更日期/IP 组/平台后 widget 数据刷新；STAT 数值不随日期范围变化。
+
+### TC-M6-006-04 STAT 不受日期影响（2026-06-12）
+
+同一模板：近 7 天 vs 今日，STAT widget 数值一致（当天口径）。
+
+### TC-M6-007-01 全局筛选映射保存（2026-06-12）
+
+METRIC/QUERY 组件配置 `globalFilter.dateField` / `ipGroupField` 后保存，layout JSON 含 `dateColumn`。
+
+### TC-M6-007-02 配置预览与全屏筛选一致（2026-06-12）
+
+配置页预览区与全屏页相同筛选条件下数据一致。
 
 ## 6. 异常
 

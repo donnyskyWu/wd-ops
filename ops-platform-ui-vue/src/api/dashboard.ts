@@ -146,6 +146,14 @@ export function updateDashboardConfig(data: Record<string, unknown>) {
   return request.post({ url: '/oa/dashboard-config/update', data })
 }
 
+export function updateDashboardFull(data: Record<string, unknown>) {
+  return request.put({ url: '/oa/dashboard-config/full-update', data })
+}
+
+export function getDashboardData(id: number, params?: Record<string, unknown>) {
+  return request.get({ url: `/oa/dashboard/${id}/data`, params })
+}
+
 export default {
   getDashboardKpi,
   getAccountOverview,

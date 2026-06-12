@@ -406,3 +406,37 @@ export function getAvailableFields(dataSource: string, joinTables: string[]): Me
   })
   return fields
 }
+
+/** 大屏全局日期筛选可选字段（date / datetime） */
+export function getFilterableDateFields(dataSource: string, joinTables: string[] = []): MetricFieldMeta[] {
+  return getAvailableFields(dataSource, joinTables).filter((f) => f.type === 'date' || f.type === 'datetime')
+}
+
+/** 大屏全局 IP 组筛选可选字段 */
+export function getFilterableIpGroupFields(dataSource: string, joinTables: string[] = []): MetricFieldMeta[] {
+  return getAvailableFields(dataSource, joinTables).filter(
+    (f) => f.name === 'ip_group_id' || f.name.endsWith('.ip_group_id'),
+  )
+}
+
+/** 业务字段名 → SQL 列表达式（含主表 alias） */
+export function resolveFieldSqlColumn(fieldName: string, dataSource: string): string {
+  if (!fieldName) return ''
+  if (fieldName.includes('.')) return fieldName
+  const schema = METRIC_TABLE_SCHEMAS[dataSource]
+  if (!schema) return fieldName
+  return `${schema.alias}.${fieldName}`
+}
+
+export function unpackQueryBuilderParams(paramsJson?: string | null): QueryBuilderConfig | null {
+  if (!paramsJson) return null
+  try {
+    const parsed = JSON.parse(paramsJson) as { builder?: QueryBuilderConfig }
+    if (parsed.builder?.dataSource) {
+      return { ...createEmptyQueryConfig(), ...parsed.builder }
+    }
+  } catch {
+    /* ignore */
+  }
+  return null
+}

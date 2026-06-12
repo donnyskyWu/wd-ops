@@ -1,0 +1,533 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据大屏配置 - 运营数据分析平台</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="../assets/css/custom.css" rel="stylesheet">
+  <style>
+    .config-body { background: #f0f2f5; }
+    .widget-item { background: #fff; border: 1px solid #e4e7ed; border-radius: 6px; padding: 12px; margin-bottom: 8px; cursor: move; }
+    .widget-item:hover { border-color: #409eff; }
+    .widget-item .widget-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .widget-item .widget-type { font-size: 12px; padding: 2px 8px; border-radius: 3px; }
+    .widget-item .widget-type.kpi { background: #ecf5ff; color: #409eff; }
+    .widget-item .widget-type.chart { background: #f0f9eb; color: #67c23a; }
+    .widget-item .widget-type.list { background: #fdf6ec; color: #e6a23c; }
+    .preview-card { background: #0a1929; border-radius: 6px; padding: 8px; }
+    .preview-kpi { background: #1a3a5c; border: 1px solid #1e4976; border-radius: 4px; padding: 6px; text-align: center; }
+    .preview-kpi .pkpi-label { font-size: 9px; color: #90a4ae; }
+    .preview-kpi .pkpi-value { font-size: 14px; font-weight: 700; color: #4fc3f7; }
+    .preview-chart { background: #0d2137; border: 1px solid #1e4976; border-radius: 4px; padding: 6px; min-height: 80px; }
+    .preview-chart .pchart-title { font-size: 10px; color: #b0bec5; margin-bottom: 4px; }
+    .preview-list { background: #0d2137; border: 1px solid #1e4976; border-radius: 4px; padding: 6px; }
+    .preview-list .plist-title { font-size: 10px; color: #b0bec5; margin-bottom: 4px; }
+    .col-1 { grid-column: span 1; }
+    .col-2 { grid-column: span 2; }
+    .col-4 { grid-column: span 4; }
+  </style>
+</head>
+<body class="config-body" style="margin:0;">
+  <div class="sidebar" id="sidebar" style="position:fixed;left:0;top:0;bottom:0;background:#001529;z-index:50;overflow-y:auto;overflow-x:hidden;width:220px;transition:width 0.3s">
+    <div style="height:56px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid rgba(255,255,255,0.1)">
+      <div style="width:32px;height:32px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-right:12px;flex-shrink:0">
+        <i class="fas fa-chart-line" style="color:#fff;font-size:16px"></i>
+      </div>
+      <span class="sidebar-text" style="color:#fff;font-size:16px;font-weight:600;white-space:nowrap">运营数据平台</span>
+    </div>
+    <nav style="padding:8px 0">
+      <!-- 1. 首页仪表盘 -->
+      <a href="../index.html" class="sidebar-item sidebar-item-active" style="display:flex;align-items:center;padding:12px 16px;color:#fff;text-decoration:none;font-size:14px;cursor:pointer;border-left:3px solid #1890ff;background:rgba(24,144,255,0.1)">
+        <i class="fas fa-tachometer-alt" style="width:20px;text-align:center;margin-right:12px;font-size:16px"></i>
+        <span class="sidebar-text">首页仪表盘</span>
+      </a>
+
+      <!-- 2. 运营管理 -->
+      <div class="menu-group">
+        <div class="sidebar-item" style="display:flex;align-items:center;padding:12px 16px;color:rgba(255,255,255,0.65);font-size:14px;cursor:pointer" onclick="toggleMenu(this)">
+          <i class="fas fa-bullhorn" style="width:20px;text-align:center;margin-right:12px;font-size:16px"></i>
+          <span class="sidebar-text">运营管理</span>
+          <i class="fas fa-chevron-right" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
+        </div>
+        <div class="menu-sub" style="display:none;background:#000c17">
+          <a href="../operations/ip-group.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">IP组管理</a>
+          <a href="../operations/author-management.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">作者管理</a>
+          <a href="../operations/account-analysis.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">账号分析</a>
+          <a href="../operations/follower-analysis.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">粉丝分析</a>
+          <a href="../operations/works-analysis.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">作品分析</a>
+          <a href="../operations/internal-works.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">内部内容分析</a>
+          <a href="../operations/efficiency-review.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">人效盘点</a>
+        </div>
+      </div>
+
+      <!-- 3. 内容生产 -->
+      <div class="menu-group">
+        <div class="sidebar-item" style="display:flex;align-items:center;padding:12px 16px;color:rgba(255,255,255,0.65);font-size:14px;cursor:pointer" onclick="toggleMenu(this)">
+          <i class="fas fa-pencil-ruler" style="width:20px;text-align:center;margin-right:12px;font-size:16px"></i>
+          <span class="sidebar-text">内容生产</span>
+          <i class="fas fa-chevron-right" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
+        </div>
+        <div class="menu-sub" style="display:none;background:#000c17">
+          <a href="../production/sop-management.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">SOP管理</a>
+          <a href="../production/plan-management.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">计划管理</a>
+          <a href="../production/task-management.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">任务管理</a>
+          <a href="../production/content-management.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">内容管理</a>
+          <a href="../production/audit.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">内容审核</a>
+          <a href="../production/publish-management.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">内容发布</a>
+          <a href="../production/knowledge-base.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">内容知识库</a>
+        </div>
+      </div>
+
+      <!-- 4. 绩效核算 -->
+      <div class="menu-group">
+        <div class="sidebar-item" style="display:flex;align-items:center;padding:12px 16px;color:rgba(255,255,255,0.65);font-size:14px;cursor:pointer" onclick="toggleMenu(this)">
+          <i class="fas fa-award" style="width:20px;text-align:center;margin-right:12px;font-size:16px"></i>
+          <span class="sidebar-text">绩效核算</span>
+          <i class="fas fa-chevron-right" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
+        </div>
+        <div class="menu-sub" style="display:none;background:#000c17">
+          <a href="../performance/template.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">考核模板</a>
+          <a href="../performance/execution.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">考核执行</a>
+          <a href="../performance/results.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">绩效结果</a>
+          <a href="../performance/order-attribution.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">订单归因分析</a>
+        </div>
+      </div>
+
+      <!-- 5. 内部管理 -->
+      <div class="menu-group">
+        <div class="sidebar-item" style="display:flex;align-items:center;padding:12px 16px;color:rgba(255,255,255,0.65);font-size:14px;cursor:pointer" onclick="toggleMenu(this)">
+          <i class="fas fa-building" style="width:20px;text-align:center;margin-right:12px;font-size:16px"></i>
+          <span class="sidebar-text">账号管理</span>
+          <i class="fas fa-chevron-right" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
+        </div>
+        <div class="menu-sub" style="display:none;background:#000c17">
+          <a href="../internal/company.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">公司管理</a>
+          <a href="../internal/realname.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">实名人管理</a>
+          <a href="../internal/phone.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">手机管理</a>
+          <a href="../internal/sim-card.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">手机卡管理</a>
+          <a href="../internal/platform-account.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">平台账号管理</a>
+          <a href="../internal/personal-account.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">个人账号管理</a>
+          <a href="../internal/triple-rel.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">三方关联统计</a>
+        </div>
+      </div>
+
+      <!-- 6. 财务管理 -->
+      <div class="menu-group">
+        <div class="sidebar-item" style="display:flex;align-items:center;padding:12px 16px;color:rgba(255,255,255,0.65);font-size:14px;cursor:pointer" onclick="toggleMenu(this)">
+          <i class="fas fa-coins" style="width:20px;text-align:center;margin-right:12px;font-size:16px"></i>
+          <span class="sidebar-text">财务管理</span>
+          <i class="fas fa-chevron-right" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
+        </div>
+        <div class="menu-sub" style="display:none;background:#000c17">
+          <a href="../finance/cost.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">账号成本管理</a>
+          <a href="../finance/roi.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">ROI分析</a>
+        </div>
+      </div>
+
+      <!-- 7. 数据分析 -->
+      <div class="menu-group">
+        <div class="sidebar-item" style="display:flex;align-items:center;padding:12px 16px;color:rgba(255,255,255,0.65);font-size:14px;cursor:pointer" onclick="toggleMenu(this)">
+          <i class="fas fa-chart-bar" style="width:20px;text-align:center;margin-right:12px;font-size:16px"></i>
+          <span class="sidebar-text">数据分析</span>
+          <i class="fas fa-chevron-right" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
+        </div>
+        <div class="menu-sub" style="display:none;background:#000c17">
+          <a href="metric-management.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">指标管理</a>
+          <a href="metric-analysis.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">指标分析</a>
+          <a href="reports.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">数据报表</a>
+          <a href="financial-overview.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">总体财务分析</a>
+          <a href="funnel-analysis.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">漏斗分析</a>
+          <a href="custom-query.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">自定义查询</a>
+          <a href="dashboard.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">数据大屏</a>
+          <a href="dashboard-config.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">大屏配置</a>
+          <a href="wechat-analysis.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">微信数据分析</a>
+        </div>
+      </div>
+
+      <!-- 8. 作品监测 -->
+      <div class="menu-group">
+        <div class="sidebar-item" style="display:flex;align-items:center;padding:12px 16px;color:rgba(255,255,255,0.65);font-size:14px;cursor:pointer" onclick="toggleMenu(this)">
+          <i class="fas fa-satellite" style="width:20px;text-align:center;margin-right:12px;font-size:16px"></i>
+          <span class="sidebar-text">作品监测</span>
+          <i class="fas fa-chevron-right" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
+        </div>
+        <div class="menu-sub" style="display:none;background:#000c17">
+          <a href="../monitoring/external-account.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">外部账号分析</a>
+          <a href="../monitoring/hot-works.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">爆款作品分析</a>
+          <a href="../monitoring/low-score-works.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">低分作品分析</a>
+          <a href="../monitoring/follower-analysis.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">账号粉丝分析</a>
+          <a href="../monitoring/ip-theme-data.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">IP主题数据</a>
+          <a href="../monitoring/industry-data.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">行业数据</a>
+        </div>
+      </div>
+
+      <!-- 9. 配置管理 -->
+      <div class="menu-group">
+        <div class="sidebar-item" style="display:flex;align-items:center;padding:12px 16px;color:rgba(255,255,255,0.65);font-size:14px;cursor:pointer" onclick="toggleMenu(this)">
+          <i class="fas fa-cog" style="width:20px;text-align:center;margin-right:12px;font-size:16px"></i>
+          <span class="sidebar-text">配置管理</span>
+          <i class="fas fa-chevron-right" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
+        </div>
+        <div class="menu-sub" style="display:none;background:#000c17">
+          <a href="../config/internal-config.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">内部采集配置</a>
+          <a href="../config/external-config.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">外部采集配置</a>
+          <a href="../config/external-data-config.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">外部数据配置</a>
+          <a href="../config/order-config.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">订单采集配置</a>
+          <a href="../config/threshold-config.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">阈值规则配置</a>
+          <a href="../config/ai-model-config.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">AI模型配置</a>
+          <a href="../config/ai-prompt-config.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">AI提示词配置</a>
+        </div>
+      </div>
+
+      <!-- 10. 系统管理 -->
+      <div class="menu-group">
+        <div class="sidebar-item" style="display:flex;align-items:center;padding:12px 16px;color:rgba(255,255,255,0.65);font-size:14px;cursor:pointer" onclick="toggleMenu(this)">
+          <i class="fas fa-users-cog" style="width:20px;text-align:center;margin-right:12px;font-size:16px"></i>
+          <span class="sidebar-text">系统管理</span>
+          <i class="fas fa-chevron-right" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
+        </div>
+        <div class="menu-sub" style="display:none;background:#000c17">
+          <a href="../system/user-management.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">用户管理</a>
+          <a href="../system/role-management.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">角色权限</a>
+          <a href="../system/tenant-management.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">租户管理</a>
+          <a href="../system/sys-param.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">系统参数</a>
+          <a href="../system/dict-config.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">字典配置</a>
+          <a href="../system/log-management.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">日志管理</a>
+          <a href="../system/message-management.html" class="sidebar-item" style="display:flex;align-items:center;padding:10px 16px 10px 48px;color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none">消息管理</a>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+
+  <div style="margin-left:220px;" id="mainContent">
+    <div style="height:56px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:40;box-shadow:0 1px 4px rgba(0,0,0,0.08)">
+      <div style="display:flex;align-items:center;gap:16px"><i class="fas fa-bars" style="font-size:18px;color:#606266;cursor:pointer" onclick="toggleSidebar()"></i><span style="font-size:16px;font-weight:600;color:#303133">数据大屏配置</span></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <select class="form-select" style="width:180px;" id="templateSelect" onchange="loadTemplate(this.value)">
+          <option value="1">内部运营大屏(预置)</option>
+          <option value="2">外部竞品大屏(预置)</option>
+          <option value="new">+ 新建模板</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="saveTemplate()"><i class="fas fa-save"></i> 保存</button>
+        <a href="dashboard.html" class="btn btn-info btn-sm"><i class="fas fa-eye"></i> 预览大屏</a>
+      </div>
+    </div>
+
+    <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <!-- 左侧:组件配置 -->
+      <div>
+        <!-- 模板基本信息 -->
+        <div class="card" style="margin-bottom:16px;">
+          <h3 style="font-size:14px;font-weight:600;color:#303133;margin:0 0 16px;">模板信息</h3>
+          <div class="form-group"><label class="form-label required">模板名称</label><input type="text" class="form-input" value="内部运营大屏" id="templateName"></div>
+          <div class="form-group"><label class="form-label required">数据范围</label>
+            <select class="form-select" id="dataScope">
+              <option value="internal" selected>内部数据</option>
+              <option value="external">外部数据</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">描述</label><input type="text" class="form-input" value="日常运营数据监控大屏" id="templateDesc"></div>
+        </div>
+
+        <!-- 指标卡配置 -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h3 style="font-size:14px;font-weight:600;color:#303133;margin:0;">指标卡配置(最多6个)</h3>
+            <button class="btn btn-primary btn-xs" onclick="addWidget('kpi')"><i class="fas fa-plus"></i> 添加</button>
+          </div>
+          <div id="kpiWidgets">
+            <div class="widget-item" draggable="true">
+              <div class="widget-header"><span class="widget-type kpi">指标卡</span><div><button class="btn btn-xs btn-info" onclick="editKpi(this)" style="padding:2px 6px;font-size:11px;">编辑</button><button class="btn btn-xs btn-danger" onclick="removeWidget(this)" style="padding:2px 6px;font-size:11px;">删除</button></div></div>
+              <div style="font-size:13px;color:#606266;">标题:作品数 | 指标:作品数 | 颜色:蓝色</div>
+            </div>
+            <div class="widget-item" draggable="true">
+              <div class="widget-header"><span class="widget-type kpi">指标卡</span><div><button class="btn btn-xs btn-info" onclick="editKpi(this)" style="padding:2px 6px;font-size:11px;">编辑</button><button class="btn btn-xs btn-danger" onclick="removeWidget(this)" style="padding:2px 6px;font-size:11px;">删除</button></div></div>
+              <div style="font-size:13px;color:#606266;">标题:点赞数 | 指标:点赞数 | 颜色:绿色</div>
+            </div>
+            <div class="widget-item" draggable="true">
+              <div class="widget-header"><span class="widget-type kpi">指标卡</span><div><button class="btn btn-xs btn-info" onclick="editKpi(this)" style="padding:2px 6px;font-size:11px;">编辑</button><button class="btn btn-xs btn-danger" onclick="removeWidget(this)" style="padding:2px 6px;font-size:11px;">删除</button></div></div>
+              <div style="font-size:13px;color:#606266;">标题:涨粉数 | 指标:涨粉数 | 颜色:橙色</div>
+            </div>
+            <div class="widget-item" draggable="true">
+              <div class="widget-header"><span class="widget-type kpi">指标卡</span><div><button class="btn btn-xs btn-info" onclick="editKpi(this)" style="padding:2px 6px;font-size:11px;">编辑</button><button class="btn btn-xs btn-danger" onclick="removeWidget(this)" style="padding:2px 6px;font-size:11px;">删除</button></div></div>
+              <div style="font-size:13px;color:#606266;">标题:阅读数 | 指标:阅读数 | 颜色:蓝色</div>
+            </div>
+            <div class="widget-item" draggable="true">
+              <div class="widget-header"><span class="widget-type kpi">指标卡</span><div><button class="btn btn-xs btn-info" onclick="editKpi(this)" style="padding:2px 6px;font-size:11px;">编辑</button><button class="btn btn-xs btn-danger" onclick="removeWidget(this)" style="padding:2px 6px;font-size:11px;">删除</button></div></div>
+              <div style="font-size:13px;color:#606266;">标题:播放数 | 指标:播放数 | 颜色:紫色</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 图表组件配置 -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h3 style="font-size:14px;font-weight:600;color:#303133;margin:0;">图表组件配置(最多4个)</h3>
+            <button class="btn btn-primary btn-xs" onclick="addWidget('chart')"><i class="fas fa-plus"></i> 添加</button>
+          </div>
+          <div id="chartWidgets">
+            <div class="widget-item" draggable="true">
+              <div class="widget-header"><span class="widget-type chart">折线图</span><div><button class="btn btn-xs btn-info" onclick="editChart(this)" style="padding:2px 6px;font-size:11px;">编辑</button><button class="btn btn-xs btn-danger" onclick="removeWidget(this)" style="padding:2px 6px;font-size:11px;">删除</button></div></div>
+              <div style="font-size:13px;color:#606266;">标题:多平台粉丝趋势 | 数据源:oa_internal_account_data | X轴:data_date | Y轴:fans | 分组:platform_type</div>
+            </div>
+            <div class="widget-item" draggable="true">
+              <div class="widget-header"><span class="widget-type chart">饼图</span><div><button class="btn btn-xs btn-info" onclick="editChart(this)" style="padding:2px 6px;font-size:11px;">编辑</button><button class="btn btn-xs btn-danger" onclick="removeWidget(this)" style="padding:2px 6px;font-size:11px;">删除</button></div></div>
+              <div style="font-size:13px;color:#606266;">标题:内容类型占比 | 数据源:oa_internal_work | X轴:content_type | Y轴:id | 聚合:COUNT</div>
+            </div>
+            <div class="widget-item" draggable="true">
+              <div class="widget-header"><span class="widget-type chart">柱状图</span><div><button class="btn btn-xs btn-info" onclick="editChart(this)" style="padding:2px 6px;font-size:11px;">编辑</button><button class="btn btn-xs btn-danger" onclick="removeWidget(this)" style="padding:2px 6px;font-size:11px;">删除</button></div></div>
+              <div style="font-size:13px;color:#606266;">标题:多平台阅读量趋势 | 数据源:oa_internal_work | X轴:publish_date | Y轴:reads | 分组:platform_type</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 列表组件配置 -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h3 style="font-size:14px;font-weight:600;color:#303133;margin:0;">列表组件配置</h3>
+            <button class="btn btn-primary btn-xs" onclick="addWidget('list')"><i class="fas fa-plus"></i> 添加</button>
+          </div>
+          <div id="listWidgets">
+            <div class="widget-item" draggable="true">
+              <div class="widget-header"><span class="widget-type list">排行榜</span><div><button class="btn btn-xs btn-info" onclick="editList(this)" style="padding:2px 6px;font-size:11px;">编辑</button><button class="btn btn-xs btn-danger" onclick="removeWidget(this)" style="padding:2px 6px;font-size:11px;">删除</button></div></div>
+              <div style="font-size:13px;color:#606266;">标题:爆款预警 | 数据源:oa_internal_work | 名称:title | 数值:reads | 排序:DESC | 条数:5</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧:实时预览 -->
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <h3 style="font-size:14px;font-weight:600;color:#303133;margin:0 0 12px;">实时预览</h3>
+          <div class="preview-card">
+            <div style="text-align:center;padding:4px;margin-bottom:8px;border-bottom:1px solid #1e4976;">
+              <span style="font-size:12px;font-weight:700;color:#4fc3f7;letter-spacing:2px;">运营数据大屏</span>
+            </div>
+            <!-- KPI预览 -->
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px;">
+              <div class="preview-kpi"><div class="pkpi-label">作品数</div><div class="pkpi-value">8.5K</div></div>
+              <div class="preview-kpi"><div class="pkpi-label">点赞数</div><div class="pkpi-value">2.8M</div></div>
+              <div class="preview-kpi"><div class="pkpi-label">涨粉数</div><div class="pkpi-value">25.2K</div></div>
+              <div class="preview-kpi"><div class="pkpi-label">阅读数</div><div class="pkpi-value">45.2M</div></div>
+              <div class="preview-kpi"><div class="pkpi-label">播放数</div><div class="pkpi-value">125M</div></div>
+            </div>
+            <!-- 图表预览 -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+              <div class="preview-chart"><div class="pchart-title">多平台粉丝趋势</div><div style="height:60px;background:linear-gradient(180deg, rgba(79,195,247,0.1) 0%, transparent 100%);border-radius:4px;display:flex;align-items:flex-end;padding:4px;"><div style="flex:1;height:40%;background:#4fc3f7;border-radius:2px;margin:0 2px;"></div><div style="flex:1;height:55%;background:#4fc3f7;border-radius:2px;margin:0 2px;"></div><div style="flex:1;height:65%;background:#4fc3f7;border-radius:2px;margin:0 2px;"></div><div style="flex:1;height:50%;background:#4fc3f7;border-radius:2px;margin:0 2px;"></div><div style="flex:1;height:75%;background:#4fc3f7;border-radius:2px;margin:0 2px;"></div><div style="flex:1;height:85%;background:#4fc3f7;border-radius:2px;margin:0 2px;"></div><div style="flex:1;height:95%;background:#4fc3f7;border-radius:2px;margin:0 2px;"></div></div></div>
+              <div class="preview-chart"><div class="pchart-title">内容类型占比</div><div style="height:60px;display:flex;align-items:center;justify-content:center;"><div style="width:50px;height:50px;border-radius:50%;background:conic-gradient(#4fc3f7 0deg 190deg, #ffa726 190deg 320deg, #66bb6a 320deg 360deg);"></div></div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <div class="preview-chart"><div class="pchart-title">多平台阅读量趋势</div><div style="height:60px;display:flex;align-items:flex-end;padding:4px;gap:2px;"><div style="flex:1;height:50%;background:#4fc3f7;border-radius:2px;"></div><div style="flex:1;height:70%;background:#ffa726;border-radius:2px;"></div><div style="flex:1;height:40%;background:#66bb6a;border-radius:2px;"></div><div style="flex:1;height:80%;background:#4fc3f7;border-radius:2px;"></div><div style="flex:1;height:60%;background:#ffa726;border-radius:2px;"></div><div style="flex:1;height:90%;background:#66bb6a;border-radius:2px;"></div></div></div>
+              <div class="preview-list"><div class="plist-title">爆款预警</div><div style="font-size:9px;color:#90a4ae;line-height:1.6;"><div>🥇 世界杯预选赛精彩回顾 <span style="color:#4fc3f7;">15,230</span></div><div>🥈 NBA季后赛战术分析 <span style="color:#4fc3f7;">12,500</span></div><div>🥉 英超曼城逆转夺冠 <span style="color:#4fc3f7;">8,920</span></div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 配置说明 -->
+        <div class="card">
+          <h3 style="font-size:14px;font-weight:600;color:#303133;margin:0 0 12px;">配置说明</h3>
+          <div style="font-size:13px;color:#606266;line-height:1.8;">
+            <p><i class="fas fa-info-circle" style="color:#409eff;margin-right:4px;"></i><strong>指标卡</strong>：从指标字典中选择，需满足日期条件和内/外部数据区分条件</p>
+            <p><i class="fas fa-info-circle" style="color:#409eff;margin-right:4px;"></i><strong>图表组件</strong>：支持所有ECharts图表类型（折线图、柱状图、饼图、散点图、雷达图、热力图等）</p>
+            <p><i class="fas fa-info-circle" style="color:#409eff;margin-right:4px;"></i><strong>数据源</strong>：图表数据源需从已注册元数据表中选择</p>
+            <p><i class="fas fa-info-circle" style="color:#409eff;margin-right:4px;"></i><strong>布局</strong>：本期为固定布局，不支持拖拽调整，主要调整数据内容</p>
+            <p><i class="fas fa-info-circle" style="color:#409eff;margin-right:4px;"></i><strong>模板管理</strong>：可保存多个模板，但总共只允许一个模板生效</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/js/app.js"></script>
+  <script>
+    const availableMetrics = [
+      { key: 'total_works', label: '作品数', scope: 'internal' },
+      { key: 'total_likes', label: '点赞数', scope: 'internal' },
+      { key: 'fans_growth', label: '涨粉数', scope: 'internal' },
+      { key: 'total_reads', label: '阅读数', scope: 'internal' },
+      { key: 'total_views', label: '播放数', scope: 'internal' },
+      { key: 'monitored_accounts', label: '监控账号数', scope: 'external' },
+      { key: 'external_works', label: '外部作品数', scope: 'external' },
+      { key: 'external_reads_views', label: '总阅读量/播放量', scope: 'external' },
+      { key: 'external_likes', label: '总点赞数', scope: 'external' },
+      { key: 'hot_works_24h', label: '24h爆款数', scope: 'external' },
+      { key: 'low_score_24h', label: '24h低分数', scope: 'external' }
+    ];
+
+    const availableTables = [
+      'oa_internal_account_data', 'oa_internal_work', 'oa_external_work',
+      'pay_all_order', 'oa_author_cost'
+    ];
+
+    function addWidget(type) {
+      if (type === 'kpi') {
+        const kpiCount = document.querySelectorAll('#kpiWidgets .widget-item').length;
+        if (kpiCount >= 6) { Toast.warning('指标卡最多6个'); return; }
+        const metricOptions = availableMetrics.map(m => `<option value="${m.key}">${m.label} (${m.scope === 'internal' ? '内部' : '外部'})</option>`).join('');
+        const content = `
+          <div class="form-group"><label class="form-label required">标题</label><input type="text" class="form-input" placeholder="如:粉丝总数" id="kpiTitle"></div>
+          <div class="form-group"><label class="form-label required">指标</label><select class="form-select" id="kpiMetric">${metricOptions}</select></div>
+          <div class="form-group"><label class="form-label">颜色主题</label>
+            <select class="form-select" id="kpiColor"><option value="blue">蓝色</option><option value="green">绿色</option><option value="orange">橙色</option><option value="purple">紫色</option><option value="red">红色</option></select>
+          </div>
+          <div class="form-group"><label style="display:flex;align-items:center;gap:8px;font-size:14px;color:#606266"><input type="checkbox" checked id="kpiTrend"> 显示趋势箭头</label></div>
+        `;
+        const footer = `<button class="btn btn-info" onclick="this.closest('.modal-overlay').remove()">取消</button><button class="btn btn-primary" onclick="saveKpiWidget()">保存</button>`;
+        Modal.open('添加指标卡', content, footer);
+      } else if (type === 'chart') {
+        const chartCount = document.querySelectorAll('#chartWidgets .widget-item').length;
+        if (chartCount >= 4) { Toast.warning('图表组件最多4个'); return; }
+        const tableOptions = availableTables.map(t => `<option value="${t}">${t}</option>`).join('');
+        const content = `
+          <div class="form-group"><label class="form-label required">标题</label><input type="text" class="form-input" placeholder="如:多平台趋势" id="chartTitle"></div>
+          <div class="form-group"><label class="form-label required">图表类型</label>
+            <select class="form-select" id="chartType"><option value="line">折线图</option><option value="bar">柱状图</option><option value="pie">饼图</option><option value="ranking">排行榜</option></select>
+          </div>
+          <div class="form-group"><label class="form-label required">数据源表</label><select class="form-select" id="chartTable">${tableOptions}</select></div>
+          <div class="form-group"><label class="form-label required">X轴字段</label><input type="text" class="form-input" placeholder="如:data_date" id="chartXAxis"></div>
+          <div class="form-group"><label class="form-label required">Y轴字段</label><input type="text" class="form-input" placeholder="如:fans" id="chartYAxis"></div>
+          <div class="form-group"><label class="form-label">Y轴聚合</label>
+            <select class="form-select" id="chartYAgg"><option value="SUM">SUM(求和)</option><option value="AVG">AVG(平均)</option><option value="COUNT">COUNT(计数)</option><option value="MAX">MAX(最大)</option><option value="MIN">MIN(最小)</option></select>
+          </div>
+          <div class="form-group"><label class="form-label">分组字段(可选)</label><input type="text" class="form-input" placeholder="如:platform_type" id="chartGroup"></div>
+        `;
+        const footer = `<button class="btn btn-info" onclick="this.closest('.modal-overlay').remove()">取消</button><button class="btn btn-primary" onclick="saveChartWidget()">保存</button>`;
+        Modal.open('添加图表组件', content, footer);
+      } else {
+        const content = `
+          <div class="form-group"><label class="form-label required">标题</label><input type="text" class="form-input" placeholder="如:爆款预警" id="listTitle"></div>
+          <div class="form-group"><label class="form-label required">数据源表</label><select class="form-select" id="listTable">${tableOptions}</select></div>
+          <div class="form-group"><label class="form-label required">名称字段</label><input type="text" class="form-input" placeholder="如:title" id="listName"></div>
+          <div class="form-group"><label class="form-label required">数值字段</label><input type="text" class="form-input" placeholder="如:reads" id="listValue"></div>
+          <div class="form-group"><label class="form-label">显示条数</label><input type="number" class="form-input" value="5" id="listLimit"></div>
+        `;
+        const footer = `<button class="btn btn-info" onclick="this.closest('.modal-overlay').remove()">取消</button><button class="btn btn-primary" onclick="saveListWidget()">保存</button>`;
+        Modal.open('添加列表组件', content, footer);
+      }
+    }
+
+    function saveKpiWidget() {
+      const title = document.getElementById('kpiTitle').value.trim();
+      const metric = document.getElementById('kpiMetric').value;
+      const color = document.getElementById('kpiColor').value;
+      const trend = document.getElementById('kpiTrend').checked;
+      if (!title) { Toast.error('请输入标题'); return; }
+      const metricLabel = availableMetrics.find(m => m.key === metric)?.label || metric;
+      const colorNames = { blue: '蓝色', green: '绿色', orange: '橙色', purple: '紫色', red: '红色' };
+      const html = `<div class="widget-item" draggable="true"><div class="widget-header"><span class="widget-type kpi">指标卡</span><div><button class="btn btn-xs btn-info" onclick="editKpi(this)" style="padding:2px 6px;font-size:11px;">编辑</button><button class="btn btn-xs btn-danger" onclick="removeWidget(this)" style="padding:2px 6px;font-size:11px;">删除</button></div></div><div style="font-size:13px;color:#606266;">标题:${title} | 指标:${metricLabel} | 颜色:${colorNames[color]} | 趋势:${trend ? '显示' : '隐藏'}</div></div>`;
+      document.getElementById('kpiWidgets').insertAdjacentHTML('beforeend', html);
+      Toast.success('指标卡添加成功');
+      document.querySelector('.modal-overlay').remove();
+    }
+
+    function saveChartWidget() {
+      const title = document.getElementById('chartTitle').value.trim();
+      const type = document.getElementById('chartType').value;
+      const table = document.getElementById('chartTable').value;
+      const xAxis = document.getElementById('chartXAxis').value.trim();
+      const yAxis = document.getElementById('chartYAxis').value.trim();
+      const yAgg = document.getElementById('chartYAgg').value;
+      const group = document.getElementById('chartGroup').value.trim();
+      if (!title || !xAxis || !yAxis) { Toast.error('请填写必填字段'); return; }
+      const typeNames = { line: '折线图', bar: '柱状图', pie: '饼图', ranking: '排行榜' };
+      const html = `<div class="widget-item" draggable="true"><div class="widget-header"><span class="widget-type chart">${typeNames[type]}</span><div><button class="btn btn-xs btn-info" onclick="editChart(this)" style="padding:2px 6px;font-size:11px;">编辑</button><button class="btn btn-xs btn-danger" onclick="removeWidget(this)" style="padding:2px 6px;font-size:11px;">删除</button></div></div><div style="font-size:13px;color:#606266;">标题:${title} | 数据源:${table} | X轴:${xAxis} | Y轴:${yAxis} | 聚合:${yAgg}${group ? ' | 分组:' + group : ''}</div></div>`;
+      document.getElementById('chartWidgets').insertAdjacentHTML('beforeend', html);
+      Toast.success('图表组件添加成功');
+      document.querySelector('.modal-overlay').remove();
+    }
+
+    function saveListWidget() {
+      const title = document.getElementById('listTitle').value.trim();
+      const table = document.getElementById('listTable').value;
+      const name = document.getElementById('listName').value.trim();
+      const value = document.getElementById('listValue').value.trim();
+      const limit = document.getElementById('listLimit').value;
+      if (!title || !name || !value) { Toast.error('请填写必填字段'); return; }
+      const html = `<div class="widget-item" draggable="true"><div class="widget-header"><span class="widget-type list">排行榜</span><div><button class="btn btn-xs btn-info" onclick="editList(this)" style="padding:2px 6px;font-size:11px;">编辑</button><button class="btn btn-xs btn-danger" onclick="removeWidget(this)" style="padding:2px 6px;font-size:11px;">删除</button></div></div><div style="font-size:13px;color:#606266;">标题:${title} | 数据源:${table} | 名称:${name} | 数值:${value} | 条数:${limit}</div></div>`;
+      document.getElementById('listWidgets').insertAdjacentHTML('beforeend', html);
+      Toast.success('列表组件添加成功');
+      document.querySelector('.modal-overlay').remove();
+    }
+
+    function removeWidget(btn) {
+      Modal.confirm('确认删除', '删除后无法恢复').then(confirmed => {
+        if (confirmed) {
+          btn.closest('.widget-item').remove();
+          Toast.success('删除成功');
+        }
+      });
+    }
+
+    function editKpi(btn) { Toast.info('编辑指标卡配置'); }
+    function editChart(btn) { Toast.info('编辑图表组件配置'); }
+    function editList(btn) { Toast.info('编辑列表组件配置'); }
+
+    function saveTemplate() {
+      const name = document.getElementById('templateName').value.trim();
+      if (!name) { Toast.error('请输入模板名称'); return; }
+      const kpiCount = document.querySelectorAll('#kpiWidgets .widget-item').length;
+      const chartCount = document.querySelectorAll('#chartWidgets .widget-item').length;
+      if (kpiCount === 0) { Toast.error('请至少配置1个指标卡'); return; }
+      if (chartCount === 0) { Toast.error('请至少配置1个图表组件'); return; }
+      Toast.success('模板保存成功');
+    }
+
+    function loadTemplate(id) {
+      if (id === 'new') {
+        document.getElementById('templateName').value = '';
+        document.getElementById('templateDesc').value = '';
+        Toast.info('请填写新模板信息');
+      }
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const mainContent = document.getElementById('mainContent');
+      if (sidebar.style.width === '64px') {
+        sidebar.style.width = '220px'; mainContent.style.marginLeft = '220px';
+      } else {
+        sidebar.style.width = '64px'; mainContent.style.marginLeft = '64px';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // 初始化拖拽排序(简化版)
+      const containers = ['kpiWidgets', 'chartWidgets', 'listWidgets'];
+      containers.forEach(containerId => {
+        const container = document.getElementById(containerId);
+        let dragItem = null;
+        container.addEventListener('dragstart', e => {
+          dragItem = e.target.closest('.widget-item');
+          if (dragItem) dragItem.style.opacity = '0.5';
+        });
+        container.addEventListener('dragend', e => {
+          if (dragItem) dragItem.style.opacity = '1';
+          dragItem = null;
+        });
+        container.addEventListener('dragover', e => {
+          e.preventDefault();
+          const afterElement = getDragAfterElement(container, e.clientY);
+          if (dragItem) {
+            if (afterElement == null) container.appendChild(dragItem);
+            else container.insertBefore(dragItem, afterElement);
+          }
+        });
+      });
+    });
+
+    function getDragAfterElement(container, y) {
+      const draggableElements = [...container.querySelectorAll('.widget-item:not([style*="opacity: 0.5"])')];
+      return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+        else return closest;
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+  </script>
+</body>
+</html>

@@ -115,7 +115,7 @@ sys_tenant            .   R   R   R   R   R   R   R   .   W   R
 
 | 工作项 | 负责人建议 | 工期 | 验收标准 |
 |--------|----------|------|---------|
-| yudao 框架拉取 + 数据库初始化脚本 | 后端架构师 | 1d | `yudao-server` 能 `mvn spring-boot:run` 启动；`sys_user/role/tenant/audit_log/dict_type/dict_data` 六张表自动建表 |
+| 后端框架拉取 + 数据库初始化脚本 | 后端架构师 | 1d | `ops-platform-server` 能 `mvn spring-boot:run` 启动；`sys_user/role/tenant/audit_log/dict_type/dict_data` 六张表自动建表 |
 | 多租户拦截器 + MyBatis tenant 注入 | 后端架构师 | 1d | 任意 SELECT 自动 `WHERE tenant_id = ?`；跨租户访问抛 1504 |
 | AES-256 工具类（idCard/phone/cookie/apiKey/iccid/appSecret/token 加密） | 后端架构师 | 0.5d | `aesUtil.encrypt("13800000000")` 返回密文；DB 字段 `xxx_encrypted` 落库；日志不打印明文 |
 | 统一错误码 + BusinessException 工具类 | 后端架构师 | 0.5d | `BusinessException.of(1500, "实人不存在")` 抛 1500；RuntimeException 全部替换 |

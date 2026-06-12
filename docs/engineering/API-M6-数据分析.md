@@ -1,6 +1,6 @@
 # API-M6-数据分析
 
-> **版本**：v1.2 | 2026-06-11
+> **版本**：v1.3 | 2026-06-12
 > **关联 PRD**：[`PRD-M6-数据分析.md`](../product/PRD-M6-数据分析.md)
 > **关联全局规范**：[`GLOBAL-CONVENTIONS.md`](./GLOBAL-CONVENTIONS.md)
 
@@ -229,22 +229,113 @@
 
 ### 5.1 GET `/admin-api/oa/dashboard/{id}`
 
-### 5.2 POST `/admin-api/oa/dashboard/create`
+返回模板元数据（含 `layout` JSON 字符串）。
+
+### 5.2 GET `/admin-api/oa/dashboard/{id}/data`（实现 2026-06-12）
+
+按 layout 解析各 widget 并返回聚合数据。
+
+**请求参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `startDate` | Date (ISO) | 否 | 默认 `endDate - 6 天` |
+| `endDate` | Date (ISO) | 否 | 默认当天 |
+| `ipGroupId` | Long | 否 | 未传则不按 IP 组过滤 |
+| `platformType` | String | 否 | `dict_platform_type`；未传则不按平台过滤 |
+
+**响应** `DashboardDataVO`：
+
+```json
+{
+  "dashboard": { "id": 98601, "dashboardName": "内部运营大屏", "layout": "..." },
+  "widgets": [
+    {
+      "id": "k1",
+      "type": "KPI",
+      "title": "作品数",
+      "payload": { "value": 1234 }
+    }
+  ]
+}
+```
+
+**widget 数据规则**：
+
+- `BUILTIN`：后端内置查询；`STAT` 类型忽略 `startDate`/`endDate`，固定按当天
+- `METRIC` / `QUERY`：经 `DashboardSqlParamBinder.prepareSql` 绑定参数后执行
+- 单 widget 失败时 `payload.error` 返回错误信息，不阻断整屏
+
+### 5.3 layout_json / widget schema
+
+`layout` 为 JSON 字符串，根结构：
+
+```json
+{
+  "version": 1,
+  "scope": "INTERNAL",
+  "refreshSeconds": 60,
+  "widgets": [ { "...": "..." } ]
+}
+```
+
+**widget 公共字段**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | string | 组件唯一 ID |
+| `type` | string | `KPI` \| `STAT` \| `CHART` \| `LIST` |
+| `title` | string | 展示标题 |
+| `sourceType` | string | `BUILTIN` \| `METRIC` \| `QUERY` |
+| `builtinKey` | string | BUILTIN 数据源键 |
+| `metricId` | number | METRIC 时必填 |
+| `queryId` | number | QUERY 时必填 |
+| `globalFilter` | object | METRIC/QUERY 全局筛选映射（见下） |
+| `filterBind` | object | **已废弃**；占位符 → 全局来源，后端兼容 |
+
+**`globalFilter` 对象**（METRIC/QUERY）：
+
+```json
+{
+  "dateField": "publish_time",
+  "dateColumn": "t.publish_time",
+  "dateFieldType": "datetime",
+  "ipGroupField": "ip_group_id",
+  "ipGroupColumn": "t.ip_group_id"
+}
+```
+
+- `dateField` / `ipGroupField`：业务字段名（配置页下拉，来源 `metricSchema.ts`）
+- `dateColumn` / `ipGroupColumn`：SQL 列表达式（前端解析写入，供后端注入 WHERE）
+- `dateFieldType`：`date`（默认）或 `datetime`
+
+**SQL 参数绑定**（`DashboardSqlParamBinder`）：
+
+1. `:tenantId` → 当前租户（`TenantContextHolder`），**始终自动替换**
+2. 若存在 `globalFilter`：按 `dateColumn` / `ipGroupColumn` 注入 AND/WHERE 条件
+3. 若存在 `filterBind`：按「占位符 → 全局来源」映射替换（旧版兼容）
+4. 若两者皆无：legacy 绑定 `:startDate`、`:endDate`、`:ipGroupId`、`:platformType` 等标准占位符
+
+详见 [`ADR-015`](../adr/ADR-015-大屏全局筛选与layout-globalFilter.md)。
+
+### 5.4 POST `/admin-api/oa/dashboard/create`
 
 ```json
 {
   "dashboardName": "运营总览大屏",
   "dashboardType": "BUSINESS",
-  "layout": "[{...}, ...]"
+  "layout": "{\"version\":1,\"scope\":\"INTERNAL\",...}"
 }
 ```
 
 **校验**：
 - `dashboardType` `@InDict(type="dict_dashboard_type")`
 
-### 5.3 GET `/admin-api/oa/dashboard-config/list`
+### 5.5 GET `/admin-api/oa/dashboard-config/list`
 
-### 5.4 POST `/admin-api/oa/dashboard-config/update`
+### 5.6 PUT `/admin-api/oa/dashboard-config/full-update`
+
+更新模板元数据 + `layout_json`。
 
 ---
 

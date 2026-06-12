@@ -3,6 +3,22 @@ import type { RouteRecordRaw } from 'vue-router'
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/screen',
+    name: 'DataScreenFullscreen',
+    component: () => import('@/views/screen/DataScreenFullscreen.vue'),
+    meta: { title: '数据大屏', standalone: true }
+  },
+  {
+    path: '/screen/:id',
+    name: 'DataScreenFullscreenById',
+    component: () => import('@/views/screen/DataScreenFullscreen.vue'),
+    meta: { title: '数据大屏', standalone: true }
+  },
+  {
+    path: '/data-screen',
+    redirect: '/screen'
+  },
+  {
     path: '/',
     name: 'Layout',
     component: () => import('@/views/Layout.vue'),
@@ -351,14 +367,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/analysis/CustomQuery.vue'),
         meta: { title: '自定义查询' }
       },
-      // 数据分析 - 数据大屏
-      {
-        path: '/data-screen',
-        name: 'DataScreen',
-        component: () => import('@/views/screen/DataScreen.vue'),
-        meta: { title: '数据大屏' }
-      },
-      // 数据分析 - 大屏配置
+      // 数据分析 - 大屏配置（Layout 内）
       {
         path: '/screen-config',
         name: 'ScreenConfig',

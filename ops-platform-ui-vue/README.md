@@ -2,7 +2,7 @@
 
 Vue 3 + Vite + Element Plus。本地开发通过 Vite 代理访问后端 `http://localhost:8080`。
 
-后端启动说明见 [`yudao-server/README.md`](../yudao-server/README.md)。
+后端启动说明见 [`ops-platform-server/README.md`](../ops-platform-server/README.md)。
 
 ## 前置
 
@@ -62,7 +62,7 @@ npm run test:e2e
 
 ## 本地全栈流程
 
-1. 启动后端：`yudao-server/yudao-module-oa`，profile `dev`，端口 **8080**
+1. 启动后端：`ops-platform-server/ops-platform-module-oa`，profile `dev`，端口 **8080**
 2. 本目录 `npm run dev`，端口 **3000**
 3. 打开 `http://localhost:3000`
 4. 确认 `.env.local` 或 localStorage 中 Token / 租户与后端一致
