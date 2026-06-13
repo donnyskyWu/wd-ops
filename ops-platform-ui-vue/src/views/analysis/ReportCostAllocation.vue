@@ -1,9 +1,5 @@
 <template>
   <div class="report-page">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/data-report' }">数据报表</el-breadcrumb-item>
-      <el-breadcrumb-item>成本分摊</el-breadcrumb-item>
-    </el-breadcrumb>
     <ContentWrap>
       <el-form :model="filter" inline>
         <el-form-item label="账号">
@@ -12,7 +8,13 @@
         <el-form-item label="时间">
           <el-date-picker v-model="filter.dateRange" type="daterange" value-format="YYYY-MM-DD" style="width: 240px" />
         </el-form-item>
-        <el-form-item><el-button type="primary" @click="loadData">查询</el-button></el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="loadData">查询</el-button>
+          <el-button type="success" :loading="exportLoading" @click="handleExport">
+            <el-icon><Download /></el-icon>
+            导出
+          </el-button>
+        </el-form-item>
       </el-form>
     </ContentWrap>
     <ContentWrap title="成本分摊明细" style="margin-top: 16px">
@@ -43,24 +45,59 @@
 </template>
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import DictLabel from '@/components/DictLabel.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
 import { getCostAllocationList } from '@/api/report'
-import { unwrapApiData, pickListPage, reportField } from '@/utils'
+import { exportToExcel, unwrapApiData, pickListPage, reportField, fetchAllPaginated } from '@/utils'
 
 const loading = ref(false)
+const exportLoading = ref(false)
 const filter = reactive({ accountId: undefined as number | undefined, dateRange: [] as string[] })
 const pageNum = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const list = ref<any[]>([])
 
-const buildQuery = () => {
-  const q: Record<string, any> = { pageNum: pageNum.value, pageSize: pageSize.value }
+const buildQuery = (page = pageNum.value, size = pageSize.value) => {
+  const q: Record<string, any> = { pageNum: page, pageSize: size }
   if (filter.accountId) q.accountId = filter.accountId
   if (filter.dateRange?.length === 2) { q.startDate = filter.dateRange[0]; q.endDate = filter.dateRange[1] }
   return q
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const rows = await fetchAllPaginated(async (page, size) =>
+      pickListPage(unwrapApiData(await getCostAllocationList(buildQuery(page, size)))),
+    )
+    const exportData = rows.map(row => ({
+      accountName: reportField(row, 'account_name', 'accountName'),
+      costType: reportField(row, 'cost_type', 'costType'),
+      amount: Number(reportField(row, 'amount') || 0).toFixed(2),
+      shareRatio: `${(Number(reportField(row, 'share_ratio', 'shareRatio') || 0) * 100).toFixed(2)}%`,
+      remark: reportField(row, 'remark') || '-',
+    }))
+    exportToExcel(
+      exportData,
+      [
+        { key: 'accountName', label: '账号' },
+        { key: 'costType', label: '成本类型' },
+        { key: 'amount', label: '金额(元)' },
+        { key: 'shareRatio', label: '占比' },
+        { key: 'remark', label: '备注' },
+      ],
+      '成本分摊',
+    )
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('导出失败，请重试')
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const loadData = async () => {

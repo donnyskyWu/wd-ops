@@ -21,6 +21,8 @@ public interface CustomQueryService {
 
     Map<String, Object> execute(Long id);
 
+    Map<String, Object> execute(Long id, Integer pageNum, Integer pageSize);
+
     Map<String, Object> execute(Long id, DashboardSqlParamBinder.BindParams bindParams);
 
     Map<String, Object> execute(Long id, DashboardSqlParamBinder.BindParams bindParams,

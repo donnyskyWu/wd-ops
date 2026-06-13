@@ -1,8 +1,8 @@
 # SLICES-M2-内容生产
 
 > **切片计划**：M2 内容生产
-> **版本**：v1.1 | 2026-06-11
-> **总切片数**：9 片 | 预估总工时：约 22 人日
+> **版本**：v1.2 | 2026-06-12
+> **总切片数**：13 片 | 预估总工时：约 32 人日（S-10~S-13 为需求 2–6 增量）
 
 ---
 
@@ -19,6 +19,10 @@
 | S-07 | AI 辅助创作 + 自动发布 | FR-M2-003 (2/2) | S-06 | 3.0 | P1 |
 | S-08 | 知识库 | FR-M2-004 | - | 2.0 | P1 |
 | S-09 | 计划管理 + 任务联动 | FR-M2-009 | S-01, S-04 | 2.0 | P0 |
+| S-10 | SOP 节点类型 | FR-M2-001（node_type） | S-02 | 1.0 | P0 |
+| S-11 | 计划步骤分配赛事 | FR-M2-009（步骤 competition） | S-09 | 1.5 | P0 |
+| S-12 | 任务执行页 + 任务-内容关联 | FR-M2-002（执行页） | S-04, S-10, S-11 | 3.0 | P0 |
+| S-13 | 任务驱动内容编辑 + AI 生成 | FR-M2-003（模式 B） | S-12, M8-S-05 | 4.0 | P0 |
 
 ---
 
@@ -157,7 +161,7 @@ graph LR
 - 前端：列表 + 新增弹窗 + 详情抽屉 — `plan/index.vue`
 - 数据：`oa_content_plan` / `_competition` / `_step`；`oa_task` 扩展 `plan_id`、`visible_in_list`
 - 业务：草稿任务隐藏、启动可见、组长终止审批（ADR-012）
-- 赛事：Phase 1 Mock `src/mock/competition.ts`
+- 赛事：外部 API 经 `MatchController` 代理（**BLK-M2-004 已决**）；前端 `MatchSelectDialog.vue`
 
 **全局规范**：
 - `templateId` / `ipGroupId` / `assigneeIds` 强制选择器
@@ -165,6 +169,57 @@ graph LR
 
 **验收**：AC-M2-009-1, AC-M2-009-2, AC-M2-009-3  
 **测试**：`M2PlanS09IT`
+
+---
+
+### S-10 SOP 节点类型（需求 2）
+
+**包含**：
+- 字典 `dict_sop_node_type` 三值（ADR-016）
+- 后端：SopNode CRUD 增 `nodeType` 校验
+- 前端：属性面板 `<DictSelect dict-type="dict_sop_node_type" />`
+
+**阻塞**：无（可与 S-02 合并实现）
+
+**验收**：AC-M2-001-6
+
+---
+
+### S-11 计划步骤分配赛事（需求 3）
+
+**包含**：
+- DB：`oa_content_plan_step.competition_id`、`oa_task.competition_id`
+- 后端：计划 create/update 校验 step.competitionId ∈ plan.competitions
+- 前端：步骤表增赛事列 `<Select />`（计划赛事池）
+
+**阻塞**：~~**BLK-M2-004**~~（已决：外部赛事 API 代理 + 选择器）
+
+**验收**：AC-M2-009-4
+
+---
+
+### S-12 任务执行页（需求 4–5）
+
+**包含**：
+- 后端：GET `/task/{id}/execute`、POST `execute/complete`；`oa_content.task_id`
+- 前端：P-M2-012 + 我的任务「执行」按钮；内容生成节点跳转带参
+- 业务：完成门禁 2008
+
+**阻塞**：**BLK-M2-007**（附件）、**BLK-M2-008**（执行说明）、**BLK-M2-009**（发布节点）
+
+**验收**：AC-M2-002-5, AC-M2-002-6, AC-M2-002-7
+
+---
+
+### S-13 任务驱动内容编辑（需求 6）
+
+**包含**：
+- 字典 `dict_document_type`；`dict_content_status` +COMPLETED
+- 后端：content create 扩展字段；`/confirm`；`/script-ref`；AI 生成扩展（占位）
+- 前端：P-M2-007 模式 B（IP 组/作者/文档类型/生成/确认）
+- 依赖：M8 提示词（**BLK-M2-005**）、AI 视频（**BLK-M2-010**）
+
+**验收**：AC-M2-003-6 ~ AC-M2-003-10
 
 ---
 
@@ -190,6 +245,10 @@ graph LR
 | Slice ID | 关联 AC | 标题 | 估时 |
 |----------|---------|------|------|
 | S-09 | AC-M2-009-1~3 | 计划管理-任务联动 | 2d |
+| S-10 | AC-M2-001-6 | SOP 节点类型 | 1d |
+| S-11 | AC-M2-009-4 | 步骤分配赛事 | 1.5d |
+| S-12 | AC-M2-002-5~7 | 任务执行页 | 3d |
+| S-13 | AC-M2-003-6~10 | 任务驱动内容编辑 | 4d |
 | S-04 | AC-M2-002-1~4 | SOP 任务状态机 | 3d |
 | S-06 | AC-M2-003-1~4 | 内容三级审核 | 3d |
 | S-08 | AC-M2-004-1~3 | 知识库 | 2d |

@@ -18,6 +18,12 @@
           <el-option label="停用" value="DISABLED" />
         </el-select>
       </el-form-item>
+      <template #extra>
+        <el-button type="success" :loading="exportLoading" @click="handleExport">
+          <el-icon><Download /></el-icon>
+          导出
+        </el-button>
+      </template>
     </TableSearch>
 
     <div v-if="activePlatform === 'PERSONAL_WX'" class="action-bar">
@@ -34,10 +40,16 @@
 
       <div class="section-title">
         <span>员工企微账号</span>
-        <el-button type="primary" size="small" :disabled="!weworkConfig" @click="handleAddEmployee">
-          <el-icon><Plus /></el-icon>
-          新增员工账号
-        </el-button>
+        <div class="section-actions">
+          <el-button type="success" size="small" :loading="exportLoading" @click="handleExport">
+            <el-icon><Download /></el-icon>
+            导出
+          </el-button>
+          <el-button type="primary" size="small" :disabled="!weworkConfig" @click="handleAddEmployee">
+            <el-icon><Plus /></el-icon>
+            新增员工账号
+          </el-button>
+        </div>
       </div>
       <el-table :data="employeeList" v-loading="employeeLoading" border stripe>
         <el-table-column prop="nickname" label="昵称" min-width="120" />
@@ -198,10 +210,11 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Download } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import Pagination from '@/components/Pagination.vue'
 import WeworkAppConfigPanel from '@/components/WeworkAppConfigPanel.vue'
+import { exportToExcel } from '@/utils'
 import {
   getPersonalWechatPage,
   getPersonalWechat,
@@ -221,6 +234,7 @@ type PlatformType = 'WEWORK' | 'PERSONAL_WX'
 
 const activePlatform = ref<PlatformType>('WEWORK')
 const loading = ref(false)
+const exportLoading = ref(false)
 const employeeLoading = ref(false)
 const personalList = ref<PersonalWechatVO[]>([])
 const weworkConfig = ref<WeworkVO | null>(null)
@@ -340,6 +354,101 @@ const handleTabChange = () => {
 
 const handleSearch = () => { pagination.pageNo = 1; loadData() }
 const handleReset = () => handleTabChange()
+
+const buildPersonalListParams = (pageNo: number, pageSize: number) => ({
+  accountName: searchForm.accountName || undefined,
+  wechatId: searchForm.wechatId || undefined,
+  status: searchForm.status,
+  pageNo,
+  pageSize,
+})
+
+const fetchAllPersonalRows = async () => {
+  const exportPageSize = 500
+  const first = await getPersonalWechatPage(buildPersonalListParams(1, exportPageSize))
+  let rows = first.list || []
+  const totalCount = first.total ?? 0
+  if (totalCount > exportPageSize) {
+    const totalPages = Math.ceil(totalCount / exportPageSize)
+    for (let page = 2; page <= totalPages; page += 1) {
+      const res = await getPersonalWechatPage(buildPersonalListParams(page, exportPageSize))
+      rows = rows.concat(res.list || [])
+    }
+  }
+  return rows
+}
+
+const fetchAllEmployeeRows = async () => {
+  if (!weworkConfig.value) return []
+  const exportPageSize = 500
+  const params = {
+    weworkAccountId: weworkConfig.value.id,
+    pageNo: 1,
+    pageSize: exportPageSize,
+  }
+  const first = await getWeworkEmployeePage(params)
+  let rows = first.list || []
+  const totalCount = first.total ?? 0
+  if (totalCount > exportPageSize) {
+    const totalPages = Math.ceil(totalCount / exportPageSize)
+    for (let page = 2; page <= totalPages; page += 1) {
+      const res = await getWeworkEmployeePage({ ...params, pageNo: page })
+      rows = rows.concat(res.list || [])
+    }
+  }
+  return rows
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    if (activePlatform.value === 'WEWORK') {
+      if (!weworkConfig.value) {
+        ElMessage.warning('请先配置企业微信应用')
+        return
+      }
+      const rows = await fetchAllEmployeeRows()
+      const exportData = rows.map((row) => ({
+        nickname: row.nickname,
+        weworkUserId: row.weworkUserId,
+        phone: row.phone || '',
+        department: row.department || '',
+        position: row.position || '',
+        status: row.status === 'ENABLED' ? '正常' : '停用',
+      }))
+      const columns = [
+        { key: 'nickname', label: '昵称' },
+        { key: 'weworkUserId', label: '企微 ID' },
+        { key: 'phone', label: '手机号' },
+        { key: 'department', label: '部门' },
+        { key: 'position', label: '岗位' },
+        { key: 'status', label: '状态' },
+      ]
+      exportToExcel(exportData, columns, '个人账号管理')
+    } else {
+      const rows = await fetchAllPersonalRows()
+      const exportData = rows.map((row) => ({
+        accountName: row.accountName,
+        wechatId: row.wechatId,
+        contactPhone: row.contactPhone || '',
+        status: row.status === 'ENABLED' ? '正常' : '停用',
+        createTime: row.createTime || '',
+      }))
+      const columns = [
+        { key: 'accountName', label: '微信名' },
+        { key: 'wechatId', label: '微信号' },
+        { key: 'contactPhone', label: '联系电话' },
+        { key: 'status', label: '状态' },
+        { key: 'createTime', label: '创建时间' },
+      ]
+      exportToExcel(exportData, columns, '个人账号管理')
+    }
+  } catch {
+    ElMessage.error('导出失败，请重试')
+  } finally {
+    exportLoading.value = false
+  }
+}
 
 const handleAdd = () => {
   if (activePlatform.value !== 'WEWORK') {
@@ -479,6 +588,11 @@ onMounted(() => loadData())
     justify-content: space-between;
     margin-bottom: 12px;
     font-weight: 600;
+  }
+  .section-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .action-bar {
     display: flex;

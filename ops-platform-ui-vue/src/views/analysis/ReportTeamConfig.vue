@@ -1,15 +1,17 @@
 <template>
   <div class="report-page">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/data-report' }">数据报表</el-breadcrumb-item>
-      <el-breadcrumb-item>团队配置</el-breadcrumb-item>
-    </el-breadcrumb>
     <ContentWrap>
       <el-form :model="filter" inline>
         <el-form-item label="IP 组">
           <IpGroupTreeSelect v-model="filter.ipGroupId" style="width: 220px" />
         </el-form-item>
-        <el-form-item><el-button type="primary" @click="loadData">查询</el-button></el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="loadData">查询</el-button>
+          <el-button type="success" :loading="exportLoading" @click="handleExport">
+            <el-icon><Download /></el-icon>
+            导出
+          </el-button>
+        </el-form-item>
       </el-form>
     </ContentWrap>
     <ContentWrap title="团队配置概览" style="margin-top: 16px">
@@ -38,12 +40,15 @@
 </template>
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { getTeamConfigList } from '@/api/report'
-import { unwrapApiData, reportField } from '@/utils'
+import { exportToExcel, unwrapApiData, reportField } from '@/utils'
 
 const loading = ref(false)
+const exportLoading = ref(false)
 const filter = reactive({ ipGroupId: undefined as number | undefined })
 const list = ref<any[]>([])
 
@@ -55,6 +60,40 @@ const loadData = async () => {
     list.value = Array.isArray(data) ? data : []
   } catch (e) { console.error(e); list.value = [] }
   finally { loading.value = false }
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const res = await getTeamConfigList({ ipGroupId: filter.ipGroupId })
+    const data = unwrapApiData(res)
+    const rows = Array.isArray(data) ? data : []
+    const exportData = rows.map(row => ({
+      ipGroupName: reportField(row, 'ip_group_name', 'ipGroupName'),
+      userCount: reportField(row, 'user_count', 'userCount'),
+      accountCount: reportField(row, 'account_count', 'accountCount'),
+      avgAccountPerUser: reportField(row, 'avg_account_per_user', 'avgAccountPerUser'),
+      revenuePerUser: reportField(row, 'revenue_per_user', 'revenuePerUser'),
+      efficiency: reportField(row, 'efficiency'),
+    }))
+    exportToExcel(
+      exportData,
+      [
+        { key: 'ipGroupName', label: 'IP 组' },
+        { key: 'userCount', label: '人员数' },
+        { key: 'accountCount', label: '账号数' },
+        { key: 'avgAccountPerUser', label: '人均账号' },
+        { key: 'revenuePerUser', label: '人均营收' },
+        { key: 'efficiency', label: '人效' },
+      ],
+      '团队配置',
+    )
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('导出失败，请重试')
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 onMounted(() => loadData())

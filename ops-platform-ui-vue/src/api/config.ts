@@ -91,6 +91,8 @@ export interface AiPromptConfigVO {
   templateName: string
   version?: string
   scene?: string
+  contentType?: string
+  documentType?: string
   promptContent: string
   variableDesc?: string
   temperature?: number

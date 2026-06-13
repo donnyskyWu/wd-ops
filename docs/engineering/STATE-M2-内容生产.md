@@ -1,6 +1,6 @@
 # STATE-M2-内容生产
 
-> **版本**：v1.1 | 2026-06-11
+> **版本**：v1.3 | 2026-06-13
 > **关联 PRD**：[`PRD-M2-内容生产.md`](../product/PRD-M2-内容生产.md)
 > **关联全局规范**：[`GLOBAL-CONVENTIONS.md`](./GLOBAL-CONVENTIONS.md)
 
@@ -59,22 +59,44 @@ stateDiagram-v2
 - **BR-014**（审核驳回）：驳回 → 状态回到 IN_PROGRESS
 - **BR-015**（执行人变更）：任务分配后不可变更执行人
 - **BR-016**（任务可撤回）：PENDING/IN_PROGRESS 可撤回
+- **BR-017**（执行入口）：我的任务 + `PENDING` → 任务执行页（需求 4）
+- **BR-018**（内容生成完成门禁）：`node_type=CONTENT_GENERATION` 须关联内容 `status=COMPLETED`（需求 5，ADR-016）
+
+### 1.5 任务执行流（需求 4–5）
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: 计划启动
+    PENDING --> IN_PROGRESS: 执行页打开/开始
+    IN_PROGRESS --> DONE: 完成（普通节点或内容已 COMPLETED）
+    IN_PROGRESS --> PENDING_REVIEW: 完成且 need_review=1
+    note right of IN_PROGRESS
+      CONTENT_GENERATION 节点
+      完成前须 oa_content.status=COMPLETED
+    end note
+```
 
 ---
 
-## 2. 内容三级审核状态机
+
+## 2. 内容可配置二级审核状态机（ADR-017）
+
+> 原「三级审核」改为系统参数驱动；默认 **一级（IP 组长范围）+ 二级（部门负责人）** 均开启。
 
 ### 2.1 状态定义
 
 | 状态 | 字典 value | 含义 |
 |------|-----------|------|
 | 草稿 | `DRAFT` | 创作者编辑中 |
-| 待初审 | `PENDING_FIRST_REVIEW` | 已提交初审 |
-| 待复审 | `PENDING_SECOND_REVIEW` | 初审通过，待复审 |
-| 待终审 | `PENDING_FINAL_REVIEW` | 复审通过，待终审 |
+| 待一级审核 | `PENDING_FIRST_REVIEW` | 已提交；一级 enabled |
+| 待二级审核 | `PENDING_SECOND_REVIEW` | 一级通过；二级 enabled |
+| 待终审 | `PENDING_FINAL_REVIEW` | **遗留**；默认配置不使用 |
 | 已驳回 | `REJECTED` | 任一环节驳回 |
 | 已发布 | `PUBLISHED` | 终审通过 + 已发布 |
 | 已下架 | `UNPUBLISHED` | 主动下架 |
+| 已完成 | `COMPLETED` | 任务驱动创作确认完成（ADR-016；**不**等同已发布） |
+
+> `COMPLETED` 为任务场景遗留；新流程统一 **submit-review**（ADR-017）。两者均关闭 → 提交后直接 `PUBLISHED`。
 
 ### 2.2 状态机
 
@@ -90,6 +112,16 @@ stateDiagram-v2
     PENDING_FINAL_REVIEW --> REJECTED: 终审驳回
     PUBLISHED --> UNPUBLISHED: 主动下架
     REJECTED --> DRAFT: 创作者重新编辑
+    DRAFT --> COMPLETED: 任务场景「确认」（不经过审核）
+```
+
+### 2.2.1 任务驱动内容子状态机（需求 6）
+
+```mermaid
+stateDiagram-v2
+    [*] --> DRAFT: 从任务执行页创建/保存
+    DRAFT --> COMPLETED: 确认
+    COMPLETED --> [*]: 作为任务完成门禁
 ```
 
 ### 2.3 转移约束
@@ -172,7 +204,7 @@ stateDiagram-v2
 
 | 转移 | 任务副作用 |
 |------|-----------|
-| create | 每 (node, assignee) 插入 `oa_task`：`PLAN_DRAFT` + `visible_in_list=0` |
+| create | 每 (node, assignee) 插入 `oa_task`：`PLAN_DRAFT` + `visible_in_list=0` + `competition_id` 继承 step |
 | start | 计划任务 → `PENDING` + `visible_in_list=1` |
 | approve 终止 | 计划任务 → `TERMINATED` |
 

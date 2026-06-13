@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanTerminateReq;
+import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanUpdateReq;
 import cn.iocoder.yudao.module.oa.service.plan.ContentPlanService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -43,6 +45,12 @@ public class ContentPlanController {
     @PostMapping("/create")
     public CommonResult<Long> create(@Valid @RequestBody ContentPlanCreateReq req) {
         return CommonResult.success(contentPlanService.create(req));
+    }
+
+    @PutMapping("/update")
+    public CommonResult<Boolean> update(@Valid @RequestBody ContentPlanUpdateReq req) {
+        contentPlanService.update(req);
+        return CommonResult.success(true);
     }
 
     @PostMapping("/{id}/start")

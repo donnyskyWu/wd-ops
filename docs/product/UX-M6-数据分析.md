@@ -1,6 +1,6 @@
 # UX-M6-数据分析
 
-> **版本**：v1.3 | 2026-06-12
+> **版本**：v1.4 | 2026-06-13
 > **关联 PRD**：[`PRD-M6-数据分析.md`](./PRD-M6-数据分析.md)
 > **全局规范**：[`GLOBAL-CONVENTIONS.md`](../engineering/GLOBAL-CONVENTIONS.md)
 
@@ -80,7 +80,9 @@
 +----------------------------------------------------------+
 ```
 
-详细字段见各报表详细设计（5.26.A~H）。
+**导出（ADR-018）**：按钮调用 `exportToExcel`（CSV）；分页报表使用 `fetchAllPaginated` 拉全量后导出。
+
+**筛选 UI（2026-06-13）**：`TableSearch` 统一带边框输入框（Works/Fans/Funnel/Internal 等分析页已对齐）。
 
 **实现**：表格列绑定 snake_case 字段；枚举列用 `<DictLabel />`。
 
@@ -131,6 +133,8 @@
   [结果列表 | 图表展示]
   - 结果列表：中文表头
   - 图表展示：基于当前结果（柱状/折线）
+  - **分页**：`QueryResultPanel` 内 `el-pagination`；切换页码触发 `page-change` 重新 preview（2026-06-13）
+  - **导出**：结果区 exportToExcel
 ```
 
 ### 6.3 我的查询 Tab

@@ -11,12 +11,12 @@ export function createCustomQuery(data: Record<string, unknown>) {
   return request.post({ url: '/oa/query/create', data })
 }
 
-export function executeCustomQuery(id: number) {
-  return request.post({ url: `/oa/query/${id}/execute` })
+export function executeCustomQuery(id: number, params?: { pageNum?: number; pageSize?: number }) {
+  return request.post({ url: `/oa/query/${id}/execute`, params })
 }
 
 /** 不保存，直接执行 SQL（自定义查询 Tab 内联结果） */
-export function previewCustomQuery(data: { sqlText: string }) {
+export function previewCustomQuery(data: { sqlText: string; pageNum?: number; pageSize?: number }) {
   return request.post({ url: '/oa/query/preview', data })
 }
 

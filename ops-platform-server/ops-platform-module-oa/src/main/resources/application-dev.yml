@@ -14,3 +14,10 @@ spring:
 oa:
   auth:
     mode: dev-fixed
+  file:
+    upload-dir: ./data/uploads
+  match:
+    api-base-url: http://110.42.49.224:48088/app-api/match
+    # 外部赛事 API 鉴权头（tenant-id 由 MatchProxyService 从 TenantContext 注入，缺省为 1）
+    headers:
+      tenant-id: "1"

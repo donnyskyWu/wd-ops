@@ -1,9 +1,5 @@
 <template>
   <div class="report-page">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/data-report' }">数据报表</el-breadcrumb-item>
-      <el-breadcrumb-item>ROI 分析</el-breadcrumb-item>
-    </el-breadcrumb>
     <ContentWrap>
       <el-form :model="filter" inline>
         <el-form-item label="IP 组">
@@ -12,7 +8,13 @@
         <el-form-item label="时间">
           <el-date-picker v-model="filter.dateRange" type="daterange" value-format="YYYY-MM-DD" style="width: 240px" />
         </el-form-item>
-        <el-form-item><el-button type="primary" @click="loadData">查询</el-button></el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="loadData">查询</el-button>
+          <el-button type="success" :loading="exportLoading" @click="handleExport">
+            <el-icon><Download /></el-icon>
+            导出
+          </el-button>
+        </el-form-item>
       </el-form>
     </ContentWrap>
     <ContentWrap title="ROI 明细" style="margin-top: 16px">
@@ -42,22 +44,60 @@
 </template>
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { getReportRoiList } from '@/api/report'
+import { exportToExcel, unwrapApiData, pickListPage, reportField, fetchAllPaginated } from '@/utils'
 
 const loading = ref(false)
+const exportLoading = ref(false)
 const filter = reactive({ ipGroupId: undefined as number | undefined, dateRange: [] as string[] })
 const pageNum = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const list = ref<any[]>([])
 
-const buildQ = () => {
-  const q: Record<string, any> = { pageNum: pageNum.value, pageSize: pageSize.value }
+const buildQ = (page = pageNum.value, size = pageSize.value) => {
+  const q: Record<string, any> = { pageNum: page, pageSize: size }
   if (filter.ipGroupId) q.ipGroupId = filter.ipGroupId
   if (filter.dateRange?.length === 2) { q.startDate = filter.dateRange[0]; q.endDate = filter.dateRange[1] }
   return q
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const rows = await fetchAllPaginated(async (page, size) =>
+      pickListPage(unwrapApiData(await getReportRoiList(buildQ(page, size)))),
+    )
+    const exportData = rows.map(row => ({
+      date: reportField(row, 'date', 'statDate'),
+      ipGroupName: reportField(row, 'ip_group_name', 'ipGroupName'),
+      platform: reportField(row, 'platform', 'platformType'),
+      revenue: Number(reportField(row, 'revenue') || 0).toFixed(2),
+      cost: Number(reportField(row, 'cost') || 0).toFixed(2),
+      roi: Number(reportField(row, 'roi') || 0).toFixed(2),
+    }))
+    exportToExcel(
+      exportData,
+      [
+        { key: 'date', label: '日期' },
+        { key: 'ipGroupName', label: 'IP 组' },
+        { key: 'platform', label: '平台' },
+        { key: 'revenue', label: '营收' },
+        { key: 'cost', label: '成本' },
+        { key: 'roi', label: 'ROI' },
+      ],
+      '数据报表ROI分析',
+    )
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('导出失败，请重试')
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const loadData = async () => {

@@ -13,6 +13,10 @@
         <el-form-item>
           <el-button type="primary" :loading="loading" @click="handleQuery">运行分析</el-button>
           <el-button @click="handleReset">重置</el-button>
+          <el-button type="success" :loading="exportLoading" :disabled="!metricList.length" @click="handleExport">
+            <el-icon><Download /></el-icon>
+            导出
+          </el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -53,11 +57,6 @@
     </el-row>
 
     <el-tabs v-model="activeViewTab" class="metric-view-tabs">
-      <el-tab-pane label="指标趋势" name="trend">
-        <el-card class="chart-card" shadow="never">
-          <div ref="trendChartRef" style="height: 400px" v-loading="loading" />
-        </el-card>
-      </el-tab-pane>
       <el-tab-pane label="指标明细" name="detail">
         <el-card class="table-card" shadow="never">
           <el-table :data="metricList" border stripe v-loading="loading">
@@ -77,6 +76,11 @@
           </el-table>
         </el-card>
       </el-tab-pane>
+      <el-tab-pane label="指标趋势" name="trend">
+        <el-card class="chart-card" shadow="never">
+          <div ref="trendChartRef" style="height: 400px" v-loading="loading" />
+        </el-card>
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -85,10 +89,11 @@
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { getMetricList, previewMetric } from '@/api/metric'
 import DictLabel from '@/components/DictLabel.vue'
-import { unwrapApiData, pickListPage } from '@/utils'
+import { exportToExcel, unwrapApiData, pickListPage } from '@/utils'
 
 interface MetricOption {
   id: number
@@ -111,7 +116,8 @@ interface MetricResultRow {
 
 const queryFormRef = ref<FormInstance>()
 const loading = ref(false)
-const activeViewTab = ref<'trend' | 'detail'>('trend')
+const exportLoading = ref(false)
+const activeViewTab = ref<'trend' | 'detail'>('detail')
 const metricOptions = ref<MetricOption[]>([])
 
 const queryForm = reactive({
@@ -209,6 +215,55 @@ const handleReset = () => {
   stats.qualifiedMetrics = 0
   stats.unqualifiedMetrics = 0
   stats.qualificationRate = 0
+}
+
+const METRIC_TYPE_LABEL: Record<string, string> = {
+  BASIC: '基础指标',
+  COMPOSITE: '复合指标',
+  DERIVED: '派生指标',
+}
+
+const handleExport = () => {
+  if (!metricList.value.length) {
+    ElMessage.warning('请先运行分析后再导出')
+    return
+  }
+  if (activeViewTab.value === 'detail') {
+    const exportData = metricList.value.map(row => ({
+      metricName: row.metricName,
+      metricType: METRIC_TYPE_LABEL[row.metricType] || row.metricType,
+      currentValue: row.currentValue,
+      unit: row.unit,
+      rowCount: row.rowCount,
+      status: row.status === 'qualified' ? '有数据' : '无数据',
+    }))
+    exportToExcel(
+      exportData,
+      [
+        { key: 'metricName', label: '指标名称' },
+        { key: 'metricType', label: '类型' },
+        { key: 'currentValue', label: '当前值' },
+        { key: 'unit', label: '单位' },
+        { key: 'rowCount', label: '明细行数' },
+        { key: 'status', label: '状态' },
+      ],
+      '指标分析明细',
+    )
+    return
+  }
+  const maxPoints = Math.max(...metricList.value.map(r => r.trendPoints.length), 1)
+  const columns = [
+    { key: 'metricName', label: '指标名称' },
+    ...Array.from({ length: maxPoints }, (_, i) => ({ key: `p${i + 1}`, label: `点${i + 1}` })),
+  ]
+  const exportData = metricList.value.map(row => {
+    const item: Record<string, string | number> = { metricName: row.metricName }
+    for (let i = 0; i < maxPoints; i += 1) {
+      item[`p${i + 1}`] = row.trendPoints[i] ?? (i === 0 ? row.currentValue : '')
+    }
+    return item
+  })
+  exportToExcel(exportData, columns, '指标分析趋势')
 }
 
 let metricTrendChart: echarts.ECharts | null = null

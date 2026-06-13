@@ -15,6 +15,10 @@ public class SopNodeUpdateReq {
     @Size(max = 50)
     private String nodeName;
     private Integer nodeOrder;
+    @InDict("dict_sop_node_type")
+    private String nodeType;
+    @Size(max = 2000)
+    private String instructionText;
     @InDict("dict_position")
     private String executorRole;
     private Integer needReview;

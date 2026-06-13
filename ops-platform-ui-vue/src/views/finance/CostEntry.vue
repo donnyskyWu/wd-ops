@@ -6,10 +6,6 @@
 -->
 <template>
   <div class="cost-entry-page" v-loading="loading">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/finance/cost' }">成本管理</el-breadcrumb-item>
-      <el-breadcrumb-item>成本录入</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <el-card shadow="never">
       <div class="header">

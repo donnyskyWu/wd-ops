@@ -4,6 +4,12 @@
       <el-tab-pane label="抖音" name="douyin">
         <TableSearch v-model="searchForm.douyin" @search="() => loadTabData('douyin')" @reset="() => handleReset('douyin')">
           <el-form-item label="账号名称"><el-input v-model="searchForm.douyin.keyword" placeholder="搜索账号" clearable /></el-form-item>
+          <template #extra>
+            <el-button type="success" :loading="exportLoading" @click="() => handleExport('douyin')">
+              <el-icon><Download /></el-icon>
+              导出
+            </el-button>
+          </template>
         </TableSearch>
         <el-table :data="filteredDouyinList" v-loading="loading" stripe>
           <el-table-column prop="rank" label="排名" width="80" align="center"><template #default="{ row }"><el-tag :type="row.rank <= 3 ? 'danger' : ''">{{ row.rank }}</el-tag></template></el-table-column>
@@ -20,6 +26,12 @@
       <el-tab-pane label="公众号" name="wechat">
         <TableSearch v-model="searchForm.wechat" @search="() => loadTabData('wechat')" @reset="() => handleReset('wechat')">
           <el-form-item label="账号名称"><el-input v-model="searchForm.wechat.keyword" placeholder="搜索账号" clearable /></el-form-item>
+          <template #extra>
+            <el-button type="success" :loading="exportLoading" @click="() => handleExport('wechat')">
+              <el-icon><Download /></el-icon>
+              导出
+            </el-button>
+          </template>
         </TableSearch>
         <el-table :data="filteredWechatList" v-loading="loading" stripe>
           <el-table-column prop="rank" label="排名" width="80" align="center"><template #default="{ row }"><el-tag :type="row.rank <= 3 ? 'danger' : ''">{{ row.rank }}</el-tag></template></el-table-column>
@@ -36,6 +48,12 @@
       <el-tab-pane label="视频号" name="channels">
         <TableSearch v-model="searchForm.channels" @search="() => loadTabData('channels')" @reset="() => handleReset('channels')">
           <el-form-item label="账号名称"><el-input v-model="searchForm.channels.keyword" placeholder="搜索账号" clearable /></el-form-item>
+          <template #extra>
+            <el-button type="success" :loading="exportLoading" @click="() => handleExport('channels')">
+              <el-icon><Download /></el-icon>
+              导出
+            </el-button>
+          </template>
         </TableSearch>
         <el-table :data="filteredChannelsList" v-loading="loading" stripe>
           <el-table-column prop="rank" label="排名" width="80" align="center"><template #default="{ row }"><el-tag :type="row.rank <= 3 ? 'danger' : ''">{{ row.rank }}</el-tag></template></el-table-column>
@@ -68,12 +86,16 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { Download } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import TableSearch from '@/components/TableSearch.vue'
 import { getHighFollowerAccountList } from '@/api/monitor'
+import { exportToExcel } from '@/utils'
 import { buildMonitorQuery, mapFollowerAccount, pickMonitorAccountPage, type MonitorAccountRow } from '@/utils/monitor-map'
 
 const activeTab = ref('douyin')
 const loading = ref(false)
+const exportLoading = ref(false)
 const searchForm = reactive({
   douyin: reactive({ keyword: undefined as string | undefined }),
   wechat: reactive({ keyword: undefined as string | undefined }),
@@ -127,6 +149,55 @@ const loadTabData = async (tab?: string | number) => {
 const handleReset = (tab: string) => {
   searchForm[tab as keyof typeof searchForm].keyword = undefined
   loadTabData(tab)
+}
+
+const fetchAllFilteredRows = async (tab: string) => {
+  const exportPageSize = 500
+  const first = await getHighFollowerAccountList(buildMonitorQuery(tab, {}, 1, exportPageSize))
+  const page = pickMonitorAccountPage(first)
+  let rows = page.list.map((raw, i) => mapFollowerAccount(raw as unknown as Record<string, unknown>, i))
+  const total = page.total ?? 0
+  if (total > exportPageSize) {
+    const totalPages = Math.ceil(total / exportPageSize)
+    for (let p = 2; p <= totalPages; p += 1) {
+      const res = await getHighFollowerAccountList(buildMonitorQuery(tab, {}, p, exportPageSize))
+      const pg = pickMonitorAccountPage(res)
+      rows = rows.concat(pg.list.map((raw, i) => mapFollowerAccount(raw as unknown as Record<string, unknown>, i)))
+    }
+  }
+  const keyword = searchForm[tab as keyof typeof searchForm].keyword
+  return filterList(rows, keyword)
+}
+
+const handleExport = async (tab: string) => {
+  exportLoading.value = true
+  try {
+    const rows = await fetchAllFilteredRows(tab)
+    exportToExcel(
+      rows.map((row) => ({
+        rank: row.rank ?? '',
+        accountName: row.accountName,
+        platform: row.platform,
+        followerCount: row.followerCount,
+        netGrowth: row.netGrowth ?? 0,
+        growthRate: formatGrowthRate(row.growthRate),
+      })),
+      [
+        { key: 'rank', label: '排名' },
+        { key: 'accountName', label: '账号名称' },
+        { key: 'platform', label: '平台' },
+        { key: 'followerCount', label: '粉丝数' },
+        { key: 'netGrowth', label: '日净增' },
+        { key: 'growthRate', label: '增长率' },
+      ],
+      '高粉账号分析',
+    )
+  } catch (error) {
+    console.error('[HighFans] 导出失败:', error)
+    ElMessage.error('导出失败：' + (error instanceof Error ? error.message : String(error)))
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 onMounted(() => loadTabData())

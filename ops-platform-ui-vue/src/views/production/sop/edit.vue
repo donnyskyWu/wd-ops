@@ -1,13 +1,5 @@
 <template>
   <div class="sop-edit-page">
-    <!-- 面包屑 -->
-    <el-breadcrumb separator="/">
-      <el-breadcrumb-item>
-        <el-link @click="handleBack">SOP管理</el-link>
-      </el-breadcrumb-item>
-      <el-breadcrumb-item>{{ templateName || '新建SOP模板' }}</el-breadcrumb-item>
-    </el-breadcrumb>
-
     <!-- 工具栏 -->
     <div class="toolbar">
       <el-button type="primary" :loading="saving" @click="handleSave">
@@ -186,6 +178,23 @@
           <el-form :model="selectedNode" label-width="100px">
             <el-form-item label="节点名称">
               <el-input v-model="selectedNode.nodeName" maxlength="50" @blur="updateNodeLabel" />
+            </el-form-item>
+            <el-form-item label="节点类型" required>
+              <DictSelect
+                v-model="selectedNode.nodeType"
+                dict-type="dict_sop_node_type"
+                placeholder="请选择"
+              />
+            </el-form-item>
+            <el-form-item label="执行说明">
+              <el-input
+                v-model="selectedNode.instructionText"
+                type="textarea"
+                :rows="3"
+                maxlength="2000"
+                show-word-limit
+                placeholder="任务执行页展示的说明文案"
+              />
             </el-form-item>
             <el-form-item label="执行岗位">
               <DictSelect
@@ -641,7 +650,8 @@ const handleDrop = (event: DragEvent) => {
     templateId: templateId.value,
     nodeName: `${getNodeTypeName(nodeType)}${nodes.value.length + 1}`,
     nodeOrder: nodes.value.length + 1,
-    nodeDescription: '',
+    nodeType: 'NORMAL',
+    instructionText: '',
     executorRole: 'OPERATOR',
     needReview: nodeType === 'audit' ? 1 : 0,
     reviewerRole: nodeType === 'audit' ? 'OPS_LEADER' : undefined,
@@ -761,7 +771,10 @@ const loadNodes = async (options?: { silent?: boolean }) => {
   try {
     const data = await getSopNodeList(templateId.value)
 
-    nodes.value = data || []
+    nodes.value = (data || []).map((node) => ({
+      ...node,
+      nodeType: node.nodeType || 'NORMAL',
+    }))
     persistedNodeIds.value = new Set((data || []).map((node) => node.id))
     syncEdgesFromNodes()
 
@@ -901,7 +914,8 @@ const handleAddNode = () => {
     templateId: templateId.value,
     nodeName: `新节点${nodes.value.length + 1}`,
     nodeOrder: nodes.value.length + 1,
-    nodeDescription: '',
+    nodeType: 'NORMAL',
+    instructionText: '',
     executorRole: 'OPERATOR',
     needReview: 0,
     predecessors: [],
@@ -925,6 +939,8 @@ const isNewNode = (nodeId: number) => !persistedNodeIds.value.has(nodeId)
 const buildNodePayload = (node: SopNodeVO) => ({
   nodeName: node.nodeName.trim(),
   nodeOrder: node.nodeOrder,
+  nodeType: node.nodeType,
+  instructionText: node.instructionText?.trim() || undefined,
   executorRole: node.executorRole,
   needReview: node.needReview,
   reviewerRole: node.needReview === 1 ? node.reviewerRole : undefined,
@@ -1062,6 +1078,12 @@ const handleSave = async () => {
   const missingRoleNodes = nodes.value.filter((n) => !n.executorRole)
   if (missingRoleNodes.length > 0) {
     ElMessage.error('请为所有节点选择执行岗位')
+    return
+  }
+
+  const missingNodeTypeNodes = nodes.value.filter((n) => !n.nodeType || n.nodeType.trim() === '')
+  if (missingNodeTypeNodes.length > 0) {
+    ElMessage.error('请为所有节点选择节点类型')
     return
   }
 

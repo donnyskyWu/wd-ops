@@ -1,9 +1,5 @@
 <template>
   <div class="order-attribution-page">
-    <el-breadcrumb separator="/">
-      <el-breadcrumb-item>绩效核算</el-breadcrumb-item>
-      <el-breadcrumb-item>订单归因分析</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <!-- ROI汇总卡片 -->
     <el-row :gutter="16" class="stats-cards">

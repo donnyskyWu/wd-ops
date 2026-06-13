@@ -6,10 +6,6 @@
 -->
 <template>
   <div class="company-detail-page" v-loading="loading">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/company' }">公司管理</el-breadcrumb-item>
-      <el-breadcrumb-item>{{ detail?.companyName || '详情' }}</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <template v-if="detail">
       <!-- 顶部操作 -->

@@ -39,6 +39,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { request } from '@/utils/request'
+import { getIpGroupMembers } from '@/api/ip-group'
 
 interface UserVO {
   id: number
@@ -62,6 +63,8 @@ interface Props {
   deptId?: number
   /** 限定到某角色编码 */
   roleCode?: string
+  /** 限定到某 IP 组成员 */
+  ipGroupId?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -74,6 +77,7 @@ const props = withDefaults(defineProps<Props>(), {
   remote: true,
   deptId: undefined,
   roleCode: undefined,
+  ipGroupId: undefined,
 })
 
 const emit = defineEmits<{
@@ -87,10 +91,25 @@ const loading = ref(false)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 watch(() => props.modelValue, (val) => { selectedValue.value = val })
+watch(() => props.ipGroupId, () => loadList(''))
 
 const loadList = async (keyword: string) => {
   loading.value = true
   try {
+    if (props.ipGroupId) {
+      const members = await getIpGroupMembers(props.ipGroupId)
+      const kw = keyword?.trim().toLowerCase()
+      options.value = members
+        .filter((item) => !kw || item.userName.toLowerCase().includes(kw))
+        .map((item) => ({
+          id: item.userId,
+          username: String(item.userId),
+          nickname: item.userName,
+          deptName: undefined,
+          roleNames: item.positionText ? [item.positionText] : [],
+        }))
+      return
+    }
     const res = await request.get<{ list: UserVO[] }>({
       url: '/oa/system/user/list',
       params: {

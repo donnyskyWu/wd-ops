@@ -7,6 +7,12 @@
       <el-form-item label="运营商">
         <DictSelect v-model="searchForm.operator" dict-type="dict_sim_operator" placeholder="全部" clearable />
       </el-form-item>
+      <template #extra>
+        <el-button type="success" :loading="exportLoading" @click="handleExport">
+          <el-icon><Download /></el-icon>
+          导出
+        </el-button>
+      </template>
     </TableSearch>
 
     <div class="action-bar">
@@ -111,12 +117,13 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Download } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import UserSelect from '@/components/selectors/UserSelect.vue'
 import RealNameSelect from '@/components/selectors/RealNameSelect.vue'
 import PhoneSelect from '@/components/selectors/PhoneSelect.vue'
+import { exportToExcel } from '@/utils'
 import {
   createSimCard,
   deleteSimCard,
@@ -132,6 +139,7 @@ const OPERATOR_MAP: Record<string, string> = {
 }
 
 const loading = ref(false)
+const exportLoading = ref(false)
 const list = ref<SimCardVO[]>([])
 const total = ref(0)
 const router = useRouter()
@@ -168,6 +176,58 @@ const handleReset = () => {
   searchForm.operator = undefined
   searchForm.pageNo = 1
   loadList()
+}
+
+const buildListParams = (pageNo: number, pageSize: number) => ({
+  iccid: searchForm.keyword,
+  operator: searchForm.operator,
+  pageNo,
+  pageSize,
+})
+
+const fetchAllFilteredRows = async () => {
+  const exportPageSize = 500
+  const first = await getSimCardPage(buildListParams(1, exportPageSize))
+  let rows = first.list || []
+  const totalCount = first.total ?? 0
+  if (totalCount > exportPageSize) {
+    const totalPages = Math.ceil(totalCount / exportPageSize)
+    for (let page = 2; page <= totalPages; page += 1) {
+      const res = await getSimCardPage(buildListParams(page, exportPageSize))
+      rows = rows.concat(res.list || [])
+    }
+  }
+  return rows
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const rows = await fetchAllFilteredRows()
+    const exportData = rows.map((row) => ({
+      iccidMasked: row.iccidMasked || '',
+      phoneNumberMasked: row.phoneNumberMasked || '',
+      operator: OPERATOR_MAP[row.operator] || row.operator || '',
+      packageName: row.packageName || '',
+      totalLinkedAccounts: row.totalLinkedAccounts ?? 0,
+      assignedUserName: row.assignedUserName || '',
+      status: row.status === 'ENABLED' ? '在用' : '停用',
+    }))
+    const columns = [
+      { key: 'iccidMasked', label: 'ICCID' },
+      { key: 'phoneNumberMasked', label: '手机号' },
+      { key: 'operator', label: '运营商' },
+      { key: 'packageName', label: '套餐' },
+      { key: 'totalLinkedAccounts', label: '关联账号' },
+      { key: 'assignedUserName', label: '归属人' },
+      { key: 'status', label: '状态' },
+    ]
+    exportToExcel(exportData, columns, '手机卡管理')
+  } catch {
+    ElMessage.error('导出失败，请重试')
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const handleLinked = (row: SimCardVO) => {

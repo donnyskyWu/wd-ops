@@ -6,10 +6,6 @@
 -->
 <template>
   <div class="roi-page" v-loading="loading">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/perf/order-attribution' }">订单归因</el-breadcrumb-item>
-      <el-breadcrumb-item>ROI 分析</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <ContentWrap>
       <el-form :model="filter" inline>

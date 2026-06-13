@@ -5,10 +5,6 @@
 -->
 <template>
   <div class="author-dashboard" v-loading="loading">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/author' }">作者管理</el-breadcrumb-item>
-      <el-breadcrumb-item>{{ author?.nickname || '看板' }}</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <!-- 头部信息卡 -->
     <el-card shadow="never" v-if="author">

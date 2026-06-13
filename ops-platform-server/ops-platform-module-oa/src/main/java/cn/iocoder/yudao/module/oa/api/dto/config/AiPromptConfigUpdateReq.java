@@ -19,6 +19,12 @@ public class AiPromptConfigUpdateReq {
     @InDict("dict_ai_scene")
     private String scene;
 
+    @InDict("dict_content_type")
+    private String contentType;
+
+    @InDict("dict_document_type")
+    private String documentType;
+
     private String promptContent;
     private String variableDesc;
     private BigDecimal temperature;

@@ -3,7 +3,6 @@
     <div class="page-header">
       <h3 class="page-title">IP主题与行业数据</h3>
       <div class="header-actions">
-        <el-button type="primary" :icon="Document" @click="handleExport">导出</el-button>
         <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
       </div>
     </div>
@@ -16,6 +15,12 @@
             <el-form :model="ipThemeForm" inline>
               <el-form-item label="IP组">
                 <IpGroupTreeSelect v-model="ipThemeForm.ipGroupId" style="width: 220px" @change="loadIpThemeData" />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="success" :loading="exportLoading" @click="handleExport">
+                  <el-icon><Download /></el-icon>
+                  导出
+                </el-button>
               </el-form-item>
             </el-form>
           </el-card>
@@ -178,18 +183,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick, watch, computed } from 'vue'
-import { Document, Refresh } from '@element-plus/icons-vue'
+import { ref, reactive, onMounted, nextTick, computed } from 'vue'
+import { Download, Refresh } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { exportToExcel, unwrapApiData } from '@/utils'
-import { getIpThemeStats, getIndustryStats, getExternalWorkList } from '@/api/monitor'
+import { getIpThemeStats, getExternalWorkList } from '@/api/monitor'
 import { mapExternalWork, pickMonitorPage } from '@/utils/monitor-map'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 
 const router = useRouter()
 const activeTab = ref('ip-theme')
 const loading = ref(false)
+const exportLoading = ref(false)
 
 // IP主题数据
 const ipThemeForm = reactive({ ipGroupId: undefined as number | undefined })
@@ -220,15 +227,58 @@ const ipThemeLineRef = ref<HTMLElement>()
 const industryPieRef = ref<HTMLElement>()
 
 // 导出
-const handleExport = () => {
-  const columns = [
-    { key: 'platform', label: '平台' },
-    { key: 'accountName', label: '账号名称' },
-    { key: 'followerCount', label: '粉丝数' },
-    { key: 'interactionCount', label: '互动量' },
-    { key: 'contentCount', label: '内容数' },
-  ]
-  exportToExcel(competitorList.value, columns, 'IP主题-竞品数据')
+const buildListParams = (pageNum: number, pageSize: number) => ({
+  ipGroupId: ipThemeForm.ipGroupId,
+  pageNum,
+  pageSize,
+})
+
+const fetchAllFilteredRows = async () => {
+  const exportPageSize = 500
+  const first = await getExternalWorkList(buildListParams(1, exportPageSize))
+  const page = pickMonitorPage(first)
+  let works = page.list.map((raw, i) => mapExternalWork(raw as unknown as Record<string, unknown>, i))
+  const total = page.total ?? 0
+  if (total > exportPageSize) {
+    const totalPages = Math.ceil(total / exportPageSize)
+    for (let p = 2; p <= totalPages; p += 1) {
+      const res = await getExternalWorkList(buildListParams(p, exportPageSize))
+      const pg = pickMonitorPage(res)
+      works = works.concat(pg.list.map((raw, i) => mapExternalWork(raw as unknown as Record<string, unknown>, i)))
+    }
+  }
+  return works.map((w) => ({
+    platform: w.platform,
+    accountName: w.accountName,
+    title: w.title,
+    followerCount: w.playCount,
+    interactionCount: w.likeCount,
+    contentCount: 1,
+  }))
+}
+
+const handleExport = async () => {
+  if (!ipThemeForm.ipGroupId) {
+    ElMessage.warning('请先选择 IP 组')
+    return
+  }
+  exportLoading.value = true
+  try {
+    const rows = await fetchAllFilteredRows()
+    exportToExcel(rows, [
+      { key: 'platform', label: '平台' },
+      { key: 'accountName', label: '账号名称' },
+      { key: 'title', label: '作品标题' },
+      { key: 'followerCount', label: '播放量' },
+      { key: 'interactionCount', label: '互动量' },
+      { key: 'contentCount', label: '内容数' },
+    ], 'IP主题数据')
+  } catch (error) {
+    console.error('[IPTheme] 导出失败:', error)
+    ElMessage.error('导出失败：' + (error instanceof Error ? error.message : String(error)))
+  } finally {
+    exportLoading.value = false
+  }
 }
 // 刷新
 const handleRefresh = () => { loadIpThemeData() }

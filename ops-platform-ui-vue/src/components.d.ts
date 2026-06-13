@@ -80,6 +80,7 @@ declare module 'vue' {
     ElTreeSelect: typeof import('element-plus/es')['ElTreeSelect']
     ElUpload: typeof import('element-plus/es')['ElUpload']
     IpGroupTreeSelect: typeof import('./components/selectors/IpGroupTreeSelect.vue')['default']
+    MatchSelectDialog: typeof import('./components/selectors/MatchSelectDialog.vue')['default']
     MetricBuilder: typeof import('./components/MetricBuilder.vue')['default']
     Pagination: typeof import('./components/Pagination.vue')['default']
     PhoneSelect: typeof import('./components/selectors/PhoneSelect.vue')['default']

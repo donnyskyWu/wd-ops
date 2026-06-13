@@ -4,6 +4,7 @@
     :placeholder="placeholder"
     :clearable="clearable"
     :filterable="filterable"
+    :multiple="multiple"
     :loading="loading"
     :style="{ width: '100%' }"
   >
@@ -26,17 +27,20 @@ import { fetchDictData, type DictItemVO } from '@/api/dict'
 const props = defineProps<{
   type?: string
   dictType?: string
-  modelValue?: string | number | null
+  modelValue?: string | number | string[] | number[] | null
   placeholder?: string
   clearable?: boolean
   filterable?: boolean
+  multiple?: boolean
+  includeValues?: string[]
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', val: string | number | null): void
+  (e: 'update:modelValue', val: string | number | string[] | number[] | null): void
+  (e: 'change', val: string | number | string[] | number[] | null): void
 }>()
 
-const model = ref<string | number | null>(props.modelValue ?? null)
+const model = ref<string | number | string[] | number[] | null>(props.modelValue ?? (props.multiple ? [] : null))
 const options = ref<DictItemVO[]>([])
 const loading = ref(false)
 
@@ -44,10 +48,11 @@ const loading = ref(false)
 const effectiveType = computed(() => props.dictType || props.type || '')
 
 watch(() => props.modelValue, (v) => {
-  model.value = v ?? null
+  model.value = v ?? (props.multiple ? [] : null)
 })
 watch(model, (v) => {
   emit('update:modelValue', v)
+  emit('change', v)
 })
 
 const load = async () => {
@@ -59,7 +64,10 @@ const load = async () => {
   loading.value = true
   try {
     const res: any = await fetchDictData(t)
-    options.value = (res?.list || []) as DictItemVO[]
+    options.value = ((res?.list || []) as DictItemVO[]).filter((item) => {
+      if (!props.includeValues?.length) return true
+      return props.includeValues.includes(String(item.value))
+    })
   } catch (e) {
     options.value = []
   } finally {

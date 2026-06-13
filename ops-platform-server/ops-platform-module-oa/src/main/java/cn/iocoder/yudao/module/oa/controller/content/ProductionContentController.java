@@ -2,7 +2,13 @@ package cn.iocoder.yudao.module.oa.controller.content;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentAiGenerateReq;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentAiGenerateResultVO;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentAiPromptOptionVO;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentGenerateResultVO;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentReviewConfigVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentReviewReq;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentScriptRefVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentVO;
@@ -47,6 +53,46 @@ public class ProductionContentController {
         return CommonResult.success(productionContentService.create(req));
     }
 
+    @GetMapping("/by-task")
+    public CommonResult<ProductionContentVO> getByTask(@RequestParam Long taskId) {
+        return CommonResult.success(productionContentService.getByTaskId(taskId));
+    }
+
+    @GetMapping("/{id}")
+    public CommonResult<ProductionContentVO> get(@PathVariable Long id) {
+        return CommonResult.success(productionContentService.getById(id));
+    }
+
+    @GetMapping("/script-ref")
+    public CommonResult<ContentScriptRefVO> getScriptRef(
+            @RequestParam String competitionId,
+            @RequestParam(required = false, defaultValue = "SHORT_VIDEO_SCRIPT") String documentType) {
+        return CommonResult.success(productionContentService.getScriptRef(competitionId, documentType));
+    }
+
+    @PostMapping("/{id}/confirm")
+    public CommonResult<Boolean> confirm(@PathVariable Long id) {
+        productionContentService.confirm(id);
+        return CommonResult.success(true);
+    }
+
+    @PostMapping("/{id}/generate")
+    public CommonResult<ContentGenerateResultVO> generate(@PathVariable Long id) {
+        return CommonResult.success(productionContentService.generate(id));
+    }
+
+    @GetMapping("/ai-prompt-options")
+    public CommonResult<java.util.List<ContentAiPromptOptionVO>> listAiPromptOptions(
+            @RequestParam String contentType,
+            @RequestParam(required = false) String documentType) {
+        return CommonResult.success(productionContentService.listAiPromptOptions(contentType, documentType));
+    }
+
+    @PostMapping("/ai-generate")
+    public CommonResult<ContentAiGenerateResultVO> aiGenerate(@Valid @RequestBody ContentAiGenerateReq req) {
+        return CommonResult.success(productionContentService.aiGenerate(req));
+    }
+
     @PutMapping("/update")
     public CommonResult<Boolean> update(@Valid @RequestBody ProductionContentUpdateReq req) {
         productionContentService.update(req);
@@ -69,5 +115,10 @@ public class ProductionContentController {
     public CommonResult<Boolean> review(@PathVariable Long id, @Valid @RequestBody ContentReviewReq req) {
         productionContentService.review(id, req);
         return CommonResult.success(true);
+    }
+
+    @GetMapping("/review-config")
+    public CommonResult<ContentReviewConfigVO> getReviewConfig() {
+        return CommonResult.success(productionContentService.getReviewConfig());
     }
 }

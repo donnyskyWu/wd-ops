@@ -4,10 +4,6 @@
 -->
 <template>
   <div class="realname-detail-page" v-loading="loading">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/realname' }">实名人管理</el-breadcrumb-item>
-      <el-breadcrumb-item>详情</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <template v-if="detail">
       <el-card shadow="never">

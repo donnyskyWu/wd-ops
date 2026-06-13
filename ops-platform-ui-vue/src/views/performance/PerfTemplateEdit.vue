@@ -6,10 +6,6 @@
 -->
 <template>
   <div class="perf-template-edit-page" v-loading="loading">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/perf/template' }">绩效模板</el-breadcrumb-item>
-      <el-breadcrumb-item>{{ isNew ? '新增模板' : form.name || '编辑' }}</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <el-card shadow="never">
       <div class="header">

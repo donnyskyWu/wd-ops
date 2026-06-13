@@ -1,9 +1,5 @@
 <template>
   <div class="perf-template-page">
-    <el-breadcrumb separator="/">
-      <el-breadcrumb-item>绩效核算</el-breadcrumb-item>
-      <el-breadcrumb-item>考核模板</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
       <el-form-item label="岗位">

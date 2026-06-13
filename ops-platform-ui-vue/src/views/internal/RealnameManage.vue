@@ -7,6 +7,12 @@
       <el-form-item label="状态">
         <DictSelect v-model="searchForm.status" dict-type="dict_realname_status" placeholder="全部" clearable />
       </el-form-item>
+      <template #extra>
+        <el-button type="success" :loading="exportLoading" @click="handleExport">
+          <el-icon><Download /></el-icon>
+          导出
+        </el-button>
+      </template>
     </TableSearch>
 
     <div class="action-bar">
@@ -99,10 +105,11 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Download } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import CompanySelect from '@/components/selectors/CompanySelect.vue'
+import { exportToExcel } from '@/utils'
 import {
   createRealname,
   deleteRealname,
@@ -112,6 +119,7 @@ import {
 } from '@/api/realname'
 
 const loading = ref(false)
+const exportLoading = ref(false)
 const realnameList = ref<RealnameVO[]>([])
 const total = ref(0)
 const router = useRouter()
@@ -151,6 +159,56 @@ const handleReset = () => {
   searchForm.status = undefined
   searchForm.pageNo = 1
   loadList()
+}
+
+const buildListParams = (pageNo: number, pageSize: number) => ({
+  realName: searchForm.keyword,
+  status: searchForm.status,
+  pageNo,
+  pageSize,
+})
+
+const fetchAllFilteredRows = async () => {
+  const exportPageSize = 500
+  const first = await getRealnamePage(buildListParams(1, exportPageSize))
+  let rows = first.list || []
+  const totalCount = first.total ?? 0
+  if (totalCount > exportPageSize) {
+    const totalPages = Math.ceil(totalCount / exportPageSize)
+    for (let page = 2; page <= totalPages; page += 1) {
+      const res = await getRealnamePage(buildListParams(page, exportPageSize))
+      rows = rows.concat(res.list || [])
+    }
+  }
+  return rows
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const rows = await fetchAllFilteredRows()
+    const exportData = rows.map((row) => ({
+      realName: row.realName,
+      idCardMasked: row.idCardMasked || '',
+      phoneMasked: row.phoneMasked || '',
+      wechat: row.wechat || '',
+      companyName: row.companyName || '',
+      status: row.status === 'ENABLED' ? '启用' : '停用',
+    }))
+    const columns = [
+      { key: 'realName', label: '真实姓名' },
+      { key: 'idCardMasked', label: '身份证号(脱敏)' },
+      { key: 'phoneMasked', label: '手机号' },
+      { key: 'wechat', label: '微信号' },
+      { key: 'companyName', label: '所属公司' },
+      { key: 'status', label: '状态' },
+    ]
+    exportToExcel(exportData, columns, '实名人管理')
+  } catch {
+    ElMessage.error('导出失败，请重试')
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const dialogVisible = ref(false)

@@ -39,6 +39,7 @@ export const ALL_ROUTES: RouteEntry[] = [
   { module: 'M2', path: '/sop/review', title: 'SOP审核' },
   { module: 'M2', path: '/sop/1/edit', title: 'SOP编辑', skip: true, skipReason: 'LogicFlow 拖拽需宽屏' },
   { module: 'M2', path: '/task', title: '任务管理' },
+  { module: 'M2', path: '/task/1/execute', title: '任务执行', skip: true, skipReason: '需有效任务 ID 与执行人权限' },
   { module: 'M2', path: '/content', title: '内容管理' },
   { module: 'M2', path: '/content/edit', title: '内容新增' },
   { module: 'M2', path: '/content/review', title: '内容审核' },

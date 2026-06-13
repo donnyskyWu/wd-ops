@@ -1,9 +1,5 @@
 <template>
   <div class="report-page">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/data-report' }">数据报表</el-breadcrumb-item>
-      <el-breadcrumb-item>状态监控</el-breadcrumb-item>
-    </el-breadcrumb>
     <ContentWrap>
       <el-form :model="filter" inline>
         <el-form-item label="账号">
@@ -13,6 +9,12 @@
           <el-date-picker v-model="filter.dateRange" type="daterange" value-format="YYYY-MM-DD" style="width: 240px" />
         </el-form-item>
         <el-form-item><el-button type="primary" @click="loadData">查询</el-button></el-form-item>
+        <el-form-item>
+          <el-button type="success" :loading="exportLoading" @click="handleExport">
+            <el-icon><Download /></el-icon>
+            导出
+          </el-button>
+        </el-form-item>
       </el-form>
     </ContentWrap>
     <ContentWrap title="状态趋势" style="margin-top: 16px">
@@ -53,13 +55,16 @@
 </template>
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
 import { getAccountStatusTrend, getAccountStatusSummary, getAccountStatusLog } from '@/api/report'
-import { unwrapApiData, pickListPage, reportField } from '@/utils'
+import { exportToExcel, unwrapApiData, pickListPage, reportField, fetchAllPaginated } from '@/utils'
 
 const loading = ref(false)
+const exportLoading = ref(false)
 const filter = reactive({ accountId: undefined as number | undefined, dateRange: [] as string[] })
 const pageNum = ref(1)
 const pageSize = ref(20)
@@ -88,11 +93,41 @@ const statusLabel = (s: string) => {
   return map[s] || s || '-'
 }
 
-const buildQ = () => {
-  const q: Record<string, any> = { pageNum: pageNum.value, pageSize: pageSize.value }
+const buildQ = (page = pageNum.value, size = pageSize.value) => {
+  const q: Record<string, any> = { pageNum: page, pageSize: size }
   if (filter.accountId) q.accountId = filter.accountId
   if (filter.dateRange?.length === 2) { q.startDate = filter.dateRange[0]; q.endDate = filter.dateRange[1] }
   return q
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const rows = await fetchAllPaginated(async (page, size) =>
+      pickListPage(unwrapApiData(await getAccountStatusLog(buildQ(page, size)))),
+    )
+    const exportData = rows.map(row => ({
+      date: reportField(row, 'date', 'statDate'),
+      accountName: reportField(row, 'account_name', 'accountName'),
+      status: statusLabel(String(reportField(row, 'status') || '')),
+      remark: reportField(row, 'remark') || '-',
+    }))
+    exportToExcel(
+      exportData,
+      [
+        { key: 'date', label: '日期' },
+        { key: 'accountName', label: '账号' },
+        { key: 'status', label: '状态' },
+        { key: 'remark', label: '备注' },
+      ],
+      '状态监控',
+    )
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('导出失败，请重试')
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const loadData = async () => {

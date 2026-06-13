@@ -1,9 +1,5 @@
 <template>
   <div class="report-page">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/data-report' }">数据报表</el-breadcrumb-item>
-      <el-breadcrumb-item>直播时长</el-breadcrumb-item>
-    </el-breadcrumb>
     <ContentWrap>
       <el-form :model="filter" inline>
         <el-form-item label="IP 组">
@@ -14,6 +10,10 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="loadData">查询</el-button>
+          <el-button type="success" :loading="exportLoading" @click="handleExport">
+            <el-icon><Download /></el-icon>
+            导出
+          </el-button>
         </el-form-item>
       </el-form>
     </ContentWrap>
@@ -49,13 +49,16 @@
 </template>
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { getLiveDurationList, getLiveDurationTrend } from '@/api/report'
-import { unwrapApiData, pickListPage, reportField } from '@/utils'
+import { exportToExcel, unwrapApiData, pickListPage, reportField, fetchAllPaginated } from '@/utils'
 
 const loading = ref(false)
+const exportLoading = ref(false)
 const filter = reactive({ ipGroupId: undefined as number | undefined, dateRange: [] as string[] })
 const pageNum = ref(1)
 const pageSize = ref(20)
@@ -64,11 +67,45 @@ const list = ref<any[]>([])
 const trendRef = ref<HTMLDivElement | null>(null)
 let chart: echarts.ECharts | null = null
 
-const buildQuery = () => {
-  const q: Record<string, any> = { pageNum: pageNum.value, pageSize: pageSize.value }
+const buildQuery = (page = pageNum.value, size = pageSize.value) => {
+  const q: Record<string, any> = { pageNum: page, pageSize: size }
   if (filter.ipGroupId) q.ipGroupId = filter.ipGroupId
   if (filter.dateRange?.length === 2) { q.startDate = filter.dateRange[0]; q.endDate = filter.dateRange[1] }
   return q
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const rows = await fetchAllPaginated(async (page, size) =>
+      pickListPage(unwrapApiData(await getLiveDurationList(buildQuery(page, size)))),
+    )
+    const exportData = rows.map(row => ({
+      date: reportField(row, 'date', 'statDate'),
+      accountName: reportField(row, 'account_name', 'accountName'),
+      sessionCount: reportField(row, 'session_count', 'sessionCount'),
+      totalDuration: reportField(row, 'total_duration', 'totalDuration'),
+      avgDuration: reportField(row, 'avg_duration', 'avgDuration'),
+      peakViewers: reportField(row, 'peak_viewers', 'peakViewers'),
+    }))
+    exportToExcel(
+      exportData,
+      [
+        { key: 'date', label: '日期' },
+        { key: 'accountName', label: '账号' },
+        { key: 'sessionCount', label: '场次' },
+        { key: 'totalDuration', label: '总时长(分钟)' },
+        { key: 'avgDuration', label: '均时长' },
+        { key: 'peakViewers', label: '峰值在线' },
+      ],
+      '直播时长',
+    )
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('导出失败，请重试')
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const loadData = async () => {

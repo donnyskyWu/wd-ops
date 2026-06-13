@@ -14,6 +14,9 @@ public class ContentPlanStepDO extends TenantBaseDO {
 
     private Long planId;
     private Long nodeId;
+    private String competitionId;
+    private String competitionName;
+    private String competitionIdsJson;
     private String assigneeIdsJson;
     private LocalDateTime scheduledStart;
     private LocalDateTime scheduledEnd;

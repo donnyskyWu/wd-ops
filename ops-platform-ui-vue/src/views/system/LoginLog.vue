@@ -1,9 +1,5 @@
 <template>
   <div class="login-log-page">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item>系统管理</el-breadcrumb-item>
-      <el-breadcrumb-item>登录日志</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
       <el-form-item label="用户名">

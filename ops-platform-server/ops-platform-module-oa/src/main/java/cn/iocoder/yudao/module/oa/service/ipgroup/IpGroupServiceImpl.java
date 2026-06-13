@@ -28,6 +28,8 @@ import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupAnchorRelMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMemberMapper;
+import cn.iocoder.yudao.module.oa.dal.dataobject.dict.SysDictDataDO;
+import cn.iocoder.yudao.module.oa.dal.mysql.dict.SysDictDataMapper;
 import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -51,6 +53,7 @@ public class IpGroupServiceImpl implements IpGroupService {
 
     private final IpGroupMapper ipGroupMapper;
     private final IpGroupMemberMapper ipGroupMemberMapper;
+    private final SysDictDataMapper sysDictDataMapper;
     private final IpGroupAnchorRelMapper ipGroupAnchorRelMapper;
     private final AccountMapper accountMapper;
     private final SysUserMapper sysUserMapper;
@@ -504,10 +507,22 @@ public class IpGroupServiceImpl implements IpGroupService {
             vo.setUserName(user.getNickname() != null ? user.getNickname() : user.getUsername());
         }
         vo.setPosition(member.getPosition());
-        vo.setPositionText(member.getPosition());
+        vo.setPositionText(resolvePositionLabel(member.getPosition()));
         vo.setIsLeader(member.getIsLeader() != null && member.getIsLeader() == 1);
         vo.setJoinTime(member.getCreateTime());
         return vo;
+    }
+
+    private String resolvePositionLabel(String position) {
+        if (StrUtil.isBlank(position)) {
+            return "成员";
+        }
+        SysDictDataDO dict = sysDictDataMapper.selectOne(new LambdaQueryWrapper<SysDictDataDO>()
+                .eq(SysDictDataDO::getDictType, "dict_position")
+                .eq(SysDictDataDO::getDictValue, position)
+                .eq(SysDictDataDO::getStatus, "ENABLED")
+                .last("LIMIT 1"));
+        return dict != null && StrUtil.isNotBlank(dict.getLabel()) ? dict.getLabel() : position;
     }
 
     private void validateGroupName(String groupName) {

@@ -6,10 +6,6 @@
 -->
 <template>
   <div class="roi-trend-page" v-loading="loading">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/finance/roi' }">ROI 分析</el-breadcrumb-item>
-      <el-breadcrumb-item>ROI 趋势</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <ContentWrap>
       <el-form :model="filter" inline>

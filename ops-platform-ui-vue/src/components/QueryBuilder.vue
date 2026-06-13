@@ -163,10 +163,6 @@
           </el-form-item>
         </el-form>
 
-        <div class="builder-actions">
-          <el-button type="primary" @click="generateSql">生成 SQL</el-button>
-        </div>
-
         <el-form-item label="SQL 预览" label-width="96px" class="formula-block">
           <el-input
             :model-value="props.sqlText"
@@ -203,7 +199,6 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
 import { ArrowDown, Delete } from '@element-plus/icons-vue'
 import {
   METRIC_CALC_METHODS,
@@ -302,30 +297,6 @@ function pickField(f: MetricFieldMeta) {
   emitSql()
 }
 
-function validateConfig(): boolean {
-  if (!config.dataSource) {
-    ElMessage.warning('请先选择数据源')
-    return false
-  }
-  if (config.displayFields.length === 0 && !config.calcMethod) {
-    ElMessage.warning('请至少选择展示字段或计算方式')
-    return false
-  }
-  if (calcNeedsField.value && !config.calcField) {
-    ElMessage.warning('请选择计算字段')
-    return false
-  }
-  return true
-}
-
-function generateSql() {
-  if (!validateConfig()) return
-  const sql = buildQuerySqlFromConfig(config)
-  emit('update:sqlText', sql)
-  syncConfig()
-  ElMessage.success('SQL 已生成')
-}
-
 function emitSql() {
   syncConfig()
   if (!config.dataSource) return
@@ -392,11 +363,6 @@ function onSqlInput(v: string) {
   gap: 8px;
   align-items: center;
   margin-bottom: 8px;
-}
-.builder-actions {
-  display: flex;
-  gap: 8px;
-  margin: 0 0 12px 96px;
 }
 .formula-block { margin-top: 4px; }
 .form-tip { margin-top: 4px; color: #909399; font-size: 12px; }

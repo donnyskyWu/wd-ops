@@ -47,6 +47,8 @@ public class AiPromptConfigServiceImpl implements AiPromptConfigService {
         entity.setTemplateName(req.getTemplateName());
         entity.setVersion("v1");
         entity.setScene(req.getScene());
+        entity.setContentType(req.getContentType());
+        entity.setDocumentType(req.getDocumentType());
         entity.setPromptContent(req.getPromptContent());
         entity.setVariableDesc(req.getVariableDesc());
         entity.setTemperature(req.getTemperature());
@@ -67,6 +69,12 @@ public class AiPromptConfigServiceImpl implements AiPromptConfigService {
         }
         if (req.getScene() != null) {
             existing.setScene(req.getScene());
+        }
+        if (req.getContentType() != null) {
+            existing.setContentType(req.getContentType());
+        }
+        if (req.getDocumentType() != null) {
+            existing.setDocumentType(req.getDocumentType());
         }
         if (StrUtil.isNotBlank(req.getPromptContent())) {
             existing.setPromptContent(req.getPromptContent());
@@ -126,6 +134,8 @@ public class AiPromptConfigServiceImpl implements AiPromptConfigService {
         vo.setTemplateName(entity.getTemplateName());
         vo.setVersion(entity.getVersion());
         vo.setScene(entity.getScene());
+        vo.setContentType(entity.getContentType());
+        vo.setDocumentType(entity.getDocumentType());
         vo.setPromptContent(entity.getPromptContent());
         vo.setVariableDesc(entity.getVariableDesc());
         vo.setTemperature(entity.getTemperature());

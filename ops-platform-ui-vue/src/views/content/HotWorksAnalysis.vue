@@ -5,6 +5,12 @@
         <DictSelect v-model="searchForm.contentType" dict-type="dict_content_type" placeholder="全部" clearable />
       </el-form-item>
       <el-form-item label="爆款阈值"><el-input-number v-model="searchForm.threshold" :min="1000" :step="1000" style="width: 150px" /> <span style="margin-left: 8px; color: #909399; font-size: 12px">播放量≥阈值</span></el-form-item>
+      <template #extra>
+        <el-button type="success" :loading="exportLoading" @click="handleExport">
+          <el-icon><Download /></el-icon>
+          导出
+        </el-button>
+      </template>
     </TableSearch>
     <el-row :gutter="16" class="stats-row">
       <el-col :span="6"><el-card shadow="hover"><el-statistic title="爆款总数" :value="stats.totalHot" /></el-card></el-col>
@@ -53,10 +59,13 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { Download } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
 import { getHitWorkList } from '@/api/monitor'
+import { exportToExcel } from '@/utils'
 import { mapExternalWork, pickMonitorPage } from '@/utils/monitor-map'
 
 interface HotWorkRow {
@@ -70,6 +79,7 @@ interface HotWorkRow {
 }
 
 const loading = ref(false)
+const exportLoading = ref(false)
 const searchForm = reactive({ threshold: 1000000, contentType: undefined as string | undefined })
 const stats = reactive({ totalHot: 0, totalViews: 0, avgLikes: 0, avgShares: 0 })
 const hotWorksList = ref<HotWorkRow[]>([])
@@ -83,27 +93,47 @@ const calcHotScore = (views: number) => {
   return 2
 }
 
+const buildListParams = (pageNum: number, pageSize: number) => ({
+  pageNum,
+  pageSize,
+  contentType: searchForm.contentType || undefined,
+})
+
+const mapHotWorkRows = (list: ReturnType<typeof mapExternalWork>[]) =>
+  list
+    .filter(w => w.playCount >= searchForm.threshold)
+    .map((w, i) => ({
+      rank: i + 1,
+      title: w.title,
+      contentType: w.contentType ?? '',
+      platform: w.platform,
+      views: w.playCount,
+      likes: w.likeCount,
+      hotScore: calcHotScore(w.playCount),
+    }))
+
+const fetchAllFilteredRows = async () => {
+  const exportPageSize = 500
+  const first = await getHitWorkList(buildListParams(1, exportPageSize))
+  const page = pickMonitorPage(first)
+  let works = page.list.map((raw, i) => mapExternalWork(raw as unknown as Record<string, unknown>, i))
+  const total = page.total ?? 0
+  if (total > exportPageSize) {
+    const totalPages = Math.ceil(total / exportPageSize)
+    for (let p = 2; p <= totalPages; p += 1) {
+      const res = await getHitWorkList(buildListParams(p, exportPageSize))
+      const pg = pickMonitorPage(res)
+      works = works.concat(pg.list.map((raw, i) => mapExternalWork(raw as unknown as Record<string, unknown>, i)))
+    }
+  }
+  return mapHotWorkRows(works)
+}
+
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getHitWorkList({
-      pageNum: 1,
-      pageSize: 100,
-      contentType: searchForm.contentType || undefined,
-    })
-    const page = pickMonitorPage(res)
-    const rows = page.list
-      .map((raw, i) => mapExternalWork(raw as unknown as Record<string, unknown>, i))
-      .filter(w => w.playCount >= searchForm.threshold)
-      .map((w, i) => ({
-        rank: i + 1,
-        title: w.title,
-        contentType: w.contentType,
-        platform: w.platform,
-        views: w.playCount,
-        likes: w.likeCount,
-        hotScore: calcHotScore(w.playCount),
-      }))
+    const page = pickMonitorPage(await getHitWorkList(buildListParams(1, 100)))
+    const rows = mapHotWorkRows(page.list.map((raw, i) => mapExternalWork(raw as unknown as Record<string, unknown>, i)))
     hotWorksList.value = rows
     stats.totalHot = rows.length
     stats.totalViews = rows.reduce((s, r) => s + r.views, 0)
@@ -126,6 +156,31 @@ const handleReset = () => {
   searchForm.threshold = 1000000
   searchForm.contentType = undefined
   loadData()
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const rows = await fetchAllFilteredRows()
+    exportToExcel(
+      rows.map((row) => ({ ...row, hotScore: `${row.hotScore} / 5` })),
+      [
+        { key: 'rank', label: '排名' },
+        { key: 'title', label: '作品标题' },
+        { key: 'contentType', label: '类型' },
+        { key: 'platform', label: '平台' },
+        { key: 'views', label: '播放量' },
+        { key: 'likes', label: '点赞' },
+        { key: 'hotScore', label: '爆款指数' },
+      ],
+      '爆款作品分析',
+    )
+  } catch (error) {
+    console.error('[HotWorks] 导出失败:', error)
+    ElMessage.error('导出失败：' + (error instanceof Error ? error.message : String(error)))
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 onMounted(() => loadData())

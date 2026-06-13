@@ -387,7 +387,7 @@ CSV → 解析 → 校验 → 批量插入 → 返回导入结果
 
 **CFG-026 新增模型**
 
-`modelName`、`modelId`、`apiEndpoint`、`apiKey`(必填)、`temperature`(0.7)、`maxTokens`(4096)、`timeout`(60)、`isDefault`。
+`modelName`、`modelId`、`modelType`（`dict_ai_model_type`，V69 扩展 10 值）、`apiEndpoint`、`apiKey`(必填)、`temperature`(0.7)、`maxTokens`(4096)、`timeout`(60)、`isDefault`。
 
 **CFG-027 编辑**
 
@@ -440,7 +440,7 @@ AI 任务 → 读默认模型配置 → 调 API → 返回结果
 
 **CFG-034 编辑**
 
-编辑时 **version 数字 +1**（v1→v2→v3）。
+编辑时 **version 数字 +1**（v1→v2→v3）。可选关联 **`content_type`**（`dict_content_type`）与 **`document_type`**（`dict_document_type`，V69）供 M2 AI 生成匹配。
 
 **CFG-035 删除**
 

@@ -111,11 +111,12 @@
 | `dict_collect_source` | 采集源 | 公众号API / 视频号API / 抖音开放平台 / 快手开放平台 / 奥创接口 / 企微API / 个微API | M10 |
 | `dict_quality_check_type` | 数据质量检查类型 | 完整性 / 准确性 / 一致性 / 时效性 / 唯一性 | M10 |
 | `dict_quality_level` | 数据质量等级 | 优 / 良 / 中 / 差 | M10 |
-| `dict_sop_node_type` | SOP 节点类型 | 启动 / 审核 / 创作 / 拍摄 / 剪辑 / 发布 / 归档 | M2 |
+| `dict_sop_node_type` | SOP 节点类型 | 内容生成(CONTENT_GENERATION) / 内容发布(CONTENT_PUBLISH) / 普通节点(NORMAL) | M2（ADR-016） |
+| `dict_document_type` | 文档类型 | 短视频文案 / 新号引流 / 赛后复盘 / 正式方案 / 预热前瞻 | M2（ADR-016） |
 | `dict_sop_node_status` | SOP 节点状态 | 待办 / 进行中 / 已完成 / 已驳回 / 已跳过 | M2 |
 | `dict_sop_status` | SOP 流程状态 | 草稿 / 审核中 / 已发布 / 已停用 | M2 |
 | `dict_plan_status` | 计划状态 | 草稿(DRAFT) / 进行中(IN_PROGRESS) / 终止审批中(TERMINATE_PENDING) / 已终止(TERMINATED) | M2 |
-| `dict_content_status` | 内容状态 | 草稿 / 待初审 / 待复审 / 待终审 / 已通过 / 已驳回 / 已发布 / 已下架 | M2 |
+| `dict_content_status` | 内容状态 | 草稿 / 已完成 / 待一级审核 / 待二级审核 / 待终审(遗留) / 已驳回 / 已发布 / 已下架 | M2（ADR-016/017） |
 | `dict_content_review_result` | 审核结果 | 通过 / 驳回 / 需修改 | M2 |
 | `dict_perf_metric_type` | 绩效指标类型 | 数量 / 质量 / 营收 / 增长率 / 复合 | M3 |
 | `dict_perf_calc_method` | 算分方式 | 自动算分 / 人工算分 / 混合 | M3 |
@@ -152,6 +153,7 @@
 
 | `dict_intermediary_relation` | 中介人关系类型 | DIRECT(直签) / INTERMEDIARY(中介代理) / AGENCY(机构合作) | M4 |
 | `dict_ai_model` | AI 模型 | GPT-3.5 / GPT-4 / Claude / Gemini / 通义千问 | M2 / M8 |
+| `dict_ai_model_type` | AI 模型类型 | 通义千问(QWEN) / 文心(ERNIE) / 智谱(GLM) / DeepSeek / Kimi / 豆包 / GPT / Claude / Gemini / 月之暗面 等 | M8（V69） |
 | `dict_review_stage` | 审核阶段 | FIRST_REVIEW(初审) / SECOND_REVIEW(复审) / FINAL_REVIEW(终审) | M2 |
 | `dict_sim_operator` | 运营商 | MOBILE(移动) / UNICOM(联通) / TELECOM(电信) | M4 |
 
@@ -249,6 +251,11 @@
 | `oa_content_plan` | `template_id` | `oa_sop_template` | N:1 | ❌ | SOP 模板（**强关联**）⭐ |
 | `oa_content_plan` | `ip_group_id` | `oa_ip_group` | N:1 | ❌ | IP 组（**强关联**）⭐ |
 | `oa_task` | `plan_id` | `oa_content_plan` | N:1 | ❌ | 计划关联任务 |
+| `oa_task` | `competition_id` | 外部赛事 | N:1 | ❌ | 步骤分配赛事（ADR-016） |
+| `oa_content` | `task_id` | `oa_task` | N:1 | ❌ | 任务-内容关联（0..1） |
+| `oa_content` | `competition_id` | 外部赛事 | N:1 | ❌ | 关联赛事 |
+| `oa_content` | `document_type` | `dict_document_type` | N:1 | ✅ | 文档类型（ARTICLE 时） |
+| `oa_content_plan_step` | `competition_id` | 外部赛事 | N:1 | ❌ | 步骤赛事（**强关联**选择器） |
 | `oa_collect_task` | `source` | `dict_collect_source` | N:1 | ✅ | 采集源（字典） |
 | `oa_collect_task` | `frequency` | `dict_collect_frequency` | N:1 | ✅ | 采集频率（字典） |
 | `oa_collect_task` | `status` | `dict_collect_status` | N:1 | ✅ | 状态（字典） |
@@ -551,6 +558,21 @@ VALUES
 - 删除被引用的实名人 → 拒绝
 - 停用被引用的实名人 → 拒绝
 - 实名人被账号 A 绑定后，账号 B 不能再绑定 → 拒绝
+
+---
+
+## 11.5 系统参数 · 内容审核（M9 / M2，ADR-017）
+
+| 参数键 | 说明 |
+|--------|------|
+| `content.review.level1.enabled` | 一级审核开关 |
+| `content.review.level2.enabled` | 二级审核开关 |
+| `content.review.level1.role` | 一级审核角色 code；`OPS_LEADER` = IP 组长范围 |
+| `content.review.level2.role` | 二级审核角色 code |
+
+## 11.6 前端导出（ADR-018）
+
+分析/管理页「导出 Excel」= 客户端 `exportToExcel` 生成 **UTF-8 BOM CSV**；不要求后端 `/export` endpoint（Phase 1）。
 
 ---
 

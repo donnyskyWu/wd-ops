@@ -1,9 +1,5 @@
 <template>
   <div class="perf-result-page">
-    <el-breadcrumb separator="/">
-      <el-breadcrumb-item>绩效核算</el-breadcrumb-item>
-      <el-breadcrumb-item>绩效结果</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
       <el-form-item label="人员">

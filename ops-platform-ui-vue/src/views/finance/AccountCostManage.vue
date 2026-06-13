@@ -15,12 +15,13 @@
       <el-form-item label="账号名称">
         <el-input v-model="searchForm.keyword" placeholder="搜索账号" clearable />
       </el-form-item>
+      <template #extra>
+        <el-button type="success" @click="handleExport">
+          <el-icon><Download /></el-icon>
+          导出
+        </el-button>
+      </template>
     </TableSearch>
-
-    <div class="action-bar">
-      <el-button @click="handleExport">导出</el-button>
-      <span class="total-info">共 {{ pagination.total }} 个账号</span>
-    </div>
 
     <el-table :data="accountRows" v-loading="loading" border stripe>
       <el-table-column prop="accountName" label="账号名称" min-width="160" show-overflow-tooltip />
@@ -175,6 +176,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import TableSearch from '@/components/TableSearch.vue'
 import Pagination from '@/components/Pagination.vue'
@@ -466,8 +468,6 @@ onMounted(() => loadData())
 <style scoped>
 .account-cost-page { padding: 20px; }
 .platform-tabs { margin-bottom: 16px; }
-.action-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
-.total-info { color: #909399; font-size: 14px; }
 .amount-text { color: #f56c6c; font-weight: 600; }
 .cost-section { margin-bottom: 16px; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }

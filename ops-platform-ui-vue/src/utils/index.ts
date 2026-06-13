@@ -18,6 +18,23 @@ export function pickListPage<T>(page: { list?: T[]; records?: T[]; total?: numbe
   return { list, total: page?.total ?? list.length }
 }
 
+/** 分页拉取全量数据（默认 500/页），用于导出 */
+export async function fetchAllPaginated<T>(
+  fetchPage: (pageNum: number, pageSize: number) => Promise<{ list?: T[]; records?: T[]; total?: number } | null | undefined>,
+  pageSize = 500,
+): Promise<T[]> {
+  const first = pickListPage(await fetchPage(1, pageSize))
+  let rows = [...first.list] as T[]
+  if (first.total > pageSize) {
+    const totalPages = Math.ceil(first.total / pageSize)
+    for (let pageNum = 2; pageNum <= totalPages; pageNum += 1) {
+      const page = pickListPage(await fetchPage(pageNum, pageSize))
+      rows = rows.concat(page.list as T[])
+    }
+  }
+  return rows
+}
+
 /** 报表行字段：优先 snake_case，兼容旧 camelCase API */
 export function reportField(row: Record<string, unknown> | null | undefined, snake: string, camel?: string): unknown {
   if (!row) return undefined

@@ -91,9 +91,12 @@
             <el-table-column prop="deptName" label="部门" min-width="120" show-overflow-tooltip>
               <template #default="{ row }">{{ row.deptName || '-' }}</template>
             </el-table-column>
-            <el-table-column prop="roleName" label="角色" width="130">
+            <el-table-column prop="roleName" label="角色" min-width="160">
               <template #default="{ row }">
-                <el-tag size="small">{{ row.roleName }}</el-tag>
+                <el-tag v-for="name in row.roleNames" :key="name" size="small" style="margin-right: 4px">
+                  {{ name }}
+                </el-tag>
+                <span v-if="!row.roleNames?.length">-</span>
               </template>
             </el-table-column>
             <el-table-column prop="phone" label="手机" width="130" />
@@ -143,8 +146,8 @@
         <el-form-item v-if="!form.id" label="初始密码" prop="password">
           <el-input v-model="form.password" type="password" show-password placeholder="不填则使用默认 123456" />
         </el-form-item>
-        <el-form-item label="角色" prop="roleId">
-          <el-select v-model="form.roleId" style="width: 100%">
+        <el-form-item label="角色" prop="roleIds">
+          <el-select v-model="form.roleIds" multiple collapse-tags collapse-tags-tooltip style="width: 100%" placeholder="可多选，权限取并集">
             <el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" />
           </el-select>
         </el-form-item>
@@ -227,8 +230,8 @@ import {
 
 interface UserItem extends UserVO {
   realName: string
-  roleId?: number
-  roleName: string
+  roleIds: number[]
+  roleNames: string[]
   phone?: string
   statusUi: 'active' | 'inactive'
   lastLogin: string
@@ -274,7 +277,7 @@ const rules: FormRules = {
     { min: 3, max: 32, message: '长度 3-32', trigger: 'blur' },
   ],
   realName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
-  roleId: [{ required: true, message: '请选择角色', trigger: 'change' }],
+  roleIds: [{ required: true, type: 'array', min: 1, message: '请至少选择一个角色', trigger: 'change' }],
 }
 
 const deptRules: FormRules = {
@@ -302,8 +305,8 @@ function mapUser(u: UserVO): UserItem {
   return {
     ...u,
     realName: u.nickname,
-    roleId: u.roleIds?.[0],
-    roleName: u.roleNames?.join(', ') || '-',
+    roleIds: u.roleIds || [],
+    roleNames: u.roleNames || [],
     phone: u.phoneMasked,
     statusUi: toUiStatus(u.status),
     lastLogin: '-',
@@ -379,7 +382,7 @@ const resetForm = () => {
     username: '',
     realName: '',
     password: '',
-    roleId: undefined,
+    roleIds: [] as number[],
     deptId: selectedDeptId.value,
     phone: '',
     email: '',
@@ -424,7 +427,7 @@ const handleSubmit = async () => {
         phone: form.phone,
         deptId: form.deptId,
         status: toApiStatus(form.statusUi || 'active'),
-        roleIds: form.roleId ? [form.roleId] : undefined,
+        roleIds: form.roleIds?.length ? form.roleIds : undefined,
         remark: form.remark,
       })
       ElMessage.success('修改成功')
@@ -436,7 +439,7 @@ const handleSubmit = async () => {
         phone: form.phone,
         deptId: form.deptId,
         status: 'ENABLED',
-        roleIds: [form.roleId!],
+        roleIds: form.roleIds!,
         remark: form.remark,
       })
       ElMessage.success('新增成功')

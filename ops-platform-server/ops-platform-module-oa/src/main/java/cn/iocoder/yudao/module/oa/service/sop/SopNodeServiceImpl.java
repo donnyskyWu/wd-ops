@@ -54,6 +54,8 @@ public class SopNodeServiceImpl implements SopNodeService {
         entity.setTemplateId(req.getTemplateId());
         entity.setNodeName(req.getNodeName().trim());
         entity.setNodeOrder(req.getNodeOrder());
+        entity.setNodeType(req.getNodeType());
+        entity.setInstructionText(StrUtil.trimToNull(req.getInstructionText()));
         entity.setExecutorRole(req.getExecutorRole());
         entity.setNeedReview(req.getNeedReview() == null ? 0 : req.getNeedReview());
         entity.setReviewerRole(req.getReviewerRole());
@@ -78,6 +80,12 @@ public class SopNodeServiceImpl implements SopNodeService {
         }
         if (req.getNodeOrder() != null) {
             existing.setNodeOrder(req.getNodeOrder());
+        }
+        if (req.getNodeType() != null) {
+            existing.setNodeType(req.getNodeType());
+        }
+        if (req.getInstructionText() != null) {
+            existing.setInstructionText(StrUtil.trimToNull(req.getInstructionText()));
         }
         String executorRole = req.getExecutorRole() != null ? req.getExecutorRole() : existing.getExecutorRole();
         Integer needReview = req.getNeedReview() != null ? req.getNeedReview() : existing.getNeedReview();
@@ -166,6 +174,9 @@ public class SopNodeServiceImpl implements SopNodeService {
         vo.setTemplateId(entity.getTemplateId());
         vo.setNodeName(entity.getNodeName());
         vo.setNodeOrder(entity.getNodeOrder());
+        vo.setNodeType(entity.getNodeType());
+        vo.setInstructionText(entity.getInstructionText());
+        vo.setAttachmentUrls(SopJsonHelper.fromAttachmentJson(entity.getAttachmentUrls()));
         vo.setExecutorRole(entity.getExecutorRole());
         vo.setNeedReview(entity.getNeedReview());
         vo.setReviewerRole(entity.getReviewerRole());

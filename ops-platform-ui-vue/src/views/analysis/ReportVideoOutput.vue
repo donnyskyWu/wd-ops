@@ -1,9 +1,5 @@
 <template>
   <div class="report-page" v-loading="loading">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/data-report' }">数据报表</el-breadcrumb-item>
-      <el-breadcrumb-item>短视频产出</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <ContentWrap>
       <el-form :model="filter" inline>
@@ -19,6 +15,10 @@
         <el-form-item>
           <el-button type="primary" @click="loadData">查询</el-button>
           <el-button @click="handleReset">重置</el-button>
+          <el-button type="success" :loading="exportLoading" @click="handleExport">
+            <el-icon><Download /></el-icon>
+            导出
+          </el-button>
         </el-form-item>
       </el-form>
     </ContentWrap>
@@ -100,15 +100,17 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
 import DictLabel from '@/components/DictLabel.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
 import { getVideoOutputList, getVideoOutputTrend, getVideoOutputRanking } from '@/api/report'
-import { unwrapApiData, pickListPage, reportField } from '@/utils'
+import { exportToExcel, unwrapApiData, pickListPage, reportField, fetchAllPaginated } from '@/utils'
 
 const loading = ref(false)
+const exportLoading = ref(false)
 const filter = reactive({
   ipGroupId: undefined as number | undefined,
   accountId: undefined as number | undefined,
@@ -130,8 +132,8 @@ const formatK = (v: any) => {
   return n
 }
 
-const buildQuery = () => {
-  const q: Record<string, any> = { pageNum: pageNum.value, pageSize: pageSize.value }
+const buildQuery = (page = pageNum.value, size = pageSize.value) => {
+  const q: Record<string, any> = { pageNum: page, pageSize: size }
   if (filter.ipGroupId) q.ipGroupId = filter.ipGroupId
   if (filter.accountId) q.accountId = filter.accountId
   if (filter.dateRange?.length === 2) {
@@ -139,6 +141,40 @@ const buildQuery = () => {
     q.endDate = filter.dateRange[1]
   }
   return q
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const rows = await fetchAllPaginated(async (page, size) =>
+      pickListPage(unwrapApiData(await getVideoOutputList(buildQuery(page, size)))),
+    )
+    const exportData = rows.map(row => ({
+      date: reportField(row, 'date', 'statDate'),
+      accountName: reportField(row, 'account_name', 'accountName'),
+      title: reportField(row, 'title'),
+      platformType: reportField(row, 'platform_type', 'platformType'),
+      readCount: reportField(row, 'read_count', 'readCount'),
+      likeCount: reportField(row, 'like_count', 'likeCount'),
+    }))
+    exportToExcel(
+      exportData,
+      [
+        { key: 'date', label: '日期' },
+        { key: 'accountName', label: '账号' },
+        { key: 'title', label: '标题' },
+        { key: 'platformType', label: '平台' },
+        { key: 'readCount', label: '阅读数' },
+        { key: 'likeCount', label: '点赞数' },
+      ],
+      '短视频产出',
+    )
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('导出失败，请重试')
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const loadData = async () => {

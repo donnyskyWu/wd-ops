@@ -1,9 +1,9 @@
 package cn.iocoder.yudao.module.oa.api.dto.plan;
 
+import cn.iocoder.yudao.module.oa.api.dto.sop.TaskVO;
 import lombok.Data;
 
 import java.util.List;
-
 @Data
 public class ContentPlanRespVO {
 
@@ -20,5 +20,6 @@ public class ContentPlanRespVO {
     private Integer progress;
     private List<ContentPlanCompetitionVO> competitions;
     private List<ContentPlanStepVO> steps;
+    private List<TaskVO> tasks;
     private String createTime;
 }

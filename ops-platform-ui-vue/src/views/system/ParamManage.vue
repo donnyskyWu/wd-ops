@@ -13,6 +13,7 @@
         <el-tab-pane label="采集配置" name="collect" />
         <el-tab-pane label="AI配置" name="ai" />
         <el-tab-pane label="通知配置" name="notification" />
+        <el-tab-pane label="内容审核" name="contentReview" />
       </el-tabs>
 
       <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
@@ -34,7 +35,11 @@
       <el-table :data="tableList" border stripe v-loading="loading">
         <el-table-column prop="paramName" label="参数名称" min-width="180" />
         <el-table-column prop="paramKey" label="参数键" min-width="200" />
-        <el-table-column prop="paramValue" label="参数值" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="paramValue" label="参数值" min-width="200" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ formatParamValue(row) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="paramType" label="类型" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="PARAM_TYPE_TAG[row.paramType] || 'info'">
@@ -71,7 +76,21 @@
           <el-input v-model="formData.paramKey" placeholder="请输入参数键（唯一标识）" />
         </el-form-item>
         <el-form-item label="参数值" prop="paramValue">
-          <el-input v-model="formData.paramValue" placeholder="请输入参数值" />
+          <el-select
+            v-if="isReviewRoleParam(formData.paramKey)"
+            v-model="formData.paramValue"
+            placeholder="请选择审核角色"
+            style="width: 100%"
+            filterable
+          >
+            <el-option
+              v-for="opt in dialogRoleOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
+          <el-input v-else v-model="formData.paramValue" placeholder="请输入参数值" />
         </el-form-item>
         <el-form-item label="参数类型" prop="paramType">
           <el-select v-model="formData.paramType" placeholder="请选择参数类型" style="width: 100%">
@@ -110,6 +129,10 @@ import {
   PARAM_TYPE_TAG,
   type ParamVO,
 } from '@/api/system-param'
+import { fetchRoleList, type RoleVO } from '@/api/system-user'
+
+const REVIEW_ROLE_PARAM_KEYS = ['content.review.level1.role', 'content.review.level2.role'] as const
+const IP_GROUP_LEADER_OPTION = { label: 'IP组长', value: 'OPS_LEADER' }
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -142,6 +165,52 @@ const rules: FormRules = {
 }
 
 const dialogTitle = computed(() => (formData.id ? '编辑参数' : '新增参数'))
+
+const roles = ref<RoleVO[]>([])
+
+const reviewRoleOptions = computed(() => {
+  const options = [IP_GROUP_LEADER_OPTION]
+  for (const role of roles.value) {
+    if (role.code !== IP_GROUP_LEADER_OPTION.value) {
+      options.push({ label: role.name, value: role.code })
+    }
+  }
+  return options
+})
+
+const dialogRoleOptions = computed(() => {
+  const base = reviewRoleOptions.value
+  const current = formData.paramValue
+  if (current && !base.some((opt) => opt.value === current)) {
+    return [...base, { label: String(current), value: String(current) }]
+  }
+  return base
+})
+
+function isReviewRoleParam(paramKey?: string) {
+  return paramKey != null && (REVIEW_ROLE_PARAM_KEYS as readonly string[]).includes(paramKey)
+}
+
+function getReviewRoleLabel(code: string) {
+  if (code === IP_GROUP_LEADER_OPTION.value) {
+    return IP_GROUP_LEADER_OPTION.label
+  }
+  const role = roles.value.find((item) => item.code === code)
+  return role?.name ?? code
+}
+
+function formatParamValue(row: ParamVO) {
+  return isReviewRoleParam(row.paramKey) ? getReviewRoleLabel(row.paramValue) : row.paramValue
+}
+
+async function loadRoles() {
+  try {
+    const res = await fetchRoleList({ pageSize: 200 })
+    roles.value = res.list || []
+  } catch {
+    roles.value = []
+  }
+}
 
 async function loadData() {
   loading.value = true
@@ -243,7 +312,10 @@ function handleSizeChange(size: number) {
   pageNo.value = 1
 }
 
-onMounted(loadData)
+onMounted(() => {
+  loadRoles()
+  loadData()
+})
 </script>
 
 <style scoped>

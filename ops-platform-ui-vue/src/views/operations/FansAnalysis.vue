@@ -1,40 +1,70 @@
 <template>
   <div class="fans-analysis-page">
-    <!-- 筛选区（spec: S-R2-Fix-2 导出按钮与查询同行；时间维度默认全部）-->
-    <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
-      <el-form-item label="IP组">
-        <IpGroupTreeSelect v-model="searchForm.ipGroupId" />
-      </el-form-item>
-      <el-form-item label="平台">
-        <DictSelect v-model="searchForm.platformType" dict-type="dict_platform_type" placeholder="全部" clearable />
-      </el-form-item>
-      <el-form-item label="日期范围">
-        <el-date-picker
-          v-model="searchForm.dateRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          value-format="YYYY-MM-DD"
-        />
-      </el-form-item>
-      <el-form-item label="时间维度">
-        <DictSelect v-model="searchForm.dimension" dict-type="dict_time_dimension" placeholder="全部" clearable />
-      </el-form-item>
-      <template #extra>
-        <el-button type="success" @click="handleExport">
-          <el-icon><Download /></el-icon>
-          导出
-        </el-button>
-      </template>
-      <el-form-item label="快速范围">
-        <el-radio-group v-model="searchForm.quickRange" @change="handleQuickRangeChange">
-          <el-radio-button label="7d">近 7 日</el-radio-button>
-          <el-radio-button label="30d">近 30 日</el-radio-button>
-          <el-radio-button label="custom">自定义</el-radio-button>
-        </el-radio-group>
-      </el-form-item>
-    </TableSearch>
+    <!-- 筛选区：两行网格 — 行1 IP组/平台/时间维度 / 行2 日期+快速范围+操作按钮 -->
+    <div class="fans-search-card">
+      <el-form :model="searchForm" label-width="72px" @submit.prevent="handleSearch">
+        <el-row :gutter="16" class="search-row">
+          <el-col :xs="24" :sm="12" :lg="6">
+            <el-form-item label="IP组">
+              <IpGroupTreeSelect v-model="searchForm.ipGroupId" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :lg="6">
+            <el-form-item label="平台">
+              <DictSelect v-model="searchForm.platformType" dict-type="dict_platform_type" placeholder="全部" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :lg="6">
+            <el-form-item label="时间维度">
+              <DictSelect v-model="searchForm.dimension" dict-type="dict_time_dimension" placeholder="全部" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :lg="6" class="search-spacer-col" />
+        </el-row>
+        <el-row :gutter="16" class="search-row search-row--bottom" align="middle">
+          <el-col :xs="24" :sm="12" :lg="7">
+            <el-form-item label="日期范围">
+              <el-date-picker
+                v-model="searchForm.dateRange"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="YYYY-MM-DD"
+                clearable
+                style="width: 100%"
+                @change="searchForm.quickRange = searchForm.dateRange?.length === 2 ? 'custom' : searchForm.quickRange"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :lg="7">
+            <el-form-item label="快速范围" class="quick-range-item">
+              <el-radio-group v-model="searchForm.quickRange" @change="handleQuickRangeChange">
+                <el-radio-button label="7d">近 7 日</el-radio-button>
+                <el-radio-button label="30d">近 30 日</el-radio-button>
+                <el-radio-button label="custom">自定义</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="24" :lg="10" class="search-actions-col">
+            <div class="search-actions">
+              <el-button type="success" @click="handleExport">
+                <el-icon><Download /></el-icon>
+                导出
+              </el-button>
+              <el-button type="primary" native-type="submit">
+                <el-icon><Search /></el-icon>
+                搜索
+              </el-button>
+              <el-button @click="handleReset">
+                <el-icon><Refresh /></el-icon>
+                重置
+              </el-button>
+            </div>
+          </el-col>
+        </el-row>
+      </el-form>
+    </div>
 
     <!-- 统计卡片（等高对齐） -->
     <el-row :gutter="16" class="stats-cards">
@@ -107,11 +137,10 @@
 // P-GATE-UNMOCK-R S-R2-C：粉丝分析接真 API，去 mock
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Download } from '@element-plus/icons-vue'
+import { Download, Search, Refresh } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { getFollowerTrend, getFollowerList, getFollowerStats, exportFollowerAnalysis } from '@/api/follower'
 import type { FollowerQuery, FollowerStats } from '@/types/follower'
-import TableSearch from '@/components/TableSearch.vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
@@ -347,8 +376,104 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .fans-analysis-page {
-  .toolbar {
+  .fans-search-card {
     margin-bottom: 16px;
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 16px 20px 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    overflow-x: hidden;
+
+    .search-row {
+      width: 100%;
+
+      &--bottom {
+        margin-top: 4px;
+      }
+    }
+
+    .search-spacer-col {
+      display: none;
+
+      @media (min-width: 1200px) {
+        display: block;
+      }
+    }
+
+    :deep(.el-form-item) {
+      width: 100%;
+      margin-bottom: 12px;
+      margin-right: 0;
+    }
+
+    :deep(.el-form-item__label) {
+      font-size: 14px;
+      color: #606266;
+      padding-right: 8px;
+    }
+
+    :deep(.el-form-item__content) {
+      flex: 1;
+      min-width: 0;
+    }
+
+    :deep(.el-input),
+    :deep(.el-select),
+    :deep(.el-date-editor) {
+      width: 100%;
+    }
+
+    :deep(.quick-range-item .el-radio-group) {
+      flex-wrap: nowrap;
+      width: 100%;
+    }
+
+    :deep(.quick-range-item .el-radio-button) {
+      flex: 1;
+    }
+
+    :deep(.quick-range-item .el-radio-button__inner) {
+      width: 100%;
+      padding: 8px 12px;
+    }
+
+    :deep(.el-input__wrapper),
+    :deep(.el-select__wrapper) {
+      border-radius: 6px;
+    }
+
+    .search-actions-col {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 0;
+    }
+
+    .search-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      width: 100%;
+      padding-bottom: 12px;
+    }
+
+    :deep(.el-button--primary) {
+      background-color: #1890ff;
+      border-color: #1890ff;
+      border-radius: 6px;
+
+      &:hover {
+        background-color: #40a9ff;
+        border-color: #40a9ff;
+      }
+    }
+
+    :deep(.el-button:not(.is-text-button)) {
+      border-radius: 6px;
+      font-weight: 500;
+    }
   }
 
   .stats-cards {

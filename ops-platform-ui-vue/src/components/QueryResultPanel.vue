@@ -38,15 +38,15 @@
       <template #header>
         <div class="panel-header">
           <span>查询结果</span>
-          <span class="row-count">共 {{ rows.length }} 行</span>
+          <span class="row-count">共 {{ displayTotal }} 行</span>
         </div>
       </template>
 
-      <el-empty v-if="rows.length === 0" description="暂无数据" />
+      <el-empty v-if="rows.length === 0 && !loading" description="暂无数据" />
 
       <el-tabs v-else v-model="resultTab" class="result-tabs" @tab-change="onTabChange">
         <el-tab-pane label="结果列表" name="list">
-          <el-table :data="rows" stripe max-height="420">
+          <el-table :data="rows" stripe max-height="420" v-loading="loading">
             <el-table-column
               v-for="col in tableColumns"
               :key="col.prop"
@@ -56,6 +56,17 @@
               show-overflow-tooltip
             />
           </el-table>
+          <el-pagination
+            v-if="paginated"
+            :current-page="pageNum"
+            :page-size="pageSize"
+            :total="total"
+            :page-sizes="[10, 20, 50]"
+            layout="total, sizes, prev, pager, next"
+            class="pagination"
+            @update:current-page="onPageChange"
+            @update:page-size="onPageSizeChange"
+          />
         </el-tab-pane>
 
         <el-tab-pane label="图表展示" name="chart">
@@ -118,12 +129,36 @@ const props = withDefaults(defineProps<{
   sqlText?: string
   showExport?: boolean
   collapsibleConditions?: boolean
+  paginated?: boolean
+  total?: number
+  pageNum?: number
+  pageSize?: number
+  loading?: boolean
 }>(), {
   builderConfig: null,
   sqlText: '',
   showExport: true,
   collapsibleConditions: false,
+  paginated: false,
+  total: 0,
+  pageNum: 1,
+  pageSize: 20,
+  loading: false,
 })
+
+const emit = defineEmits<{
+  'page-change': [payload: { pageNum: number; pageSize: number }]
+}>()
+
+const displayTotal = computed(() => (props.paginated ? props.total : props.rows.length))
+
+function onPageChange(pageNum: number) {
+  emit('page-change', { pageNum, pageSize: props.pageSize })
+}
+
+function onPageSizeChange(pageSize: number) {
+  emit('page-change', { pageNum: 1, pageSize })
+}
 
 const conditionsExpanded = ref(true)
 
@@ -339,4 +374,5 @@ onBeforeUnmount(disposeChart)
   border-bottom: 1px dashed var(--el-border-color-lighter);
 }
 .chart-area { height: 360px; }
+.pagination { margin-top: 16px; display: flex; justify-content: flex-end; }
 </style>

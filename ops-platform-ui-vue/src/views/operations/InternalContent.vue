@@ -5,27 +5,57 @@
       <el-tab-pane v-for="platform in platforms" :key="platform.value" :label="platform.label" :name="platform.value" />
     </el-tabs>
 
-    <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
-      <el-form-item label="IP组">
-        <IpGroupTreeSelect v-model="searchForm.ipGroupId" />
-      </el-form-item>
-      <el-form-item label="内容类型">
-        <DictSelect v-model="searchForm.contentType" dict-type="dict_content_type" placeholder="全部" clearable />
-      </el-form-item>
-      <el-form-item label="关键词"><el-input v-model="searchForm.keyword" placeholder="内容标题" clearable /></el-form-item>
-      <el-form-item label="日期范围">
-        <el-date-picker
-          v-model="searchForm.dateRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          value-format="YYYY-MM-DD"
-          clearable
-        />
-      </el-form-item>
-      <!-- S-R7-B4：删"补录类型"——content 列表不该用 importType 筛（importType 是 oa_content_import 表的字段） -->
-    </TableSearch>
+    <div class="internal-content-search-card">
+      <el-form :model="searchForm" label-width="72px" @submit.prevent="handleSearch">
+        <el-row :gutter="16" class="search-row" align="middle">
+          <el-col :xs="24" :sm="12" :lg="6" class="ip-group-col">
+            <el-form-item label="IP组">
+              <IpGroupTreeSelect v-model="searchForm.ipGroupId" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :lg="4">
+            <el-form-item label="内容类型">
+              <DictSelect v-model="searchForm.contentType" dict-type="dict_content_type" placeholder="全部" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :lg="4">
+            <el-form-item label="关键词">
+              <el-input v-model="searchForm.keyword" placeholder="内容标题" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :lg="5">
+            <el-form-item label="日期范围">
+              <el-date-picker
+                v-model="searchForm.dateRange"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="YYYY-MM-DD"
+                clearable
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="24" :lg="5" class="search-actions-col">
+            <div class="search-actions">
+              <el-button type="success" :loading="exportLoading" @click="handleExport">
+                <el-icon><Download /></el-icon>
+                导出
+              </el-button>
+              <el-button type="primary" native-type="submit">
+                <el-icon><Search /></el-icon>
+                搜索
+              </el-button>
+              <el-button @click="handleReset">
+                <el-icon><Refresh /></el-icon>
+                重置
+              </el-button>
+            </div>
+          </el-col>
+        </el-row>
+      </el-form>
+    </div>
 
     <!-- 操作栏 -->
     <div class="action-bar">
@@ -178,16 +208,15 @@ import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
-import { Plus, Upload } from '@element-plus/icons-vue'
+import { Download, Search, Refresh } from '@element-plus/icons-vue'
 import { getInternalContentList, getInternalContentTrend, submitContentImport, getContentImportList, reviewContentImport } from '@/api/internal-content'
 import { normalizePlatform } from '@/utils/enum-alias'
-import TableSearch from '@/components/TableSearch.vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
-import { formatDateTime } from '@/utils'
+import { exportToExcel, formatDateTime } from '@/utils'
 
 const route = useRoute()
 
@@ -220,6 +249,7 @@ const searchForm = reactive({
   // S-R7-B4：删 importType（content 列表表无此字段，importType 是 oa_content_import 表的字段）
 })
 const loading = ref(false)
+const exportLoading = ref(false)
 const tableData = ref<any[]>([])
 const pagination = reactive({ pageNo: 1, pageSize: 10, total: 0 })
 const trendDrawerVisible = ref(false)
@@ -321,22 +351,36 @@ const handleImportSubmit = async () => {
   })
 }
 
+const buildListParams = (page: number, size: number) => ({
+  platformType: activePlatform.value === 'ALL' ? undefined : normalizePlatform(activePlatform.value),
+  contentType: searchForm.contentType || undefined,
+  ipGroupId: searchForm.ipGroupId,
+  keyword: searchForm.keyword || undefined,
+  startDate: searchForm.dateRange?.length === 2 ? searchForm.dateRange[0] : undefined,
+  endDate: searchForm.dateRange?.length === 2 ? searchForm.dateRange[1] : undefined,
+  page,
+  size,
+} as any)
+
+const fetchAllFilteredRows = async () => {
+  const exportPageSize = 500
+  const first: any = await getInternalContentList(buildListParams(1, exportPageSize))
+  const total = first?.total ?? 0
+  let rows: any[] = first?.list || []
+  if (total > exportPageSize) {
+    const totalPages = Math.ceil(total / exportPageSize)
+    for (let page = 2; page <= totalPages; page += 1) {
+      const res: any = await getInternalContentList(buildListParams(page, exportPageSize))
+      rows = rows.concat(res?.list || [])
+    }
+  }
+  return rows
+}
+
 const loadData = async () => {
   loading.value = true
   try {
-    const params = {
-      // S-R3：用 normalize 转换（前端 ALL→后端 ALL，其他按 alias）
-      platformType: activePlatform.value === 'ALL' ? undefined : normalizePlatform(activePlatform.value),
-      contentType: searchForm.contentType || undefined,
-      ipGroupId: searchForm.ipGroupId,
-      keyword: searchForm.keyword || undefined,
-      // S-R7-B4：删 importType（content 列表表无此字段）
-      startDate: searchForm.dateRange?.length === 2 ? searchForm.dateRange[0] : undefined,
-      endDate: searchForm.dateRange?.length === 2 ? searchForm.dateRange[1] : undefined,
-      // S-R3：后端收 page/size
-      page: pagination.pageNo,
-      size: pagination.pageSize,
-    } as any
+    const params = buildListParams(pagination.pageNo, pagination.pageSize)
     const res: any = await getInternalContentList(params)
     tableData.value = res?.list || []
     pagination.total = res?.total ?? 0
@@ -365,6 +409,41 @@ const handleReset = () => {
   // S-R7-B4：删 importType reset
   pagination.pageNo = 1
   loadData()
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const rows = await fetchAllFilteredRows()
+    const exportData = rows.map((row) => ({
+      title: row.title,
+      contentType: row.contentType,
+      platformType: row.platformType,
+      accountName: row.accountName,
+      publishTime: row.publishTime ? formatDateTime(row.publishTime) : '',
+      readCount: row.readCount ?? 0,
+      likeCount: row.likeCount ?? 0,
+      dataSource: row.dataSource ?? '',
+      isHit: row.isHit ? '是' : '否',
+    }))
+    const columns = [
+      { key: 'title', label: '标题' },
+      { key: 'contentType', label: '类型' },
+      { key: 'platformType', label: '平台' },
+      { key: 'accountName', label: '账号' },
+      { key: 'publishTime', label: '发布时间' },
+      { key: 'readCount', label: '阅读量' },
+      { key: 'likeCount', label: '点赞' },
+      { key: 'dataSource', label: '数据来源' },
+      { key: 'isHit', label: '是否爆款' },
+    ]
+    exportToExcel(exportData, columns, '内部内容分析')
+  } catch (error) {
+    console.error('[InternalContent] 导出失败:', error)
+    ElMessage.error('导出失败：' + (error instanceof Error ? error.message : String(error)))
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 let internalTrendChart: echarts.ECharts | null = null
@@ -506,7 +585,98 @@ const handleReview = async (row: any, status: 1 | 2) => {
   padding: 20px;
   
   .platform-tabs { margin-bottom: 16px; }
-  
+
+  .internal-content-search-card {
+    margin-bottom: 16px;
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 16px 20px 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    overflow-x: hidden;
+
+    .search-row {
+      width: 100%;
+      flex-wrap: nowrap;
+    }
+
+    .ip-group-col {
+      @media (min-width: 1200px) {
+        :deep(.el-select),
+        :deep(.el-tree-select) {
+          min-width: 220px;
+        }
+      }
+    }
+
+    :deep(.el-form-item) {
+      width: 100%;
+      margin-bottom: 12px;
+      margin-right: 0;
+    }
+
+    :deep(.el-form-item__label) {
+      font-size: 14px;
+      color: #606266;
+      padding-right: 8px;
+    }
+
+    :deep(.el-form-item__content) {
+      flex: 1;
+      min-width: 0;
+    }
+
+    :deep(.el-input),
+    :deep(.el-select),
+    :deep(.el-date-editor) {
+      width: 100%;
+    }
+
+    :deep(.el-input__wrapper),
+    :deep(.el-select__wrapper) {
+      border-radius: 6px;
+    }
+
+    .search-actions-col {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 0;
+      flex-shrink: 0;
+    }
+
+    .search-actions {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      width: 100%;
+      padding-bottom: 12px;
+      white-space: nowrap;
+
+      :deep(.el-button) {
+        flex-shrink: 0;
+        margin: 0;
+      }
+    }
+
+    :deep(.el-button--primary) {
+      background-color: #1890ff;
+      border-color: #1890ff;
+      border-radius: 6px;
+
+      &:hover {
+        background-color: #40a9ff;
+        border-color: #40a9ff;
+      }
+    }
+
+    :deep(.el-button:not(.is-text-button)) {
+      border-radius: 6px;
+      font-weight: 500;
+    }
+  }
+
   .action-bar {
     display: flex;
     align-items: center;

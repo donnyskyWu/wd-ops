@@ -1,15 +1,15 @@
 # CHECKLIST-M2-内容生产
 
-> **M2 自检清单** | 版本 v1.1 | 2026-06-11
+> **M2 自检清单** | 版本 v1.3 | 2026-06-13
 > **关联**：[`SLICES-M2-内容生产.md`](./SLICES-M2-内容生产.md)、[`GLOBAL-CONVENTIONS.md`](../engineering/GLOBAL-CONVENTIONS.md)
 
 ---
 
 ## 1. 范围与 FR
 
-- [ ] 9 个 Slice 全部完成
+- [ ] 13 个 Slice 全部完成（含 S-10~S-13 需求 2–6）
 - [ ] 5 个 FR（FR-M2-001~004 + FR-M2-009）全部实现
-- [ ] 22 个 API 实现完整（含计划 8 个）
+- [ ] 22 个 API 实现完整（含计划 9 个）
 
 ## 2. 功能
 
@@ -21,15 +21,39 @@
 - [ ] 预置模板加载（AC-M2-001-3）
 - [ ] 任务状态机 + DAG 顺序激活（AC-M2-002-1, AC-M2-002-2）
 - [ ] SOP 审核 + 钉钉通知（AC-M2-001-5, AC-M2-002-4）
-- [ ] 内容 CRUD + 三级审核（AC-M2-003-2, AC-M2-003-3, AC-M2-003-4）
-- [ ] AI 辅助 + 自动发布（AC-M2-003-4, AC-M2-003-5）
+- [ ] 内容 CRUD + **可配置二级审核**（ADR-017；AC-M2-003-2~4 适配）
+- [x] AI 辅助 + 真实 LLM `ai-generate`（M8 模型+提示词）
+- [x] 内容列表弹窗创作；无封面；可选多平台/账号；IP 组必填
+- [x] 内容审核 Tab 一级/二级；IP 组长范围；审核流程 steps 展示
+- [x] 计划步骤多赛事 + 单执行人；详情含 tasks 表
+- [x] 任务列表「我的任务」默认 Tab；计划起止时间列
+- [x] 任务执行 ContentEditDialog；提交审核（非确认）；待审只读
+- [x] 移除重复 breadcrumb；内容创作菜单隐藏
+- [x] 内容列表 exportToExcel（ADR-018）
+- [x] M9 内容审核系统参数 Tab + 角色下拉
 - [ ] 知识库（AC-M2-004-1~3）
-- [ ] **S-09 计划管理**（AC-M2-009-1~3）：草稿任务隐藏 / 启动可见 / 组长终止审批
+- [ ] **S-09 计划管理**（AC-M2-009-1~5）：草稿任务隐藏 / 启动可见 / 组长终止审批 / 草稿编辑
+- [x] 计划草稿 `PUT /plan/update` + 前端编辑链路
+- [x] 内容列表页接入真实 `/oa/content/list` API
+- [x] `CONTENT_PUBLISH` 执行页发布指引（完成=普通节点，BLK-M2-009 占位）
 - [ ] `M2PlanS09IT` 通过
+- [x] **S-10 节点类型**（AC-M2-001-6）：`dict_sop_node_type` 三值 + 属性面板
+- [x] **S-11 步骤赛事**（AC-M2-009-4）：步骤/任务 `competition_id` 继承
+- [x] `M2PlanS11IT` 通过
+- [x] **S-12 任务执行页**（AC-M2-002-5~7）：我的任务「执行」+ 内容完成门禁 2008
+- [x] `M2TaskS12IT` 通过
+- [x] **S-13 任务内容编辑**（AC-M2-003-6~10）：文档类型 / 文案引用 / 保存确认 COMPLETED
+- [x] `M2ContentS13IT` 通过
+- [x] **BLK-M2-008** 执行说明：`instruction_text` + SOP 编辑 + 执行页展示
+- [x] **BLK-M2-007** 附件只读：`attachment_urls` JSON + Seed + 执行页链接（无上传 API）
+- [ ] ADR-016 其余阻塞项（BLK-M2-004~006、009~011）已产品确认或标注延期
 
 ## 3. 全局规范（🔴 必查）
 
 - [ ] SOP 节点 `executor_role` / `reviewer_role` 使用 `<DictSelect dict-type="dict_position" />`
+- [x] SOP 节点 `node_type` 使用 `<DictSelect dict-type="dict_sop_node_type" />`
+- [x] 计划步骤 `competition_id` 使用选择器（非手输外部 ID）
+- [x] 任务驱动内容 `document_type` 使用 `<DictSelect dict-type="dict_document_type" />`
 - [ ] 内容 `contentType` / `platformType` 使用 `<DictSelect />`
 - [ ] 内容 `accountId` 使用 `<AccountSelect :platformType="..." />`（联动）
 - [ ] 后端校验 `account.platformType == content.platformType`（错误码 2006）
@@ -45,6 +69,7 @@
 - [ ] SOP 任务状态机（含 `PLAN_DRAFT` / `TERMINATED` 扩展）完整实现
 - [ ] 计划状态机（DRAFT / IN_PROGRESS / TERMINATE_PENDING / TERMINATED）完整实现
 - [ ] 内容三级审核状态机（8 个状态）完整实现
+- [x] **可配置二级审核**状态机（ADR-017）+ 遗留 FINAL 兼容
 - [ ] SOP 模板状态机（3 个状态）完整实现
 - [ ] 驳回回退路径正确
 
@@ -73,7 +98,7 @@
 ## 8. 测试
 
 - [ ] 单元测试覆盖 80%+
-- [ ] AC 全部通过（19 条，含 AC-M2-009-1~3）
+- [ ] AC 全部通过（30 条，含 AC-M2-001-6、AC-M2-009-4、AC-M2-002-5~7、AC-M2-003-6~10）
 - [ ] 状态机分支测试（驳回、跳过、超时）
 - [ ] 关联属性强校验测试
 

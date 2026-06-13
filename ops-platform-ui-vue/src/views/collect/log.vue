@@ -4,10 +4,6 @@
 -->
 <template>
   <div class="collect-log-page">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item>数据采集</el-breadcrumb-item>
-      <el-breadcrumb-item>采集日志</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
       <el-form-item label="任务">

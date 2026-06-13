@@ -45,9 +45,9 @@ class M2PlanS09IT extends OaITBase {
                                     {"competitionId": "cmp-001", "competitionName": "SEED-春季赛事"}
                                   ],
                                   "steps": [
-                                    {"nodeId": 9401, "assigneeIds": [1003]},
-                                    {"nodeId": 9402, "assigneeIds": [1003]},
-                                    {"nodeId": 9403, "assigneeIds": [1003]}
+                                    {"nodeId": 9401, "competitionId": "cmp-001", "assigneeIds": [1003]},
+                                    {"nodeId": 9402, "competitionId": "cmp-001", "assigneeIds": [1003]},
+                                    {"nodeId": 9403, "competitionId": "cmp-001", "assigneeIds": [1003]}
                                   ]
                                 }
                                 """))

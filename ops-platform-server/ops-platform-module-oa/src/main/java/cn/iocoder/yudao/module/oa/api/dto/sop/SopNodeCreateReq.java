@@ -19,6 +19,11 @@ public class SopNodeCreateReq {
     @NotNull
     private Integer nodeOrder;
     @NotBlank
+    @InDict("dict_sop_node_type")
+    private String nodeType;
+    @Size(max = 2000)
+    private String instructionText;
+    @NotBlank
     @InDict("dict_position")
     private String executorRole;
     private Integer needReview;

@@ -12,6 +12,8 @@ public class AiPromptConfigRespVO {
     private String templateName;
     private String version;
     private String scene;
+    private String contentType;
+    private String documentType;
     private String promptContent;
     private String variableDesc;
     private BigDecimal temperature;

@@ -1,6 +1,6 @@
 # API-M2-内容生产
 
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v1.3 | 2026-06-13
 > **关联 PRD**：[`PRD-M2-内容生产.md`](../product/PRD-M2-内容生产.md)
 > **关联 UX**：[`UX-M2-内容生产.md`](../product/UX-M2-内容生产.md)
 > **关联全局规范**：[`GLOBAL-CONVENTIONS.md`](./GLOBAL-CONVENTIONS.md)
@@ -98,11 +98,12 @@
   "reviewerRole": "OPS_LEADER",
   "predecessors": [1],
   "parallelGroup": "GROUP_A",
-  "slaHours": 24
+  "slaHours": 24,
+  "nodeType": "CONTENT_GENERATION"
 }
 ```
 
-**字典**：`executorRole` / `reviewerRole` 使用 `dict_position` value。
+**字典**：`executorRole` / `reviewerRole` 使用 `dict_position` value；`nodeType` 使用 `dict_sop_node_type`（ADR-016：CONTENT_GENERATION / CONTENT_PUBLISH / NORMAL）。
 
 ---
 
@@ -120,12 +121,14 @@
   "reviewerRole": "OPS_LEADER",
   "predecessors": [1],
   "parallelGroup": "GROUP_A",
-  "slaHours": 24
+  "slaHours": 24,
+  "nodeType": "NORMAL"
 }
 ```
 
 **校验**：
 - `nodeName` `@NotBlank @Size(max=50)`
+- `nodeType` `@NotBlank @InDict(type="dict_sop_node_type")`
 - `executorRole` `@InDict(type="dict_position")`
 - `needReview=1` → `reviewerRole` 必填
 - `predecessors` → 同模板节点 ID 列表
@@ -298,6 +301,40 @@
 
 ---
 
+### 2.6 GET `/admin-api/oa/task/{id}/execute`（需求 4–5，✅ S-12）
+
+**响应** `TaskExecuteVO`：
+
+```json
+{
+  "id": 1,
+  "nodeName": "撰写短视频文案",
+  "nodeType": "CONTENT_GENERATION",
+  "planName": "6月内容计划",
+  "competitionId": "cmp-001",
+  "competitionName": "2026 春季城市赛",
+  "executionInstruction": "...",
+  "attachments": [],
+  "linkedContent": { "id": 100, "title": "...", "status": "DRAFT" }
+}
+```
+
+- `executionInstruction` 来源 `oa_sop_node.instruction_text`（空则回退 `nodeName`）；`attachments` 来源同表 `attachment_urls` JSON 只读，**无上传 API**（BLK-M2-007 上传仍阻塞）。
+- `linkedContent`：内容生成节点关联的 `oa_content`（0..1）。
+
+### 2.7 POST `/admin-api/oa/task/{id}/execute/save`（✅ S-12）
+
+保存执行页草稿（交付说明等，字段待 BLK 定稿）。
+
+### 2.8 POST `/admin-api/oa/task/{id}/execute/complete`（需求 5，✅ S-12）
+
+**业务**：
+- 校验当前用户 = `assignee_id`
+- `nodeType=CONTENT_GENERATION` → 须 `linkedContent.status=COMPLETED`，否则 **2008**
+- 状态：`IN_PROGRESS` → `DONE`（`need_review=0`）或 `PENDING_REVIEW`（`need_review=1`）
+
+---
+
 ## 3. 内容管理 API
 
 ### 3.1 GET `/admin-api/oa/content/list`
@@ -325,21 +362,65 @@
   "title": "...",
   "contentType": "SHORT_VIDEO",
   "platformType": "DOUYIN",
-  "accountId": 123,        // 强关联，ID 而非 name
-  "creatorUserId": 456,    // 强关联
+  "platformTypes": ["DOUYIN", "KUAISHOU"],
+  "accountId": 123,
+  "accountIds": [123, 456],
+  "creatorUserId": 456,
   "body": "...",
-  "coverImage": "https://...",
-  "aiGenerated": 0
+  "aiGenerated": 0,
+  "taskId": null,
+  "competitionId": "123456789",
+  "competitionName": "英超-曼联 VS 切尔西",
+  "documentType": null,
+  "ipGroupId": 9001,
+  "finalVideoUrl": null
 }
 ```
 
 **校验**：
 - `title` `@NotBlank @Size(max=200)`
 - `contentType` `@InDict(type="dict_content_type")`
-- `platformType` `@InDict(type="dict_platform_type")`
-- `accountId` `@NotNull`：必须从 `<AccountSelect />` 选，传值时校验 `account.platformType == platformType`
+- `platformType` / `platformTypes` 可选；若传 `accountId(s)` 则校验平台匹配（2006）
+- `accountId` / `accountIds` **可选**（任务场景可不填）
 - `creatorUserId` `@NotNull`
-- `body` `@NotBlank`
+- `ipGroupId` `@NotNull`：独立创作须为用户所属 IP 组；任务场景继承任务 IP 组
+- `body` LONGTEXT；`contentType=SHORT_VIDEO` 时可为空（视频 URL 为准）
+- `coverImage` **UI 已移除**；库字段保留，可不传
+- `taskId` 非空时：同一 `taskId` 仅允许 1 条内容（1502）
+- `documentType`：`contentType=ARTICLE` 时 `@NotBlank @InDict(type="dict_document_type")`
+
+### 3.2.1 GET `/admin-api/oa/content/by-task?taskId=`（✅ S-12）
+
+返回任务关联内容（0..1），供执行页与编辑页预加载。
+
+### 3.2.2 GET `/admin-api/oa/content/script-ref?competitionId=`（✅ S-13）
+
+返回同赛事 `documentType=SHORT_VIDEO_SCRIPT` 且 `status=COMPLETED` 的文档正文（供短视频引用）。
+
+### 3.2.3 POST `/admin-api/oa/content/{id}/confirm`（遗留）
+
+**业务**：`DRAFT` → `COMPLETED`（**不推荐**；新流程用 `submit-review`，ADR-017）。
+
+---
+
+### 3.2.4 GET `/admin-api/oa/content/review-config`（✅ ADR-017）
+
+**响应** `ContentReviewConfigVO`：
+
+```json
+{
+  "level1Enabled": true,
+  "level2Enabled": true,
+  "level1Role": "OPS_LEADER",
+  "level2Role": "DEPT_HEAD"
+}
+```
+
+---
+
+### 3.2.5 GET `/admin-api/oa/content/ai-prompt-options`（✅ 2026-06-13）
+
+按 `contentType` / `documentType` 返回可选 M8 提示词列表（AI 弹窗）。
 
 ---
 
@@ -351,9 +432,10 @@
 
 ### 3.4 POST `/admin-api/oa/content/{id}/submit-review`
 
-**业务**：
-- 状态：`DRAFT` → `PENDING_FIRST_REVIEW`
-- 记录到 `oa_review_record`
+**业务**（ADR-017）：
+- 校验 `ipGroupId`、内容完整性
+- 按 `review-config` 决定目标状态：`PENDING_FIRST_REVIEW` / `PENDING_SECOND_REVIEW` / `PUBLISHED`
+- 记录 `oa_review_record`；返回审核流程 steps（含角色+可审用户）
 
 ---
 
@@ -363,21 +445,17 @@
 
 ```json
 {
-  "action": "APPROVE",  // APPROVE / REJECT
-  "stage": "FIRST_REVIEW",  // FIRST / SECOND / FINAL
+  "action": "APPROVE",
+  "stage": "FIRST_REVIEW",
   "comment": "..."
 }
 ```
 
-**校验**：
-- `action` `@InDict(type="dict_content_review_result")`
-- `stage` `@InDict(type="dict_review_stage")`
-- 当前用户 = 该阶段审核人
+**stage**：`FIRST_REVIEW` | `SECOND_REVIEW`（默认配置）；`FINAL_REVIEW` 仅遗留数据。
 
-**业务**：
-- 驳回 → `status = REJECTED`（流程结束）
-- 通过 → 状态机转移（详见 `STATE-M2-内容生产.md` § 2）
-- 终审通过 → 触发 `@Async` 发布
+**校验**：
+- 当前用户满足 ADR-017 权限（含 IP 组长范围）
+- 驳回 → `REJECTED`；通过 → 按配置进入下一级或 `PUBLISHED`
 
 ---
 
@@ -390,28 +468,26 @@
 
 ---
 
-### 3.7 POST `/admin-api/oa/content/ai-generate`
+### 3.7 POST `/admin-api/oa/content/ai-generate`（✅ 真实 LLM）
 
-**请求体**：
+**请求体** `ContentAiGenerateReq`：
 
 ```json
 {
-  "prompt": "写一篇关于夏日防晒的公众号推文",
-  "model": "gpt-4"
+  "contentId": 100,
+  "modelId": 1,
+  "promptId": 2,
+  "competitionId": "123456789",
+  "contentType": "ARTICLE",
+  "documentType": "SHORT_VIDEO_SCRIPT"
 }
 ```
 
-**响应**（SSE）：
+- `modelId` → M8 `oa_ai_model_config` 已启用记录
+- `promptId` → M8 提示词（含 `content_type` / `document_type` 字段，V69）
+- 后端 HTTP 调 LLM，写入 `body` 或视频 URL（短视频 BLK-M2-010 部分占位）
 
-```
-data: {"chunk": "夏日"}
-data: {"chunk": "的阳光..."}
-...
-data: {"done": true}
-```
-
-**校验**：
-- `model` `@InDict(type="dict_ai_model")`
+**响应**：`ContentAiGenerateResultVO`（生成文本/URL）
 
 ---
 
@@ -479,6 +555,7 @@ data: {"done": true}
 | 2005 | 模板无节点，无法启用 |
 | 2006 | 账号平台类型与内容平台类型不匹配 |
 | 2007 | 审核人岗位不匹配 |
+| 2008 | 内容生成节点完成门禁：无关联内容或内容未 COMPLETED |
 
 ---
 

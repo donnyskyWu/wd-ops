@@ -24,10 +24,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class CustomQueryServiceImpl implements CustomQueryService {
+
+    private static final Pattern TRAILING_LIMIT = Pattern.compile(
+            "(?i)\\s+LIMIT\\s+\\d+(\\s+OFFSET\\s+\\d+)?\\s*$");
 
     private final CustomQueryMapper customQueryMapper;
     private final JdbcTemplate jdbcTemplate;
@@ -83,13 +87,22 @@ public class CustomQueryServiceImpl implements CustomQueryService {
         Long tenantId = requireTenantId();
         DashboardSqlParamBinder.BindParams params = DashboardSqlParamBinder.BindParams.of(
                 tenantId, null, null, null, null);
-        return runSelectSql(req.getSqlText(), null, params, null);
+        return runSelectSql(req.getSqlText(), null, params, null, req.getPageNum(), req.getPageSize());
     }
 
     @Override
     public Map<String, Object> execute(Long id) {
         Long tenantId = requireTenantId();
         return execute(id, DashboardSqlParamBinder.BindParams.of(tenantId, null, null, null, null));
+    }
+
+    @Override
+    public Map<String, Object> execute(Long id, Integer pageNum, Integer pageSize) {
+        Long tenantId = requireTenantId();
+        CustomQueryDO query = getRequired(id);
+        DashboardSqlParamBinder.BindParams params = DashboardSqlParamBinder.BindParams.of(
+                tenantId, null, null, null, null);
+        return runSelectSql(query.getSqlText(), id, params, null, pageNum, pageSize);
     }
 
     @Override
@@ -101,23 +114,47 @@ public class CustomQueryServiceImpl implements CustomQueryService {
     public Map<String, Object> execute(Long id, DashboardSqlParamBinder.BindParams bindParams,
                                        Map<String, Object> widgetDef) {
         CustomQueryDO query = getRequired(id);
-        return runSelectSql(query.getSqlText(), id, bindParams, widgetDef);
+        return runSelectSql(query.getSqlText(), id, bindParams, widgetDef, null, null);
     }
 
     private Map<String, Object> runSelectSql(String sqlText, Long queryId, DashboardSqlParamBinder.BindParams bindParams,
-                                             Map<String, Object> widgetDef) {
+                                             Map<String, Object> widgetDef, Integer pageNum, Integer pageSize) {
         SqlSafetySupport.assertSelectOnly(sqlText);
         String sql = DashboardSqlParamBinder.prepareSql(sqlText, bindParams, widgetDef);
-        if (!sql.toUpperCase(Locale.ROOT).contains(" LIMIT ")) {
-            sql = sql + " LIMIT 100";
-        }
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
+        String baseSql = stripTrailingLimit(sql);
         Map<String, Object> result = new HashMap<>();
         if (queryId != null) {
             result.put("queryId", queryId);
         }
+
+        if (pageNum != null || pageSize != null) {
+            int pn = pageNum == null || pageNum < 1 ? 1 : pageNum;
+            int ps = pageSize == null || pageSize < 1 ? 20 : Math.min(pageSize, 500);
+            Long total = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM (" + baseSql + ") _cq", Long.class);
+            int offset = (pn - 1) * ps;
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                    "SELECT * FROM (" + baseSql + ") _cq LIMIT " + ps + " OFFSET " + offset);
+            result.put("rows", rows);
+            result.put("total", total != null ? total : rows.size());
+            result.put("pageNum", pn);
+            result.put("pageSize", ps);
+            return result;
+        }
+
+        if (!baseSql.toUpperCase(Locale.ROOT).contains(" LIMIT ")) {
+            baseSql = baseSql + " LIMIT 100";
+        }
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(baseSql);
         result.put("rows", rows);
         return result;
+    }
+
+    private static String stripTrailingLimit(String sql) {
+        if (sql == null) {
+            return "";
+        }
+        return TRAILING_LIMIT.matcher(sql.trim()).replaceFirst("").trim();
     }
 
     @Override

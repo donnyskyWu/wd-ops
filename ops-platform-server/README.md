@@ -167,6 +167,46 @@ mvn -DskipTests package
 3. 浏览器打开 `http://localhost:3000`
 4. 前端配置 `VITE_API_TOKEN=dev-token-oa-admin`、`VITE_TENANT_ID=1`（或 localStorage 写入 token/tenantId）
 
+### M2 需求 2–6 冒烟（S-10~S-13）
+
+后端已启动且 Flyway ≥ V65 后，可用 Dev Token 快速验证主链路：
+
+```powershell
+$auth = "Bearer dev-token-oa-admin"
+$tenant = "1"
+
+# SOP 节点（S-10 nodeType）
+curl.exe -H "Authorization: $auth" -H "X-Tenant-Id: $tenant" `
+  "http://localhost:8080/admin-api/oa/sop/node/list?templateId=9401"
+
+# 计划 + 赛事代理（S-09/S-11）
+curl.exe -H "Authorization: $auth" -H "X-Tenant-Id: $tenant" `
+  "http://localhost:8080/admin-api/oa/plan/list?pageNo=1&pageSize=5"
+curl.exe -H "Authorization: $auth" -H "X-Tenant-Id: $tenant" `
+  "http://localhost:8080/admin-api/oa/match/list?date=2026-06-12&pageNo=1&pageSize=5"
+
+# 我的任务 + 执行页（S-12；将 TASK_ID 换为真实值）
+curl.exe -H "Authorization: $auth" -H "X-Tenant-Id: $tenant" `
+  "http://localhost:8080/admin-api/oa/task/my-tasks?pageNum=1&pageSize=5"
+curl.exe -H "Authorization: $auth" -H "X-Tenant-Id: $tenant" `
+  "http://localhost:8080/admin-api/oa/task/TASK_ID/execute"
+
+# 任务内容 + 用户 IP 组（S-13）
+curl.exe -H "Authorization: $auth" -H "X-Tenant-Id: $tenant" `
+  "http://localhost:8080/admin-api/oa/content/by-task?taskId=TASK_ID"
+curl.exe -H "Authorization: $auth" -H "X-Tenant-Id: $tenant" `
+  "http://localhost:8080/admin-api/oa/user/ip-groups"
+```
+
+集成测试（H2，含 V62–V65）：
+
+```powershell
+cd ops-platform-server/ops-platform-module-oa
+mvn test "-Dtest=M2SopS10IT,M2PlanS11IT,M2TaskS12IT,M2ContentS13IT"
+```
+
+**浏览器走查（需求 2–6）**：SOP 编辑页设置节点类型 → 计划管理新建草稿（步骤绑赛事）→ 启动计划 → 任务管理「我的任务」点「执行」→ 内容生成节点进入内容创作 → 保存/确认 COMPLETED → 返回执行页点「完成」。
+
 ## 目录
 
 | 路径 | 说明 |

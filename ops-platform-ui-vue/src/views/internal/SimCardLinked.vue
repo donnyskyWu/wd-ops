@@ -1,10 +1,5 @@
 <template>
   <div class="sim-linked-page" v-loading="loading">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/simcard' }">手机卡管理</el-breadcrumb-item>
-      <el-breadcrumb-item>{{ summary?.phoneNumberMasked || '...' }}</el-breadcrumb-item>
-      <el-breadcrumb-item>跨平台查询</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <el-card v-if="summary" shadow="never">
       <div class="header">

@@ -6,10 +6,6 @@
 -->
 <template>
   <div class="perf-trend-page" v-loading="loading">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/perf/result' }">绩效结果</el-breadcrumb-item>
-      <el-breadcrumb-item>{{ userName }} 趋势</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <template v-if="userInfo">
       <el-card shadow="never">

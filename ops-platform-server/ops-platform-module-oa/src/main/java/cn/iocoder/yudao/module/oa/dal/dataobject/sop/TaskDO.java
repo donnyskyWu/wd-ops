@@ -15,6 +15,7 @@ public class TaskDO extends TenantBaseDO {
     private Long templateId;
     private Long nodeId;
     private Long planId;
+    private String competitionId;
     private String planName;
     private Long assigneeId;
     private Long ipGroupId;
@@ -26,6 +27,7 @@ public class TaskDO extends TenantBaseDO {
     private Integer needReview;
     private LocalDateTime slaDeadline;
     private String deliverables;
+    private String deliverableAttachmentsJson;
     private LocalDateTime startTime;
     private LocalDateTime completeTime;
 }

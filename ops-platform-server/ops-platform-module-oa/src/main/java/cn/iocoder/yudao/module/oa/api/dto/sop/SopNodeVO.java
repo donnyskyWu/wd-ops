@@ -11,6 +11,9 @@ public class SopNodeVO {
     private Long templateId;
     private String nodeName;
     private Integer nodeOrder;
+    private String nodeType;
+    private String instructionText;
+    private List<TaskAttachmentVO> attachmentUrls;
     private String executorRole;
     private Integer needReview;
     private String reviewerRole;

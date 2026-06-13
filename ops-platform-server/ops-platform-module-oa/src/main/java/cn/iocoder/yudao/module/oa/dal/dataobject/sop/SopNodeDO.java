@@ -17,6 +17,12 @@ public class SopNodeDO {
     private Long templateId;
     private String nodeName;
     private Integer nodeOrder;
+    /** dict_sop_node_type：CONTENT_GENERATION / CONTENT_PUBLISH / NORMAL */
+    private String nodeType;
+    /** BLK-M2-008：任务执行页只读说明 */
+    private String instructionText;
+    /** BLK-M2-007：JSON [{name,url}] 只读，无上传 API */
+    private String attachmentUrls;
     private String executorRole;
     private Integer needReview;
     private String reviewerRole;

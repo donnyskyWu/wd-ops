@@ -9,26 +9,51 @@
 
     <!-- 预设漏斗 -->
     <div v-if="activeTab === 'preset'">
-      <el-card class="search-card" shadow="never">
-        <el-form :model="queryForm" inline>
-          <el-form-item label="选择漏斗">
-            <el-select v-model="queryForm.funnelId" placeholder="请选择" style="width: 240px" :loading="loadingFunnels" @change="loadFunnelData">
-              <el-option v-for="f in funnelOptions" :key="f.id" :label="f.funnelName" :value="f.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="时间范围">
-            <el-date-picker v-model="queryForm.dateRange" type="daterange" range-separator="至" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" />
-          </el-form-item>
-          <el-form-item label="平台">
-            <DictSelect v-model="queryForm.platformType" dict-type="dict_platform_type" placeholder="全部" clearable style="width: 140px" />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" @click="loadFunnelData">查询</el-button>
-            <el-button @click="handleReset">重置</el-button>
-            <el-button type="success" @click="handleExport">导出报告</el-button>
-          </el-form-item>
+      <div class="funnel-search-card">
+        <el-form :model="queryForm" label-width="72px" @submit.prevent="loadFunnelData">
+          <el-row :gutter="16" class="search-row" align="middle">
+            <el-col :xs="24" :sm="12" :lg="5" class="funnel-select-col">
+              <el-form-item label="选择漏斗">
+                <el-select
+                  v-model="queryForm.funnelId"
+                  placeholder="请选择"
+                  :loading="loadingFunnels"
+                  clearable
+                  @change="loadFunnelData"
+                >
+                  <el-option v-for="f in funnelOptions" :key="f.id" :label="f.funnelName" :value="f.id" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :lg="9">
+              <el-form-item label="时间范围">
+                <el-date-picker
+                  v-model="queryForm.dateRange"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始"
+                  end-placeholder="结束"
+                  value-format="YYYY-MM-DD"
+                  clearable
+                  style="width: 100%"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :lg="4">
+              <el-form-item label="平台">
+                <DictSelect v-model="queryForm.platformType" dict-type="dict_platform_type" placeholder="全部" clearable />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="24" :lg="6" class="search-actions-col">
+              <div class="search-actions">
+                <el-button type="primary" native-type="submit">查询</el-button>
+                <el-button @click="handleReset">重置</el-button>
+                <el-button type="success" @click="handleExport">导出报告</el-button>
+              </div>
+            </el-col>
+          </el-row>
         </el-form>
-      </el-card>
+      </div>
 
       <el-card class="chart-card" shadow="never">
         <template #header><div class="card-header"><span>漏斗转化图</span></div></template>
@@ -376,7 +401,99 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .funnel-analysis {
-  .search-card,
+  .funnel-search-card {
+    margin-bottom: 16px;
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 16px 20px 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    overflow-x: hidden;
+
+    .search-row {
+      width: 100%;
+      flex-wrap: nowrap;
+    }
+
+    .funnel-select-col {
+      @media (min-width: 1200px) {
+        flex: 0 0 auto;
+        width: auto;
+        max-width: 200px;
+      }
+    }
+
+    :deep(.el-form-item) {
+      width: 100%;
+      margin-bottom: 12px;
+      margin-right: 0;
+    }
+
+    :deep(.el-form-item__label) {
+      font-size: 14px;
+      color: #606266;
+      padding-right: 8px;
+    }
+
+    :deep(.el-form-item__content) {
+      flex: 1;
+      min-width: 0;
+    }
+
+    :deep(.el-input),
+    :deep(.el-select),
+    :deep(.el-date-editor) {
+      width: 100%;
+    }
+
+    :deep(.el-input__wrapper),
+    :deep(.el-select__wrapper) {
+      border-radius: 6px;
+    }
+
+    .search-actions-col {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 0;
+      flex-shrink: 0;
+
+      @media (min-width: 1200px) {
+        flex: 1 1 auto;
+      }
+    }
+
+    .search-actions {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      width: 100%;
+      padding-bottom: 12px;
+      white-space: nowrap;
+
+      :deep(.el-button) {
+        flex-shrink: 0;
+      }
+    }
+
+    :deep(.el-button--primary) {
+      background-color: #1890ff;
+      border-color: #1890ff;
+      border-radius: 6px;
+
+      &:hover {
+        background-color: #40a9ff;
+        border-color: #40a9ff;
+      }
+    }
+
+    :deep(.el-button:not(.is-text-button)) {
+      border-radius: 6px;
+      font-weight: 500;
+    }
+  }
+
   .compare-card,
   .chart-card,
   .table-card,

@@ -2,8 +2,8 @@
   <div class="task-page">
     <!-- 二级Tab -->
     <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="task-tabs">
-      <el-tab-pane label="全部任务" name="all" />
       <el-tab-pane label="我的任务" name="my" />
+      <el-tab-pane label="全部任务" name="all" />
     </el-tabs>
 
     <!-- 筛选区 -->
@@ -52,31 +52,36 @@
         <el-table-column prop="status" label="状态" width="110" align="center">
           <template #default="{ row }">
             <el-tag :type="getStatusTagType(row.status)">
-              {{ row.statusText }}
+              {{ statusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="开始时间" width="170" align="center">
+          <template #default="{ row }">{{ formatDateTime(row.scheduledStart) }}</template>
+        </el-table-column>
+        <el-table-column label="结束时间" width="170" align="center">
+          <template #default="{ row }">{{ formatDateTime(row.scheduledEnd) }}</template>
+        </el-table-column>
         <el-table-column prop="slaDeadline" label="SLA截止" width="170" align="center">
           <template #default="{ row }">
-            <span :class="{ 'text-danger': row.isOverdue }">
-              {{ row.slaDeadline }}
+            <span :class="{ 'text-danger': isOverdue(row) }">
+              {{ formatSlaDeadline(row.slaDeadline) }}
             </span>
-            <el-tag v-if="row.isOverdue" type="danger" size="small" class="overdue-tag">
+            <el-tag v-if="isOverdue(row)" type="danger" size="small" class="overdue-tag">
               超时
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" align="center" fixed="right">
+        <el-table-column label="操作" width="220" align="center" fixed="right">
           <template #default="{ row }">
-            <!-- 开始执行 -->
+            <!-- 我的任务：执行页入口（AC-M2-002-5） -->
             <el-button
-              v-if="row.status === TaskStatus.PENDING"
+              v-if="activeTab === 'my' && canOpenExecute(row)"
               link
               type="primary"
-              :disabled="true"
-              title="前置节点未完成，不能开始执行"
+              @click="handleExecute(row)"
             >
-              开始执行
+              执行
             </el-button>
 
             <!-- 完成 -->
@@ -156,22 +161,22 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getTaskList, getMyTasks, startTask, completeTask, submitTaskReview } from '@/api/task'
-import { mockTaskList, mockGetTaskList, mockGetMyTasks } from '@/mock/task'
 import { TaskStatus } from '@/types/task'
 import type { TaskQuery, TaskVO } from '@/types/task'
+import { formatDateTime } from '@/utils/index'
 import TableSearch from '@/components/TableSearch.vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
 
-// 暴露TaskStatus供模板使用
-const TaskStatusEnum = TaskStatus
+const router = useRouter()
 
 // ==================== 响应式数据 ====================
 
 // 当前Tab
-const activeTab = ref('all')
+const activeTab = ref('my')
 
 // 搜索表单
 const searchForm = reactive({
@@ -183,8 +188,7 @@ const searchForm = reactive({
 // 加载状态
 const loading = ref(false)
 
-// 表格数据 - 初始值使用Mock数据
-const tableData = ref<TaskVO[]>([...mockTaskList])
+const tableData = ref<TaskVO[]>([])
 
 // 分页参数 - 初始值使用Mock数据
 const pagination = reactive({
@@ -214,18 +218,9 @@ const loadData = async () => {
       pageSize: pagination.pageSize,
     }
 
-    let result
-    if (activeTab.value === 'my') {
-      // 我的任务
-      result = await getMyTasks(params).catch(() => {
-        return mockGetMyTasks(pagination.pageNo, pagination.pageSize)
-      })
-    } else {
-      // 全部任务
-      result = await getTaskList(params).catch(() => {
-        return mockGetTaskList(pagination.pageNo, pagination.pageSize)
-      })
-    }
+    const result = activeTab.value === 'my'
+      ? await getMyTasks(params)
+      : await getTaskList(params)
 
     tableData.value = result.list
     pagination.total = result.total
@@ -258,22 +253,57 @@ const handleReset = () => {
   loadData()
 }
 
+const statusLabel = (status: string) => ({
+  PENDING: '待执行',
+  IN_PROGRESS: '执行中',
+  PENDING_REVIEW: '待审核',
+  APPROVED: '审核通过',
+  REJECTED: '审核驳回',
+  DONE: '已完成',
+  COMPLETED: '已完成',
+  PLAN_DRAFT: '计划草稿',
+  TERMINATED: '已终止',
+}[status] || status)
+
+const formatSlaDeadline = (value?: string) => {
+  if (!value) return '—'
+  return value.replace('T', ' ').slice(0, 16)
+}
+
+const isOverdue = (row: TaskVO) => {
+  if (!row.slaDeadline) return false
+  const deadline = new Date(row.slaDeadline)
+  return !Number.isNaN(deadline.getTime()) && deadline.getTime() < Date.now()
+    && row.status !== TaskStatus.DONE
+    && row.status !== TaskStatus.COMPLETED
+}
+
+const canOpenExecute = (row: TaskVO) =>
+  row.status === TaskStatus.PENDING
+  || row.status === TaskStatus.IN_PROGRESS
+  || row.status === TaskStatus.REVIEW_REJECTED
+
 // 获取行类名（SLA超时红色背景）
 const getRowClassName = ({ row }: { row: TaskVO }) => {
-  return row.isOverdue ? 'overdue-row' : ''
+  return isOverdue(row) ? 'overdue-row' : ''
 }
 
 // 获取状态标签类型
 const getStatusTagType = (status: TaskStatus) => {
-  const types: Record<TaskStatus, string> = {
+  const types: Record<string, string> = {
     [TaskStatus.PENDING]: 'info',
     [TaskStatus.IN_PROGRESS]: 'primary',
     [TaskStatus.PENDING_REVIEW]: 'warning',
     [TaskStatus.REVIEW_APPROVED]: 'success',
     [TaskStatus.REVIEW_REJECTED]: 'danger',
+    [TaskStatus.DONE]: 'success',
     [TaskStatus.COMPLETED]: 'success',
   }
   return types[status] || ''
+}
+
+const handleExecute = (row: TaskVO) => {
+  router.push(`/task/${row.id}/execute`)
 }
 
 // 完成任务
@@ -347,10 +377,7 @@ const handleRestart = async (row: TaskVO) => {
 // ==================== 生命周期 ====================
 
 onMounted(() => {
-  // 直接使用Mock数据，确保页面有数据显示
-  const mockResult = mockGetTaskList(pagination.pageNo, pagination.pageSize)
-  tableData.value = mockResult.list
-  pagination.total = mockResult.total
+  loadData()
 })
 </script>
 

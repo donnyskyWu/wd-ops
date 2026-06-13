@@ -45,7 +45,7 @@ export function getSopNodeList(templateId: number): Promise<SopNodeVO[]> {
   return request.get({ url: '/oa/sop/node/list', params: { templateId } })
 }
 
-export function createSopNode(data: Partial<SopNodeVO> & { templateId: number; nodeName: string; nodeOrder: number; executorRole: string }): Promise<number> {
+export function createSopNode(data: Partial<SopNodeVO> & { templateId: number; nodeName: string; nodeOrder: number; nodeType: string; executorRole: string }): Promise<number> {
   return request.post({ url: '/oa/sop/node/create', data })
 }
 

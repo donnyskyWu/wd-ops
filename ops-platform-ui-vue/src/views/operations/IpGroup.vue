@@ -121,9 +121,11 @@
               <el-table v-loading="memberLoading" :data="memberList" border stripe>
                 <el-table-column type="index" label="#" width="60" align="center" />
                 <el-table-column prop="userName" label="姓名" width="120" />
-                <el-table-column prop="positionText" label="组内角色" width="140">
+                <el-table-column prop="positionText" label="岗位" width="140">
                   <template #default="{ row }">
-                    <el-tag>{{ row.positionText || row.position || '成员' }}</el-tag>
+                    <el-tag>
+                      <DictLabel dict-type="dict_position" :value="row.position" :fallback="row.positionText || '成员'" />
+                    </el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column prop="joinTime" label="加入时间" width="170" align="center" />
@@ -309,8 +311,13 @@
         <el-form-item label="成员" required>
           <UserSelect v-model="memberForm.userId" placeholder="请选择系统用户" />
         </el-form-item>
-        <el-form-item label="组内角色">
-          <el-input v-model="memberForm.position" placeholder="如 OPERATOR / OPS_LEADER" />
+        <el-form-item label="岗位" required>
+          <DictSelect
+            v-model="memberForm.position"
+            dict-type="dict_position"
+            placeholder="请选择岗位"
+            :include-values="['OPERATOR', 'EDITOR', 'ANCHOR', 'SALES']"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -377,6 +384,7 @@ import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import UserSelect from '@/components/selectors/UserSelect.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 
 // ============== 左侧树 ==============
 const treeRef = ref()
@@ -664,6 +672,10 @@ const handleAddMember = () => {
 const handleSubmitMember = async () => {
   if (!memberForm.userId) {
     ElMessage.warning('请选择成员')
+    return
+  }
+  if (!memberForm.position) {
+    ElMessage.warning('请选择岗位')
     return
   }
   memberSubmitting.value = true

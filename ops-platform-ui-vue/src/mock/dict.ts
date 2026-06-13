@@ -85,13 +85,22 @@ export const mockDictMap: Record<string, Array<{ label: string; value: string; c
     { label: '月', value: 'month' },
     { label: '小时', value: 'hour' },
   ],
-  // 岗位
-  dict_position_type: [
-    { label: '公众号运营', value: 'wechat' },
-    { label: '短视频运营', value: 'video' },
-    { label: '内容创作', value: 'content' },
-    { label: '主播运营', value: 'anchor' },
-    { label: '财务', value: 'finance' },
+  // 岗位（IP 组 / SOP）
+  dict_position: [
+    { label: '运营', value: 'OPERATOR' },
+    { label: '编辑', value: 'EDITOR' },
+    { label: '主播', value: 'ANCHOR' },
+    { label: '销售', value: 'SALES' },
+    { label: '运营组长', value: 'OPS_LEADER' },
+    { label: '直播运营', value: 'LIVE_OPERATOR' },
+  ],
+  // 文档类型（M2 内容生产）
+  dict_document_type: [
+    { label: '短视频文案', value: 'SHORT_VIDEO_SCRIPT' },
+    { label: '新号引流', value: 'NEW_ACCOUNT_TRAFFIC' },
+    { label: '赛后复盘', value: 'POST_MATCH_REVIEW' },
+    { label: '正式方案', value: 'OFFICIAL_PLAN' },
+    { label: '预热前瞻', value: 'PREHEAT_PREVIEW' },
   ],
   // 内容类型
   dict_content_type: [
@@ -171,8 +180,13 @@ export const mockDictMap: Record<string, Array<{ label: string; value: string; c
   dict_ai_model_type: [
     { label: '通义千问', value: 'QWEN' },
     { label: '文心一言', value: 'ERNIE' },
-    { label: 'ChatGPT', value: 'GPT' },
     { label: '智谱 AI', value: 'GLM' },
+    { label: 'DeepSeek', value: 'DEEPSEEK' },
+    { label: 'Kimi', value: 'KIMI' },
+    { label: '豆包', value: 'DOUBAO' },
+    { label: 'OpenAI GPT', value: 'GPT' },
+    { label: 'Claude', value: 'CLAUDE' },
+    { label: 'Gemini', value: 'GEMINI' },
     { label: '月之暗面', value: 'MOONSHOT' },
   ],
   // 阈值指标类型

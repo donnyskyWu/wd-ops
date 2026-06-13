@@ -3,7 +3,7 @@
 > **业务域**：M9 系统管理
 > **功能模块**：用户 + 角色 + 租户 + 字典 + 日志 + 消息
 > **详细设计章节**：5.35
-> **版本**：v1.1 | 2026-06-11
+> **版本**：v1.2 | 2026-06-13
 > **全局规范**：[`docs/engineering/GLOBAL-CONVENTIONS.md`](./../engineering/GLOBAL-CONVENTIONS.md)
 
 ---
@@ -34,6 +34,12 @@
 | 用户扩展 | `sys_user.dept_id`、`ding_user_id`；`ding_user_id` 供后续消息/SSO（Phase 2） |
 
 **Out of Scope**：钉钉 OAuth 登录、同步删除本地用户、定时自动同步（见 ADR-013）。
+
+### 实现补充（2026-06-13）
+
+**FR-M9-001 多角色**：用户创建/编辑支持 `roleIds` **多选**；权限取角色并集（`UserManage.vue`）。
+
+**FR-M9-004 内容审核参数**：系统参数页 Tab「内容审核」筛选四条 `content.review.*` 键；`level1.role` / `level2.role` 使用 **角色下拉**（非手输）。详见 ADR-017。
 
 ---
 

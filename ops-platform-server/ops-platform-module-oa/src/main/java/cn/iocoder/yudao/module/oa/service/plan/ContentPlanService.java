@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanTerminateReq;
+import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanUpdateReq;
 
 public interface ContentPlanService {
 
@@ -12,6 +13,8 @@ public interface ContentPlanService {
     ContentPlanRespVO get(Long id);
 
     Long create(ContentPlanCreateReq req);
+
+    void update(ContentPlanUpdateReq req);
 
     void start(Long id);
 

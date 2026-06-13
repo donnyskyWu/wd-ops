@@ -110,8 +110,12 @@ export interface SopNodeVO {
   nodeName: string
   /** 节点顺序 */
   nodeOrder: number
-  /** 节点描述 */
-  nodeDescription: string
+  /** 节点类型（dict_sop_node_type） */
+  nodeType: string
+  /** 执行说明（instruction_text） */
+  instructionText?: string
+  /** 附件只读（seed / 后续上传 API） */
+  attachmentUrls?: Array<{ name: string; url: string }>
   /** 执行岗位 */
   executorRole: string
   /** 是否需要审核 */

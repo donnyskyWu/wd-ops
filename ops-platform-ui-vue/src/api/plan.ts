@@ -14,6 +14,7 @@ export interface ContentPlanVO {
   progress?: number
   competitions?: ContentPlanCompetitionVO[]
   steps?: ContentPlanStepVO[]
+  tasks?: import('@/types/task').TaskVO[]
   createTime?: string
 }
 
@@ -24,6 +25,10 @@ export interface ContentPlanCompetitionVO {
 
 export interface ContentPlanStepVO {
   nodeId: number
+  competitionId?: string
+  competitionIds?: string[]
+  competitionName?: string
+  competitionNames?: string[]
   nodeName?: string
   nodeOrder?: number
   executorRole?: string
@@ -60,12 +65,33 @@ export function createContentPlan(data: {
   competitions: ContentPlanCompetitionVO[]
   steps: Array<{
     nodeId: number
+    competitionId?: string
+    competitionIds?: string[]
     assigneeIds: number[]
     scheduledStart?: string
     scheduledEnd?: string
   }>
 }): Promise<number> {
   return request.post({ url: '/oa/plan/create', data })
+}
+
+export function updateContentPlan(data: {
+  id: number
+  planName: string
+  startDate: string
+  endDate: string
+  description?: string
+  competitions: ContentPlanCompetitionVO[]
+  steps: Array<{
+    nodeId: number
+    competitionId?: string
+    competitionIds?: string[]
+    assigneeIds: number[]
+    scheduledStart?: string
+    scheduledEnd?: string
+  }>
+}): Promise<boolean> {
+  return request.put({ url: '/oa/plan/update', data })
 }
 
 export function startContentPlan(id: number): Promise<boolean> {

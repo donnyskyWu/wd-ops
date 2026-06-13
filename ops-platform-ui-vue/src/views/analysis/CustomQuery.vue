@@ -100,6 +100,12 @@
       :builder-config="inlineBuilderConfig"
       :sql-text="inlineSql"
       collapsible-conditions
+      paginated
+      :total="inlineTotal"
+      :page-num="inlinePageNum"
+      :page-size="inlinePageSize"
+      :loading="executing"
+      @page-change="onInlinePageChange"
     />
 
     <!-- 保存对话框 -->
@@ -154,6 +160,12 @@
         :rows="dialogRows"
         :builder-config="dialogBuilderConfig"
         :sql-text="dialogSql"
+        paginated
+        :total="dialogTotal"
+        :page-num="dialogPageNum"
+        :page-size="dialogPageSize"
+        :loading="executing"
+        @page-change="onDialogPageChange"
       />
     </el-dialog>
   </div>
@@ -205,6 +217,9 @@ const builderConfig = ref<QueryBuilderConfig>(createEmptyQueryConfig())
 const inlineBuilderConfig = ref<QueryBuilderConfig>(createEmptyQueryConfig())
 const inlineSql = ref('')
 const inlineRows = ref<Record<string, unknown>[]>([])
+const inlineTotal = ref(0)
+const inlinePageNum = ref(1)
+const inlinePageSize = ref(20)
 const inlineExecuted = ref(false)
 const inlineResultKey = ref(0)
 
@@ -227,8 +242,12 @@ const editSql = ref('')
 const showResultDialog = ref(false)
 const resultDialogTitle = ref('查询结果')
 const dialogRows = ref<Record<string, unknown>[]>([])
+const dialogTotal = ref(0)
+const dialogPageNum = ref(1)
+const dialogPageSize = ref(20)
 const dialogBuilderConfig = ref<QueryBuilderConfig | null>(null)
 const dialogSql = ref('')
+const dialogQueryId = ref<number | null>(null)
 
 const saveDialogTitle = computed(() =>
   saveMode.value === 'from-inline' ? '保存为我的查询' : '新建查询',
@@ -251,10 +270,19 @@ function unpackParams(paramsJson?: string): QueryBuilderConfig | null {
   return null
 }
 
-function extractRows(data: unknown): Record<string, unknown>[] {
+function extractPageResult(data: unknown): {
+  rows: Record<string, unknown>[]
+  total: number
+  pageNum: number
+  pageSize: number
+} {
   const payload = (data as { data?: unknown })?.data ?? data
   const rows = (payload as { rows?: unknown })?.rows ?? []
-  return Array.isArray(rows) ? rows as Record<string, unknown>[] : []
+  const list = Array.isArray(rows) ? rows as Record<string, unknown>[] : []
+  const total = Number((payload as { total?: number }).total ?? list.length)
+  const pageNum = Number((payload as { pageNum?: number }).pageNum ?? 1)
+  const pageSize = Number((payload as { pageSize?: number }).pageSize ?? list.length)
+  return { rows: list, total, pageNum, pageSize }
 }
 
 function snapshotBuilderConfig(source: QueryBuilderConfig): QueryBuilderConfig {
@@ -292,44 +320,95 @@ const loadList = async () => {
   }
 }
 
+const fetchInlineResults = async (page = inlinePageNum.value, size = inlinePageSize.value) => {
+  const sql = inlineSql.value?.trim()
+  if (!sql) return
+  executing.value = true
+  try {
+    const res = await previewCustomQuery({ sqlText: sql, pageNum: page, pageSize: size })
+    const result = extractPageResult(res)
+    inlineRows.value = result.rows
+    inlineTotal.value = result.total
+    inlinePageNum.value = result.pageNum
+    inlinePageSize.value = result.pageSize
+  } catch (e: unknown) {
+    inlineRows.value = []
+    inlineTotal.value = 0
+    throw e
+  } finally {
+    executing.value = false
+  }
+}
+
 const executeInline = async () => {
   const sql = inlineSql.value?.trim()
   if (!sql) {
     ElMessage.warning('请先生成或填写 SQL')
     return
   }
-  executing.value = true
   inlineExecuted.value = true
   inlineBuilderConfig.value = snapshotBuilderConfig(builderConfig.value)
+  inlinePageNum.value = 1
   try {
-    const res = await previewCustomQuery({ sqlText: sql })
-    inlineRows.value = extractRows(res)
+    await fetchInlineResults(1, inlinePageSize.value)
     inlineResultKey.value += 1
     configExpanded.value = false
     ElMessage.success('执行成功')
   } catch (e: unknown) {
     inlineRows.value = []
+    inlineTotal.value = 0
     ElMessage.error((e as Error)?.message || '执行失败')
+  }
+}
+
+const onInlinePageChange = ({ pageNum, pageSize }: { pageNum: number; pageSize: number }) => {
+  inlinePageNum.value = pageNum
+  inlinePageSize.value = pageSize
+  fetchInlineResults(pageNum, pageSize).catch((e: unknown) => {
+    ElMessage.error((e as Error)?.message || '加载失败')
+  })
+}
+
+const fetchDialogResults = async (page = dialogPageNum.value, size = dialogPageSize.value) => {
+  if (dialogQueryId.value == null) return
+  executing.value = true
+  try {
+    const res = await executeCustomQuery(dialogQueryId.value, { pageNum: page, pageSize: size })
+    const result = extractPageResult(res)
+    dialogRows.value = result.rows
+    dialogTotal.value = result.total
+    dialogPageNum.value = result.pageNum
+    dialogPageSize.value = result.pageSize
+  } catch (e: unknown) {
+    dialogRows.value = []
+    dialogTotal.value = 0
+    throw e
   } finally {
     executing.value = false
   }
 }
 
 const executeSaved = async (row: CustomQueryItem) => {
-  executing.value = true
+  dialogQueryId.value = row.id
+  dialogBuilderConfig.value = unpackParams(row.paramsJson)
+  dialogSql.value = row.sqlText
+  resultDialogTitle.value = `查询结果 — ${row.queryName}`
+  dialogPageNum.value = 1
+  showResultDialog.value = true
   try {
-    const res = await executeCustomQuery(row.id)
-    dialogRows.value = extractRows(res)
-    dialogBuilderConfig.value = unpackParams(row.paramsJson)
-    dialogSql.value = row.sqlText
-    resultDialogTitle.value = `查询结果 — ${row.queryName}`
-    showResultDialog.value = true
+    await fetchDialogResults(1, dialogPageSize.value)
     ElMessage.success('执行成功')
   } catch (e: unknown) {
     ElMessage.error((e as Error)?.message || '执行失败')
-  } finally {
-    executing.value = false
   }
+}
+
+const onDialogPageChange = ({ pageNum, pageSize }: { pageNum: number; pageSize: number }) => {
+  dialogPageNum.value = pageNum
+  dialogPageSize.value = pageSize
+  fetchDialogResults(pageNum, pageSize).catch((e: unknown) => {
+    ElMessage.error((e as Error)?.message || '加载失败')
+  })
 }
 
 const openSaveDialog = () => {

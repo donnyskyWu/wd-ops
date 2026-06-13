@@ -46,6 +46,7 @@ export const PARAM_CATEGORY_TAB: Record<string, string> = {
   collect: 'COLLECT',
   ai: 'AI',
   notification: 'NOTIFICATION',
+  contentReview: 'CONTENT_REVIEW',
 }
 
 export const PARAM_TYPE_LABEL: Record<string, string> = {

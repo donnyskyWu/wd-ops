@@ -17,6 +17,12 @@ public class AiPromptConfigCreateReq {
     @InDict("dict_ai_scene")
     private String scene;
 
+    @InDict("dict_content_type")
+    private String contentType;
+
+    @InDict("dict_document_type")
+    private String documentType;
+
     @NotBlank
     private String promptContent;
 

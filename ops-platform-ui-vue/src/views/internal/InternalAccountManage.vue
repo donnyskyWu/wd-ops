@@ -2,11 +2,6 @@
   <div class="internal-account-page">
     <div class="page-header">
       <h1 class="page-title">平台账号管理</h1>
-      <el-breadcrumb separator="/">
-        <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-        <el-breadcrumb-item>账号管理</el-breadcrumb-item>
-        <el-breadcrumb-item>平台账号管理</el-breadcrumb-item>
-      </el-breadcrumb>
     </div>
 
     <el-tabs v-model="activePlatform" @tab-change="handleTabChange" class="platform-tabs">
@@ -24,6 +19,12 @@
       <el-form-item label="状态">
         <DictSelect v-model="searchForm.status" dict-type="dict_account_status" placeholder="全部" clearable />
       </el-form-item>
+      <template #extra>
+        <el-button type="success" :loading="exportLoading" @click="handleExport">
+          <el-icon><Download /></el-icon>
+          导出
+        </el-button>
+      </template>
     </TableSearch>
 
     <div class="action-bar">
@@ -122,7 +123,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Download } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
@@ -131,6 +132,7 @@ import RealNameSelect from '@/components/selectors/RealNameSelect.vue'
 import PhoneSelect from '@/components/selectors/PhoneSelect.vue'
 import SimCardSelect from '@/components/selectors/SimCardSelect.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
+import { exportToExcel } from '@/utils'
 import {
   createPlatformAccount,
   deletePlatformAccount,
@@ -139,9 +141,18 @@ import {
   type PlatformAccountVO,
 } from '@/api/platform-account'
 
+const PLATFORM_LABEL_MAP: Record<string, string> = {
+  WECHAT_OFFICIAL: '公众号',
+  WECHAT_VIDEO: '视频号',
+  DOUYIN: '抖音',
+  KUAISHOU: '快手',
+  XIAOHONGSHU: '小红书',
+}
+
 const activePlatform = ref('WECHAT_OFFICIAL')
 const router = useRouter()
 const loading = ref(false)
+const exportLoading = ref(false)
 const tableData = ref<PlatformAccountVO[]>([])
 const formRef = ref()
 
@@ -213,6 +224,59 @@ const handleReset = () => {
   searchForm.status = undefined
   pagination.pageNo = 1
   loadData()
+}
+
+const buildListParams = (pageNo: number, pageSize: number) => ({
+  platformType: activePlatform.value,
+  accountName: searchForm.accountName || undefined,
+  status: searchForm.status,
+  pageNo,
+  pageSize,
+})
+
+const fetchAllFilteredRows = async () => {
+  const exportPageSize = 500
+  const first = await getPlatformAccountPage(buildListParams(1, exportPageSize))
+  let rows = first.list || []
+  const totalCount = first.total ?? 0
+  if (totalCount > exportPageSize) {
+    const totalPages = Math.ceil(totalCount / exportPageSize)
+    for (let page = 2; page <= totalPages; page += 1) {
+      const res = await getPlatformAccountPage(buildListParams(page, exportPageSize))
+      rows = rows.concat(res.list || [])
+    }
+  }
+  return rows
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const rows = await fetchAllFilteredRows()
+    const exportData = rows.map((row) => ({
+      platformLabel: PLATFORM_LABEL_MAP[row.platformType] || row.platformType || '',
+      accountName: row.accountName,
+      externalAccountId: row.externalAccountId || '',
+      companyName: row.companyName || '',
+      realName: row.realName || '',
+      status: row.status === 'NORMAL' ? '正常' : '停用',
+      createTime: row.createTime || '',
+    }))
+    const columns = [
+      { key: 'platformLabel', label: '平台' },
+      { key: 'accountName', label: '账号名称' },
+      { key: 'externalAccountId', label: '平台账号ID' },
+      { key: 'companyName', label: '公司' },
+      { key: 'realName', label: '实名人' },
+      { key: 'status', label: '状态' },
+      { key: 'createTime', label: '创建时间' },
+    ]
+    exportToExcel(exportData, columns, '平台账号管理')
+  } catch {
+    ElMessage.error('导出失败，请重试')
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const resetForm = () => {
@@ -329,7 +393,7 @@ onMounted(loadData)
 .internal-account-page {
   padding: 20px;
   .page-header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ebeef5; }
-  .page-title { font-size: 22px; font-weight: 600; color: #303133; margin: 0 0 12px 0; }
+  .page-title { font-size: 22px; font-weight: 600; color: #303133; margin: 0; }
   .platform-tabs { margin-bottom: 16px; }
   .action-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
   .total-info { color: #909399; font-size: 14px; }

@@ -312,9 +312,14 @@ const getModelTypeLabel = (modelType: string) => {
   const map: Record<string, string> = {
     QWEN: '通义千问',
     ERNIE: '文心一言',
-    GPT: 'ChatGPT',
-    GLM: '智谱AI',
-    MOONSHOT: '月之暗面'
+    GLM: '智谱 AI',
+    DEEPSEEK: 'DeepSeek',
+    KIMI: 'Kimi',
+    DOUBAO: '豆包',
+    GPT: 'OpenAI GPT',
+    CLAUDE: 'Claude',
+    GEMINI: 'Gemini',
+    MOONSHOT: '月之暗面',
   }
   return map[modelType] || modelType
 }
@@ -323,9 +328,14 @@ const getModelTypeTagType = (modelType: string) => {
   const map: Record<string, any> = {
     QWEN: '',
     ERNIE: 'success',
-    GPT: 'warning',
     GLM: 'danger',
-    MOONSHOT: 'info'
+    DEEPSEEK: 'info',
+    KIMI: 'warning',
+    DOUBAO: '',
+    GPT: 'warning',
+    CLAUDE: 'success',
+    GEMINI: 'info',
+    MOONSHOT: 'info',
   }
   return map[modelType] || ''
 }

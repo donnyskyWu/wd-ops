@@ -4,10 +4,6 @@
 -->
 <template>
   <div class="quality-page">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item>数据采集</el-breadcrumb-item>
-      <el-breadcrumb-item>数据质量</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <el-row :gutter="16">
       <el-col :span="14">

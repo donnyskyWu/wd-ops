@@ -1,9 +1,5 @@
 <template>
   <div class="report-page">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/data-report' }">数据报表</el-breadcrumb-item>
-      <el-breadcrumb-item>统一视图</el-breadcrumb-item>
-    </el-breadcrumb>
     <ContentWrap>
       <el-form :model="filter" inline>
         <el-form-item label="IP 组">
@@ -23,6 +19,12 @@
           <el-date-picker v-model="filter.dateRange" type="daterange" value-format="YYYY-MM-DD" style="width: 240px" />
         </el-form-item>
         <el-form-item><el-button type="primary" @click="loadData">查询</el-button></el-form-item>
+        <el-form-item>
+          <el-button type="success" :loading="exportLoading" @click="handleExport">
+            <el-icon><Download /></el-icon>
+            导出
+          </el-button>
+        </el-form-item>
       </el-form>
     </ContentWrap>
     <ContentWrap title="全平台账号 KPI" style="margin-top: 16px">
@@ -67,13 +69,16 @@
 </template>
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import DictLabel from '@/components/DictLabel.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { getUnifiedAccountList, getUnifiedAccountStats } from '@/api/report'
-import { unwrapApiData, pickListPage, reportField } from '@/utils'
+import { exportToExcel, unwrapApiData, pickListPage, reportField, fetchAllPaginated } from '@/utils'
 
 const loading = ref(false)
+const exportLoading = ref(false)
 const filter = reactive({ ipGroupId: undefined as number | undefined, platformType: undefined as string | undefined, dateRange: [] as string[] })
 const pageNum = ref(1)
 const pageSize = ref(20)
@@ -81,12 +86,48 @@ const total = ref(0)
 const list = ref<any[]>([])
 const stats = reactive<any>({ totalAccounts: 0, totalFollowers: 0, totalRevenue: 0, overallRoi: 0 })
 
-const buildQuery = () => {
-  const q: Record<string, any> = { pageNum: pageNum.value, pageSize: pageSize.value }
+const buildQuery = (page = pageNum.value, size = pageSize.value) => {
+  const q: Record<string, any> = { pageNum: page, pageSize: size }
   if (filter.ipGroupId) q.ipGroupId = filter.ipGroupId
   if (filter.platformType) q.platformType = filter.platformType
   if (filter.dateRange?.length === 2) { q.startDate = filter.dateRange[0]; q.endDate = filter.dateRange[1] }
   return q
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const rows = await fetchAllPaginated(async (page, size) =>
+      pickListPage(unwrapApiData(await getUnifiedAccountList(buildQuery(page, size)))),
+    )
+    const exportData = rows.map(row => ({
+      accountName: reportField(row, 'account_name', 'accountName'),
+      platformType: reportField(row, 'platform_type', 'platformType'),
+      ipGroupName: reportField(row, 'ip_group_name', 'ipGroupName'),
+      followerCount: reportField(row, 'follower_count', 'followerCount'),
+      revenue: reportField(row, 'revenue'),
+      cost: reportField(row, 'cost'),
+      roi: reportField(row, 'roi'),
+    }))
+    exportToExcel(
+      exportData,
+      [
+        { key: 'accountName', label: '账号' },
+        { key: 'platformType', label: '平台' },
+        { key: 'ipGroupName', label: 'IP 组' },
+        { key: 'followerCount', label: '粉丝数' },
+        { key: 'revenue', label: '营收' },
+        { key: 'cost', label: '成本' },
+        { key: 'roi', label: 'ROI' },
+      ],
+      '统一视图',
+    )
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('导出失败，请重试')
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const loadData = async () => {

@@ -1,12 +1,17 @@
 <template>
   <div class="table-search">
     <el-form :inline="true" :model="searchModel" class="search-form" @submit.prevent="handleSearch">
-      <div class="search-fields">
-        <slot />
+      <div v-if="$slots.top" class="search-top">
+        <slot name="top" />
       </div>
-      <div class="search-actions">
-        <slot name="extra" />
-        <el-form-item class="search-btns">
+      <div class="search-body">
+        <div class="search-fields">
+          <slot />
+        </div>
+        <div class="search-actions">
+          <div v-if="$slots.extra" class="search-actions-extra">
+            <slot name="extra" />
+          </div>
           <el-button type="primary" native-type="submit">
             <el-icon><Search /></el-icon>
             搜索
@@ -15,7 +20,7 @@
             <el-icon><Refresh /></el-icon>
             重置
           </el-button>
-        </el-form-item>
+        </div>
       </div>
     </el-form>
   </div>
@@ -66,10 +71,26 @@ const handleReset = () => {
 
   .search-form {
     display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .search-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #f0f2f5;
+  }
+
+  .search-body {
+    display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
     justify-content: space-between;
     gap: 4px 16px;
+    width: 100%;
   }
 
   .search-fields {
@@ -86,8 +107,20 @@ const handleReset = () => {
     flex-wrap: wrap;
     align-items: center;
     flex-shrink: 0;
-    gap: 0 8px;
+    gap: 8px;
     margin-left: auto;
+    margin-bottom: 8px;
+
+    &-extra {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    :deep(.el-button) {
+      margin: 0;
+      vertical-align: middle;
+    }
   }
 
   :deep(.el-form-item) {
@@ -108,33 +141,15 @@ const handleReset = () => {
     width: 180px;
   }
 
-  :deep(.search-btns) {
-    margin-right: 0;
-    margin-bottom: 8px;
-
-    .el-form-item__content {
-      display: flex;
-      gap: 8px;
-      flex-wrap: nowrap;
-    }
-  }
-
   :deep(.el-form-item__label) {
     font-size: 14px;
     color: #606266;
   }
 
-  :deep(.el-input__wrapper) {
+  :deep(.el-input__wrapper),
+  :deep(.el-select__wrapper) {
     border-radius: 6px;
     transition: all 0.3s;
-
-    &:hover {
-      box-shadow: none;
-    }
-
-    &.is-focus {
-      box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
-    }
   }
 
   :deep(.el-button--primary) {

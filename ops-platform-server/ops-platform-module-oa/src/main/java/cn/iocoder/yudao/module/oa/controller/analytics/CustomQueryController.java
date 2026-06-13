@@ -54,7 +54,13 @@ public class CustomQueryController {
     }
 
     @PostMapping("/{id}/execute")
-    public CommonResult<Map<String, Object>> execute(@PathVariable Long id) {
+    public CommonResult<Map<String, Object>> execute(
+            @PathVariable Long id,
+            @RequestParam(required = false) Integer pageNum,
+            @RequestParam(required = false) Integer pageSize) {
+        if (pageNum != null || pageSize != null) {
+            return CommonResult.success(customQueryService.execute(id, pageNum, pageSize));
+        }
         return CommonResult.success(customQueryService.execute(id));
     }
 

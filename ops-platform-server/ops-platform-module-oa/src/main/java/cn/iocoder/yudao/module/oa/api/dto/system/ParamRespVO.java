@@ -2,6 +2,8 @@ package cn.iocoder.yudao.module.oa.api.dto.system;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 public class ParamRespVO {
 
@@ -12,5 +14,5 @@ public class ParamRespVO {
     private String paramType;
     private String category;
     private String remark;
-    private String updateTime;
+    private LocalDateTime updateTime;
 }

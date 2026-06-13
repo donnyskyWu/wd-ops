@@ -5,10 +5,6 @@
 -->
 <template>
   <div class="task-edit-page">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/collect/task' }">采集任务</el-breadcrumb-item>
-      <el-breadcrumb-item>{{ isEdit ? '编辑任务' : '新增任务' }}</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <el-card shadow="never" v-loading="loading">
       <template #header>

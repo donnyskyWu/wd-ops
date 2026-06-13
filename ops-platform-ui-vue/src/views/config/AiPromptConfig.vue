@@ -74,6 +74,8 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column prop="contentType" label="内容类型" width="100" align="center" />
+        <el-table-column prop="documentType" label="文档类型" width="120" align="center" />
         <el-table-column prop="promptContent" label="提示词内容" min-width="300" show-overflow-tooltip />
         <el-table-column prop="version" label="版本" width="80" align="center" />
         <el-table-column prop="status" label="状态" width="100" align="center">
@@ -124,6 +126,25 @@
         </el-form-item>
         <el-form-item label="应用场景" prop="scene">
           <DictSelect v-model="formData.scene" dict-type="dict_ai_scene" placeholder="请选择应用场景" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="内容类型">
+          <DictSelect
+            v-model="formData.contentType"
+            dict-type="dict_content_type"
+            placeholder="可选，匹配内容管理类型"
+            clearable
+            style="width: 100%"
+            @change="handleContentTypeChange"
+          />
+        </el-form-item>
+        <el-form-item v-if="showDocumentType" label="文档类型">
+          <DictSelect
+            v-model="formData.documentType"
+            dict-type="dict_document_type"
+            placeholder="可选，文章类内容"
+            clearable
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="提示词内容" prop="promptContent">
           <el-input 
@@ -183,6 +204,8 @@
             {{ getSceneLabel(viewData.scene) }}
           </el-tag>
         </el-descriptions-item>
+        <el-descriptions-item label="内容类型">{{ viewData.contentType || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="文档类型">{{ viewData.documentType || '—' }}</el-descriptions-item>
         <el-descriptions-item label="版本">{{ viewData.version }}</el-descriptions-item>
         <el-descriptions-item label="提示词内容">
           <div style="white-space: pre-wrap; background: #f5f7fa; padding: 12px; border-radius: 4px;">
@@ -227,6 +250,8 @@ interface AiPromptTemplate {
   id: number
   templateName: string
   scene: string
+  contentType?: string
+  documentType?: string
   promptContent: string
   variableDesc?: string
   temperature: number
@@ -270,6 +295,8 @@ const selectedRows = ref<AiPromptTemplate[]>([])
 const formData = reactive<Partial<AiPromptTemplate>>({
   templateName: '',
   scene: '',
+  contentType: '',
+  documentType: '',
   promptContent: '',
   variableDesc: '',
   temperature: 0.7,
@@ -298,6 +325,8 @@ function mapRow(row: AiPromptConfigVO): AiPromptTemplate {
     id: row.id,
     templateName: row.templateName,
     scene: row.scene || '',
+    contentType: row.contentType,
+    documentType: row.documentType,
     promptContent: row.promptContent,
     variableDesc: row.variableDesc,
     temperature: row.temperature ?? 0.7,
@@ -322,6 +351,14 @@ const displayList = computed(() => {
 })
 
 const dialogTitle = computed(() => (formData.id ? '编辑模板' : '新增模板'))
+
+const showDocumentType = computed(() => formData.contentType === 'ARTICLE')
+
+const handleContentTypeChange = () => {
+  if (formData.contentType !== 'ARTICLE') {
+    formData.documentType = ''
+  }
+}
 
 const loadList = async () => {
   loading.value = true
@@ -390,6 +427,8 @@ const handleCreate = () => {
     id: undefined,
     templateName: '',
     scene: '',
+    contentType: '',
+    documentType: '',
     promptContent: '',
     variableDesc: '',
     temperature: 0.7,
@@ -415,6 +454,8 @@ const handleSubmit = async () => {
     const payload: Record<string, unknown> = {
       templateName: formData.templateName,
       scene: formData.scene,
+      contentType: formData.contentType || undefined,
+      documentType: formData.documentType || undefined,
       promptContent: formData.promptContent,
       variableDesc: formData.variableDesc,
       temperature: formData.temperature,

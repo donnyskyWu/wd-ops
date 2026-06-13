@@ -47,6 +47,7 @@ public final class OaErrorCodes {
     public static final ErrorCode SOP_TEMPLATE_NO_NODES = ErrorCode.of(2005, "模板无节点，无法启用");
     public static final ErrorCode CONTENT_PLATFORM_MISMATCH = ErrorCode.of(2022, "账号平台类型与内容平台类型不匹配");
     public static final ErrorCode REVIEWER_POSITION_MISMATCH = ErrorCode.of(2007, "审核人岗位不匹配");
+    public static final ErrorCode TASK_CONTENT_NOT_COMPLETED = ErrorCode.of(2008, "须先完成内容创作");
     public static final ErrorCode TASK_STATUS_INVALID = ErrorCode.of(2023, "任务状态不允许此操作");
     public static final ErrorCode TASK_ASSIGNEE_MISMATCH = ErrorCode.of(2024, "非任务执行人，无权操作");
     public static final ErrorCode CONTENT_STATUS_INVALID = ErrorCode.of(2010, "内容状态不允许此操作");

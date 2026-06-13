@@ -17,10 +17,12 @@ export enum TaskStatus {
   /** 待审核 */
   PENDING_REVIEW = 'PENDING_REVIEW',
   /** 审核通过 */
-  REVIEW_APPROVED = 'REVIEW_APPROVED',
+  REVIEW_APPROVED = 'APPROVED',
   /** 审核驳回 */
-  REVIEW_REJECTED = 'REVIEW_REJECTED',
-  /** 已完成 */
+  REVIEW_REJECTED = 'REJECTED',
+  /** 已完成（无需审核） */
+  DONE = 'DONE',
+  /** 已完成（旧/需审核中间态） */
   COMPLETED = 'COMPLETED',
 }
 
@@ -38,16 +40,24 @@ export interface TaskVO {
   nodeName: string
   /** 执行人 */
   assigneeName: string
-  /** 执行岗位 */
+  /** 执行岗位（编码） */
   executorRole: string
+  /** 执行岗位名称 */
+  executorRoleText?: string
+  /** 赛事 ID */
+  competitionId?: string
+  /** 赛事名称 */
+  competitionName?: string
   /** 任务状态 */
   status: TaskStatus
-  /** 状态文本 */
-  statusText: string
-  /** SLA截止时间 */
-  slaDeadline: string
-  /** 是否超时 */
-  isOverdue: boolean
+  /** 状态文本（可选，前端可本地映射） */
+  statusText?: string
+  /** SLA截止时间（ISO 字符串） */
+  slaDeadline?: string
+  /** 计划开始时间（来自计划创建步骤） */
+  scheduledStart?: string
+  /** 计划结束时间（来自计划创建步骤） */
+  scheduledEnd?: string
 }
 
 /**
@@ -72,4 +82,34 @@ export interface TaskQuery {
 export interface PageResult<T> {
   total: number
   list: T[]
+}
+
+export interface TaskLinkedContentVO {
+  id: number
+  title: string
+  status: string
+}
+
+export interface TaskAttachmentVO {
+  name: string
+  url: string
+}
+
+export interface TaskExecuteVO {
+  id: number
+  planName: string
+  nodeName: string
+  nodeType: string
+  ipGroupId?: number
+  ipGroupName?: string
+  competitionId?: string
+  competitionName?: string
+  slaDeadline?: string
+  status: string
+  needReview?: number
+  executionInstruction?: string
+  attachments?: TaskAttachmentVO[]
+  deliverableAttachments?: TaskAttachmentVO[]
+  deliverables?: string
+  linkedContent?: TaskLinkedContentVO | null
 }

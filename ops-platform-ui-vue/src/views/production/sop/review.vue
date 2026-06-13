@@ -5,10 +5,6 @@
 -->
 <template>
   <div class="sop-review-page">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item>内容生产</el-breadcrumb-item>
-      <el-breadcrumb-item>SOP审核</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <!-- 顶部汇总卡 -->
     <el-row :gutter="16" class="stats-row">

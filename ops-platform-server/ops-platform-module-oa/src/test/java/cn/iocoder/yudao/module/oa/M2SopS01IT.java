@@ -117,6 +117,7 @@ class M2SopS01IT extends OaITBase {
                                   "templateId": %d,
                                   "nodeName": "IT-写稿",
                                   "nodeOrder": 1,
+                                  "nodeType": "NORMAL",
                                   "executorRole": "EDITOR",
                                   "needReview": 0,
                                   "predecessors": [],

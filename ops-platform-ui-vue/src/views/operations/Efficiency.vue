@@ -10,9 +10,6 @@
       <el-form-item label="IP组">
         <IpGroupTreeSelect v-model="searchForm.ipGroupId" />
       </el-form-item>
-      <el-form-item label="岗位">
-        <DictSelect v-model="searchForm.position" dict-type="dict_position" placeholder="全部岗位" clearable style="width: 160px" />
-      </el-form-item>
       <el-form-item label="关键词">
         <el-input v-model="searchForm.keyword" placeholder="经办人姓名" clearable maxlength="50" />
       </el-form-item>
@@ -221,7 +218,6 @@ const searchForm = reactive({
   timeDimension: 'WEEK',
   statDate: undefined as string | undefined,
   ipGroupId: undefined as number | undefined,
-  position: undefined as string | undefined,
   keyword: undefined as string | undefined,
 })
 const productivityList = ref<ProductivityReviewVO[]>([])
@@ -258,7 +254,6 @@ const handleReset = () => {
   searchForm.timeDimension = 'WEEK'
   searchForm.statDate = undefined
   searchForm.ipGroupId = undefined
-  searchForm.position = undefined
   searchForm.keyword = undefined
   loadData()
 }
@@ -287,7 +282,6 @@ const handleExport = async () => {
       timeDimension: searchForm.timeDimension,
       ipGroupId: searchForm.ipGroupId,
       userId: undefined,
-      position: searchForm.position,
       keyword: searchForm.keyword,
     })
     ElMessage.success('导出任务已提交')
@@ -314,7 +308,6 @@ const loadData = async () => {
     const params: ProductivityReviewQuery = {
       timeDimension: searchForm.timeDimension,
       ipGroupId: searchForm.ipGroupId,
-      position: searchForm.position,
       keyword: searchForm.keyword,
       page: 1,
       size: 50,

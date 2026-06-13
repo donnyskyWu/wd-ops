@@ -15,4 +15,8 @@ public interface ParamService {
     void update(ParamUpdateReq req);
 
     void delete(Long id);
+
+    String getString(Long tenantId, String paramKey, String defaultValue);
+
+    boolean getBoolean(Long tenantId, String paramKey, boolean defaultValue);
 }

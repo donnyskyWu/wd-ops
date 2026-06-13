@@ -6,10 +6,6 @@
 -->
 <template>
   <div class="internal-content-detail" v-loading="loading">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item :to="{ path: '/internal-content' }">内部内容分析</el-breadcrumb-item>
-      <el-breadcrumb-item>补录详情 #{{ detail?.id }}</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <el-card shadow="never" v-if="detail">
       <template #header>

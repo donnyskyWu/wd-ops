@@ -7,6 +7,12 @@
       <el-form-item label="状态">
         <DictSelect v-model="searchForm.status" dict-type="dict_company_status" placeholder="全部" clearable />
       </el-form-item>
+      <template #extra>
+        <el-button type="success" :loading="exportLoading" @click="handleExport">
+          <el-icon><Download /></el-icon>
+          导出
+        </el-button>
+      </template>
     </TableSearch>
 
     <div class="action-bar">
@@ -122,9 +128,10 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Download } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import { exportToExcel } from '@/utils'
 import {
   createCompany,
   expandCompany,
@@ -134,6 +141,7 @@ import {
 } from '@/api/company'
 
 const loading = ref(false)
+const exportLoading = ref(false)
 const companyList = ref<any[]>([])
 const total = ref(0)
 const router = useRouter()
@@ -196,6 +204,54 @@ const handleReset = () => {
   searchForm.keyword = undefined
   searchForm.status = undefined
   handleSearch()
+}
+
+const buildListParams = (pageNo: number, pageSize: number) => ({
+  companyName: searchForm.keyword,
+  status: searchForm.status,
+  pageNo,
+  pageSize,
+})
+
+const fetchAllFilteredRows = async () => {
+  const exportPageSize = 500
+  const first = await getCompanyPage(buildListParams(1, exportPageSize))
+  let rows = (first.list || []).map(mapRow)
+  const totalCount = first.total ?? 0
+  if (totalCount > exportPageSize) {
+    const totalPages = Math.ceil(totalCount / exportPageSize)
+    for (let page = 2; page <= totalPages; page += 1) {
+      const res = await getCompanyPage(buildListParams(page, exportPageSize))
+      rows = rows.concat((res.list || []).map(mapRow))
+    }
+  }
+  return rows
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const rows = await fetchAllFilteredRows()
+    const exportData = rows.map((row) => ({
+      name: row.name,
+      creditCode: row.creditCode,
+      legalPerson: row.legalPerson || '',
+      mpCapacity: getCapacityText(row.registeredCount, row.standardCount),
+      status: row.status ? '启用' : '停用',
+    }))
+    const columns = [
+      { key: 'name', label: '公司名称' },
+      { key: 'creditCode', label: '统一信用代码' },
+      { key: 'legalPerson', label: '法人' },
+      { key: 'mpCapacity', label: '公众号容量' },
+      { key: 'status', label: '状态' },
+    ]
+    exportToExcel(exportData, columns, '公司管理')
+  } catch {
+    ElMessage.error('导出失败，请重试')
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const getCapacityType = (registered: number, standard: number) => {

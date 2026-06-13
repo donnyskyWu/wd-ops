@@ -18,7 +18,7 @@
 
     :clearable="clearable"
 
-    :disabled="disabled || !platformType"
+    :disabled="disabled || (!platformType && !(platformTypes && platformTypes.length))"
 
     :filterable="filterable"
 
@@ -68,7 +68,7 @@
 
         v-if="!loading"
 
-        :description="!platformType ? '请先选择平台' : '未找到匹配的账号'"
+        :description="(!platformType && !(platformTypes && platformTypes.length)) ? '请先选择平台（可选）' : '未找到匹配的账号'"
 
         :image-size="60"
 
@@ -131,6 +131,7 @@ interface Props {
   remote?: boolean
 
   platformType?: string
+  platformTypes?: string[]
 
   accountType?: string
 
@@ -198,11 +199,12 @@ const loading = ref(false)
 
 watch(() => props.modelValue, (val) => { selectedValue.value = val })
 
-watch([() => props.platformType, () => props.ipGroupId, () => props.companyId], () => {
+watch([() => props.platformType, () => props.platformTypes, () => props.ipGroupId, () => props.companyId], () => {
 
-  selectedValue.value = undefined
-
-  emit('update:modelValue', undefined)
+  if (!props.multiple) {
+    selectedValue.value = undefined
+    emit('update:modelValue', undefined)
+  }
 
   loadList('')
 
@@ -212,41 +214,46 @@ watch([() => props.platformType, () => props.ipGroupId, () => props.companyId], 
 
 const loadList = async (keyword: string) => {
 
-  if (!props.platformType) {
-
-    options.value = []
-
-    return
-
-  }
+  const platforms = props.platformTypes?.length
+    ? props.platformTypes
+    : props.platformType
+      ? [props.platformType]
+      : []
 
   loading.value = true
 
   try {
 
-    const res = await request.get<{ list: any[] }>({
+    const fetchForPlatform = async (platform?: string) => {
+      const res = await request.get<{ list: any[] }>({
+        url: '/oa/account/list',
+        params: {
+          accountName: keyword || undefined,
+          platformType: platform,
+          accountType: props.accountType,
+          companyId: props.companyId,
+          status: props.activeOnly ? 'NORMAL' : undefined,
+          pageSize: 50,
+        },
+      })
+      return (res as any).list || []
+    }
 
-      url: '/oa/account/list',
-
-      params: {
-
-        accountName: keyword || undefined,
-
-        platformType: props.platformType,
-
-        accountType: props.accountType,
-
-        companyId: props.companyId,
-
-        status: props.activeOnly ? 'NORMAL' : undefined,
-
-        pageSize: 50,
-
-      },
-
-    })
-
-    const raw = (res as any).list || []
+    let raw: any[] = []
+    if (platforms.length === 0) {
+      raw = await fetchForPlatform(undefined)
+    } else {
+      const batches = await Promise.all(platforms.map((p) => fetchForPlatform(p)))
+      const seen = new Set<number>()
+      for (const batch of batches) {
+        for (const item of batch) {
+          if (!seen.has(item.id)) {
+            seen.add(item.id)
+            raw.push(item)
+          }
+        }
+      }
+    }
 
     let list: AccountVO[] = raw.map((item: any) => ({
 
@@ -310,7 +317,7 @@ const handleChange = (val: number | number[] | undefined) => {
 
 
 
-onMounted(() => { if (props.platformType) loadList('') })
+onMounted(() => { loadList('') })
 
 
 

@@ -166,9 +166,10 @@ html, body, #app {
 }
 
 // ========== 输入框样式 ==========
-.el-input .el-input__wrapper {
+// Element Plus 用 inset box-shadow 模拟边框，禁止全局移除
+.el-input .el-input__wrapper,
+.el-select .el-select__wrapper {
   border-radius: 6px;
-  box-shadow: none !important;
 }
 
 // ========== 通用工具类 ==========

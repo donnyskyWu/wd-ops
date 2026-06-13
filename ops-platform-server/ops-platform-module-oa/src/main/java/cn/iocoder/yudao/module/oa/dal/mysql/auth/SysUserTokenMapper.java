@@ -36,4 +36,13 @@ public interface SysUserTokenMapper extends BaseMapper<SysUserTokenDO> {
             ORDER BY p.code
             """)
     List<String> selectPermissionCodesByUserId(@Param("userId") Long userId);
+
+    @Select("""
+            SELECT DISTINCT u.* FROM sys_user u
+            INNER JOIN sys_user_role ur ON ur.user_id = u.id
+            INNER JOIN sys_role r ON r.id = ur.role_id
+            WHERE r.code = #{roleCode} AND r.deleted = 0 AND u.deleted = 0 AND u.status = 'ENABLED'
+            AND u.tenant_id = #{tenantId}
+            """)
+    List<SysUserDO> selectUsersByRoleCode(@Param("tenantId") Long tenantId, @Param("roleCode") String roleCode);
 }

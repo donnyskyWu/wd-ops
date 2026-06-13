@@ -11,7 +11,13 @@ import type {
 } from '@/types/content'
 
 export function getContentList(params: ContentQuery): Promise<PageResult<ContentListItem>> {
-  return request.get({ url: '/oa/content/list', params })
+  return request.get({
+    url: '/oa/content/list',
+    params: {
+      ...params,
+      pageNum: params.pageNo,
+    },
+  })
 }
 
 export function createContent(data: CreateContentReq): Promise<number> {
@@ -34,9 +40,72 @@ export function deleteContent(id: number): Promise<boolean> {
   return request.delete({ url: `/oa/content/${id}` })
 }
 
-/** S-07 stub：AI 生成占位 */
-export function aiGenerateContent(prompt: string): Promise<{ content: string; title: string }> {
-  return request.post({ url: '/oa/content/ai-generate', data: { prompt } })
+/** LLM 调用可能耗时较长，单独放宽超时（全局默认 15s 不足） */
+const AI_GENERATE_TIMEOUT_MS = 180_000
+
+/** AI 辅助生成（模式 A） */
+export function aiGenerateContent(data: {
+  modelId: number
+  promptId: number
+  contentType?: string
+  documentType?: string
+  competitionId?: string
+  competitionName?: string
+  taskId?: number
+}): Promise<{ content: string; title?: string; eventInfo?: string; mock?: boolean; message?: string }> {
+  return request.post({ url: '/oa/content/ai-generate', data, timeout: AI_GENERATE_TIMEOUT_MS })
+}
+
+/** 按 ID 加载内容详情 */
+export function getContent(id: number) {
+  return request.get({ url: `/oa/content/${id}` })
+}
+
+/** 按内容/文档类型列出可用 AI 提示词 */
+export function getAiPromptOptions(contentType: string, documentType?: string) {
+  return request.get<Array<{ id: number; templateName: string; scene?: string }>>({
+    url: '/oa/content/ai-prompt-options',
+    params: { contentType, documentType },
+  })
+}
+
+/** S-12：按任务加载关联内容 */
+export function getContentByTask(taskId: number) {
+  return request.get({ url: '/oa/content/by-task', params: { taskId } })
+}
+
+/** S-13：同赛事短视频文案引用 */
+export function getScriptRef(competitionId: string, documentType = 'SHORT_VIDEO_SCRIPT') {
+  return request.get({
+    url: '/oa/content/script-ref',
+    params: { competitionId, documentType },
+  })
+}
+
+/** S-13：任务驱动确认 → COMPLETED */
+export function confirmContent(id: number) {
+  return request.post({ url: `/oa/content/${id}/confirm` })
+}
+
+/** S-13：AI 生成占位（BLK-M2-005/010） */
+export function generateContent(id: number) {
+  return request.post({
+    url: `/oa/content/${id}/generate`,
+  })
+}
+
+/** S-13：当前用户 IP 组 + 作者 */
+export function getMyIpGroups() {
+  return request.get({ url: '/oa/user/ip-groups' })
+}
+
+export function getContentReviewConfig(): Promise<{
+  level1Enabled: boolean
+  level2Enabled: boolean
+  level1Role?: string
+  level2Role?: string
+}> {
+  return request.get({ url: '/oa/content/review-config' })
 }
 
 export default {
@@ -47,4 +116,12 @@ export default {
   reviewContent,
   deleteContent,
   aiGenerateContent,
+  getContent,
+  getAiPromptOptions,
+  getContentByTask,
+  getScriptRef,
+  confirmContent,
+  generateContent,
+  getMyIpGroups,
+  getContentReviewConfig,
 }

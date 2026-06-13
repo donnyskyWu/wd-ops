@@ -124,6 +124,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/production/task/index.vue'),
         meta: { title: '任务管理' }
       },
+      {
+        path: '/task/:id/execute',
+        name: 'TaskExecute',
+        component: () => import('@/views/production/task/execute.vue'),
+        meta: { title: '任务执行' }
+      },
       // 内容生产 - 内容管理
       {
         path: '/content',

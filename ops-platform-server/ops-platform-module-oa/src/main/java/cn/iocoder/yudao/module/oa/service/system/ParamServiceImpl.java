@@ -17,15 +17,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ParamServiceImpl implements ParamService {
-
-    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final SysParamMapper sysParamMapper;
 
@@ -41,8 +39,7 @@ public class ParamServiceImpl implements ParamService {
                 .orderByDesc(SysParamDO::getId);
         Page<SysParamDO> page = sysParamMapper.selectPage(
                 new Page<>(pageNo == null ? 1 : pageNo, pageSize == null ? 10 : pageSize), wrapper);
-        List<ParamRespVO> list = page.getRecords().stream().map(this::toVO).collect(Collectors.toList());
-        return new PageResult<>(list, page.getTotal());
+        return new PageResult<>(page.getRecords().stream().map(this::toResp).collect(Collectors.toList()), page.getTotal());
     }
 
     @Override
@@ -51,34 +48,36 @@ public class ParamServiceImpl implements ParamService {
     public Long create(ParamCreateReq req) {
         Long tenantId = requireTenantId();
         assertKeyUnique(tenantId, req.getParamKey(), null);
-        SysParamDO row = new SysParamDO();
-        row.setTenantId(tenantId);
-        row.setParamName(req.getParamName());
-        row.setParamKey(req.getParamKey());
-        row.setParamValue(req.getParamValue());
-        row.setParamType(req.getParamType());
-        row.setCategory(req.getCategory());
-        row.setRemark(req.getRemark());
-        row.setCreator(TenantContextHolder.getUsername());
-        row.setUpdater(TenantContextHolder.getUsername());
-        sysParamMapper.insert(row);
-        return row.getId();
+        SysParamDO entity = new SysParamDO();
+        entity.setTenantId(tenantId);
+        entity.setParamName(req.getParamName().trim());
+        entity.setParamKey(req.getParamKey().trim());
+        entity.setParamValue(req.getParamValue());
+        entity.setParamType(req.getParamType());
+        entity.setCategory(req.getCategory());
+        entity.setRemark(req.getRemark());
+        entity.setCreator(TenantContextHolder.getUsername());
+        entity.setUpdater(TenantContextHolder.getUsername());
+        entity.setCreateTime(LocalDateTime.now());
+        entity.setUpdateTime(LocalDateTime.now());
+        sysParamMapper.insert(entity);
+        return entity.getId();
     }
 
     @Override
     @Transactional
     @AuditLog(module = "M9-param", action = "update")
     public void update(ParamUpdateReq req) {
-        Long tenantId = requireTenantId();
-        SysParamDO existing = requireInTenant(tenantId, req.getId());
-        assertKeyUnique(tenantId, req.getParamKey(), req.getId());
-        existing.setParamName(req.getParamName());
-        existing.setParamKey(req.getParamKey());
+        SysParamDO existing = requireParam(req.getId());
+        assertKeyUnique(existing.getTenantId(), req.getParamKey(), existing.getId());
+        existing.setParamName(req.getParamName().trim());
+        existing.setParamKey(req.getParamKey().trim());
         existing.setParamValue(req.getParamValue());
         existing.setParamType(req.getParamType());
         existing.setCategory(req.getCategory());
         existing.setRemark(req.getRemark());
         existing.setUpdater(TenantContextHolder.getUsername());
+        existing.setUpdateTime(LocalDateTime.now());
         sysParamMapper.updateById(existing);
     }
 
@@ -86,17 +85,33 @@ public class ParamServiceImpl implements ParamService {
     @Transactional
     @AuditLog(module = "M9-param", action = "delete")
     public void delete(Long id) {
-        Long tenantId = requireTenantId();
-        requireInTenant(tenantId, id);
+        requireParam(id);
         sysParamMapper.deleteById(id);
     }
 
-    private SysParamDO requireInTenant(Long tenantId, Long id) {
-        SysParamDO row = sysParamMapper.selectById(id);
-        if (row == null || !tenantId.equals(row.getTenantId())) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
+    @Override
+    public String getString(Long tenantId, String paramKey, String defaultValue) {
+        SysParamDO param = selectByKey(tenantId, paramKey);
+        if (param == null || StrUtil.isBlank(param.getParamValue())) {
+            return defaultValue;
         }
-        return row;
+        return param.getParamValue().trim();
+    }
+
+    @Override
+    public boolean getBoolean(Long tenantId, String paramKey, boolean defaultValue) {
+        String value = getString(tenantId, paramKey, null);
+        if (value == null) {
+            return defaultValue;
+        }
+        return "true".equalsIgnoreCase(value) || "1".equals(value) || "yes".equalsIgnoreCase(value);
+    }
+
+    private SysParamDO selectByKey(Long tenantId, String paramKey) {
+        return sysParamMapper.selectOne(new LambdaQueryWrapper<SysParamDO>()
+                .eq(SysParamDO::getTenantId, tenantId)
+                .eq(SysParamDO::getParamKey, paramKey)
+                .last("LIMIT 1"));
     }
 
     private void assertKeyUnique(Long tenantId, String paramKey, Long excludeId) {
@@ -106,31 +121,39 @@ public class ParamServiceImpl implements ParamService {
         if (excludeId != null) {
             wrapper.ne(SysParamDO::getId, excludeId);
         }
-        Long count = sysParamMapper.selectCount(wrapper);
-        if (count != null && count > 0) {
-            throw new ServiceException(OaErrorCodes.DUPLICATE_ENTITY);
+        if (sysParamMapper.selectCount(wrapper) > 0) {
+            throw new ServiceException(OaErrorCodes.DUPLICATE_ENTITY.getCode(), "参数键已存在");
         }
     }
 
-    private ParamRespVO toVO(SysParamDO row) {
-        ParamRespVO vo = new ParamRespVO();
-        vo.setId(row.getId());
-        vo.setParamName(row.getParamName());
-        vo.setParamKey(row.getParamKey());
-        vo.setParamValue(row.getParamValue());
-        vo.setParamType(row.getParamType());
-        vo.setCategory(row.getCategory());
-        vo.setRemark(row.getRemark());
-        if (row.getUpdateTime() != null) {
-            vo.setUpdateTime(row.getUpdateTime().format(FMT));
+    private SysParamDO requireParam(Long id) {
+        SysParamDO entity = sysParamMapper.selectById(id);
+        if (entity == null) {
+            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
         }
+        if (!Objects.equals(entity.getTenantId(), requireTenantId())) {
+            throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
+        }
+        return entity;
+    }
+
+    private ParamRespVO toResp(SysParamDO entity) {
+        ParamRespVO vo = new ParamRespVO();
+        vo.setId(entity.getId());
+        vo.setParamName(entity.getParamName());
+        vo.setParamKey(entity.getParamKey());
+        vo.setParamValue(entity.getParamValue());
+        vo.setParamType(entity.getParamType());
+        vo.setCategory(entity.getCategory());
+        vo.setRemark(entity.getRemark());
+        vo.setUpdateTime(entity.getUpdateTime());
         return vo;
     }
 
     private Long requireTenantId() {
         Long tenantId = TenantContextHolder.getTenantId();
         if (tenantId == null) {
-            throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
+            throw new ServiceException(OaErrorCodes.UNAUTHORIZED.getCode(), "缺少租户上下文");
         }
         return tenantId;
     }

@@ -4,10 +4,6 @@
 -->
 <template>
   <div class="collect-task-page">
-    <el-breadcrumb separator="/" style="margin-bottom: 16px">
-      <el-breadcrumb-item>数据采集</el-breadcrumb-item>
-      <el-breadcrumb-item>采集任务</el-breadcrumb-item>
-    </el-breadcrumb>
 
     <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
       <el-form-item label="任务名">

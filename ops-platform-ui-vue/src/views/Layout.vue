@@ -47,7 +47,6 @@
           <el-menu-item index="/plan">计划管理</el-menu-item>
           <el-menu-item index="/task">任务管理</el-menu-item>
           <el-menu-item index="/content">内容管理</el-menu-item>
-          <el-menu-item index="/content/edit">内容创作</el-menu-item>
           <el-menu-item index="/content/review">内容审核</el-menu-item>
           <el-menu-item index="/knowledge">内容知识库</el-menu-item>
         </el-sub-menu>

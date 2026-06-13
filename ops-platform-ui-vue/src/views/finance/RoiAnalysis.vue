@@ -12,7 +12,10 @@
         <el-form-item>
           <el-button @click="handleTrend">趋势分析</el-button>
           <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleExport">导出报告</el-button>
+          <el-button type="success" :loading="exportLoading" @click="handleExport">
+            <el-icon><Download /></el-icon>
+            导出
+          </el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -129,14 +132,16 @@
 import { ref, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import * as echarts from 'echarts'
 import { exportToExcel, unwrapApiData } from '@/utils'
 import DictSelect from '@/components/DictSelect.vue'
-import { getRoiAnalysis, getRoiBreakdown } from '@/api/finance'
+import { getRoiAnalysis, getRoiBreakdown, getRoiTrend } from '@/api/finance'
 
 const searchFormRef = ref<FormInstance>()
 const loading = ref(false)
+const exportLoading = ref(false)
 const router = useRouter()
 
 const searchForm = reactive({
@@ -259,26 +264,108 @@ const handleSearch = async () => {
 const handleTrend = () => {
   router.push('/finance/roi/trend')
 }
-const handleExport = () => {
-  const columns = [
-    { key: 'name', label: '维度名称' },
-    { key: 'revenue', label: '营收' },
-    { key: 'cost', label: '总成本' },
-    { key: 'profit', label: '利润' },
-    { key: 'roi', label: 'ROI' },
-    { key: 'trend', label: '趋势' }
-  ]
-  
-  // 格式化数据
-  const exportData = roiTable.value.map(row => ({
-    ...row,
-    revenue: `¥${row.revenue.toLocaleString()}`,
-    cost: `¥${row.cost.toLocaleString()}`,
-    profit: `¥${row.profit.toLocaleString()}`,
-    roi: row.roi.toFixed(2)
-  }))
-  
-  exportToExcel(exportData, columns, 'ROI分析报告')
+const buildQueryParams = () => ({
+  startDate: searchForm.dateRange[0],
+  endDate: searchForm.dateRange[1],
+  dimension: searchForm.dimension,
+})
+
+const handleExport = async () => {
+  if (!searchFormRef.value) return
+  try {
+    await searchFormRef.value.validate()
+  } catch {
+    return
+  }
+  exportLoading.value = true
+  try {
+    const params = buildQueryParams()
+    if (activeTab.value === 'compare') {
+      const analysisRes = await getRoiAnalysis(params)
+      const analysis = unwrapApiData(analysisRes) as {
+        roi?: number
+        details?: Array<{ name: string; revenue: number; cost: number; roi: number }>
+      }
+      const avgRoi = Number(analysis.roi ?? 0)
+      const rows = (analysis.details ?? []).map(d => ({
+        name: d.name,
+        revenue: Number(d.revenue ?? 0),
+        cost: Number(d.cost ?? 0),
+        profit: Number(d.revenue ?? 0) - Number(d.cost ?? 0),
+        roi: Number(d.roi ?? 0),
+        trend: Number(d.roi ?? 0) >= avgRoi ? '上升' : '下降',
+      }))
+      exportToExcel(
+        rows.map(row => ({
+          ...row,
+          revenue: `¥${row.revenue.toLocaleString()}`,
+          cost: `¥${row.cost.toLocaleString()}`,
+          profit: `¥${row.profit.toLocaleString()}`,
+          roi: row.roi.toFixed(2),
+        })),
+        [
+          { key: 'name', label: '维度名称' },
+          { key: 'revenue', label: '营收' },
+          { key: 'cost', label: '总成本' },
+          { key: 'profit', label: '利润' },
+          { key: 'roi', label: 'ROI' },
+          { key: 'trend', label: '趋势' },
+        ],
+        'ROI分析',
+      )
+      return
+    }
+    if (activeTab.value === 'structure') {
+      const breakdownRes = await getRoiBreakdown(params)
+      const breakdown = unwrapApiData(breakdownRes) as {
+        byType?: Array<{ typeLabel: string; amount: number; percentage: number }>
+      }
+      const rows = (breakdown.byType ?? []).map(item => ({
+        costType: item.typeLabel,
+        amount: Number(item.amount ?? 0),
+        ratio: `${Number(item.percentage ?? 0).toFixed(1)}%`,
+      }))
+      exportToExcel(
+        rows.map(row => ({ ...row, amount: `¥${row.amount.toLocaleString()}` })),
+        [
+          { key: 'costType', label: '成本类型' },
+          { key: 'amount', label: '金额（元）' },
+          { key: 'ratio', label: '占比' },
+        ],
+        'ROI成本结构',
+      )
+      return
+    }
+    const trendRes = await getRoiTrend(params)
+    const trend = unwrapApiData(trendRes) as {
+      points?: Array<{ date?: string; revenue?: number; cost?: number; roi?: number }>
+    } | Array<{ date?: string; revenue?: number; cost?: number; roi?: number }>
+    const points = Array.isArray(trend) ? trend : (trend?.points ?? [])
+    if (!points.length) {
+      ElMessage.warning('暂无趋势数据可导出')
+      return
+    }
+    exportToExcel(
+      points.map(p => ({
+        date: p.date ?? '',
+        revenue: p.revenue != null ? `¥${Number(p.revenue).toLocaleString()}` : '',
+        cost: p.cost != null ? `¥${Number(p.cost).toLocaleString()}` : '',
+        roi: p.roi != null ? Number(p.roi).toFixed(2) : '',
+      })),
+      [
+        { key: 'date', label: '日期' },
+        { key: 'revenue', label: '营收' },
+        { key: 'cost', label: '成本' },
+        { key: 'roi', label: 'ROI' },
+      ],
+      'ROI趋势',
+    )
+  } catch (error) {
+    console.error('ROI 导出失败', error)
+    ElMessage.error('导出失败，请重试')
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const loadChart = async () => {
