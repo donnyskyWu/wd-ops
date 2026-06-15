@@ -52,6 +52,19 @@ public final class OaErrorCodes {
     public static final ErrorCode TASK_ASSIGNEE_MISMATCH = ErrorCode.of(2024, "非任务执行人，无权操作");
     public static final ErrorCode CONTENT_STATUS_INVALID = ErrorCode.of(2010, "内容状态不允许此操作");
 
+    /** M2 公推模板库（S-14 · ADR-019；2030+ 避免与 M3 2011-2014 冲突） */
+    public static final ErrorCode LAYOUT_TEMPLATE_MISMATCH = ErrorCode.of(2030, "版式模板不存在或类型不匹配");
+    public static final ErrorCode LAYOUT_OVERWRITE_REQUIRED = ErrorCode.of(2031, "内容已有版式且未确认覆盖");
+    public static final ErrorCode LAYOUT_JSON_INVALID = ErrorCode.of(2032, "layoutJson 结构校验失败");
+    public static final ErrorCode LAYOUT_URL_IMPORT_FAILED = ErrorCode.of(2033, "公众号 URL 抓取或解析失败");
+    public static final ErrorCode LAYOUT_DOCX_IMPORT_FAILED = ErrorCode.of(2034, "Word 导入解析失败");
+    public static final ErrorCode LAYOUT_IMPORT_JOB_NOT_FOUND = ErrorCode.of(2035, "导入任务不存在或已过期");
+    public static final ErrorCode LAYOUT_APPLY_BODY_EMPTY = ErrorCode.of(2036, "正文为空，无法套用版式模板");
+    public static final ErrorCode LAYOUT_SCHEMA_INVALID = ErrorCode.of(2037, "layoutSchema 结构校验失败");
+    public static final ErrorCode LAYOUT_PRESET_READONLY = ErrorCode.of(2038, "系统预置模板不可直接编辑或删除，请复制后编辑");
+    public static final ErrorCode CONTENT_PUBLISH_FAILED = ErrorCode.of(2039, "内容发布失败");
+    public static final ErrorCode CONTENT_ALREADY_TRANSFERRED = ErrorCode.of(2040, "内容已转知识库，不可重复操作");
+
     /** M3 绩效核算 */
     public static final ErrorCode PERF_DUPLICATE_PERIOD = ErrorCode.of(2025, "周期内已有考核记录");
     public static final ErrorCode PERF_ADJUST_LIMIT = ErrorCode.of(2026, "人工调整幅度超过 ±20%");

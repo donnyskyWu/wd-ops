@@ -1,8 +1,8 @@
 # SLICES-M2-内容生产
 
 > **切片计划**：M2 内容生产
-> **版本**：v1.2 | 2026-06-12
-> **总切片数**：13 片 | 预估总工时：约 32 人日（S-10~S-13 为需求 2–6 增量）
+> **版本**：v1.3 | 2026-06-14
+> **总切片数**：14 片 | 预估总工时：约 38 人日（S-14 为公推模板库增量）
 
 ---
 
@@ -23,6 +23,7 @@
 | S-11 | 计划步骤分配赛事 | FR-M2-009（步骤 competition） | S-09 | 1.5 | P0 |
 | S-12 | 任务执行页 + 任务-内容关联 | FR-M2-002（执行页） | S-04, S-10, S-11 | 3.0 | P0 |
 | S-13 | 任务驱动内容编辑 + AI 生成 | FR-M2-003（模式 B） | S-12, M8-S-05 | 4.0 | P0 |
+| **S-14** | **公推模板库 + 富版式正文** | **FR-M2-005** | **S-06, S-13, ADR-019** | **6.0** | **P0** |
 
 ---
 
@@ -38,6 +39,8 @@ graph LR
     S01 --> S06[S-06 内容 CRUD]
     S04 --> S05[S-05 SOP 审核]
     S06 --> S07[S-07 AI + 发布]
+    S06 --> S14[S-14 公推模板库]
+    S13 --> S14
     S01 -.-> S08[S-08 知识库]
 ```
 
@@ -223,6 +226,41 @@ graph LR
 
 ---
 
+### S-14 公推模板库 + 富版式正文（草案 · 待 ADR-019 Accept）
+
+**包含**：
+
+| 层 | 交付物 |
+|----|--------|
+| DB | `oa_wechat_layout_template`；`oa_production_content` 增 `body_format` / `layout_json` / `layout_html` / `layout_template_id`；可选 `oa_layout_import_job`；Flyway V77+ |
+| 字典 | `dict_content_body_format` · `dict_layout_template_status` · `dict_layout_template_source` |
+| 后端 | `LayoutTemplateController`：list/get/create/update/delete/select-list · import-url/docx/paste · import-job · `POST /content/{id}/apply-layout-template` |
+| 前端 | P-M2-013 列表 · P-M2-014 导入向导 · P-M2-015 编辑 · `LayoutEditor` / `LayoutViewer` · `ContentEditPanel` 集成 |
+| 组件 | `LayoutTemplateSelectDialog`（强关联选择器） |
+
+**建议分期（若 BLK 未闭合）**：
+
+| 子阶段 | 范围 | 前置 |
+|--------|------|------|
+| S-14a | 模板 CRUD + 手动块编辑 + 应用模板 + 查看/审核渲染 | BLK-M2-015 编辑器选型 |
+| S-14b | import-paste（HTML Fallback） | S-14a |
+| S-14c | import-docx 异步 Job | BLK-M2-013/014 |
+| S-14d | import-url | BLK-M2-012 |
+
+**阻塞**：**BLK-M2-012** · **BLK-M2-014** · **BLK-M2-015** · **OQ-M2-021**
+
+**验收**：AC-M2-005-1 ~ AC-M2-005-7
+
+**测试**：`M2LayoutTemplateS14IT`（P0）；E2E 应用模板 → 提交审核 → 审核页渲染
+
+**DoD**：
+- CHECKLIST-M2 §S-14 100%
+- TESTCASES-M2 P0 100%
+- ADR-019 **Accepted**
+- 不跨 Slice 改无关模块
+
+---
+
 *下一步：CHECKLIST + TESTCASES。*
 
 ---
@@ -249,6 +287,7 @@ graph LR
 | S-11 | AC-M2-009-4 | 步骤分配赛事 | 1.5d |
 | S-12 | AC-M2-002-5~7 | 任务执行页 | 3d |
 | S-13 | AC-M2-003-6~10 | 任务驱动内容编辑 | 4d |
+| **S-14** | **AC-M2-005-1~7** | **公推模板库** | **6d** |
 | S-04 | AC-M2-002-1~4 | SOP 任务状态机 | 3d |
 | S-06 | AC-M2-003-1~4 | 内容三级审核 | 3d |
 | S-08 | AC-M2-004-1~3 | 知识库 | 2d |

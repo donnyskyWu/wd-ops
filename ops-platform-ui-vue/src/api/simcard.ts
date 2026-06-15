@@ -6,6 +6,8 @@ import { request } from '@/utils/request'
 export interface SimCardVO {
   id: number
   phoneId?: number
+  phoneCode?: string
+  phoneModel?: string
   phoneNumberMasked?: string
   isPrimary?: string
   operator?: string

@@ -50,11 +50,20 @@ public class DevAuthFilter extends OncePerRequestFilter {
 
     private void authenticate(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || authHeader.isBlank()) {
+        String token;
+        Long tenantId;
+        if (authHeader != null && !authHeader.isBlank()) {
+            token = authHeader.startsWith("Bearer ") ? authHeader.substring(7).trim() : authHeader.trim();
+            tenantId = parseTenantId(request.getHeader(HEADER_TENANT_ID));
+        } else if (isFileAccessRequest(request)) {
+            token = request.getParameter("token");
+            if (token == null || token.isBlank()) {
+                throw new ServiceException(OaErrorCodes.UNAUTHORIZED);
+            }
+            tenantId = parseTenantId(request.getParameter("tenantId"));
+        } else {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED);
         }
-        String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7).trim() : authHeader.trim();
-        Long tenantId = parseTenantId(request.getHeader(HEADER_TENANT_ID));
 
         LoginUser loginUser = authProvider.authenticate(request, token, tenantId)
                 .orElseThrow(() -> new ServiceException(OaErrorCodes.UNAUTHORIZED));
@@ -71,6 +80,14 @@ public class DevAuthFilter extends OncePerRequestFilter {
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    private boolean isFileAccessRequest(HttpServletRequest request) {
+        if (!"GET".equalsIgnoreCase(request.getMethod())) {
+            return false;
+        }
+        String uri = request.getRequestURI();
+        return uri.contains("/oa/file/view") || uri.contains("/oa/file/download");
     }
 
     private Long parseTenantId(String tenantHeader) {

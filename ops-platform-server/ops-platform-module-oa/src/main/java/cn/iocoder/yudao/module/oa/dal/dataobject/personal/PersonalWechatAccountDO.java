@@ -16,6 +16,7 @@ public class PersonalWechatAccountDO extends TenantBaseDO {
     @TableField("contact_phone")
     private String contactPhone;
     private Long phoneId;
+    private Long linkedWeworkEmployeeId;
     private String apiUrlEncrypted;
     private String appIdEncrypted;
     private String appSecretEncrypted;

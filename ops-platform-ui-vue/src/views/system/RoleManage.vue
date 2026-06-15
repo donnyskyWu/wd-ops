@@ -31,9 +31,7 @@
         <el-table-column prop="permissionCount" label="权限数" width="100" align="center" />
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" size="small">
-              {{ row.status === 'ENABLED' ? '启用' : '停用' }}
-            </el-tag>
+            <DictLabel dict-type="dict_status_enabled" :value="row.status" />
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="170" align="center" />
@@ -111,6 +109,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import ContentWrap from '@/components/ContentWrap.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import {
   fetchRoleList,
   createRole,

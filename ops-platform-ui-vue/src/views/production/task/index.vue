@@ -15,14 +15,7 @@
         </el-select>
       </el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="searchForm.status" placeholder="请选择" clearable>
-          <el-option label="待执行" :value="TaskStatus.PENDING" />
-          <el-option label="执行中" :value="TaskStatus.IN_PROGRESS" />
-          <el-option label="待审核" :value="TaskStatus.PENDING_REVIEW" />
-          <el-option label="审核通过" :value="TaskStatus.REVIEW_APPROVED" />
-          <el-option label="审核驳回" :value="TaskStatus.REVIEW_REJECTED" />
-          <el-option label="已完成" :value="TaskStatus.COMPLETED" />
-        </el-select>
+        <DictSelect v-model="searchForm.status" dict-type="dict_sop_node_status" placeholder="请选择" clearable />
       </el-form-item>
       <el-form-item label="执行人">
         <el-select v-model="searchForm.assigneeId" placeholder="请选择" clearable filterable>
@@ -48,12 +41,18 @@
         <el-table-column prop="planName" label="任务名称" min-width="200" show-overflow-tooltip />
         <el-table-column prop="nodeName" label="节点名称" width="120" />
         <el-table-column prop="assigneeName" label="执行人" width="100" />
-        <el-table-column prop="executorRole" label="执行岗位" width="120" align="center" />
+        <el-table-column prop="executorRole" label="执行岗位" width="120" align="center">
+          <template #default="{ row }">
+            <DictLabel
+              dict-type="dict_position"
+              :value="row.executorRole"
+              :fallback="row.executorRoleText || row.executorRole || '—'"
+            />
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="110" align="center">
           <template #default="{ row }">
-            <el-tag :type="getStatusTagType(row.status)">
-              {{ statusLabel(row.status) }}
-            </el-tag>
+            <DictLabel dict-type="dict_sop_node_status" :value="row.status" />
           </template>
         </el-table-column>
         <el-table-column label="开始时间" width="170" align="center">
@@ -170,6 +169,8 @@ import { formatDateTime } from '@/utils/index'
 import TableSearch from '@/components/TableSearch.vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
+import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 
 const router = useRouter()
 
@@ -253,18 +254,6 @@ const handleReset = () => {
   loadData()
 }
 
-const statusLabel = (status: string) => ({
-  PENDING: '待执行',
-  IN_PROGRESS: '执行中',
-  PENDING_REVIEW: '待审核',
-  APPROVED: '审核通过',
-  REJECTED: '审核驳回',
-  DONE: '已完成',
-  COMPLETED: '已完成',
-  PLAN_DRAFT: '计划草稿',
-  TERMINATED: '已终止',
-}[status] || status)
-
 const formatSlaDeadline = (value?: string) => {
   if (!value) return '—'
   return value.replace('T', ' ').slice(0, 16)
@@ -286,20 +275,6 @@ const canOpenExecute = (row: TaskVO) =>
 // 获取行类名（SLA超时红色背景）
 const getRowClassName = ({ row }: { row: TaskVO }) => {
   return isOverdue(row) ? 'overdue-row' : ''
-}
-
-// 获取状态标签类型
-const getStatusTagType = (status: TaskStatus) => {
-  const types: Record<string, string> = {
-    [TaskStatus.PENDING]: 'info',
-    [TaskStatus.IN_PROGRESS]: 'primary',
-    [TaskStatus.PENDING_REVIEW]: 'warning',
-    [TaskStatus.REVIEW_APPROVED]: 'success',
-    [TaskStatus.REVIEW_REJECTED]: 'danger',
-    [TaskStatus.DONE]: 'success',
-    [TaskStatus.COMPLETED]: 'success',
-  }
-  return types[status] || ''
 }
 
 const handleExecute = (row: TaskVO) => {

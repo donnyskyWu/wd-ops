@@ -3,7 +3,7 @@
 > **业务域**：M9 系统管理
 > **功能模块**：用户 + 角色 + 租户 + 字典 + 日志 + 消息
 > **详细设计章节**：5.35
-> **版本**：v1.2 | 2026-06-13
+> **版本**：v1.3 | 2026-06-15
 > **全局规范**：[`docs/engineering/GLOBAL-CONVENTIONS.md`](./../engineering/GLOBAL-CONVENTIONS.md)
 
 ---
@@ -40,6 +40,21 @@
 **FR-M9-001 多角色**：用户创建/编辑支持 `roleIds` **多选**；权限取角色并集（`UserManage.vue`）。
 
 **FR-M9-004 内容审核参数**：系统参数页 Tab「内容审核」筛选四条 `content.review.*` 键；`level1.role` / `level2.role` 使用 **角色下拉**（非手输）。详见 ADR-017。
+
+### 实现补充（2026-06-15 · ADR-026）
+
+**FR-M9-007 业务通知扩展**：
+
+| 能力 | 说明 |
+|------|------|
+| 事件类型 | `TASK_PENDING`、`CONTENT_REVIEW_SUBMIT`、`CONTENT_REVIEW_APPROVED`、`WORK_HIT`、`WORK_LOW_SCORE`、`ACCOUNT_HIGH_FANS`、`ACCOUNT_LOW_FANS` |
+| 去重 | 表 `sys_notification_event`；`(tenant_id, event_type, biz_key)` 唯一 |
+| 站内信 | `sys_message`，channel 含 `IN_APP,DINGTALK` |
+| 钉钉主通道 | 工作通知 `asyncsend_v2`（`oa.dingtalk.agent-id`）；需 `sys_user.ding_user_id` |
+| 钉钉降级 | 群机器人 Webhook（`oa.dingtalk.robot.*`，可选） |
+| 定时扫描 | `MonitorAlertScanner`，默认每 30 分钟 |
+
+**Out of Scope**：用户自定义通知模板、按用户关闭某类通知（v1.0 未实现）。
 
 ---
 

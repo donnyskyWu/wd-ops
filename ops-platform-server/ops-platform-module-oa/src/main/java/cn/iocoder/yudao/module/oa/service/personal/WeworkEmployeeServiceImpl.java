@@ -32,6 +32,7 @@ public class WeworkEmployeeServiceImpl implements WeworkEmployeeService {
 
     private final WeworkEmployeeMapper weworkEmployeeMapper;
     private final WeworkAccountMapper weworkAccountMapper;
+    private final PersonalWechatWeworkLinkService linkService;
 
     @Override
     public PageResult<WeworkEmployeeRespVO> list(Long weworkAccountId, String nickname, String weworkUserId,
@@ -79,6 +80,9 @@ public class WeworkEmployeeServiceImpl implements WeworkEmployeeService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         weworkEmployeeMapper.insert(entity);
+        if (req.getLinkedPersonalWechatId() != null) {
+            linkService.syncLink(req.getLinkedPersonalWechatId(), entity.getId());
+        }
         return entity.getId();
     }
 
@@ -102,6 +106,11 @@ public class WeworkEmployeeServiceImpl implements WeworkEmployeeService {
         existing.setUpdater(TenantContextHolder.getUsername());
         existing.setUpdateTime(LocalDateTime.now());
         weworkEmployeeMapper.updateById(existing);
+        if (Boolean.TRUE.equals(req.getClearLinkedPersonalWechat())) {
+            linkService.clearLinkByEmployeeId(existing.getId());
+        } else if (req.getLinkedPersonalWechatId() != null) {
+            linkService.syncLink(req.getLinkedPersonalWechatId(), existing.getId());
+        }
     }
 
     @Override
@@ -109,6 +118,7 @@ public class WeworkEmployeeServiceImpl implements WeworkEmployeeService {
     @AuditLog(module = "M4-wework-employee", action = "delete")
     public void delete(Long id) {
         getRequiredInTenant(id);
+        linkService.clearLinkByEmployeeId(id);
         weworkEmployeeMapper.deleteById(id);
     }
 
@@ -125,6 +135,7 @@ public class WeworkEmployeeServiceImpl implements WeworkEmployeeService {
         if (entity.getCreateTime() != null) {
             vo.setCreateTime(entity.getCreateTime().format(DT_FMT));
         }
+        linkService.enrichWeworkEmployee(vo, entity);
         return vo;
     }
 

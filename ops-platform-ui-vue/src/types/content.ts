@@ -153,18 +153,37 @@ export interface ContentDetailVO {
 export interface CreateContentReq {
   /** 内容标题 */
   title: string
-  /** 内容正文 */
-  content: string
+  /** 内容正文（API 字段 body） */
+  body?: string
+  /** 兼容旧字段 */
+  content?: string
   /** 内容类型 */
-  contentType: ContentType
+  contentType: ContentType | string
   /** 平台类型 */
-  platformType: string
+  platformType?: string
+  platformTypes?: string[]
   /** 发布账号ID */
-  accountId: number
+  accountId?: number
+  accountIds?: number[]
   /** 封面图URL */
   coverUrl?: string
+  coverImage?: string
   /** 是否AI生成 */
-  aiGenerated?: boolean
+  aiGenerated?: boolean | number
+  /** S-14 富版式字段 */
+  bodyFormat?: string
+  layoutJson?: unknown
+  layoutHtml?: string
+  layoutTemplateId?: number
+  documentType?: string
+  ipGroupId?: number
+  authorId?: number
+  creatorUserId?: number
+  taskId?: number
+  competitionId?: string
+  competitionName?: string
+  generatedVideoUrl?: string
+  finalVideoUrl?: string
 }
 
 // ==================== 审核相关类型 ====================

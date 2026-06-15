@@ -113,10 +113,13 @@
 | `dict_quality_level` | 数据质量等级 | 优 / 良 / 中 / 差 | M10 |
 | `dict_sop_node_type` | SOP 节点类型 | 内容生成(CONTENT_GENERATION) / 内容发布(CONTENT_PUBLISH) / 普通节点(NORMAL) | M2（ADR-016） |
 | `dict_document_type` | 文档类型 | 短视频文案 / 新号引流 / 赛后复盘 / 正式方案 / 预热前瞻 | M2（ADR-016） |
+| dict_content_body_format | 正文格式 | PLAIN(纯文本) / LAYOUT(富版式) | M2（ADR-019） |
+| dict_layout_template_status | 公推模板状态 | DRAFT / ENABLED / DISABLED | M2（ADR-019） |
+| dict_layout_template_source | 公推模板来源 | MANUAL / URL / DOCX / PASTE | M2（ADR-019） |
 | `dict_sop_node_status` | SOP 节点状态 | 待办 / 进行中 / 已完成 / 已驳回 / 已跳过 | M2 |
 | `dict_sop_status` | SOP 流程状态 | 草稿 / 审核中 / 已发布 / 已停用 | M2 |
 | `dict_plan_status` | 计划状态 | 草稿(DRAFT) / 进行中(IN_PROGRESS) / 终止审批中(TERMINATE_PENDING) / 已终止(TERMINATED) | M2 |
-| `dict_content_status` | 内容状态 | 草稿 / 已完成 / 待一级审核 / 待二级审核 / 待终审(遗留) / 已驳回 / 已发布 / 已下架 | M2（ADR-016/017） |
+| `dict_content_status` | 内容状态 | 草稿 / 已完成 / 待一级审核 / 待二级审核 / 待终审(遗留) / 待发布 / 已驳回 / 已发布 / 已下架 | M2（ADR-016/017/022） |
 | `dict_content_review_result` | 审核结果 | 通过 / 驳回 / 需修改 | M2 |
 | `dict_perf_metric_type` | 绩效指标类型 | 数量 / 质量 / 营收 / 增长率 / 复合 | M3 |
 | `dict_perf_calc_method` | 算分方式 | 自动算分 / 人工算分 / 混合 | M3 |
@@ -125,7 +128,10 @@
 | `dict_company_status` | 公司状态 | 启用 / 停用 | M4 |
 | `dict_realname_status` | 实名人状态 | 启用 / 停用 | M4 |
 | `dict_phone_status` | 手机状态 | 在用 / 闲置 / 损坏 / 丢失 | M4 |
-| `dict_sim_status` | 手机卡状态 | 在用 / 闲置 / 停机 / 注销 | M4 |
+| `dict_phone_type` | 手机类型 | Android / iPhone | M4（V85） |
+| `dict_sim_status` | 手机卡状态 | 在用 / 闲置 / 停机 / 注销 / **损坏** / **丢失** | M4（V85 扩展后两值） |
+| `dict_qualification_type` | 资质类型 | 企业 / 个人 | M4（V86） |
+| `dict_wechat_usage_status` | 公众号使用状态 | 注册 / 认证 / 续费 | M4（V86） |
 | `dict_id_type` | 证件类型 | 身份证 / 护照 / 港澳通行证 / 台湾通行证 | M4 |
 | `dict_cost_type` | 成本类型 | 购买成本 / 过程成本(人力) / 过程成本(设备) / 过程成本(运营) | M5 |
 | `dict_cost_pay_method` | 付款方式 | 现金 / 转账 / 支付宝 / 微信 / 银行承兑 | M5 |
@@ -256,6 +262,11 @@
 | `oa_content` | `competition_id` | 外部赛事 | N:1 | ❌ | 关联赛事 |
 | `oa_content` | `document_type` | `dict_document_type` | N:1 | ✅ | 文档类型（ARTICLE 时） |
 | `oa_content_plan_step` | `competition_id` | 外部赛事 | N:1 | ❌ | 步骤赛事（**强关联**选择器） |
+| oa_wechat_layout_template | document_type | dict_document_type | N:1 | 可空 | 模板适用文档类型 |
+| oa_wechat_layout_template | status | dict_layout_template_status | N:1 | 是 | 模板状态（字典） |
+| oa_wechat_layout_template | source_type | dict_layout_template_source | N:1 | 是 | 来源（字典） |
+| oa_production_content | ody_format | dict_content_body_format | N:1 | 是 | 正文格式（字典） |
+| oa_production_content | layout_template_id | oa_wechat_layout_template | N:1 | 可空 | 应用过的模板（非强绑定） |
 | `oa_collect_task` | `source` | `dict_collect_source` | N:1 | ✅ | 采集源（字典） |
 | `oa_collect_task` | `frequency` | `dict_collect_frequency` | N:1 | ✅ | 采集频率（字典） |
 | `oa_collect_task` | `status` | `dict_collect_status` | N:1 | ✅ | 状态（字典） |

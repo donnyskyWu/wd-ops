@@ -24,6 +24,11 @@ public class ProductionContentCreateReq {
     @NotNull
     private Long creatorUserId;
     private String body;
+    @InDict("dict_content_body_format")
+    private String bodyFormat;
+    private Object layoutJson;
+    private String layoutHtml;
+    private Long layoutTemplateId;
     private String coverImage;
     private Integer aiGenerated;
     /** 任务驱动创作：关联任务（0..1） */

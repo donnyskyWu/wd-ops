@@ -28,6 +28,25 @@ public class AccountRespVO {
     private Integer workCount;
     private String status;
     private Boolean hasCookie;
+    private Boolean publishEnabled;
     private LocalDateTime linkedAt;
     private LocalDateTime createTime;
+
+    /** 公众号扩展 */
+    private String trademarkName;
+    private String email;
+    private Boolean hasPassword;
+    private String qualificationType;
+    private String usageStatus;
+    private String originalAccountName;
+    private LocalDateTime certExpiryTime;
+    private Integer certCount;
+    private Long linkedVideoAccountId;
+    private String linkedVideoAccountName;
+    private LocalDateTime videoAccountRegisteredAt;
+    private String adminName;
+    private Long adminUserId;
+    private String adminUserName;
+    private String adminPhoneMasked;
+    private Boolean hasAdminIdCard;
 }

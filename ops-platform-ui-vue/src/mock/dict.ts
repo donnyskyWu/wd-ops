@@ -50,6 +50,10 @@ export const mockDictMap: Record<string, Array<{ label: string; value: string; c
     { label: '在用', value: 'ENABLED', colorType: 'success' },
     { label: '停用', value: 'DISABLED', colorType: 'info' },
   ],
+  dict_phone_type: [
+    { label: 'Android', value: 'ANDROID' },
+    { label: 'iPhone', value: 'IPHONE' },
+  ],
   dict_sim_operator: [
     { label: '中国移动', value: 'MOBILE' },
     { label: '中国联通', value: 'UNICOM' },
@@ -58,6 +62,8 @@ export const mockDictMap: Record<string, Array<{ label: string; value: string; c
   dict_sim_status: [
     { label: '在用', value: 'ENABLED', colorType: 'success' },
     { label: '停用', value: 'DISABLED', colorType: 'info' },
+    { label: '损坏', value: 'DAMAGED', colorType: 'danger' },
+    { label: '丢失', value: 'LOST', colorType: 'warning' },
   ],
   dict_account_type: [
     { label: '官方账号', value: 'OFFICIAL_ACCOUNT' },

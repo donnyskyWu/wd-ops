@@ -2,6 +2,13 @@ package cn.iocoder.yudao.module.oa.controller.content;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentPublishOptionsVO;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentPublishReq;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentPublishResultVO;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentTransferKnowledgeResultVO;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentApplyLayoutTemplateReq;
+import cn.iocoder.yudao.module.oa.api.dto.content.LayoutMergePreviewReq;
+import cn.iocoder.yudao.module.oa.api.dto.content.LayoutMergePreviewVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentAiGenerateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentAiGenerateResultVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentAiPromptOptionVO;
@@ -13,8 +20,11 @@ import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentVO;
 import cn.iocoder.yudao.module.oa.service.content.ProductionContentService;
+import cn.iocoder.yudao.module.oa.service.content.WechatLayoutTemplateService;
+import cn.iocoder.yudao.module.oa.service.content.ContentPublishService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,6 +43,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductionContentController {
 
     private final ProductionContentService productionContentService;
+    private final WechatLayoutTemplateService layoutTemplateService;
+    private final ContentPublishService contentPublishService;
 
     @GetMapping("/list")
     public CommonResult<PageResult<ProductionContentVO>> list(
@@ -120,5 +132,45 @@ public class ProductionContentController {
     @GetMapping("/review-config")
     public CommonResult<ContentReviewConfigVO> getReviewConfig() {
         return CommonResult.success(productionContentService.getReviewConfig());
+    }
+
+    @GetMapping("/{id}/publish-options")
+    @PreAuthorize("hasAuthority('oa:content:publish')")
+    public CommonResult<ContentPublishOptionsVO> getPublishOptions(@PathVariable Long id) {
+        return CommonResult.success(contentPublishService.getPublishOptions(id));
+    }
+
+    @PostMapping("/{id}/publish")
+    @PreAuthorize("hasAuthority('oa:content:publish')")
+    public CommonResult<ContentPublishResultVO> publish(
+            @PathVariable Long id,
+            @Valid @RequestBody ContentPublishReq req) {
+        return CommonResult.success(contentPublishService.publish(id, req));
+    }
+
+    @PostMapping("/{id}/transfer-to-knowledge")
+    @PreAuthorize("hasAuthority('oa:content:transfer-knowledge')")
+    public CommonResult<ContentTransferKnowledgeResultVO> transferToKnowledge(@PathVariable Long id) {
+        return CommonResult.success(productionContentService.transferToKnowledge(id));
+    }
+
+    @PostMapping("/{id}/apply-layout-template")
+    public CommonResult<ProductionContentVO> applyLayoutTemplate(
+            @PathVariable Long id,
+            @Valid @RequestBody ContentApplyLayoutTemplateReq req) {
+        return CommonResult.success(layoutTemplateService.applyLayoutTemplate(id, req));
+    }
+
+    @PostMapping("/{id}/apply-layout-template/preview")
+    public CommonResult<LayoutMergePreviewVO> previewApplyLayoutTemplate(
+            @PathVariable Long id,
+            @Valid @RequestBody ContentApplyLayoutTemplateReq req) {
+        ProductionContentVO content = productionContentService.getById(id);
+        LayoutMergePreviewReq previewReq = new LayoutMergePreviewReq();
+        previewReq.setBody(content.getBody());
+        if (content.getLayoutJson() != null) {
+            previewReq.setExistingLayoutJson(content.getLayoutJson());
+        }
+        return CommonResult.success(layoutTemplateService.previewMerge(req.getLayoutTemplateId(), previewReq));
     }
 }

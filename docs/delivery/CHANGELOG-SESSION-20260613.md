@@ -97,3 +97,12 @@
 - M3 / M7 / M0：本次会话无实现变更
 - M5 PRD：导出行为已由 ADR-018 横切覆盖；未单独改 PRD-M5 正文
 - SLICES-M2 / TESTCASES-M2：部分条目仍引用「三级审核/确认」— 建议后续 Slice 专项同步
+
+---
+
+## 6. Req-127/128 实现缺口（2026-06-14）
+
+| 需求 | 实现 | Spec 缺口 |
+|------|------|-----------|
+| Req-127 抖音/快手粉丝群 | `oa_platform_account_fan_group` + CRUD API + 平台账号详情 UI | PRD-M4 / API-M4 / UX-M4 未写粉丝群字段，待补 |
+| Req-128 个微↔企微双向关联 | `oa_personal_wechat_account.linked_wework_employee_id` SSOT + 双向选择器 | PRD-M4 未写双向关联；个微详情移除奥创展示（M8 仍保留奥创配置） |

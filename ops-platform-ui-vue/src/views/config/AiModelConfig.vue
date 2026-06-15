@@ -63,9 +63,7 @@
         <el-table-column prop="modelName" label="模型名称" min-width="150" />
         <el-table-column prop="modelType" label="模型类型" width="120" align="center">
           <template #default="{ row }">
-            <el-tag :type="getModelTypeTagType(row.modelType)">
-              {{ getModelTypeLabel(row.modelType) }}
-            </el-tag>
+            <DictLabel dict-type="dict_ai_model_type" :value="row.modelType" />
           </template>
         </el-table-column>
         <el-table-column prop="apiEndpoint" label="API地址" min-width="250" show-overflow-tooltip />
@@ -73,9 +71,7 @@
         <el-table-column prop="temperature" label="Temperature" width="110" align="center" />
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'ENABLED' ? 'success' : 'danger'">
-              {{ row.status === 'ENABLED' ? '启用' : '停用' }}
-            </el-tag>
+            <DictLabel dict-type="dict_config_status" :value="row.status" />
           </template>
         </el-table-column>
         <el-table-column label="操作" width="280" align="center" fixed="right">
@@ -176,6 +172,7 @@ import ContentWrap from '@/components/ContentWrap.vue'
 import TableSearch from '@/components/TableSearch.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import {
   fetchAiModelList,
   fetchAiModelStats,
@@ -305,39 +302,6 @@ const loadList = async () => {
   } finally {
     loading.value = false
   }
-}
-
-// ==================== 辅助函数 ====================
-const getModelTypeLabel = (modelType: string) => {
-  const map: Record<string, string> = {
-    QWEN: '通义千问',
-    ERNIE: '文心一言',
-    GLM: '智谱 AI',
-    DEEPSEEK: 'DeepSeek',
-    KIMI: 'Kimi',
-    DOUBAO: '豆包',
-    GPT: 'OpenAI GPT',
-    CLAUDE: 'Claude',
-    GEMINI: 'Gemini',
-    MOONSHOT: '月之暗面',
-  }
-  return map[modelType] || modelType
-}
-
-const getModelTypeTagType = (modelType: string) => {
-  const map: Record<string, any> = {
-    QWEN: '',
-    ERNIE: 'success',
-    GLM: 'danger',
-    DEEPSEEK: 'info',
-    KIMI: 'warning',
-    DOUBAO: '',
-    GPT: 'warning',
-    CLAUDE: 'success',
-    GEMINI: 'info',
-    MOONSHOT: 'info',
-  }
-  return map[modelType] || ''
 }
 
 // ==================== 事件处理 ====================

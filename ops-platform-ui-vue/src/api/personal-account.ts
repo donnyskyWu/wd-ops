@@ -15,6 +15,9 @@ export interface PersonalWechatVO {
   appId?: string
   appSecret?: string
   token?: string
+  linkedWeworkEmployeeId?: number
+  linkedWeworkEmployeeName?: string
+  linkedWeworkUserId?: string
   createTime?: string
 }
 
@@ -26,6 +29,9 @@ export interface WeworkEmployeeVO {
   phone?: string
   department?: string
   position?: string
+  linkedPersonalWechatId?: number
+  linkedPersonalWechatName?: string
+  linkedWechatId?: string
   status: string
   createTime?: string
 }
@@ -64,6 +70,7 @@ export function createPersonalWechat(data: {
   wechatId: string
   contactPhone?: string
   phoneId?: number
+  linkedWeworkEmployeeId?: number
   status?: string
 }): Promise<number> {
   return request.post({ url: '/oa/internal/personal-account/create', data })
@@ -75,6 +82,8 @@ export function updatePersonalWechat(data: {
   wechatId?: string
   contactPhone?: string
   phoneId?: number
+  linkedWeworkEmployeeId?: number
+  clearLinkedWeworkEmployee?: boolean
   status?: string
 }): Promise<boolean> {
   return request.put({ url: '/oa/internal/personal-account/update', data })
@@ -151,6 +160,7 @@ export function createWeworkEmployee(data: {
   phone?: string
   department?: string
   position?: string
+  linkedPersonalWechatId?: number
   status?: string
 }): Promise<number> {
   return request.post({ url: '/oa/internal/wework/employee/create', data })
@@ -163,6 +173,8 @@ export function updateWeworkEmployee(data: {
   phone?: string
   department?: string
   position?: string
+  linkedPersonalWechatId?: number
+  clearLinkedPersonalWechat?: boolean
   status?: string
 }): Promise<boolean> {
   return request.put({ url: '/oa/internal/wework/employee/update', data })

@@ -28,9 +28,8 @@ export const ALL_ROUTES: RouteEntry[] = [
   { module: 'M1', path: '/author', title: '作者管理' },
   { module: 'M1', path: '/account-analysis', title: '账号分析' },
   { module: 'M1', path: '/fans-analysis', title: '粉丝分析' },
-  { module: 'M1', path: '/works-analysis', title: '作品分析' },
-  { module: 'M1', path: '/internal-content', title: '内部内容分析' },
-  { module: 'M1', path: '/internal-content/1', title: '内部内容详情', skip: true, skipReason: '需特定 ID 数据' },
+  { module: 'M1', path: '/internal-content', title: '内部作品分析' },
+  { module: 'M1', path: '/internal-content/1', title: '作品详情', skip: true, skipReason: '需特定 ID 数据' },
   { module: 'M1', path: '/author/1/dashboard', title: '作者看板', skip: true, skipReason: '需特定 ID 数据' },
   { module: 'M1', path: '/efficiency', title: '人效盘点' },
 

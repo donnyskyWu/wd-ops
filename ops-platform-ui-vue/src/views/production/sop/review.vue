@@ -70,7 +70,7 @@
         <el-table-column prop="templateName" label="模板名称" min-width="200" show-overflow-tooltip />
         <el-table-column prop="contentType" label="适用类型" width="120" align="center">
           <template #default="{ row }">
-            <el-tag>{{ row.contentType }}</el-tag>
+            <DictLabel dict-type="dict_content_type" :value="row.contentType" />
           </template>
         </el-table-column>
         <el-table-column prop="submitter" label="提交人" width="100" />
@@ -82,14 +82,14 @@
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
+            <DictLabel dict-type="dict_review_status" :value="row.status" />
           </template>
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleView(row)">查看</el-button>
             <el-button
-              v-if="row.status === '待审核'"
+              v-if="row.status === 'PENDING'"
               link
               type="success"
               @click="handleApprove(row)"
@@ -97,7 +97,7 @@
               通过
             </el-button>
             <el-button
-              v-if="row.status === '待审核'"
+              v-if="row.status === 'PENDING'"
               link
               type="danger"
               @click="handleReject(row)"
@@ -123,7 +123,9 @@
       <div v-if="currentTemplate" class="review-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="模板名称">{{ currentTemplate.templateName }}</el-descriptions-item>
-          <el-descriptions-item label="适用类型">{{ currentTemplate.contentType }}</el-descriptions-item>
+          <el-descriptions-item label="适用类型">
+            <DictLabel dict-type="dict_content_type" :value="currentTemplate.contentType" />
+          </el-descriptions-item>
           <el-descriptions-item label="提交人">{{ currentTemplate.submitter }}</el-descriptions-item>
           <el-descriptions-item label="提交时间">{{ currentTemplate.submittedAt }}</el-descriptions-item>
           <el-descriptions-item label="说明" :span="2">{{ currentTemplate.remark || '-' }}</el-descriptions-item>
@@ -132,7 +134,11 @@
         <h4 style="margin-top: 16px">节点列表</h4>
         <el-table :data="currentTemplate.nodes" border size="small">
           <el-table-column prop="name" label="节点" />
-          <el-table-column prop="executorRole" label="执行岗位" />
+          <el-table-column prop="executorRole" label="执行岗位">
+            <template #default="{ row }">
+              <DictLabel dict-type="dict_position" :value="row.executorRole" />
+            </template>
+          </el-table-column>
           <el-table-column prop="slaHours" label="SLA(h)" width="80" align="right" />
           <el-table-column prop="needReview" label="需要审核" width="100" align="center">
             <template #default="{ row }">
@@ -144,7 +150,7 @@
         </el-table>
 
         <el-form
-          v-if="currentTemplate.status === '待审核'"
+          v-if="currentTemplate.status === 'PENDING'"
           :model="reviewForm"
           label-width="80px"
           style="margin-top: 16px"
@@ -171,6 +177,7 @@ import TableSearch from '@/components/TableSearch.vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 
 const loading = ref(false)
 const tableData = ref<any[]>([])
@@ -197,12 +204,8 @@ const currentTemplate = ref<any>(null)
 const reviewForm = reactive({ comment: '' })
 
 const getPriorityType = (p: string) => {
-  const map: Record<string, string> = { 高: 'danger', 中: 'warning', 低: 'info' }
+  const map: Record<string, string> = { HIGH: 'danger', MEDIUM: 'warning', LOW: 'info', 高: 'danger', 中: 'warning', 低: 'info' }
   return map[p] || ''
-}
-const getStatusType = (s: string) => {
-  const map: Record<string, string> = { 待审核: 'warning', 已通过: 'success', 已驳回: 'danger' }
-  return map[s] || ''
 }
 
 const loadData = async () => {
@@ -210,9 +213,9 @@ const loadData = async () => {
   // TODO: 接通真实 API /admin-api/oa/sop/review-page
   await new Promise((r) => setTimeout(r, 300))
   tableData.value = [
-    { id: 1, templateName: '标准内容生产运营流程', contentType: '文章', submitter: '张三', submittedAt: '2026-06-08 10:00:00', priority: '高', status: '待审核', remark: '更新了 3 个节点', nodes: [{ name: '选题', executorRole: '内容编辑', slaHours: 4, needReview: false }, { name: '撰写', executorRole: '内容编辑', slaHours: 8, needReview: true }] },
-    { id: 2, templateName: '短视频内容流程', contentType: '视频', submitter: '李四', submittedAt: '2026-06-08 09:30:00', priority: '中', status: '待审核', remark: '', nodes: [] },
-    { id: 3, templateName: '直播前中后流程', contentType: '直播', submitter: '王五', submittedAt: '2026-06-07 16:00:00', priority: '低', status: '已通过', remark: '', nodes: [] },
+    { id: 1, templateName: '标准内容生产运营流程', contentType: 'ARTICLE', submitter: '张三', submittedAt: '2026-06-08 10:00:00', priority: 'HIGH', status: 'PENDING', remark: '更新了 3 个节点', nodes: [{ name: '选题', executorRole: 'CONTENT_EDITOR', slaHours: 4, needReview: false }, { name: '撰写', executorRole: 'CONTENT_EDITOR', slaHours: 8, needReview: true }] },
+    { id: 2, templateName: '短视频内容流程', contentType: 'SHORT_VIDEO', submitter: '李四', submittedAt: '2026-06-08 09:30:00', priority: 'MEDIUM', status: 'PENDING', remark: '', nodes: [] },
+    { id: 3, templateName: '直播前中后流程', contentType: 'VIDEO', submitter: '王五', submittedAt: '2026-06-07 16:00:00', priority: 'LOW', status: 'APPROVED', remark: '', nodes: [] },
   ]
   total.value = tableData.value.length
   pagination.total = total.value
@@ -234,7 +237,7 @@ const handleView = (row: any) => {
 const handleApprove = async (row: any) => {
   try {
     await ElMessageBox.confirm(`确认通过【${row.templateName}】的审核？`, '审核确认', { type: 'success' })
-    row.status = '已通过'
+    row.status = 'APPROVED'
     ElMessage.success('已通过')
     loadData()
   } catch {}
@@ -242,7 +245,7 @@ const handleApprove = async (row: any) => {
 const handleReject = async (row: any) => {
   try {
     await ElMessageBox.confirm(`确认驳回【${row.templateName}】的审核？`, '审核确认', { type: 'warning' })
-    row.status = '已驳回'
+    row.status = 'REJECTED'
     ElMessage.success('已驳回')
     loadData()
   } catch {}
@@ -253,7 +256,7 @@ const submitReview = (action: 'APPROVED' | 'REJECTED') => {
     return
   }
   if (currentTemplate.value) {
-    currentTemplate.value.status = action === 'APPROVED' ? '已通过' : '已驳回'
+    currentTemplate.value.status = action === 'APPROVED' ? 'APPROVED' : 'REJECTED'
   }
   ElMessage.success(action === 'APPROVED' ? '审核已通过' : '审核已驳回')
   reviewDrawerVisible.value = false

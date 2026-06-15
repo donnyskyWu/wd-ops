@@ -45,6 +45,7 @@ interface UserVO {
   id: number
   username: string
   nickname: string
+  phoneMasked?: string
   deptId?: number
   deptName?: string
   roleNames?: string[]
@@ -105,6 +106,7 @@ const loadList = async (keyword: string) => {
           id: item.userId,
           username: String(item.userId),
           nickname: item.userName,
+          phoneMasked: undefined,
           deptName: undefined,
           roleNames: item.positionText ? [item.positionText] : [],
         }))

@@ -35,6 +35,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.sop.SopTemplateMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.service.sop.TaskService;
+import cn.iocoder.yudao.module.oa.service.notification.NotificationService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -77,6 +78,7 @@ public class ContentPlanServiceImpl implements ContentPlanService {
     private final IpGroupMemberMapper ipGroupMemberMapper;
     private final SysUserMapper sysUserMapper;
     private final TaskService taskService;
+    private final NotificationService notificationService;
 
     @Override
     public PageResult<ContentPlanRespVO> list(String planName, String status, Integer pageNo, Integer pageSize) {
@@ -189,6 +191,11 @@ public class ContentPlanServiceImpl implements ContentPlanService {
                 .set(TaskDO::getVisibleInList, 1)
                 .set(TaskDO::getUpdater, TenantContextHolder.getUsername())
                 .set(TaskDO::getUpdateTime, LocalDateTime.now()));
+        try {
+            notificationService.notifyPlanStarted(plan.getTenantId(), plan.getId(), plan.getPlanName());
+        } catch (Exception e) {
+            // 通知失败不影响计划启动
+        }
     }
 
     @Override

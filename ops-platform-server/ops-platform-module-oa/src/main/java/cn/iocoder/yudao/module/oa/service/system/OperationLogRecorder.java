@@ -97,6 +97,7 @@ public class OperationLogRecorder {
             Map.entry("set-default", "设为默认"),
             Map.entry("start", "开始任务"),
             Map.entry("submit-review", "提交审核"),
+            Map.entry("transfer-knowledge", "转知识库"),
             Map.entry("sync-dingtalk", "同步钉钉部门"),
             Map.entry("sync-dingtalk-users", "同步钉钉用户"),
             Map.entry("test-connection", "测试连接"),

@@ -4,6 +4,8 @@
 
   使用: <PhoneSelect v-model="form.phoneId" :real-name-id="form.realnameId" />
 
+  realNameId 可选：传入时按实名人筛选，未传时加载全部手机
+
 -->
 
 <template>
@@ -16,7 +18,7 @@
 
     :clearable="clearable"
 
-    :disabled="disabled || !realNameId"
+    :disabled="disabled"
 
     :filterable="filterable"
 
@@ -42,17 +44,17 @@
 
       :key="item.id"
 
-      :label="item.phoneMask"
+      :label="item.label"
 
       :value="item.id"
 
     >
 
-      <span style="float: left">{{ item.phoneMask }}</span>
+      <span style="float: left">{{ item.label }}</span>
 
       <span style="float: right; color: #909399; font-size: 12px; margin-left: 12px">
 
-        {{ item.carrier }}
+        {{ item.subLabel }}
 
         <span v-if="item.accountBoundCount" style="margin-left: 6px; color: #e6a23c">已绑定</span>
 
@@ -62,7 +64,7 @@
 
     <template #empty>
 
-      <el-empty v-if="!loading" :description="!realNameId ? '请先选择实名人' : '未找到匹配的手机'" :image-size="60" />
+      <el-empty v-if="!loading" description="未找到匹配的手机" :image-size="60" />
 
     </template>
 
@@ -88,9 +90,9 @@ interface PhoneVO {
 
   id: number
 
-  phoneMask: string
+  label: string
 
-  carrier: string
+  subLabel: string
 
   realNameId?: number
 
@@ -132,7 +134,7 @@ const props = withDefaults(defineProps<Props>(), {
 
   modelValue: undefined,
 
-  placeholder: '请选择手机',
+  placeholder: '请选择关联手机',
 
   clearable: true,
 
@@ -184,23 +186,13 @@ watch(() => props.realNameId, (val, oldVal) => {
 
   }
 
-  if (val) loadList('')
-
-  else options.value = []
+  loadList('')
 
 })
 
 
 
 const loadList = async (keyword: string) => {
-
-  if (!props.realNameId) {
-
-    options.value = []
-
-    return
-
-  }
 
   loading.value = true
 
@@ -226,23 +218,31 @@ const loadList = async (keyword: string) => {
 
     const raw = (res as any).list || []
 
-    let list: PhoneVO[] = raw.map((item: any) => ({
+    let list: PhoneVO[] = raw.map((item: any) => {
 
-      id: item.id,
+      const code = item.phoneCode ? `[${item.phoneCode}] ` : ''
 
-      phoneMask: item.phoneNumberMasked,
+      const mask = item.phoneNumberMasked || '未知号码'
 
-      carrier: item.phoneModel || '-',
+      const model = item.phoneModel || '-'
 
-      realNameId: item.realnameId,
+      return {
 
-      accountBoundCount: item.accountBoundCount ?? 0,
+        id: item.id,
 
-      status: item.status === 'ENABLED' ? 1 : 0,
+        label: `${code}${mask}`,
 
-    }))
+        subLabel: model,
 
-    list = list // P-GATE-UNMOCK S-A: 已去除 mock 兜底
+        realNameId: item.realnameId,
+
+        accountBoundCount: item.accountBoundCount ?? 0,
+
+        status: item.status === 'ENABLED' ? 1 : 0,
+
+      }
+
+    })
 
     options.value = applyExcludeBound(list, props.excludeBound, props.modelValue)
 
@@ -280,12 +280,11 @@ const handleChange = (val: number | number[] | undefined) => {
 
 
 
-onMounted(() => { if (props.realNameId) loadList('') })
+onMounted(() => { loadList('') })
 
 
 
 defineExpose({ refresh: () => loadList('') })
 
 </script>
-
 

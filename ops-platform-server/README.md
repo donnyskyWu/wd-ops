@@ -26,6 +26,68 @@ CREATE DATABASE IF NOT EXISTS wd DEFAULT CHARSET utf8mb4;
 
 `application-dev.yml` 已通过 `spring.config.import: optional:classpath:application-dev-local.yml` 自动合并本地覆盖项。未配置钉钉时，组织/用户「同步钉钉」相关能力不可用，其余接口可正常开发。
 
+### 钉钉工作通知（业务推送主通道）
+
+业务通知会写站内信，并优先通过钉钉**工作通知**（`asyncsend_v2`）点对点推送给对应用户。群机器人 Webhook 仅在工作通知不可用或未绑定 `ding_user_id` 时作为**可选降级**，生产环境**无需配置 Webhook**。
+
+已接入的 5 类触发事件：
+
+| 事件 | 接收人 | 触发点 |
+|------|--------|--------|
+| 计划启动 · 任务待执行 | 任务执行人 | `ContentPlanServiceImpl.start()` |
+| 内容提交审核 | 审核人 | 内容提审 |
+| 内容审核通过 | 创建人 | 终审通过 |
+| 爆款 / 低分作品预警 | IP 组负责人 | 监控扫描 |
+| 高粉 / 低粉账号预警 | IP 组负责人 | 监控扫描 |
+
+**必需配置**（`application-dev-local.yml` 或环境变量）：
+
+| 配置项 | 说明 |
+|--------|------|
+| `oa.dingtalk.enabled` | `true` 启用钉钉集成 |
+| `oa.dingtalk.client-id` | 企业内部应用 AppKey |
+| `oa.dingtalk.client-secret` | 企业内部应用 AppSecret |
+| `oa.dingtalk.agent-id` | 微应用 AgentId（工作通知必需） |
+| `oa.notification.platform-base-url` | 前端根 URL，消息内「查看详情」跳转链接 |
+
+**可选降级**（一般不必配置）：
+
+| 配置项 | 说明 |
+|--------|------|
+| `oa.dingtalk.robot.enabled` | 启用群机器人降级 |
+| `oa.dingtalk.robot.webhook-url` | 自定义机器人 Webhook（含 access_token） |
+| `oa.dingtalk.robot.secret` | 群机器人加签 SEC 密钥 |
+
+示例 `application-dev-local.yml`：
+
+```yaml
+oa:
+  dingtalk:
+    enabled: true
+    client-id: your-app-key
+    client-secret: your-app-secret
+    corp-id: your-corp-id
+    agent-id: 4335523092
+  notification:
+    platform-base-url: http://localhost:5173
+```
+
+环境变量等价：`DINGTALK_ENABLED`、`DINGTALK_CLIENT_ID`、`DINGTALK_CLIENT_SECRET`、`DINGTALK_AGENT_ID`、`OA_PLATFORM_BASE_URL`。
+
+用户须先通过「同步钉钉」写入 `ding_user_id`，否则工作通知会跳过该用户（站内信仍正常）。
+
+**dev 诊断接口**（仅 `dev` profile）：
+
+```powershell
+# 查看工作通知是否就绪（primaryChannel=work_notify 表示生产可用）
+curl -H "Authorization: Bearer dev-token-oa-admin" -H "X-Tenant-Id: 1" http://localhost:8080/admin-api/oa/dev/dingtalk/status
+
+# 向指定用户发工作通知测试（如张武 userId=2036）
+curl -X POST -H "Authorization: Bearer dev-token-oa-admin" -H "X-Tenant-Id: 1" -H "Content-Type: application/json" -d "{\"userId\":2036}" http://localhost:8080/admin-api/oa/dev/dingtalk/test-work-send
+```
+
+未配 `client-id` / `agent-id` 时 `status.skipReason` 会说明原因；站内信仍正常，仅钉钉跳过。
+
 ## 启动（dev · 8080）
 
 在仓库根目录执行：

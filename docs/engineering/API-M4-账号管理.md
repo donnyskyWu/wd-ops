@@ -149,6 +149,12 @@
 - **无** `realnameId` 字段
 - `keeperId` `@NotNull`：必须从 `<UserSelect />` 选，本租户有效用户
 - `status` `@InDict(type="dict_phone_status")`
+- `phoneType` `@InDict(type="dict_phone_type")`（可选，V85）
+- `isAochuang` `@InDict(type="dict_yes_no")`（可选）
+- 影像字段：`settingsScreenshotKey` / `frontImageKey` / `backImageKey`（上传 key，响应含 `*Url`）
+- 采购：`purchaseBatch`、`purchaseDate`、`purchaseTime`、`handlerName`、`deviceNumber`
+
+**列表筛选**：`GET .../phone/list?phoneType=`
 
 ---
 
@@ -378,6 +384,38 @@
 
 详见 [`GLOBAL-CONVENTIONS.md § 4.1`](../engineering/GLOBAL-CONVENTIONS.md)
 
+## 5.7 公众号扩展与续费认证（V86 · ADR-025）
+
+### 5.7.1 平台账号 DTO 扩展字段
+
+`AccountCreateReq` / `AccountUpdateReq` / `AccountRespVO` 在 `platformType=WECHAT_OFFICIAL` 时支持：
+
+`trademarkName`、`email`、`passwordEncrypted`、`qualificationType`、`usageStatus`、`originalAccountName`、`certExpiryTime`、`certCount`、`linkedVideoAccountId`、`videoAccountRegisteredAt`、`adminName`、`adminUserId`、`adminIdCardEncrypted`
+
+**字典**：`qualificationType` → `dict_qualification_type`；`usageStatus` → `dict_wechat_usage_status`；`accountType` 含 `SUBSCRIPTION_ACCOUNT`。
+
+**条件校验**：`qualificationType=ENTERPRISE` 时 `companyId` 必填；`PERSONAL` 时后端忽略 `companyId`。
+
+### 5.7.2 续费认证 API
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/admin-api/oa/account/wechat-cert-renewal/list?accountId=` | 按公众号列续费记录 |
+| POST | `/admin-api/oa/account/wechat-cert-renewal/create` | 新增记录 |
+| DELETE | `/admin-api/oa/account/wechat-cert-renewal/{id}` | 删除（租户隔离） |
+
+**Create 请求体**：
+
+```json
+{
+  "accountId": 1,
+  "renewalTime": "2026-06-15 10:00:00",
+  "renewerUserId": 123,
+  "renewalAmount": 300.00
+}
+```
+
+---
 
 ## 6. 个人账号 API
 

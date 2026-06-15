@@ -36,7 +36,7 @@
       </el-table-column>
       <el-table-column prop="status" label="状态" width="80" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.status ? 'success' : 'info'">{{ row.status ? '启用' : '停用' }}</el-tag>
+          <DictLabel dict-type="dict_company_status" :value="row.status ? 'ENABLED' : 'DISABLED'" />
         </template>
       </el-table-column>
       <el-table-column label="操作" width="280" fixed="right">
@@ -131,6 +131,7 @@ import { ElMessage } from 'element-plus'
 import { Plus, Download } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import { exportToExcel } from '@/utils'
 import {
   createCompany,

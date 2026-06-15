@@ -24,6 +24,23 @@ public class AccountDO extends TenantBaseDO {
     private Long simCardId;
     private Long ipGroupId;
     private String cookieEncrypted;
+    /** 是否配置发布权限（ADR-022） */
+    private Integer publishEnabled;
     private String status;
     private LocalDateTime linkedAt;
+
+    /** 公众号扩展字段 */
+    private String trademarkName;
+    private String email;
+    private String passwordEncrypted;
+    private String qualificationType;
+    private String usageStatus;
+    private String originalAccountName;
+    private LocalDateTime certExpiryTime;
+    private Integer certCount;
+    private Long linkedVideoAccountId;
+    private LocalDateTime videoAccountRegisteredAt;
+    private String adminName;
+    private Long adminUserId;
+    private String adminIdCardEncrypted;
 }

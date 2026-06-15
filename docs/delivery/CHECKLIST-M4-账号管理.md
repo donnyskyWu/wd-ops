@@ -19,6 +19,9 @@
 - [ ] 实名人 CRUD + AES-256（AC-M4-002-1, 3, 4）
 - [ ] 中介人 1 对多 + 佣金脱敏（AC-M4-002-2, 5）
 - [ ] 手机 + 手机卡 + 跨平台聚合（AC-M4-003, 004 全部）
+- [x] 手机 V85 扩展字段 + 影像上传 + `dict_phone_type`（ADR-024）
+- [x] 手机卡 DAMAGED/LOST 状态（ADR-024）
+- [x] 公众号 V86 扩展字段 + 续费认证 CRUD（ADR-025）
 - [ ] **平台账号强关联**（AC-M4-005 全部 12 条）
 - [ ] 个人账号（AC-M4-006 全部 3 条）
 - [ ] 三方关联（AC-M4-007 全部 3 条）
@@ -48,7 +51,9 @@
 - [ ] `idType` 用 `<DictSelect dict-type="dict_id_type" />`
 - [ ] `gender` 用 `<DictSelect dict-type="dict_gender" />`
 - [ ] `phoneStatus` 用 `<DictSelect dict-type="dict_phone_status" />`
-- [ ] `simStatus` 用 `<DictSelect dict-type="dict_sim_status" />`
+- [ ] `simStatus` 用 `<DictSelect dict-type="dict_sim_status" />`（含 DAMAGED/LOST · V85）
+- [ ] `phoneType` / `isAochuang` 字典（V85 · ADR-024）
+- [ ] 公众号 `qualificationType` / `usageStatus`（V86 · ADR-025）
 - [ ] `companyStatus` 用 `<DictSelect dict-type="dict_company_status" />`
 - [ ] `isPrimary` 用 `<DictSelect dict-type="dict_yes_no" />`
 - [ ] `relationType` 用 `<DictSelect dict-type="dict_intermediary_relation" />`

@@ -65,21 +65,19 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/works-analysis',
-        name: 'WorksAnalysis',
-        component: () => import('@/views/operations/WorksAnalysis.vue'),
-        meta: { title: '作品分析' }
+        redirect: '/internal-content',
       },
       {
         path: '/internal-content',
         name: 'InternalContent',
         component: () => import('@/views/operations/InternalContent.vue'),
-        meta: { title: '内部内容分析' }
+        meta: { title: '内部作品分析' }
       },
       {
         path: '/internal-content/:id',
         name: 'InternalContentDetail',
         component: () => import('@/views/operations/InternalContentDetail.vue'),
-        meta: { title: '补录详情' }
+        meta: { title: '作品详情' }
       },
       {
         path: '/author/:id/dashboard',
@@ -163,6 +161,36 @@ const routes: RouteRecordRaw[] = [
         name: 'Knowledge',
         component: () => import('@/views/production/knowledge/index.vue'),
         meta: { title: '内容知识库' }
+      },
+      {
+        path: '/layout-template',
+        name: 'LayoutTemplate',
+        component: () => import('@/views/production/layout-template/index.vue'),
+        meta: { title: '公推模板库' }
+      },
+      {
+        path: '/layout-template/create',
+        name: 'LayoutTemplateCreate',
+        component: () => import('@/views/production/layout-template/edit.vue'),
+        meta: { title: '新建公推模板' }
+      },
+      {
+        path: '/layout-template/import',
+        name: 'LayoutTemplateImport',
+        component: () => import('@/views/production/layout-template/import.vue'),
+        meta: { title: '模板导入' }
+      },
+      {
+        path: '/layout-template/:id/edit',
+        name: 'LayoutTemplateEdit',
+        component: () => import('@/views/production/layout-template/edit.vue'),
+        meta: { title: '编辑公推模板' }
+      },
+      {
+        path: '/layout-template/:id',
+        name: 'LayoutTemplatePreview',
+        component: () => import('@/views/production/layout-template/preview.vue'),
+        meta: { title: '模板预览' }
       },
       // 内容生产 - 计划管理
       {

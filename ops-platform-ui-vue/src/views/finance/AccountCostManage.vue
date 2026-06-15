@@ -60,8 +60,15 @@
       @change="loadData"
     />
 
-    <!-- 查看：账号信息 + 成本明细 -->
-    <el-drawer v-model="viewVisible" :title="`账号成本详情 - ${currentAccount?.accountName || ''}`" size="640px">
+    <!-- 查看：账号信息 + ROI/LTV + 趋势 + 成本明细 -->
+    <el-drawer
+      v-model="viewVisible"
+      :title="`账号成本详情 - ${currentAccount?.accountName || ''}`"
+      size="920px"
+      destroy-on-close
+      @opened="onViewDrawerOpened"
+      @closed="disposeViewChart"
+    >
       <el-descriptions v-if="currentAccount" :column="2" border size="small" style="margin-bottom: 16px">
         <el-descriptions-item label="账号名称">{{ currentAccount.accountName }}</el-descriptions-item>
         <el-descriptions-item label="平台">
@@ -72,8 +79,121 @@
         <el-descriptions-item label="总成本">¥{{ formatMoney(currentAccount.totalCost) }}</el-descriptions-item>
         <el-descriptions-item label="实名人">{{ currentAccount.realName || '--' }}</el-descriptions-item>
       </el-descriptions>
-      <el-divider content-position="left">成本明细</el-divider>
-      <el-table :data="currentCostDetails" border stripe size="small">
+
+      <el-form inline class="view-filter">
+        <el-form-item label="分析周期">
+          <el-date-picker
+            v-model="viewDateRange"
+            type="daterange"
+            value-format="YYYY-MM-DD"
+            range-separator="~"
+            start-placeholder="开始"
+            end-placeholder="结束"
+            style="width: 260px"
+            @change="loadViewAnalytics"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :loading="viewAnalyticsLoading" @click="loadViewAnalytics">刷新分析</el-button>
+        </el-form-item>
+      </el-form>
+
+      <el-divider content-position="left">投资回报（ROI）</el-divider>
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        class="metric-hint"
+        title="ROI = 营收 ÷ 总成本；毛利率 = (营收 - 成本) ÷ 营收"
+      />
+      <div class="stat-grid-5" v-loading="viewAnalyticsLoading">
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-value primary">¥{{ formatMoney(viewStats.totalRevenue) }}</div>
+          <div class="stat-label">营收</div>
+        </el-card>
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-value danger">¥{{ formatMoney(viewStats.totalCost) }}</div>
+          <div class="stat-label">总成本</div>
+        </el-card>
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-value success">¥{{ formatMoney(viewStats.totalProfit) }}</div>
+          <div class="stat-label">利润</div>
+        </el-card>
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-value warning">{{ formatMoney(viewStats.roi) }}</div>
+          <div class="stat-label">ROI</div>
+        </el-card>
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-value">{{ formatPercent(viewStats.grossMargin) }}</div>
+          <div class="stat-label">毛利率</div>
+        </el-card>
+      </div>
+
+      <el-divider content-position="left">用户价值（LTV / CAC）</el-divider>
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        class="metric-hint"
+        title="单粉贡献≈周期营收÷粉丝数；CAC=投放成本÷新增粉丝；LTV/CAC>3 为优"
+      />
+      <div class="stat-grid-5" v-loading="viewAnalyticsLoading">
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-value primary">¥{{ formatMoney(viewStats.ltv) }}</div>
+          <div class="stat-label">单粉贡献（LTV 近似）</div>
+        </el-card>
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-value primary">¥{{ formatMoney(viewStats.arpu) }}</div>
+          <div class="stat-label">ARPU（营收/粉丝）</div>
+        </el-card>
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-value danger">¥{{ formatMoney(viewStats.cac) }}</div>
+          <div class="stat-label">CAC（投放/新增粉）</div>
+        </el-card>
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-value">
+            <el-tag :type="ltvCacTagType(viewStats.ltvCacRatio)" effect="dark" size="large">
+              {{ viewStats.ltvCacRatio > 0 ? formatMoney(viewStats.ltvCacRatio) : '—' }}
+            </el-tag>
+          </div>
+          <div class="stat-label">LTV / CAC</div>
+        </el-card>
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-value">+{{ formatInteger(viewStats.newFollowers) }}</div>
+          <div class="stat-label">新增粉丝</div>
+        </el-card>
+      </div>
+      <el-row :gutter="12" class="view-stats-secondary" v-loading="viewAnalyticsLoading">
+        <el-col :span="8">
+          <el-card shadow="hover" class="stat-card">
+            <div class="stat-value">{{ formatInteger(viewStats.totalFollowers) }}</div>
+            <div class="stat-label">粉丝总数</div>
+          </el-card>
+        </el-col>
+        <el-col :span="8">
+          <el-card shadow="hover" class="stat-card">
+            <div class="stat-value success">+{{ formatInteger(viewStats.netFollowers) }}</div>
+            <div class="stat-label">净增粉丝</div>
+          </el-card>
+        </el-col>
+        <el-col :span="8">
+          <el-card shadow="hover" class="stat-card">
+            <div class="stat-value">{{ formatPercent(viewStats.growthRate) }}</div>
+            <div class="stat-label">粉丝增长率</div>
+          </el-card>
+        </el-col>
+      </el-row>
+
+      <el-divider content-position="left">成本与收入趋势</el-divider>
+      <div v-if="!viewTrendPoints.length && !viewAnalyticsLoading" class="empty-hint">所选周期内暂无趋势数据</div>
+      <div v-show="viewTrendPoints.length" ref="viewTrendChartRef" class="view-trend-chart" />
+
+      <el-divider content-position="left">成本结构</el-divider>
+      <div v-if="!costStructureItems.length && !viewAnalyticsLoading" class="empty-hint">所选周期内暂无成本结构数据</div>
+      <div v-show="costStructureItems.length" ref="viewStructureChartRef" class="view-structure-chart" />
+
+      <el-divider content-position="left">成本明细（分析周期内）</el-divider>
+      <el-table :data="currentCostDetails" border stripe size="small" empty-text="所选周期内暂无成本明细">
         <el-table-column prop="costType" label="类型" width="110">
           <template #default="{ row }">
             <DictLabel dict-type="dict_cost_type" :value="row.costType" />
@@ -174,17 +294,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
+import * as echarts from 'echarts'
 import TableSearch from '@/components/TableSearch.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
 import { getAccountList } from '@/api/account'
-import { getCostList, createCost, updateCost, deleteCost } from '@/api/finance'
-import { exportToExcel } from '@/utils'
+import { getCostList, createCost, updateCost, deleteCost, getRoiAnalysis, getRoiTrend, getRoiBreakdown } from '@/api/finance'
+import { getFollowerStats } from '@/api/follower'
+import { exportToExcel, unwrapApiData } from '@/utils'
 
 interface AccountCostRow {
   id: number
@@ -210,6 +332,14 @@ interface CostRecord {
 }
 
 const PURCHASE_TYPE = 'PURCHASE'
+const AD_SPEND_TYPE = 'AD_SPEND'
+
+const COST_TYPE_LABELS: Record<string, string> = {
+  PURCHASE: '购买成本',
+  PROCESS_HUMAN: '人力成本',
+  AD_SPEND: '投放成本',
+  PROCESS: '过程成本',
+}
 
 const activePlatform = ref('ALL')
 const loading = ref(false)
@@ -224,6 +354,78 @@ const manageVisible = ref(false)
 const currentAccount = ref<AccountCostRow | null>(null)
 const currentCostDetails = ref<CostRecord[]>([])
 const processCosts = ref<CostRecord[]>([])
+
+const viewDateRange = ref<string[]>([
+  dayjs().subtract(6, 'month').format('YYYY-MM-DD'),
+  dayjs().format('YYYY-MM-DD'),
+])
+const viewAnalyticsLoading = ref(false)
+const viewTrendPoints = ref<Array<{ statDate?: string; revenue?: number; cost?: number }>>([])
+const viewTrendChartRef = ref<HTMLElement>()
+const viewStructureChartRef = ref<HTMLElement>()
+let viewTrendChart: echarts.ECharts | null = null
+let viewStructureChart: echarts.ECharts | null = null
+
+const viewStats = reactive({
+  totalRevenue: 0,
+  totalCost: 0,
+  totalProfit: 0,
+  roi: 0,
+  grossMargin: 0,
+  ltv: 0,
+  arpu: 0,
+  cac: 0,
+  ltvCacRatio: 0,
+  totalFollowers: 0,
+  newFollowers: 0,
+  netFollowers: 0,
+  growthRate: 0,
+})
+
+const costStructureItems = ref<Array<{ type: string; typeLabel: string; amount: number; percentage: number }>>([])
+
+const resetViewStats = () => {
+  Object.assign(viewStats, {
+    totalRevenue: 0,
+    totalCost: 0,
+    totalProfit: 0,
+    roi: 0,
+    grossMargin: 0,
+    ltv: 0,
+    arpu: 0,
+    cac: 0,
+    ltvCacRatio: 0,
+    totalFollowers: 0,
+    newFollowers: 0,
+    netFollowers: 0,
+    growthRate: 0,
+  })
+  viewTrendPoints.value = []
+  costStructureItems.value = []
+  viewTrendChart?.clear()
+  viewStructureChart?.clear()
+}
+
+const safeApiCall = async <T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> => {
+  try {
+    return await fn()
+  } catch (e) {
+    console.warn(`[AccountCostManage] ${label} skipped:`, e)
+    return fallback
+  }
+}
+
+const normalizeTrendPoints = (
+  raw: Array<{ statDate?: string; date?: string; revenue?: number; cost?: number }> | undefined,
+) => {
+  const points = (raw ?? []).map((p) => ({
+    statDate: String(p.statDate || p.date || ''),
+    revenue: toNum(p.revenue),
+    cost: toNum(p.cost),
+  }))
+  const hasData = points.some((p) => p.revenue > 0 || p.cost > 0)
+  return hasData ? points : []
+}
 
 const purchaseForm = reactive({
   id: undefined as number | undefined,
@@ -254,8 +456,32 @@ const processRules = {
 }
 
 const formatMoney = (val?: number) => Number(val || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const formatInteger = (val?: number) => Number(val || 0).toLocaleString('zh-CN')
+const formatPercent = (val?: number) => `${toNum(val).toFixed(2)}%`
+const toNum = (v: unknown) => {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : 0
+}
 
 const isPurchase = (costType: string) => costType === PURCHASE_TYPE
+
+const isInDateRange = (payDate?: string, start?: string, end?: string) => {
+  if (!payDate || !start || !end) return true
+  return payDate >= start && payDate <= end
+}
+
+const sumAdSpendInRange = (accountId: number, start: string, end: string) => {
+  return loadAccountCosts(accountId)
+    .filter((c) => c.costType === AD_SPEND_TYPE && isInDateRange(c.payDate, start, end))
+    .reduce((s, c) => s + Number(c.amount || 0), 0)
+}
+
+const ltvCacTagType = (ratio: number): 'success' | 'warning' | 'danger' | 'info' => {
+  if (ratio <= 0) return 'info'
+  if (ratio > 3) return 'success'
+  if (ratio >= 1.5) return 'warning'
+  return 'danger'
+}
 
 const aggregateCosts = (accountId: number) => {
   const rows = allCosts.value.filter((c) => c.accountId === accountId)
@@ -351,6 +577,202 @@ const handleView = (row: AccountCostRow) => {
   currentAccount.value = row
   currentCostDetails.value = loadAccountCosts(row.id)
   viewVisible.value = true
+}
+
+const buildViewQuery = () => {
+  if (!currentAccount.value || viewDateRange.value.length < 2) return null
+  return {
+    accountId: currentAccount.value.id,
+    startDate: viewDateRange.value[0],
+    endDate: viewDateRange.value[1],
+  }
+}
+
+const drawViewTrendChart = (
+  points: Array<{ statDate?: string; revenue?: number; cost?: number }>,
+  retry = 0,
+) => {
+  if (!points.length) {
+    viewTrendChart?.clear()
+    return
+  }
+  if (!viewTrendChartRef.value) return
+  const el = viewTrendChartRef.value
+  if (el.getBoundingClientRect().width === 0) {
+    if (retry < 12) setTimeout(() => drawViewTrendChart(points, retry + 1), 100)
+    return
+  }
+  try {
+    if (!viewTrendChart) viewTrendChart = echarts.init(el)
+    const dates = points.map((p) => p.statDate || '')
+    const revenues = points.map((p) => toNum(p.revenue))
+    const costs = points.map((p) => toNum(p.cost))
+    viewTrendChart.setOption({
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['营收', '成本'], top: 0 },
+      grid: { left: 56, right: 16, top: 36, bottom: 28 },
+      xAxis: { type: 'category', data: dates },
+      yAxis: { type: 'value', axisLabel: { formatter: (v: number) => `¥${v}` } },
+      series: [
+        { name: '营收', type: 'line', smooth: true, data: revenues, itemStyle: { color: '#409eff' } },
+        { name: '成本', type: 'line', smooth: true, data: costs, itemStyle: { color: '#f56c6c' } },
+      ],
+    })
+  } catch (e) {
+    console.warn('[AccountCostManage] trend chart render failed', e)
+    viewTrendChart?.clear()
+  }
+}
+
+const drawViewStructureChart = (
+  items: Array<{ type?: string; typeLabel: string; amount: number }>,
+  retry = 0,
+) => {
+  const chartData = items.filter((item) => toNum(item.amount) > 0)
+  if (!chartData.length) {
+    viewStructureChart?.clear()
+    return
+  }
+  if (!viewStructureChartRef.value) return
+  const el = viewStructureChartRef.value
+  if (el.getBoundingClientRect().width === 0) {
+    if (retry < 12) setTimeout(() => drawViewStructureChart(items, retry + 1), 100)
+    return
+  }
+  try {
+    if (!viewStructureChart) viewStructureChart = echarts.init(el)
+    viewStructureChart.setOption({
+      tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
+      legend: { orient: 'vertical', left: 'left', top: 'middle' },
+      series: [
+        {
+          type: 'pie',
+          radius: ['40%', '68%'],
+          center: ['62%', '50%'],
+          data: chartData.map((item) => ({
+            name: item.typeLabel || item.type || '—',
+            value: toNum(item.amount),
+          })),
+          emphasis: { itemStyle: { shadowBlur: 8, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.2)' } },
+        },
+      ],
+    })
+  } catch (e) {
+    console.warn('[AccountCostManage] structure chart render failed', e)
+    viewStructureChart?.clear()
+  }
+}
+
+const loadViewAnalytics = async () => {
+  const q = buildViewQuery()
+  if (!q) return
+  viewAnalyticsLoading.value = true
+  resetViewStats()
+  try {
+    const [analysisRes, trendRes, followerRes, breakdownRes] = await Promise.all([
+      safeApiCall('roi analysis', () => getRoiAnalysis({ ...q, dimension: 'ACCOUNT' }), null),
+      safeApiCall('roi trend', () => getRoiTrend(q), null),
+      safeApiCall('follower stats', () => getFollowerStats({
+        accountId: q.accountId,
+        startDate: q.startDate,
+        endDate: q.endDate,
+      }), null),
+      safeApiCall('roi breakdown', () => getRoiBreakdown(q), null),
+    ])
+
+    const analysis = unwrapApiData(analysisRes) as {
+      totalRevenue?: number
+      totalCost?: number
+      roi?: number
+    } | null
+    if (analysis) {
+      viewStats.totalRevenue = toNum(analysis.totalRevenue)
+      viewStats.totalCost = toNum(analysis.totalCost)
+      viewStats.totalProfit = viewStats.totalRevenue - viewStats.totalCost
+      viewStats.roi = toNum(analysis.roi)
+      viewStats.grossMargin = viewStats.totalRevenue > 0
+        ? (viewStats.totalProfit / viewStats.totalRevenue) * 100
+        : 0
+    }
+
+    const follower = unwrapApiData(followerRes) as {
+      totalFollowers?: number
+      newFollowers?: number
+      netFollowers?: number
+      growthRate?: number
+    } | null
+    if (follower) {
+      viewStats.totalFollowers = toNum(follower.totalFollowers)
+      viewStats.newFollowers = toNum(follower.newFollowers)
+      viewStats.netFollowers = toNum(follower.netFollowers)
+      viewStats.growthRate = toNum(follower.growthRate)
+    }
+
+    const perFollower = viewStats.totalFollowers > 0
+      ? viewStats.totalRevenue / viewStats.totalFollowers
+      : 0
+    viewStats.ltv = perFollower
+    viewStats.arpu = perFollower
+
+    const adSpend = sumAdSpendInRange(q.accountId, q.startDate, q.endDate)
+    viewStats.cac = viewStats.newFollowers > 0 ? adSpend / viewStats.newFollowers : 0
+    viewStats.ltvCacRatio = viewStats.cac > 0 ? viewStats.ltv / viewStats.cac : 0
+
+    const breakdown = unwrapApiData(breakdownRes) as {
+      byType?: Array<{ type?: string; typeLabel?: string; amount?: number; percentage?: number }>
+    } | null
+    costStructureItems.value = (breakdown?.byType ?? [])
+      .map((item) => ({
+        type: item.type || '',
+        typeLabel: COST_TYPE_LABELS[item.type || ''] || item.typeLabel || item.type || '—',
+        amount: toNum(item.amount),
+        percentage: toNum(item.percentage),
+      }))
+      .filter((item) => item.amount > 0)
+
+    if (currentAccount.value) {
+      currentCostDetails.value = loadAccountCosts(currentAccount.value.id).filter((c) =>
+        isInDateRange(c.payDate, q.startDate, q.endDate),
+      )
+    } else {
+      currentCostDetails.value = []
+    }
+
+    const trendVo = unwrapApiData(trendRes) as {
+      points?: Array<{ statDate?: string; date?: string; revenue?: number; cost?: number }>
+    } | null
+    viewTrendPoints.value = normalizeTrendPoints(trendVo?.points)
+
+    await nextTick()
+    drawViewTrendChart(viewTrendPoints.value)
+    drawViewStructureChart(costStructureItems.value)
+  } catch (e) {
+    console.error('[AccountCostManage] view analytics failed', e)
+    resetViewStats()
+    if (currentAccount.value) {
+      currentCostDetails.value = loadAccountCosts(currentAccount.value.id)
+    }
+    ElMessage.warning('部分分析数据暂无，已展示空状态')
+  } finally {
+    viewAnalyticsLoading.value = false
+  }
+}
+
+const onViewDrawerOpened = () => {
+  loadViewAnalytics()
+}
+
+const disposeViewChart = () => {
+  viewTrendChart?.dispose()
+  viewTrendChart = null
+  viewStructureChart?.dispose()
+  viewStructureChart = null
+  resetViewStats()
+}
+
+const handleViewResize = () => {
+  viewTrendChart?.resize()
+  viewStructureChart?.resize()
 }
 
 const handleManageCost = (row: AccountCostRow) => {
@@ -462,7 +884,15 @@ const removeProcessCost = async (row: CostRecord) => {
   }
 }
 
-onMounted(() => loadData())
+onMounted(() => {
+  loadData()
+  window.addEventListener('resize', handleViewResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleViewResize)
+  disposeViewChart()
+})
 </script>
 
 <style scoped>
@@ -471,4 +901,30 @@ onMounted(() => loadData())
 .amount-text { color: #f56c6c; font-weight: 600; }
 .cost-section { margin-bottom: 16px; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }
+.view-filter { margin-bottom: 8px; }
+.metric-hint { margin-bottom: 12px; }
+.stat-grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+@media (max-width: 900px) {
+  .stat-grid-5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.view-stats-secondary { margin-bottom: 8px; }
+.stat-card { text-align: center; }
+.stat-value {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.stat-value.primary { color: #409eff; }
+.stat-value.danger { color: #f56c6c; }
+.stat-value.success { color: #67c23a; }
+.stat-value.warning { color: #e6a23c; }
+.stat-label { color: #909399; font-size: 13px; margin-top: 4px; }
+.view-trend-chart { width: 100%; height: 320px; margin-bottom: 8px; }
+.view-structure-chart { width: 100%; height: 300px; margin-bottom: 8px; }
+.empty-hint { color: #909399; text-align: center; padding: 24px 0; font-size: 13px; }
 </style>

@@ -76,7 +76,11 @@
               </template>
             </el-table-column>
             <el-table-column prop="userName" label="经办人" min-width="100" />
-            <el-table-column prop="position" label="岗位" width="100" />
+            <el-table-column prop="position" label="岗位" width="100">
+              <template #default="{ row }">
+                <DictLabel dict-type="dict_position" :value="row.position" :fallback="row.position || '--'" />
+              </template>
+            </el-table-column>
             <el-table-column prop="ipGroupName" label="IP组" min-width="120" />
             <el-table-column prop="taskTotal" label="任务总数" width="100" align="right" />
             <el-table-column prop="taskCompleted" label="已完成" width="90" align="right" />
@@ -144,7 +148,11 @@
               </template>
             </el-table-column>
             <el-table-column prop="userName" label="经办人" min-width="100" />
-            <el-table-column prop="position" label="岗位" width="100" />
+            <el-table-column prop="position" label="岗位" width="100">
+              <template #default="{ row }">
+                <DictLabel dict-type="dict_position" :value="row.position" :fallback="row.position || '--'" />
+              </template>
+            </el-table-column>
             <el-table-column prop="ipGroupName" label="IP组" min-width="120" />
             <el-table-column prop="contentOutput" label="发布数" width="100" align="right" />
             <el-table-column prop="avgPlay" label="平均播放" width="120" align="right">
@@ -208,6 +216,7 @@ import { exportToExcel } from '@/utils'
 import type { ProductivityReviewVO, ProductivityReviewQuery } from '@/types/productivity'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { Download, Document, Coin, TrendCharts, VideoCamera, Star, User } from '@element-plus/icons-vue'
 

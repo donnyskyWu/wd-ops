@@ -12,6 +12,9 @@ public class WeworkEmployeeRespVO {
     private String phone;
     private String department;
     private String position;
+    private Long linkedPersonalWechatId;
+    private String linkedPersonalWechatName;
+    private String linkedWechatId;
     private String status;
     private String createTime;
 }

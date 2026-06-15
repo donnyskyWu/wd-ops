@@ -11,17 +11,17 @@ test.describe('E2E dataflow smoke @smoke @e2e-df', () => {
     test.skip(!ready, 'E2E seed not available — start backend with V57/V58 applied')
   })
 
-  test('E2E-01 作品分析: E2E works visible with read count', async ({ page }) => {
-    await page.goto('/works-analysis')
+  test('E2E-01 内部作品分析: E2E works visible with read count', async ({ page }) => {
+    await page.goto('/internal-content')
     await page.waitForLoadState('networkidle')
 
-    const keyword = page.locator('input[placeholder*="作品标题"]')
+    const keyword = page.locator('input[placeholder*="内容标题"]')
     await keyword.fill(E2E.workTitlePrefix)
     await page.locator('button:has-text("搜索")').click()
     await page.waitForLoadState('networkidle')
 
     await expect(page.locator('.el-table')).toContainText(E2E.workTitlePrefix)
-    const bodyText = await page.locator('.works-analysis-page').innerText()
+    const bodyText = await page.locator('.internal-content-page').innerText()
     expect(bodyText).toMatch(/5[,，]?200[,，]?000|520万/)
   })
 
@@ -45,7 +45,7 @@ test.describe('E2E dataflow smoke @smoke @e2e-df', () => {
     await expect(page.locator('.el-table')).toContainText(formatted)
   })
 
-  test('E2E-03 内部内容分析: seed content visible', async ({ page }) => {
+  test('E2E-03 内部作品分析: seed content visible', async ({ page }) => {
     await page.goto('/internal-content')
     await page.waitForLoadState('networkidle')
 

@@ -11,6 +11,9 @@ spring:
   sql:
     init:
       mode: never
+  task:
+    scheduling:
+      enabled: false
 
 oa:
   auth:

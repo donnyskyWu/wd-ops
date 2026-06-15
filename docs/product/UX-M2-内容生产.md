@@ -1,6 +1,6 @@
 # UX-M2-内容生产
 
-> **版本**：v1.3 | 2026-06-13
+> **版本**：v1.4 | 2026-06-14
 > **关联 PRD**：[`PRD-M2-内容生产.md`](./PRD-M2-内容生产.md)
 > **全局规范**：[`GLOBAL-CONVENTIONS.md`](../engineering/GLOBAL-CONVENTIONS.md)
 
@@ -27,6 +27,9 @@
 | P-M2-010 | 知识详情 | `/prod/knowledge/:id` | FR-M2-004 |
 | P-M2-011 | 计划管理 | `/plan` | FR-M2-009 |
 | P-M2-012 | 任务执行 | `/prod/task/:id/execute` | FR-M2-002 |
+| P-M2-013 | 公推模板库列表 | `/prod/layout-template` | FR-M2-005 |
+| P-M2-014 | 公推模板导入向导 | `/prod/layout-template/import`（或弹窗） | FR-M2-005 |
+| P-M2-015 | 公推模板编辑/预览 | `/prod/layout-template/:id/edit` | FR-M2-005 |
 
 ---
 
@@ -189,7 +192,10 @@
 | F-CONTENT-TYPE | `<DictSelect dict-type="dict_content_type" />` | 字典 | ✅ |
 | F-DOCUMENT-TYPE | `<DictSelect dict-type="dict_document_type" />` | 字典 | 条件（`ARTICLE`） |
 | F-SCRIPT-REF | 只读区 | 同赛事短视频文案 | 条件（`SHORT_VIDEO`） |
-| F-BODY | `<Textarea rows=12 />` | LONGTEXT | 条件（文档） |
+| F-BODY | **`<RichTextEditor />`**（ARTICLE）或 `<Textarea />`（其他） | layout_html + body 摘要 | 条件 |
+| F-LAYOUT-STRUCT | **`<LayoutEditor />`**（右侧，LAYOUT 时） | layout_json | 条件（ARTICLE+已套用模板） |
+| F-LAYOUT-TPL | `<LayoutTemplateSelect />` | `oa_wechat_layout_template` | 条件（`ARTICLE`） |
+| BTN-APPLY-TPL | 按钮 | 「选择版式模板」→ 选择器 + 二次确认 | 条件（`ARTICLE`） |
 | F-GENERATED-VIDEO | 预览 | AI 生成视频 URL | 条件（短视频） |
 | F-FINAL-VIDEO | `<Input />` | 最终视频 URL | ❌ |
 | BTN-GENERATE | 按钮 | AI 弹窗（选 M8 模型+提示词，真实 LLM） | - |
@@ -208,9 +214,34 @@
 **只读/待审核**（`PENDING_*`）：表单 disabled；展示审核流程 `el-steps`（角色+用户）。
 
 **联动**：
-- `content_type=ARTICLE` → 显示 `document_type`
+- `content_type=ARTICLE` → 显示 `document_type` + **版式模板区**
 - `content_type=SHORT_VIDEO` → 文案引用区
 - 切换 IP 组 → 刷新作者信息
+- 应用模板后 → 富文本编辑器即时显示 `layout_html`；`body_format=LAYOUT`；`body` 为纯文本摘要（ADR-021）
+
+> **FR-135（2026-06-14）**：ARTICLE 正文主区为 TipTap 富文本；左右分栏，右侧为版式结构编辑（套用模板后可见）。
+
+**变更 2026-06-15（FR-143 / FR-147 · ADR-021）**：
+
+| 控件/行为 | 说明 |
+|-----------|------|
+| BTN-MAXIMIZE | 正文区「全屏/还原」；全屏时隐藏版式侧栏 |
+| BTN-LAYOUT-COLLAPSE | 「展开/收起版式结构」；**默认收起** |
+| F-LAYOUT-STRUCT | 收起或全屏时主区 24 栅格；展开时 14+10 分栏 |
+| RTE-TOOLBAR | 对齐公众号编辑器：字号/颜色/高亮/对齐/列表/引用/表格/图片上传与宽度 |
+| WECHAT-PASTE | 粘贴走 `normalizeWechatPasteHtml`；保存走 `sanitizeWechatExportHtml` |
+| IMG-WIDTH | 编辑态 `ResizableImage`；查看态 `LayoutViewer` + `ensureImageWidthStyles` 一致 |
+
+**只读/待审核**（`PENDING_*`）：`LayoutEditor` **readOnly**；无 `layout_json` 时 fallback 渲染 `body` 纯文本
+
+### 5.2.1 版式模板选择器（`LayoutTemplateSelectDialog`）
+
+| 控件 | 说明 |
+|------|------|
+| F-DOC-TYPE-FILTER | 按当前内容 `document_type` 过滤（+ 通用模板 document_type 为空） |
+| TBL-TPL | 卡片/表格：缩略图、名称、document_type 标签、来源（手动/链接/Word） |
+| BTN-PREVIEW | 抽屉预览 `layout_html` |
+| BTN-APPLY | 应用（若已有版式 → `MessageBox.confirm`） |
 
 ### 5.3 AI 辅助创作弹窗
 
@@ -229,7 +260,7 @@
 | TAB-L1 | Tab | 一级审核队列 |
 | TAB-L2 | Tab | 二级审核队列 |
 | TBL-REVIEW | 表格 | 待审内容 |
-| BTN-VIEW | 链接 | 只读抽屉 + 正文 + 审核流程 steps |
+| BTN-VIEW | 链接 | 只读抽屉 + 正文（**`LayoutViewer`** 渲染 layout_html）+ 审核流程 steps |
 | BTN-APPROVE / REJECT | 按钮 | 仅待审态、有权限时 |
 
 审核流程 steps 描述格式：`{角色名}：{用户1、用户2}`。
@@ -249,11 +280,86 @@
 
 ---
 
-## 8. P-M2-011 计划管理
+## 8. P-M2-013~015 公推模板库（FR-M2-005 · 草案）
+
+> **菜单**：内容生产 → **公推模板库**（与「知识库」并列，**非**知识库「模板库」分类）
+
+### 8.1 P-M2-013 模板列表
+
+**路由**：`/prod/layout-template`
+
+| 控件 | 类型 | 字典/实体 |
+|------|------|----------|
+| F-NAME | `<Input />` | 模板名称 |
+| F-DOC-TYPE | `<DictSelect dict-type="dict_document_type" />` | 可筛「通用」（空） |
+| F-STATUS | `<DictSelect dict-type="dict_layout_template_status" />` | 启用/停用 |
+| F-SOURCE | `<DictSelect dict-type="dict_layout_template_source" />` | 手动/链接/Word |
+| BTN-ADD | 按钮 | 「新建模板」→ P-M2-015 |
+| BTN-IMPORT | 按钮 | 「导入」→ P-M2-014 |
+| BTN-EDIT | 链接 | 编辑 |
+| BTN-PREVIEW | 链接 | 只读预览抽屉 |
+| BTN-DISABLE | 链接 | 停用（二次确认） |
+| TBL-TPL | 表格 | 名称、document_type、来源、更新人、更新时间、状态 |
+
+**权限**：无 CRUD 权限者 **不展示** BTN-ADD/EDIT/DISABLE（仍可只读列表，**待产品确认**）
+
+### 8.2 P-M2-014 导入向导（960px 弹窗或独立页）
+
+```
++----------------------------------------------------------+
+| Step 1: 选择导入方式                                      |
+|   ( ) 公众号文章链接    ( ) Word 文档    ( ) 粘贴 HTML    |
++----------------------------------------------------------+
+| Step 2: 输入                                               |
+| [链接] 或 [Upload docx] 或 [富文本粘贴区]                  |
+| 模板名称 [____]  文档子类型 [DictSelect 可空]              |
++----------------------------------------------------------+
+| Step 3: 预览（异步 Job 完成后）                            |
+|   LayoutViewer 预览  |  解析警告（BLK-M2-014 样式丢失提示）  |
++----------------------------------------------------------+
+| [取消]  [上一步]  [保存为模板]                             |
++----------------------------------------------------------+
+```
+
+| 状态 | 表现 |
+|------|------|
+| URL Job 进行中 | `el-progress` + 「正在解析，可关闭后在列表查看」 |
+| URL 失败 | 红色 Alert + 引导切换「粘贴 HTML」Tab |
+| docx 超限 | 「文件不能超过 10MB」 |
+
+### 8.3 P-M2-015 模板编辑/预览
+
+> **FR-134（2026-06-14）**：编辑页提供 Tab「富文本编辑」/「结构编辑」，双向同步 `layout_schema` ↔ 预览 HTML（ADR-021）。  
+> **FR-147（2026-06-15）**：富文本 Tab 使用与内容创作相同的 `RichTextEditor` + `EditorToolbar`（非独立简化版）。
+
+**布局**：
+
+```
++----------------------------------------------------------+
+| 模板名称 [__]  文档子类型 [DictSelect 可空]  [保存] [预览] |
++----------------------------------------------------------+
+| [富文本编辑] | [结构编辑]  — TipTap WYSIWYG ↔ LayoutSchemaEditor |
++----------------------------------------------------------+
+```
+
+- **预览**：全屏抽屉，`LayoutViewer` 模拟公众号阅读宽度（约 677px 居中）
+- 新建空模板：默认含 1 个 `heading` + 1 个 `paragraph` 块
+
+### 8.4 内容查看/审核 — 版式渲染（跨 P-M2-006/008）
+
+| 场景 | 组件 | 数据 |
+|------|------|------|
+| 有 `layout_html` | `<LayoutViewer readOnly />` | `layout_html` |
+| 仅 `body` 纯文本 | `<pre>` 或 `<Textarea disabled />` | `body` |
+| 列表摘要 |  strip HTML 前 80 字 | `layout_html` 优先 |
+
+---
+
+## 9. P-M2-011 计划管理
 
 **路由**：`/plan` · **实现**：`views/production/plan/index.vue`
 
-### 8.1 列表页
+### 9.1 列表页
 
 | 控件 | 类型 | 字典/实体 |
 |------|------|----------|
@@ -268,7 +374,7 @@
 | BTN-REJECT-TERM | 链接 | 终止审批中 → "驳回终止"（组长） |
 | BTN-DELETE | 链接 | 草稿 → "删除" |
 
-### 8.2 新增计划弹窗（960px）
+### 9.2 新增计划弹窗（960px）
 
 ```
 +----------------------------------------------------------+
@@ -301,11 +407,11 @@
 - 选 SOP 模板 → 拉取节点列表填充步骤表
 - 改日期范围 → 未填写的步骤起止时间默认同步
 
-### 8.3 详情抽屉
+### 9.3 详情抽屉
 
 只读展示：计划名称、模板、IP 组、日期、状态、赛事列表、描述、**生成的任务记录表**（含 scheduled_start/end、executor_role）。
 
-### 8.4 状态与提示
+### 9.4 状态与提示
 
 | 状态 | 表现 |
 |------|------|
@@ -318,7 +424,7 @@
 
 ---
 
-## 9. 跨页通用约定
+## 10. 跨页通用约定
 
 - **关联属性强制选择**：所有 `*_id` 字段必须用选择器
 - **字典字段**：状态/类型/平台一律 `<DictSelect />`

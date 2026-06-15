@@ -7,7 +7,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -26,10 +28,25 @@ public class GlobalExceptionHandler {
         return CommonResult.error(OaErrorCodes.FORBIDDEN.getCode(), OaErrorCodes.FORBIDDEN.getMsg());
     }
 
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public CommonResult<?> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex, HttpServletRequest request) {
+        log.warn("[OA] upload too large uri={} msg={}", request.getRequestURI(), ex.getMessage());
+        return CommonResult.error(OaErrorCodes.BAD_REQUEST.getCode(), "图片大小不能超过 5MB");
+    }
+
     @ExceptionHandler(ServiceException.class)
     public CommonResult<?> handleServiceException(ServiceException ex, HttpServletRequest request) {
         log.warn("[OA] service error uri={} code={} msg={}", request.getRequestURI(), ex.getCode(), ex.getMessage());
         return CommonResult.error(ex.getCode(), ex.getMessage());
+    }
+
+    @ExceptionHandler(DataAccessException.class)
+    public CommonResult<?> handleDataAccessException(DataAccessException ex, HttpServletRequest request) {
+        log.error("[OA] data access uri={}", request.getRequestURI(), ex);
+        String hint = ex.getMessage() != null && ex.getMessage().contains("Unknown column")
+                ? "数据库结构未更新，请重启后端以执行 Flyway 迁移"
+                : "数据保存失败，请检查内容长度或联系管理员";
+        return CommonResult.error(500, hint);
     }
 
     @ExceptionHandler({MethodArgumentNotValidException.class, BindException.class, ConstraintViolationException.class})

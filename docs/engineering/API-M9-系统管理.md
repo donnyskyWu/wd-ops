@@ -163,6 +163,26 @@
 
 ---
 
+## 9. 业务通知与钉钉推送（ADR-026 · V88）
+
+### 9.1 配置项（`application.yml` / `application-dev-local.yml`）
+
+| 前缀 | 键 | 说明 |
+|------|-----|------|
+| `oa.dingtalk` | `enabled`, `client-id`, `client-secret`, `corp-id`, `agent-id` | 工作通知主通道 |
+| `oa.dingtalk.robot` | `enabled`, `webhook-url`, `secret` | 可选降级 |
+| `oa.notification` | `platform-base-url`, `monitor-scan-cron` | 跳转链接与扫描周期 |
+
+### 9.2 事件去重
+
+插入 `sys_notification_event` 成功后才调用 `send()`；重复 `biz_key` 返回 `DuplicateKeyException` 并跳过。
+
+### 9.3 开发态诊断
+
+`GET /admin-api/oa/dev/dingtalk-status`（若已实现）返回工作通知/机器人是否可用及 skip 原因。
+
+---
+
 ## 8. 错误码
 
 | 错误码 | 含义 |

@@ -25,7 +25,7 @@
       <el-table-column prop="endDate" label="结束日期" width="120" />
       <el-table-column prop="status" label="状态" width="110" align="center">
         <template #default="{ row }">
-          <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+          <DictLabel dict-type="dict_plan_status" :value="row.status" />
         </template>
       </el-table-column>
       <el-table-column prop="progress" label="进度" width="140">
@@ -203,7 +203,9 @@
           <el-descriptions-item label="SOP 模板">{{ detailData.templateName }}</el-descriptions-item>
           <el-descriptions-item label="IP 组">{{ detailData.ipGroupName }}</el-descriptions-item>
           <el-descriptions-item label="日期">{{ detailData.startDate }} ~ {{ detailData.endDate }}</el-descriptions-item>
-          <el-descriptions-item label="状态">{{ statusLabel(detailData.status) }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <DictLabel dict-type="dict_plan_status" :value="detailData.status" />
+          </el-descriptions-item>
           <el-descriptions-item label="进度">{{ detailData.progress ?? 0 }}%</el-descriptions-item>
           <el-descriptions-item label="赛事" :span="2">
             {{ detailData.competitions?.map((c) => c.competitionName).join('、') || '--' }}
@@ -222,12 +224,16 @@
           <el-table-column prop="assigneeName" label="执行人" width="100" />
           <el-table-column label="执行岗位" width="100">
             <template #default="{ row }">
-              {{ row.executorRoleText || row.executorRole || '—' }}
+              <DictLabel
+                dict-type="dict_position"
+                :value="row.executorRole"
+                :fallback="row.executorRoleText || row.executorRole || '—'"
+              />
             </template>
           </el-table-column>
           <el-table-column prop="status" label="状态" width="110" align="center">
             <template #default="{ row }">
-              <el-tag :type="taskStatusTagType(row.status)" size="small">{{ taskStatusLabel(row.status) }}</el-tag>
+              <DictLabel dict-type="dict_sop_node_status" :value="row.status" />
             </template>
           </el-table-column>
           <el-table-column label="开始时间" width="170">
@@ -256,6 +262,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import UserSelect from '@/components/selectors/UserSelect.vue'
 import MatchSelectDialog from '@/components/selectors/MatchSelectDialog.vue'
@@ -330,20 +337,6 @@ const formRules = {
   selectedCompetitions: [{ validator: validateCompetitions, trigger: 'change' }],
 }
 
-const statusLabel = (status: string) => ({
-  DRAFT: '草稿',
-  IN_PROGRESS: '进行中',
-  TERMINATE_PENDING: '终止审批中',
-  TERMINATED: '已终止',
-}[status] || status)
-
-const statusTagType = (status: string) => ({
-  DRAFT: 'info',
-  IN_PROGRESS: 'success',
-  TERMINATE_PENDING: 'warning',
-  TERMINATED: 'danger',
-}[status] || 'info')
-
 const loadList = async () => {
   loading.value = true
   try {
@@ -415,28 +408,6 @@ const handleIpGroupChange = () => {
     step.assigneeId = undefined
   })
 }
-
-const taskStatusLabel = (status: string) => ({
-  PLAN_DRAFT: '计划草稿',
-  PENDING: '待执行',
-  IN_PROGRESS: '执行中',
-  PENDING_REVIEW: '待审核',
-  APPROVED: '已通过',
-  REJECTED: '已驳回',
-  DONE: '已完成',
-  TERMINATED: '已终止',
-}[status] || status)
-
-const taskStatusTagType = (status: string) => ({
-  PLAN_DRAFT: 'info',
-  PENDING: 'warning',
-  IN_PROGRESS: 'primary',
-  PENDING_REVIEW: 'warning',
-  APPROVED: 'success',
-  REJECTED: 'danger',
-  DONE: 'success',
-  TERMINATED: 'danger',
-}[status] || 'info')
 
 const handleAdd = () => {
   dialogTitle.value = '新增计划'

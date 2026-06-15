@@ -1,10 +1,10 @@
 # PRD-M2-内容生产
 
 > **业务域**：M2 内容生产
-> **功能模块**：SOP 管理 + 计划管理 + 任务管理 + 内容管理 + 知识库
-> **详细设计章节**：5.8、5.9、5.10、5.11
-> **版本**：v1.3 | 2026-06-13
-> **状态**：Draft（用户需求 2–6 + 2026-06-13 实现同步；部分项阻塞见 §8）
+> **功能模块**：SOP 管理 + 计划管理 + 任务管理 + 内容管理 + **公推模板库** + 知识库
+> **详细设计章节**：5.8、5.9、5.10、5.11、**5.11a（公推模板库，草案）**
+> **版本**：v1.4 | 2026-06-14
+> **状态**：Draft（公推模板库 FR-M2-005 待产品批准；§8.3 阻塞项未闭合前禁止实现）
 > **全局规范**：[`docs/engineering/GLOBAL-CONVENTIONS.md`](./../engineering/GLOBAL-CONVENTIONS.md)
 
 ---
@@ -20,7 +20,7 @@
 | 关联 UX | `docs/product/UX-M2-内容生产.md` |
 | 关联 API | `docs/engineering/API-M2-内容生产.md` · `docs/engineering/API-M2-计划管理.md` |
 | 关联 STATE | `docs/engineering/STATE-M2-内容生产.md` |
-| 关联 ADR | `ADR-012` · `ADR-016` · `ADR-017`（可配置二级审核）· `ADR-018`（前端 CSV 导出） |
+| 关联 ADR | `ADR-012` · `ADR-016` · `ADR-017` · `ADR-018` · `ADR-019` · `ADR-021` · `ADR-024`~`026`（跨模块） |
 
 ---
 
@@ -49,6 +49,8 @@
 | **可配置二级审核** | 一级审核 → 二级审核（均可通过 M9 系统参数开关/指定角色；默认一级=IP 组长范围） |
 | **AI 辅助创作** | 创作者选择 AI 模型生成草稿（**需人工审核**） |
 | **知识库** | 沉淀案例、模板、运营经验供团队复用 |
+| **公推模板库** | 公众号推文 **内容版式** 模板（非 SOP 流程模板）；支持链接/Word 导入 |
+| **版式正文** | 带块结构/样式的富正文（`layout_json`），区别于 LONGTEXT 纯文本 `body` |
 
 ---
 
@@ -67,6 +69,8 @@
 | 一级/二级审核 | - | - | 匹配配置角色 / IP 组长 | - | - | - | - |
 | AI 辅助创作 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 知识库 CRUD | ✅（全部） | ✅（全部） | ✅（本人） | ✅（本人） | ✅（本人） | ✅（本人） | ✅（本人） |
+| 公推模板库 CRUD | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 公推模板库 使用（应用模板） | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ### 2.2 权限规则
 
@@ -87,6 +91,7 @@
 | FR-M2-002 | 任务管理（任务实例 + 状态机 + SLA） | P0 | 5.9 |
 | FR-M2-003 | 内容管理（AI 生成 + 可配置二级审核 + 发布） | P0 | 5.10 |
 | FR-M2-004 | 内容知识库 | P1 | 5.11 |
+| **FR-M2-005** | **公推模板库（版式模板 CRUD + 导入 + 内容应用）** | **P0** | **5.11a（草案）** |
 
 ### 3.2 Out of Scope
 
@@ -95,6 +100,10 @@
 3. ❌ **不实现** 第三方平台接入（公众号 API 等由 `## 5.40 数据采集` 负责）
 4. ❌ **不实现** 内容评论/点赞/转发（关注**内容生产**而非消费）
 5. ❌ **不实现** 知识库智能推荐（v1.0 仅做搜索）
+6. ❌ **不实现** 第三方排版 SaaS（135/秀米）深度集成 — Phase 2
+7. ❌ **不实现** 模板版本管理、多人协同编辑模板 — v1.0 不支持
+
+**与知识库边界**：知识库「模板库」分类存放 **运营经验/文案范例**（富文本）；公推模板库存 **可复用版式块结构**（`layout_json`）+ 导入管线，**不合并**。
 
 ---
 
@@ -506,6 +515,173 @@ SOP 任务实例，跟踪任务执行状态、节点进度、审核结果、SLA 
 
 ---
 
+### FR-M2-005 公推模板库（5.11a · 草案）
+
+> **Slice**：S-14 · **UX**：P-M2-013~016 · **API**：`API-M2` §6 · **ADR**：`ADR-019`（Draft）
+
+#### 4.5.1 背景与目标
+
+公众号推文除文案外，须保持 **标题层级、段落样式、引用、配图位** 等版式一致性。当前内容 `body` 为纯文本 Textarea，无法承载版式。本 FR 提供：
+
+1. **模板库**：租户内维护可复用的推文版式模板
+2. **导入**：公众号文章链接 **或** Word 文档 → 解析为版式模板
+3. **应用**：内容类型为 **文章**（`content_type=ARTICLE`）时，创作/编辑页可选模板并写入富版式正文
+4. **一致展示**：内容查看、内容审核须与编辑态相同的富版式渲染
+
+#### 4.5.2 用户故事
+
+| ID | 角色 | 故事 | 优先级 |
+|----|------|------|--------|
+| US-M2-005-1 | 运营管理者 | 我希望维护标准推文版式库，让团队排版统一 | P0 |
+| US-M2-005-2 | 公众号运营 | 我希望从竞品公众号链接导入版式，再改文案 | P0 |
+| US-M2-005-3 | 公众号运营 | 我希望上传 Word 稿件提取版式作为模板 | P1 |
+| US-M2-005-4 | 内容创作者 | 我在写推文时一键套用模板，并在编辑器里改样式 | P0 |
+| US-M2-005-5 | 审核人 | 我审核时能看见与创作者一致的排版效果 | P0 |
+
+#### 4.5.3 前置条件
+
+- 用户已登录；模板 CRUD 须 **系统管理员 / 运营管理者 / 运营组长**（**待产品确认** OQ-M2-023 是否含组长）
+- 应用模板场景：内容 `content_type=ARTICLE`（`dict_content_type`）
+- 租户隔离：`tenant_id` 全表过滤（铁律三）
+
+#### 4.5.4 主流程
+
+**A. 模板 CRUD**
+
+1. 进入「公推模板库」列表（P-M2-013）
+2. 新建模板：填写 `template_name`、`description`；可选 `document_type`（**可空=匹配全部文章子类型**，见 OQ-M2-021）
+3. 编辑版式：块编辑器（**BLK-M2-015**）或导入后微调
+4. 预览 → 保存；`status=ENABLED` 后可在内容创作页被选择
+
+**B. 从公众号链接导入**
+
+1. 列表页「导入」→ 选择「公众号链接」（P-M2-014）
+2. 粘贴 `https://mp.weixin.qq.com/s/...` URL
+3. 提交 → 异步 Job 抓取并解析（**BLK-M2-012**）
+4. 预览解析结果 → 确认保存为模板；失败时提示 **手动粘贴 HTML** Fallback
+
+**C. 从 Word 导入**
+
+1. 「导入」→ 选择「Word 文档」
+2. 上传 `.docx`（≤10MB，**待产品确认**）
+3. 异步解析 → 预览 → 确认保存（**BLK-M2-014** 保真度声明）
+
+**D. 内容创作应用模板**
+
+1. 新增内容 / 任务执行内容编辑；`content_type=ARTICLE`
+2. 显示「选择版式模板」按钮（仅 ARTICLE）
+3. 打开模板选择器：列表过滤 **类型匹配** 的 ENABLED 模板
+4. 选中模板 → 二次确认（若已有版式）→ 应用：复制 `layout_json`/`layout_html` 到内容；记录 `layout_template_id`
+5. 正文区切换为 **富版式编辑器**（非 Textarea）；保存/提交审核时持久化
+
+**E. 查看与审核**
+
+- 内容列表「查看」、审核抽屉：只读渲染 `layout_html`（无 `layout_json` 时 fallback `body` 纯文本）
+
+#### 4.5.5 异常流
+
+| 异常 | 提示 |
+|------|------|
+| URL 抓取失败 | 「无法解析该链接，请尝试手动粘贴正文 HTML 或上传 Word」 |
+| docx 格式非法 | 「仅支持 .docx，且文件不超过 10MB」 |
+| 应用模板类型不匹配 | 「当前内容类型不支持该模板」（非 ARTICLE 或 document_type 不匹配） |
+| 模板已停用 | 选择器不展示；已应用的内容保留原版式 |
+| 导入 Job 超时 | 「导入处理中，请稍后在导入记录中查看」 |
+
+#### 4.5.6 业务规则
+
+- **类型匹配**（默认，ADR-019 §2.3）：模板与内容均为 `content_type=ARTICLE`；模板 `document_type` **为空** 或 **等于** 内容 `document_type`
+- **待产品确认（OQ-M2-021）**：用户需求「文档类型=文章」— 现有 `dict_document_type` **无**「文章」值；见 CHANGELOG-REQ 审批项 #1
+- **应用为复制**：应用后内容与模板 **解耦**；改模板不影响已创建内容
+- **覆盖策略**：内容已有 `body_format=LAYOUT` 时再应用 → **须二次确认**（OQ-M2-022）
+- **AI 生成**：AI 仍写入 `body`（PLAIN）；用户可再应用模板将文本迁入段落块
+- **审核/发布**：富版式存 `layout_json`/`layout_html`；发布管线是否仅发纯文本 → **Phase 2 / M10**（Out of Scope 本期）
+
+#### 4.5.7 数据项
+
+**模板 `oa_wechat_layout_template`**
+
+| 字段 | 类型 | 控件 | 字典/实体 |
+|------|------|------|----------|
+| `template_name` | VARCHAR(100) | `<Input />` | - |
+| `description` | VARCHAR(500) | `<TextArea />` | - |
+| `content_type` | VARCHAR(20) | 固定 `ARTICLE`（只读） | `dict_content_type` |
+| `document_type` | VARCHAR(50) | `<DictSelect dict-type="dict_document_type" />` | **可空** |
+| `layout_json` | JSON | 块编辑器 | ADR-019 §2.2 |
+| `layout_html` | LONGTEXT | 只读预览 | 服务端渲染+消毒 |
+| `thumbnail_url` | VARCHAR(512) | 自动生成首屏截图 | 可选 |
+| `source_type` | VARCHAR(30) | 只读 | `dict_layout_template_source` |
+| `source_url` | VARCHAR(1024) | 只读 | 导入来源 URL |
+| `status` | VARCHAR(20) | `<DictSelect />` | `dict_layout_template_status` |
+| `creator_user_id` | Long | `<UserSelect />` | `sys_user` |
+
+**内容扩展 `oa_production_content`**
+
+| 字段 | 说明 |
+|------|------|
+| `body_format` | `PLAIN` / `LAYOUT`（`dict_content_body_format`） |
+| `layout_json` | 富版式 SSOT |
+| `layout_html` | 只读渲染 |
+| `layout_template_id` | 最近应用的模板 FK（可空） |
+
+#### 4.5.8 验收标准
+
+**AC-M2-005-1**（模板 CRUD）
+- Given 运营管理者
+- When 新建模板并保存版式块
+- Then 列表可见且 `status=ENABLED` 后可被内容创作选择
+
+**AC-M2-005-2**（类型匹配 — 应用）
+- Given 内容 `content_type=ARTICLE`，模板 `document_type=POST_MATCH_REVIEW`
+- When 内容 `document_type=POST_MATCH_REVIEW` 并打开模板选择器
+- Then 可见该模板；当内容 `document_type=NEW_ACCOUNT_TRAFFIC` 时不可见（模板 document_type 非空时）
+
+**AC-M2-005-3**（应用模板写入富版式）
+- Given 内容尚无版式
+- When 选择模板并确认应用
+- Then `body_format=LAYOUT`，正文编辑器展示模板版式且可编辑
+
+**AC-M2-005-4**（审核/查看一致渲染）
+- Given 内容已保存 `layout_html`
+- When 审核人打开审核抽屉
+- Then 正文区渲染与创作者编辑预览一致（非纯文本）
+
+**AC-M2-005-5**（Word 导入 — 成功路径 Mock）
+- Given 合法 `.docx`
+- When 上传并确认导入
+- Then 生成模板且预览区可见标题/段落结构（允许样式偏差，见 BLK-M2-014）
+
+**AC-M2-005-6**（URL 导入 Fallback）
+- Given URL 抓取失败
+- When 用户改用手动粘贴 HTML
+- Then 仍可保存为模板（不依赖外部抓取）
+
+**AC-M2-005-7**（非文章类型隐藏）
+- Given 内容 `content_type=SHORT_VIDEO`
+- When 打开内容编辑
+- Then 不展示「选择版式模板」与富版式编辑器
+
+#### 4.5.9 非目标
+
+- 不实现微信公众号后台草稿同步
+- 不实现模板多人实时协同编辑
+- 不保证 Word/外链导入 100% 像素级还原
+
+#### 4.5.10 依赖与风险
+
+| 依赖 | 说明 |
+|------|------|
+| S-06 / S-13 | 内容 CRUD 与 ARTICLE 编辑页 |
+| ADR-019 Accept | 存储格式与编辑器选型 |
+| 可选异步 Job | docx/URL 导入（BLK-M2-013） |
+
+| 风险 | 缓解 |
+|------|------|
+| 微信 URL 抓取合规/稳定性 | Fallback 手动粘贴；ADR-019 §2.4.1 |
+| 编辑器选型延期 | Phase1 只读 HTML + 简编辑（须产品签字降级） |
+
+---
+
 ## 5. 集成与数据
 
 ### 5.1 核心实体
@@ -520,6 +696,8 @@ SOP 任务实例，跟踪任务执行状态、节点进度、审核结果、SLA 
 | `oa_content_version` | 内容版本 | `oa_content` |
 | `oa_review_record` | 审核记录 | `oa_content` |
 | `oa_knowledge_base` | 知识库 | `sys_user`（创作者） |
+| `oa_wechat_layout_template` | 公推版式模板 | `sys_user`（创建者） |
+| `oa_layout_import_job` | 导入异步任务（可选） | 模板 |
 
 ### 5.2 关联属性（🔴 强约束）
 
@@ -577,6 +755,18 @@ SOP 任务实例，跟踪任务执行状态、节点进度、审核结果、SLA 
 | BLK-M2-010 | **AI 生成短视频 API**：视频产物存储、与 `final_video_url` 字段契约 | 6 | 🔴 阻塞 |
 | BLK-M2-011 | **用户↔IP 组多归属**查询 API（自动带出 IP 组/作者） | 6 | 🟡 待确认 |
 
+### 8.3 阻塞问题清单（公推模板库 FR-M2-005 — 实现前须确认）
+
+| 编号 | 阻塞项 | 影响 | 状态 |
+|------|--------|------|------|
+| **BLK-M2-012** | **公众号文章 URL 抓取**：无官方 API、反爬、合规；是否允许外部代理 | 链接导入 | 🔴 阻塞 |
+| **BLK-M2-013** | **docx 临时文件存储 + 异步 Job** 基础设施 | Word 导入 | 🟡 待确认 |
+| **BLK-M2-014** | **Word 版式提取保真度**与用户预期管理 | Word 导入 | 🔴 阻塞 |
+| **BLK-M2-015** | **富版式正文编辑器**选型（TipTap / WangEditor / 降级方案） | 编辑/审核/查看 | 🔴 阻塞 |
+| **OQ-M2-021** | 「文档类型=文章」与 `dict_document_type` 五类子类型的映射策略 | 模板匹配 | 🔴 待产品确认 |
+| **OQ-M2-022** | 应用模板后 `body` 纯文本字段保留/清空策略 | 内容字段 | 🟡 待确认 |
+| **OQ-M2-023** | 模板库 CRUD 是否含运营组长；模板是否支持「仅本人」私有 | 权限 | 🟡 待确认 |
+
 ---
 
 ## 9. 实现补充（2026-06-13 · DOC-SYNC）
@@ -592,6 +782,41 @@ SOP 任务实例，跟踪任务执行状态、节点进度、审核结果、SLA 
 | 布局 | 移除各页重复 `el-breadcrumb`（统一 Layout 顶栏） | ADR-002 |
 | 导出 | 内容列表 `exportToExcel` CSV | ADR-018 |
 | 系统参数 | M9 Tab「内容审核」四条参数 + 角色下拉 | PRD-M9 · ADR-017 |
+
+---
+
+## 10. 实现补充（2026-06-15 · DOC-SYNC）
+
+> 产品会话编号：**FR-143** · **FR-145** · **FR-147**
+
+### FR-143 · 新建内容统一富文本编辑器
+
+- **范围**：`content_type=ARTICLE` 的创作/编辑（独立弹窗 + 任务驱动 `ContentEditPanel`）
+- **控件**：正文主区 **`<RichTextEditor />`**（TipTap），替代原 Textarea
+- **存储**：`body_format=LAYOUT`；`layout_html` 为展示 SSOT；`body` 为纯文本摘要（ADR-021）
+- **验收**：新建 ARTICLE → 编辑器可见；保存后审核/查看页 `LayoutViewer` 渲染一致
+
+### FR-147 · 公推模板编辑同源编辑器
+
+- **范围**：`layout-template/edit.vue`
+- **行为**：模板编辑页「富文本编辑」Tab 使用与内容创作相同的 `RichTextEditor` + `EditorToolbar`
+- **保存**：富文本模式保存前 `htmlToLayoutSchema` 同步 `layoutSchema`（ADR-021）
+
+### FR-145 · 图文混排预置模板（V87）
+
+- **范围**：租户 `tenant_id=1` 种子；每个 `document_type` + 通用各 1 条「【预置】图文混排·*」模板
+- **结构**：`LayoutPresetSchemas.imageTextMixedSchema()` — 标题 + 导语 + 图/文交替 + 分隔 + 收尾
+- **选用**：内容创作「选择版式模板」按 `document_type` 过滤可见
+
+### 编辑器体验增强（2026-06-15）
+
+| 能力 | 说明 |
+|------|------|
+| 全屏/还原 | `editorMaximized` 覆盖视口；收起版式侧栏 |
+| 版式侧栏 | 默认 **收起**（`layoutPanelCollapsed=true`）；按钮「展开/收起版式结构」 |
+| 图片宽度 | `ResizableImage` + `data-w` / `style.width` 持久化；`LayoutViewer` 查看态 `ensureImageWidthStyles` 对齐 |
+| 微信 HTML | 粘贴 `normalizeWechatPasteHtml`；导出/存储 `sanitizeWechatExportHtml`（`wechatHtml.ts`） |
+| 工具栏 | 撤销/重做、清除格式、字号、BIUS、颜色/高亮、对齐、列表、引用、表格、图片上传/宽度 |
 
 ---
 

@@ -25,9 +25,11 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -82,6 +84,12 @@ public class FinanceRoiServiceImpl implements FinanceRoiService {
                 .collect(Collectors.groupingBy(OrderAttributionDO::getStatDate,
                         Collectors.mapping(OrderAttributionDO::getCost,
                                 Collectors.reducing(BigDecimal.ZERO, v -> v == null ? BigDecimal.ZERO : v, BigDecimal::add))));
+        List<AccountCostDO> accountCosts = queryCosts(tenantId, startDate, endDate, accountId);
+        Map<LocalDate, BigDecimal> accountCostByDate = accountCosts.stream()
+                .filter(c -> c.getPayDate() != null)
+                .collect(Collectors.groupingBy(AccountCostDO::getPayDate,
+                        Collectors.mapping(AccountCostDO::getAmount,
+                                Collectors.reducing(BigDecimal.ZERO, v -> v == null ? BigDecimal.ZERO : v, BigDecimal::add))));
 
         FinanceRoiTrendVO vo = new FinanceRoiTrendVO();
         LocalDate d = startDate;
@@ -89,7 +97,9 @@ public class FinanceRoiServiceImpl implements FinanceRoiService {
             FinanceRoiTrendVO.TrendPoint point = new FinanceRoiTrendVO.TrendPoint();
             point.setStatDate(d);
             point.setRevenue(revenueByDate.getOrDefault(d, BigDecimal.ZERO));
-            point.setCost(costByDate.getOrDefault(d, BigDecimal.ZERO));
+            BigDecimal attrCost = costByDate.getOrDefault(d, BigDecimal.ZERO);
+            BigDecimal ledgerCost = accountCostByDate.getOrDefault(d, BigDecimal.ZERO);
+            point.setCost(attrCost.add(ledgerCost));
             point.setRoi(calcRoi(point.getRevenue(), point.getCost()));
             vo.getPoints().add(point);
             d = d.plusDays(1);
@@ -157,6 +167,9 @@ public class FinanceRoiServiceImpl implements FinanceRoiService {
         Map<Long, List<OrderAttributionDO>> grouped = attrs.stream()
                 .filter(a -> a.getIpGroupId() != null)
                 .collect(Collectors.groupingBy(OrderAttributionDO::getIpGroupId));
+        if (grouped.isEmpty()) {
+            return new ArrayList<>();
+        }
         Map<Long, String> names = ipGroupMapper.selectBatchIds(grouped.keySet()).stream()
                 .collect(Collectors.toMap(IpGroupDO::getId, IpGroupDO::getGroupName, (a, b) -> a));
         List<FinanceRoiAnalysisVO.RoiDetailItem> details = new ArrayList<>();
@@ -182,15 +195,25 @@ public class FinanceRoiServiceImpl implements FinanceRoiService {
                 cost.merge(a.getAccountId(), a.getCost() == null ? BigDecimal.ZERO : a.getCost(), BigDecimal::add);
             }
         });
-        costs.forEach(c -> cost.merge(c.getAccountId(), c.getAmount() == null ? BigDecimal.ZERO : c.getAmount(), BigDecimal::add));
-        Map<Long, String> names = accountMapper.selectBatchIds(revenue.keySet()).stream()
+        costs.forEach(c -> {
+            if (c.getAccountId() != null) {
+                cost.merge(c.getAccountId(), c.getAmount() == null ? BigDecimal.ZERO : c.getAmount(), BigDecimal::add);
+                revenue.putIfAbsent(c.getAccountId(), BigDecimal.ZERO);
+            }
+        });
+        Set<Long> accountIds = new HashSet<>(revenue.keySet());
+        accountIds.addAll(cost.keySet());
+        if (accountIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        Map<Long, String> names = accountMapper.selectBatchIds(accountIds).stream()
                 .collect(Collectors.toMap(AccountDO::getId, AccountDO::getAccountName, (a, b) -> a));
         List<FinanceRoiAnalysisVO.RoiDetailItem> details = new ArrayList<>();
-        revenue.forEach((aid, rev) -> {
+        accountIds.forEach(aid -> {
             FinanceRoiAnalysisVO.RoiDetailItem item = new FinanceRoiAnalysisVO.RoiDetailItem();
             item.setId(aid);
             item.setName(names.get(aid));
-            item.setRevenue(rev);
+            item.setRevenue(revenue.getOrDefault(aid, BigDecimal.ZERO));
             item.setCost(cost.getOrDefault(aid, BigDecimal.ZERO));
             item.setRoi(calcRoi(item.getRevenue(), item.getCost()));
             details.add(item);

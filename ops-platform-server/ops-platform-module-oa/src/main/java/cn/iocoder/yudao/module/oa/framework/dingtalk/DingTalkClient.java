@@ -119,6 +119,37 @@ public class DingTalkClient {
         return userIds;
     }
 
+    /**
+     * 发送工作通知（asyncsend_v2）。
+     * 文档：https://open.dingtalk.com/document/orgapp/asynchronous-sending-of-enterprise-session-messages
+     */
+    public JSONObject sendWorkNotification(String dingUserId, String content) {
+        return sendWorkNotification(dingUserId, "text",
+                JSONUtil.createObj().set("content", content));
+    }
+
+    public JSONObject sendWorkNotificationMarkdown(String dingUserId, String title, String markdownText) {
+        return sendWorkNotification(dingUserId, "markdown",
+                JSONUtil.createObj().set("title", title).set("text", markdownText));
+    }
+
+    private JSONObject sendWorkNotification(String dingUserId, String msgType, JSONObject msgBody) {
+        if (properties.getAgentId() == null) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "钉钉 agent-id 未配置");
+        }
+        if (StrUtil.isBlank(dingUserId)) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "钉钉 userid 不能为空");
+        }
+        JSONObject msg = JSONUtil.createObj().set("msgtype", msgType);
+        msg.set(msgType, msgBody);
+        JSONObject body = JSONUtil.createObj()
+                .set("agent_id", properties.getAgentId())
+                .set("userid_list", dingUserId)
+                .set("to_all_user", false)
+                .set("msg", msg);
+        return topApiPost("/topapi/message/corpconversation/asyncsend_v2", body);
+    }
+
     /** 获取用户详情 */
     public DingUserDetail getUser(String userid) {
         JSONObject body = JSONUtil.createObj()

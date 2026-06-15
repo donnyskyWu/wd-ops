@@ -55,12 +55,12 @@
           <el-table-column prop="templateName" label="模板名称" min-width="200" show-overflow-tooltip />
           <el-table-column prop="contentType" label="适用内容类型" width="120" align="center">
             <template #default="{ row }">
-              {{ getContentTypeText(row.contentType) }}
+              <DictLabel dict-type="dict_content_type" :value="row.contentType" />
             </template>
           </el-table-column>
           <el-table-column prop="platformType" label="适用平台" width="120" align="center">
             <template #default="{ row }">
-              {{ getPlatformTypeText(row.platformType) }}
+              <DictLabel dict-type="dict_platform_type" :value="row.platformType" />
             </template>
           </el-table-column>
           <el-table-column prop="nodeCount" label="节点数" width="90" align="center" />
@@ -137,12 +137,14 @@
         >
           <el-table-column prop="planName" label="任务名称" width="150" />
           <el-table-column prop="nodeName" label="节点名称" width="120" />
-          <el-table-column prop="reviewerRole" label="执行人岗位" width="120" />
+          <el-table-column prop="reviewerRole" label="执行人岗位" width="120">
+            <template #default="{ row }">
+              <DictLabel dict-type="dict_position" :value="row.reviewerRole" :fallback="row.reviewerRole || '--'" />
+            </template>
+          </el-table-column>
           <el-table-column prop="status" label="状态" width="100" align="center">
             <template #default="{ row }">
-              <el-tag :type="getReviewStatusType(row.status)">
-                {{ getReviewStatusText(row.status) }}
-              </el-tag>
+              <DictLabel dict-type="dict_review_status" :value="row.status" />
             </template>
           </el-table-column>
           <el-table-column prop="createTime" label="提交时间" width="160" align="center" />
@@ -279,7 +281,7 @@ import TableSearch from '@/components/TableSearch.vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
-import { PLATFORM_LABEL, type PlatformType as DictPlatform } from '@/utils/enum-alias'
+import DictLabel from '@/components/DictLabel.vue'
 
 const router = useRouter()
 
@@ -561,44 +563,6 @@ const handleRejectSubmit = async () => {
   } catch (error: any) {
     ElMessage.error(error?.response?.data?.msg || '驳回失败，请重试')
   }
-}
-
-// 获取内容类型文本
-const getContentTypeText = (contentType: ContentType) => {
-  const texts: Record<ContentType, string> = {
-    ALL: '全部',
-    ARTICLE: '文章',
-    VIDEO: '短视频',
-    LIVE: '直播',
-  }
-  return texts[contentType] || ''
-}
-
-// 获取平台类型文本（dict 真实值，含 ALL / WECHAT_OFFICIAL 等）
-const getPlatformTypeText = (platformType: PlatformType) => {
-  return PLATFORM_LABEL[platformType as DictPlatform] ?? platformType
-}
-
-// 获取审核状态类型
-const getReviewStatusType = (status: ReviewStatus) => {
-  const types: Record<ReviewStatus, string> = {
-    PENDING: 'warning',
-    REVIEWING: 'primary',
-    APPROVED: 'success',
-    REJECTED: 'danger',
-  }
-  return types[status] || ''
-}
-
-// 获取审核状态文本
-const getReviewStatusText = (status: ReviewStatus) => {
-  const texts: Record<ReviewStatus, string> = {
-    PENDING: '待审核',
-    REVIEWING: '审核中',
-    APPROVED: '已通过',
-    REJECTED: '已驳回',
-  }
-  return texts[status] || ''
 }
 
 // ==================== 生命周期 ====================

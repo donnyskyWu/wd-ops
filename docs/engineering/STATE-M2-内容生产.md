@@ -1,6 +1,6 @@
 # STATE-M2-内容生产
 
-> **版本**：v1.3 | 2026-06-13
+> **版本**：v1.4 | 2026-06-14
 > **关联 PRD**：[`PRD-M2-内容生产.md`](../product/PRD-M2-内容生产.md)
 > **关联全局规范**：[`GLOBAL-CONVENTIONS.md`](./GLOBAL-CONVENTIONS.md)
 
@@ -92,11 +92,12 @@ stateDiagram-v2
 | 待二级审核 | `PENDING_SECOND_REVIEW` | 一级通过；二级 enabled |
 | 待终审 | `PENDING_FINAL_REVIEW` | **遗留**；默认配置不使用 |
 | 已驳回 | `REJECTED` | 任一环节驳回 |
-| 已发布 | `PUBLISHED` | 终审通过 + 已发布 |
+| 待发布 | `PENDING_PUBLISH` | 末级审核通过，待运营手动发布（ADR-022） |
+| 已发布 | `PUBLISHED` | 手动发布成功 |
 | 已下架 | `UNPUBLISHED` | 主动下架 |
 | 已完成 | `COMPLETED` | 任务驱动创作确认完成（ADR-016；**不**等同已发布） |
 
-> `COMPLETED` 为任务场景遗留；新流程统一 **submit-review**（ADR-017）。两者均关闭 → 提交后直接 `PUBLISHED`。
+> `COMPLETED` 为任务场景遗留；新流程统一 **submit-review**（ADR-017）。审核均关闭 → 提交后 `PENDING_PUBLISH`（ADR-022 手动发布）。
 
 ### 2.2 状态机
 
@@ -106,8 +107,9 @@ stateDiagram-v2
     DRAFT --> PENDING_FIRST_REVIEW: 提交审核
     PENDING_FIRST_REVIEW --> PENDING_SECOND_REVIEW: 初审通过
     PENDING_FIRST_REVIEW --> REJECTED: 初审驳回
-    PENDING_SECOND_REVIEW --> PENDING_FINAL_REVIEW: 复审通过
+    PENDING_SECOND_REVIEW --> PENDING_PUBLISH: 复审通过
     PENDING_SECOND_REVIEW --> REJECTED: 复审驳回
+    PENDING_PUBLISH --> PUBLISHED: 手动发布（选平台+账号）
     PENDING_FINAL_REVIEW --> PUBLISHED: 终审通过 + 自动发布
     PENDING_FINAL_REVIEW --> REJECTED: 终审驳回
     PUBLISHED --> UNPUBLISHED: 主动下架
@@ -131,8 +133,9 @@ stateDiagram-v2
 | DRAFT | PENDING_FIRST_REVIEW | 创作者提交 | 创建 `oa_review_record` |
 | PENDING_FIRST_REVIEW | PENDING_SECOND_REVIEW | 初审人通过 | 通知复审人 |
 | PENDING_FIRST_REVIEW | REJECTED | 初审人驳回 | 通知创作者 |
-| PENDING_SECOND_REVIEW | PENDING_FINAL_REVIEW | 复审人通过 | 通知终审人 |
+| PENDING_SECOND_REVIEW | PENDING_PUBLISH | 复审人通过 | 待运营发布 |
 | PENDING_SECOND_REVIEW | REJECTED | 复审人驳回 | 通知创作者 |
+| PENDING_PUBLISH | PUBLISHED | 运营发布成功 | 写入 `oa_content_publish_record` |
 | PENDING_FINAL_REVIEW | PUBLISHED | 终审人通过 | 触发 `@Async` 发布 |
 | PENDING_FINAL_REVIEW | REJECTED | 终审人驳回 | 通知创作者 |
 | REJECTED | DRAFT | 创作者编辑 | 重新进入草稿 |
@@ -142,7 +145,7 @@ stateDiagram-v2
 
 - **BR-021**（三级串行）：任一环节驳回 → 流程结束
 - **BR-022**（AI 内容必须人工审核）：`ai_generated=1` 必须走完三级
-- **BR-023**（自动发布）：终审通过 → Spring `@Async` 发布
+- **BR-023**（手动发布）：末级审核通过 → `PENDING_PUBLISH`；运营调用 `POST /publish`（ADR-022）
 - **BR-024**（内容审核权限）：仅匹配阶段的审核人可操作
 - **BR-025**（驳回可重新编辑）：被驳回后创作者可重新编辑并再次提交
 
@@ -215,6 +218,114 @@ stateDiagram-v2
 仅 `is_public`（公开/私有）+ `status`（草稿/已发布）。
 
 详见 `oa_knowledge_base` 表，无复杂状态机。
+
+---
+
+## 6. 公推模板库实体与内容版式（FR-M2-005 · 草案）
+
+> **ADR**：[`ADR-019`](../adr/ADR-019-M2-公推模板库存储与导入.md)
+
+### 6.1 实体：`oa_wechat_layout_template`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | BIGINT PK | - |
+| `tenant_id` | BIGINT | 租户隔离 |
+| `template_name` | VARCHAR(100) | 模板名称 |
+| `description` | VARCHAR(500) | 描述 |
+| `content_type` | VARCHAR(20) | 固定 `ARTICLE` |
+| `document_type` | VARCHAR(50) | `dict_document_type`，**可 NULL**（通用模板） |
+| `layout_json` | JSON | 块结构 SSOT |
+| `layout_html` | LONGTEXT | 渲染+消毒 HTML |
+| `thumbnail_url` | VARCHAR(512) | 列表缩略图 |
+| `source_type` | VARCHAR(30) | `dict_layout_template_source` |
+| `source_url` | VARCHAR(1024) | 导入来源 URL |
+| `status` | VARCHAR(20) | `dict_layout_template_status` |
+| `creator_user_id` | BIGINT | FK → `sys_user` |
+| 审计字段 | | `created_at` / `updated_at` / `deleted` |
+
+**ER**：
+
+```mermaid
+erDiagram
+    WECHAT_LAYOUT_TEMPLATE ||--o{ PRODUCTION_CONTENT : "applied_as_snapshot"
+    SYS_USER ||--o{ WECHAT_LAYOUT_TEMPLATE : creates
+
+    WECHAT_LAYOUT_TEMPLATE {
+        bigint id PK
+        bigint tenant_id
+        string template_name
+        string content_type
+        string document_type
+        json layout_json
+        string status
+    }
+    PRODUCTION_CONTENT {
+        bigint id PK
+        string body_format
+        json layout_json
+        bigint layout_template_id FK
+    }
+```
+
+### 6.2 内容表扩展：`oa_production_content`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `body_format` | VARCHAR(20) | `dict_content_body_format`：`PLAIN` / `LAYOUT` |
+| `layout_json` | JSON | 富版式正文（`body_format=LAYOUT` 时 SSOT） |
+| `layout_html` | LONGTEXT | 只读展示（查看/审核/列表摘要） |
+| `layout_template_id` | BIGINT | FK → `oa_wechat_layout_template`，**可 NULL**；仅记录应用来源 |
+| `transferred_to_knowledge` | TINYINT(1) | 是否已转知识库（0/1，ADR-023） |
+| `knowledge_id` | BIGINT | FK → `oa_knowledge_base`，转入后写入 |
+
+**与现有 `body` 关系**：
+
+| `body_format` | `body` | `layout_json` | 编辑 UX |
+|---------------|--------|---------------|---------|
+| `PLAIN` | 主正文 | NULL | Textarea（现状） |
+| `LAYOUT` | 可选摘要/AI 纯文本 | 主正文 | LayoutEditor |
+
+### 6.3 模板状态（`dict_layout_template_status`）
+
+| 状态 | value | 含义 |
+|------|-------|------|
+| 草稿 | `DRAFT` | 导入后未确认 / 编辑中 |
+| 已启用 | `ENABLED` | 可在内容创作中选择 |
+| 已停用 | `DISABLED` | 不可选；已应用的内容不受影响 |
+
+```mermaid
+stateDiagram-v2
+    [*] --> DRAFT: 创建/导入
+    DRAFT --> ENABLED: 启用
+    ENABLED --> DISABLED: 停用
+    DISABLED --> ENABLED: 重新启用
+    ENABLED --> DRAFT: 编辑重大变更(可选)
+```
+
+### 6.4 导入 Job（可选表 `oa_layout_import_job`）
+
+| 状态 | value |
+|------|-------|
+| 待处理 | `PENDING` |
+| 执行中 | `RUNNING` |
+| 成功 | `SUCCESS` |
+| 失败 | `FAILED` |
+
+### 6.5 业务规则索引
+
+- **BR-031**（类型匹配）：应用模板时 `content_type=ARTICLE` 且 document_type 规则见 ADR-019 §2.3
+- **BR-032**（快照复制）：应用模板 = 复制 JSON/HTML，模板后续变更 **不** 影响已创建内容
+- **BR-033**（审核展示）：审核/查看 **必须** 使用 `layout_html` 渲染，禁止仅展示 `body` 当 `body_format=LAYOUT`
+- **BR-034**（租户隔离）：模板 CRUD/列表 `tenant_id` 过滤（1504）
+
+### 6.6 新增字典（Accept ADR-019 后登记 GLOBAL-CONVENTIONS）
+
+| dict_type | 值示例 |
+|-----------|--------|
+| `dict_content_body_format` | PLAIN / LAYOUT |
+| `dict_layout_template_status` | DRAFT / ENABLED / DISABLED |
+| `dict_layout_template_source` | MANUAL / URL / DOCX / PASTE |
 
 ---
 

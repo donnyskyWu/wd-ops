@@ -42,12 +42,12 @@
         <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
         <el-table-column prop="contentType" label="类型" width="100" align="center">
           <template #default="{ row }">
-            {{ row.contentType || '—' }}
+            <DictLabel dict-type="dict_content_type" :value="row.contentType" />
           </template>
         </el-table-column>
         <el-table-column prop="platformType" label="平台" width="100" align="center">
           <template #default="{ row }">
-            {{ row.platformType || '—' }}
+            <DictLabel dict-type="dict_platform_type" :value="row.platformType" />
           </template>
         </el-table-column>
         <el-table-column prop="accountName" label="发布账号" width="140" show-overflow-tooltip />
@@ -60,15 +60,16 @@
         </el-table-column>
         <el-table-column prop="status" label="状态" width="120" align="center">
           <template #default="{ row }">
-            <el-tag :type="getStatusTagType(row.status)">
-              {{ row.status }}
+            <DictLabel dict-type="dict_content_status" :value="row.status" />
+            <el-tag v-if="row.transferredToKnowledge === 1" type="info" size="small" style="margin-left: 4px;">
+              已转知识库
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="170" align="center">
           <template #default="{ row }">{{ formatDateTime(row.createTime) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="220" align="center" fixed="right">
+        <el-table-column label="操作" width="340" align="center" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleView(row)">查看</el-button>
             <el-button
@@ -86,6 +87,22 @@
               @click="handleSubmitReview(row)"
             >
               提交审核
+            </el-button>
+            <el-button
+              v-if="row.status === 'PENDING_PUBLISH'"
+              link
+              type="success"
+              @click="handlePublish(row)"
+            >
+              发布
+            </el-button>
+            <el-button
+              v-if="row.status === 'PUBLISHED' && row.transferredToKnowledge !== 1"
+              link
+              type="warning"
+              @click="handleTransferKnowledge(row)"
+            >
+              转知识库
             </el-button>
             <el-button
               v-if="row.status === 'DRAFT' || row.status === 'REJECTED'"
@@ -140,6 +157,55 @@
         <el-button type="primary" @click="handleReviewSubmit">确认提交</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="publishDialogVisible" title="发布内容" width="520px" @open="loadPublishOptions">
+      <el-form :model="publishForm" label-width="90px">
+        <el-form-item label="平台" required>
+          <DictSelect
+            v-model="publishForm.platformType"
+            dict-type="dict_platform_type"
+            placeholder="请选择平台"
+            :include-values="publishablePlatformTypes"
+            @change="onPublishPlatformChange"
+          />
+        </el-form-item>
+        <el-form-item label="发布账号" required>
+          <el-select
+            v-model="publishForm.accountIds"
+            multiple
+            filterable
+            :disabled="!publishForm.platformType"
+            placeholder="请选择发布账号（可多选）"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="acc in filteredPublishAccounts"
+              :key="acc.id"
+              :label="acc.accountName"
+              :value="acc.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-alert
+          v-if="publishForm.platformType && filteredPublishAccounts.length === 0"
+          title="当前平台暂无已配置发布权限的账号"
+          type="warning"
+          :closable="false"
+          show-icon
+        />
+      </el-form>
+      <template #footer>
+        <el-button @click="publishDialogVisible = false">取消</el-button>
+        <el-button
+          type="primary"
+          :loading="publishSubmitting"
+          :disabled="!publishForm.platformType || !publishForm.accountIds.length"
+          @click="handlePublishSubmit"
+        >
+          确认发布
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -148,11 +214,21 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Download } from '@element-plus/icons-vue'
 import { exportToExcel, formatDateTime } from '@/utils'
-import { getContentList, submitContentReview, deleteContent, getContentReviewConfig } from '@/api/content'
+import {
+  getContentList,
+  submitContentReview,
+  deleteContent,
+  getContentReviewConfig,
+  getContentPublishOptions,
+  publishContent,
+  transferContentToKnowledge,
+  type ContentPublishPlatformOption,
+} from '@/api/content'
 import TableSearch from '@/components/TableSearch.vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import ContentEditDialog from './ContentEditDialog.vue'
 
 const searchForm = reactive({
@@ -178,15 +254,34 @@ const reviewConfig = ref({ level1Enabled: true, level2Enabled: true })
 
 const reviewHint = computed(() => {
   const { level1Enabled, level2Enabled } = reviewConfig.value
-  if (level1Enabled && level2Enabled) return '内容将进入一级审核 → 二级审核流程'
-  if (level1Enabled) return '内容将进入一级审核（二级审核已关闭，通过后直接发布）'
-  if (level2Enabled) return '内容将进入二级审核（一级审核已关闭）'
-  return '审核已关闭，提交后将直接发布'
+  if (level1Enabled && level2Enabled) return '内容将进入一级审核 → 二级审核 → 待发布'
+  if (level1Enabled) return '内容将进入一级审核（二级关闭，通过后进入待发布）'
+  if (level2Enabled) return '内容将进入二级审核（一级关闭，通过后进入待发布）'
+  return '审核已关闭，提交后将进入待发布'
 })
 
 const reviewForm = reactive({
   contentId: 0,
   comment: '',
+})
+
+const publishDialogVisible = ref(false)
+const publishSubmitting = ref(false)
+const publishOptions = ref<ContentPublishPlatformOption[]>([])
+const publishForm = reactive({
+  contentId: 0,
+  platformType: undefined as string | undefined,
+  accountIds: [] as number[],
+})
+
+const publishablePlatformTypes = computed(() =>
+  publishOptions.value.map((p) => p.platformType),
+)
+
+const filteredPublishAccounts = computed(() => {
+  if (!publishForm.platformType) return []
+  const platform = publishOptions.value.find((p) => p.platformType === publishForm.platformType)
+  return platform?.accounts ?? []
 })
 
 const loadReviewConfig = async () => {
@@ -271,6 +366,65 @@ const handleReviewSubmit = async () => {
   }
 }
 
+const handlePublish = (row: { id: number }) => {
+  publishForm.contentId = row.id
+  publishForm.platformType = undefined
+  publishForm.accountIds = []
+  publishOptions.value = []
+  publishDialogVisible.value = true
+}
+
+const loadPublishOptions = async () => {
+  try {
+    const res = await getContentPublishOptions(publishForm.contentId)
+    publishOptions.value = res.platforms ?? []
+  } catch {
+    publishOptions.value = []
+    ElMessage.error('加载发布选项失败')
+  }
+}
+
+const onPublishPlatformChange = () => {
+  publishForm.accountIds = []
+}
+
+const handlePublishSubmit = async () => {
+  if (!publishForm.platformType || !publishForm.accountIds.length) return
+  publishSubmitting.value = true
+  try {
+    const result = await publishContent(publishForm.contentId, {
+      platformType: publishForm.platformType,
+      accountIds: publishForm.accountIds,
+    })
+    ElMessage.success(result.mock ? '发布成功（dev mock）' : '发布成功')
+    publishDialogVisible.value = false
+    loadData()
+  } catch {
+    ElMessage.error('发布失败，请重试')
+  } finally {
+    publishSubmitting.value = false
+  }
+}
+
+const handleTransferKnowledge = async (row: { id: number; title: string }) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定将内容「${row.title}」转入知识库（案例库）吗？转入后不可重复操作。`,
+      '转知识库',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      },
+    )
+    const result = await transferContentToKnowledge(row.id)
+    ElMessage.success(`已转入知识库（ID: ${result.knowledgeId}）`)
+    loadData()
+  } catch {
+    // 用户取消或请求失败（全局拦截器已提示）
+  }
+}
+
 const handleExport = () => {
   const rows = tableData.value.map((row) => ({
     title: row.title,
@@ -308,19 +462,6 @@ const handleDelete = async (row: { id: number; title: string }) => {
   } catch {
     // 用户取消
   }
-}
-
-const getStatusTagType = (status: string) => {
-  const types: Record<string, string> = {
-    DRAFT: 'info',
-    COMPLETED: 'success',
-    PENDING_FIRST_REVIEW: 'warning',
-    PENDING_SECOND_REVIEW: 'warning',
-    PENDING_FINAL_REVIEW: 'warning',
-    PUBLISHED: 'success',
-    REJECTED: 'danger',
-  }
-  return types[status] || ''
 }
 
 onMounted(async () => {

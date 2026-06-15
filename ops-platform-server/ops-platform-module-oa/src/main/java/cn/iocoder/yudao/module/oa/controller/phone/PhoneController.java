@@ -31,9 +31,10 @@ public class PhoneController {
             @RequestParam(required = false) String phoneNumber,
             @RequestParam(required = false) Long realnameId,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String phoneType,
             @RequestParam(defaultValue = "1") Integer pageNo,
             @RequestParam(defaultValue = "10") Integer pageSize) {
-        return CommonResult.success(phoneService.list(phoneNumber, realnameId, status, pageNo, pageSize));
+        return CommonResult.success(phoneService.list(phoneNumber, realnameId, status, phoneType, pageNo, pageSize));
     }
 
     @PostMapping("/create")

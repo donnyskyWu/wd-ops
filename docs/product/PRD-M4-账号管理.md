@@ -3,7 +3,7 @@
 > **业务域**：M4 账号管理
 > **功能模块**：公司 + 实名人 + 手机 + 手机卡 + 平台账号 + 个人账号 + 三方关联
 > **详细设计章节**：5.16、5.17、5.18、5.19、5.20、5.21、5.22
-> **版本**：v1.1 | 2026-06-11
+> **版本**：v1.2 | 2026-06-15
 > **状态**：Draft
 > **🔴 关键模块**（关联属性集中地）
 > **全局规范**：[`docs/engineering/GLOBAL-CONVENTIONS.md`](./../engineering/GLOBAL-CONVENTIONS.md)
@@ -234,8 +234,24 @@
 | `keeper_id` | `<UserSelect />` | `sys_user`（**强关联**） |
 | `wechat_bound` | `<Input />` | - |
 | `status` | `<DictSelect dict-type="dict_phone_status" />` | 字典 |
+| `device_number` | `<Input />` | 设备编号 |
+| `phone_type` | `<DictSelect dict-type="dict_phone_type" />` | Android / iPhone（V85） |
+| `is_aochuang` | `<DictSelect dict-type="dict_yes_no" />` | 是否奥创手机（V85） |
+| `handler_name` | `<Input />` | 经手人（文本） |
+| `purchase_batch` | `<Input />` | 购买批次 |
+| `purchase_date` | `<DatePicker />` | 购买日期 |
+| `purchase_time` | `<TimePicker />` | 购买时间 |
+| `settings_screenshot_key` | `<ImageUpload />` | 设置页截图（V85） |
+| `front_image_key` | `<ImageUpload />` | 正面照 |
+| `back_image_key` | `<ImageUpload />` | 背面照 |
 
-#### 4.3.2 验收标准
+#### 4.3.2 变更 2026-06-15（V85 · ADR-024）
+
+- 列表支持按 `phone_type` 筛选；影像字段列表缩略图 + 详情预览
+- 保管人仍为 `keeper_id` + `<UserSelect />`（与 ADR-011 一致）
+- 图片经 `POST /oa/file/upload` 上传，存 key、返 url
+
+#### 4.3.3 验收标准
 
 **AC-M4-003-1**（手机 CRUD）
 - Given 创建手机，填写手机号 + 选择保管人
@@ -271,9 +287,13 @@
 | `assigned_user_id` | `<UserSelect />` | `sys_user`（**强关联**） |
 | `iccid` | `<Input />`（加密） | - |
 | `package_name` | `<Input />` | - |
-| `status` | `<DictSelect dict-type="dict_sim_status" />` | 字典 |
+| `status` | `<DictSelect dict-type="dict_sim_status" />` | 字典（含 **损坏 DAMAGED**、**丢失 LOST**，V85） |
 
 **表单辅助**（仅 UI，不入库）：实名人 `<RealNameSelect />` 用于筛选 `<PhoneSelect />` 可选范围（按实名人过滤手机资产）。
+
+#### 4.4.2.1 变更 2026-06-15（V85 · ADR-024）
+
+- `dict_sim_status` 新增 `DAMAGED`、`LOST`；`phone_id` 强关联逻辑不变
 
 #### 4.4.3 业务规则
 
@@ -323,6 +343,27 @@
 | `intermediary_id` | `<RealNameSelect />` | `oa_realname` | ✅ **强关联** ⭐ |
 | `cookie` | `<Input />`（AES-256 加密） | - | - |
 | `status` | `<DictSelect dict-type="dict_account_status" />` | 字典 | - |
+
+#### 4.5.2.1 公众号扩展字段（`platform_type=WECHAT_OFFICIAL` · V86 · ADR-025）
+
+| 字段 | 控件 | 说明 |
+|------|------|------|
+| `trademark_name` | `<Input />` | 商标名称 |
+| `email` | `<Input />` | 邮箱 |
+| `password_encrypted` | 密码框 | AES-256 |
+| `qualification_type` | `<DictSelect dict-type="dict_qualification_type" />` | 企业 / 个人 |
+| `usage_status` | `<DictSelect dict-type="dict_wechat_usage_status" />` | 注册 / 认证 / 续费 |
+| `original_account_name` | `<Input />` | 原公众号名称 |
+| `cert_expiry_time` | 日期时间 | 认证到期 |
+| `cert_count` | 只读 | 认证次数 |
+| `linked_video_account_id` | `<AccountSelect />` | 关联视频号 |
+| `video_account_registered_at` | 日期时间 | 视频号注册时间 |
+| `admin_name` / `admin_user_id` | 文本 + `<UserSelect />` | 管理员 |
+| `admin_id_card_encrypted` | `<Input />` | 管理员身份证 AES-256 |
+
+**条件表单**：`qualification_type=ENTERPRISE` → 必填 `company_id`；`PERSONAL` → 展示实名人相关项、隐藏企业主体。
+
+**续费认证记录**（子表 `oa_wechat_official_cert_renewal`）：续费时间、续费人（UserSelect）、续费金额（默认 300）；详情页表格 CRUD。
 
 #### 4.5.3 业务规则
 
@@ -529,6 +570,8 @@
 | ADR-M4-004 | 已绑定实名人被其他账号选择时如何处理？ | 默认禁止 + "强制替换" | 数据一致性 | 2026-06-07 |
 | ADR-010 | 个微联系号 `contact_phone` | 明文手动输入，与 `phone_id` 并存 | 运营联系号与设备资产解耦 | 2026-06-11 |
 | ADR-011 | 手机表是否绑实名人？ | 否；保管人 UserSelect | 避免与平台账号重复关联 | 2026-06-11 |
+| ADR-024 | 手机影像/采购/类型/奥创 | V85 扩展字段 + sim DAMAGED/LOST | 运营资产追溯 | 2026-06-15 |
+| ADR-025 | 公众号认证续费 | V86 扩展字段 + 续费子表 | 合规与费用留痕 | 2026-06-15 |
 
 ---
 

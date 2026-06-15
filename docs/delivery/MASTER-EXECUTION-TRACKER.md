@@ -101,6 +101,7 @@
 | 文档 | **DOC-SYNC-20260611-2** | M8 v2.1（AccountSelect/企微Tab/个微奥创/V50-V51�? M6 v1.2（报表snake_case/漏斗指标/自定义查询双Tab�?| �?| 代码↔Spec 二次对齐 |
 | 文档 | **DOC-SYNC-M8-MERGE** | 根目�?`配置管理模块PRD.md` v1.0 �?`PRD-M8` v2.2 全量合并；根文件改为 SSOT 跳转 | �?| 单一 PRD �?|
 | 文档 | **DOC-SYNC-20260613** | M2/M4/M6/M8/M9 PRD·UX·API·STATE·CHECKLIST + ADR-017/018 | ✅ | [CHANGELOG-SESSION-20260613.md](./CHANGELOG-SESSION-20260613.md) |
+| 文档 | **DOC-SYNC-20260615** | M1/M2/M4/M5/M9 · V85–V88 · FR-143/145/147 + ADR-024~026 | ✅ | [CHANGELOG-IMPL-20260615.md](./changelog/CHANGELOG-IMPL-20260615.md) |
 
 **累计走查发现并修�?*�?0+ 个真 bug（mock 数据 13 处、enum 不对�?6+、KPI 聚合 8 处、分页契�?6 处、UI render bug 5 处、跨模块 9 处、schema drift 4 处、字段名错位 10 处、错码冲�?4 处�? selector mock 切换 7 处）
 

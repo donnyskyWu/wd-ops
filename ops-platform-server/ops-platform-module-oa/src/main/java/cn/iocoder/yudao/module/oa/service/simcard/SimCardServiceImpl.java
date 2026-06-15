@@ -68,8 +68,10 @@ public class SimCardServiceImpl implements SimCardService {
         Page<SimCardDO> page = simCardMapper.selectPage(
                 new Page<>(pageNo == null ? 1 : pageNo, pageSize == null ? 10 : pageSize), wrapper);
         Map<Long, String> userNames = loadUserNames(page.getRecords());
+        Map<Long, PhoneDO> phones = loadPhones(page.getRecords());
         List<SimCardRespVO> list = page.getRecords().stream()
-                .map(entity -> toResp(entity, userNames.get(entity.getAssignedUserId()), loadAccountStats(entity)))
+                .map(entity -> toResp(entity, userNames.get(entity.getAssignedUserId()),
+                        loadAccountStats(entity), phones.get(entity.getPhoneId())))
                 .collect(Collectors.toList());
         return new PageResult<>(list, page.getTotal());
     }
@@ -296,10 +298,30 @@ public class SimCardServiceImpl implements SimCardService {
         return list.stream().collect(Collectors.toMap(SysUserDO::getId, SysUserDO::getNickname, (a, b) -> a));
     }
 
-    private SimCardRespVO toResp(SimCardDO entity, String assignedUserName, AccountStats stats) {
+    private Map<Long, PhoneDO> loadPhones(List<SimCardDO> records) {
+        List<Long> ids = records.stream()
+                .map(SimCardDO::getPhoneId)
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .collect(Collectors.toList());
+        if (ids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<PhoneDO> list = phoneMapper.selectBatchIds(ids);
+        if (list == null || list.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return list.stream().collect(Collectors.toMap(PhoneDO::getId, p -> p, (a, b) -> a));
+    }
+
+    private SimCardRespVO toResp(SimCardDO entity, String assignedUserName, AccountStats stats, PhoneDO phone) {
         SimCardRespVO vo = new SimCardRespVO();
         vo.setId(entity.getId());
         vo.setPhoneId(entity.getPhoneId());
+        if (phone != null) {
+            vo.setPhoneCode(phone.getPhoneCode());
+            vo.setPhoneModel(phone.getPhoneModel());
+        }
         vo.setPhoneNumberMasked(maskPhone(entity.getPhoneNumberEncrypted()));
         vo.setIsPrimary(entity.getIsPrimary());
         vo.setOperator(entity.getOperator());

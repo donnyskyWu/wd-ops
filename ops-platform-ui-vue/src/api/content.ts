@@ -108,6 +108,34 @@ export function getContentReviewConfig(): Promise<{
   return request.get({ url: '/oa/content/review-config' })
 }
 
+export interface ContentPublishPlatformOption {
+  platformType: string
+  platformName: string
+  accounts: Array<{
+    id: number
+    accountName: string
+    externalAccountId?: string
+    publishEnabled?: boolean
+  }>
+}
+
+export function getContentPublishOptions(id: number): Promise<{ platforms: ContentPublishPlatformOption[] }> {
+  return request.get({ url: `/oa/content/${id}/publish-options` })
+}
+
+export function publishContent(id: number, data: { platformType: string; accountIds: number[] }) {
+  return request.post<{ contentId: number; status: string; mock?: boolean; records?: unknown[] }>({
+    url: `/oa/content/${id}/publish`,
+    data,
+  })
+}
+
+export function transferContentToKnowledge(id: number) {
+  return request.post<{ contentId: number; knowledgeId: number }>({
+    url: `/oa/content/${id}/transfer-to-knowledge`,
+  })
+}
+
 export default {
   getContentList,
   createContent,
@@ -124,4 +152,7 @@ export default {
   generateContent,
   getMyIpGroups,
   getContentReviewConfig,
+  getContentPublishOptions,
+  publishContent,
+  transferContentToKnowledge,
 }

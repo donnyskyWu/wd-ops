@@ -13,10 +13,7 @@
         <el-input v-model="searchForm.wechatId" placeholder="请输入微信号" clearable />
       </el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="searchForm.status" placeholder="全部" clearable>
-          <el-option label="正常" value="ENABLED" />
-          <el-option label="停用" value="DISABLED" />
-        </el-select>
+        <DictSelect v-model="searchForm.status" dict-type="dict_status_enabled" placeholder="全部" clearable />
       </el-form-item>
       <template #extra>
         <el-button type="success" :loading="exportLoading" @click="handleExport">
@@ -57,11 +54,14 @@
         <el-table-column prop="phone" label="手机号" width="130" />
         <el-table-column prop="department" label="部门" width="120" />
         <el-table-column prop="position" label="岗位" width="120" />
+        <el-table-column label="关联个微" min-width="140" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.linkedPersonalWechatName ? `${row.linkedPersonalWechatName} (${row.linkedWechatId || '-'})` : '--' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="80" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" size="small">
-              {{ row.status === 'ENABLED' ? '正常' : '停用' }}
-            </el-tag>
+            <DictLabel dict-type="dict_status_enabled" :value="row.status" />
           </template>
         </el-table-column>
         <el-table-column label="操作" width="160" fixed="right" align="center">
@@ -80,11 +80,14 @@
       <el-table-column prop="accountName" label="微信名" min-width="140" show-overflow-tooltip />
       <el-table-column prop="wechatId" label="微信号" width="160" />
       <el-table-column prop="contactPhone" label="联系电话" width="130" />
+      <el-table-column label="关联企微" min-width="140" show-overflow-tooltip>
+        <template #default="{ row }">
+          {{ row.linkedWeworkEmployeeName ? `${row.linkedWeworkEmployeeName} (${row.linkedWeworkUserId || '-'})` : '--' }}
+        </template>
+      </el-table-column>
       <el-table-column prop="status" label="状态" width="80" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" size="small">
-            {{ row.status === 'ENABLED' ? '正常' : '停用' }}
-          </el-tag>
+          <DictLabel dict-type="dict_status_enabled" :value="row.status" />
         </template>
       </el-table-column>
       <el-table-column prop="createTime" label="创建时间" width="170" />
@@ -132,10 +135,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="状态">
-              <el-select v-model="employeeForm.status" style="width: 100%">
-                <el-option label="正常" value="ENABLED" />
-                <el-option label="停用" value="DISABLED" />
-              </el-select>
+              <DictSelect v-model="employeeForm.status" dict-type="dict_status_enabled" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -152,6 +152,26 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <el-divider content-position="left">关联个微</el-divider>
+        <el-form-item label="关联个微">
+          <el-select
+            v-model="employeeForm.linkedPersonalWechatId"
+            clearable
+            filterable
+            remote
+            :remote-method="searchPersonalWechatOptions"
+            :loading="personalWechatOptionsLoading"
+            placeholder="选择关联的个人微信"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="item in personalWechatOptions"
+              :key="item.id"
+              :label="`${item.accountName} (${item.wechatId})`"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="employeeDialogVisible = false">取消</el-button>
@@ -176,9 +196,25 @@
           />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="personalForm.status" style="width: 100%">
-            <el-option label="正常" value="ENABLED" />
-            <el-option label="停用" value="DISABLED" />
+          <DictSelect v-model="personalForm.status" dict-type="dict_status_enabled" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="关联企微">
+          <el-select
+            v-model="personalForm.linkedWeworkEmployeeId"
+            clearable
+            filterable
+            remote
+            :remote-method="searchWeworkEmployeeOptions"
+            :loading="weworkEmployeeOptionsLoading"
+            placeholder="选择关联的企微员工"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="item in weworkEmployeeOptions"
+              :key="item.id"
+              :label="`${item.nickname} (${item.weworkUserId})`"
+              :value="item.id"
+            />
           </el-select>
         </el-form-item>
       </el-form>
@@ -188,20 +224,20 @@
       </template>
     </el-dialog>
 
-    <!-- 个微详情（奥创只读） -->
+    <!-- 个微详情 -->
     <el-drawer v-model="detailVisible" title="个微详情" size="480px">
       <el-descriptions v-if="detailData" :column="1" border>
         <el-descriptions-item label="微信名">{{ detailData.accountName }}</el-descriptions-item>
         <el-descriptions-item label="微信号">{{ detailData.wechatId }}</el-descriptions-item>
         <el-descriptions-item label="联系电话">{{ detailData.contactPhone || detailData.phoneNumberMasked || '--' }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{ detailData.status === 'ENABLED' ? '正常' : '停用' }}</el-descriptions-item>
-      </el-descriptions>
-      <el-divider content-position="left">奥创接口（只读脱敏）</el-divider>
-      <el-descriptions v-if="detailData" :column="1" border>
-        <el-descriptions-item label="API URL">{{ detailData.apiUrl || '--' }}</el-descriptions-item>
-        <el-descriptions-item label="App ID">{{ detailData.appId || '--' }}</el-descriptions-item>
-        <el-descriptions-item label="App Secret">{{ detailData.appSecret || '--' }}</el-descriptions-item>
-        <el-descriptions-item label="Token">{{ detailData.token || '--' }}</el-descriptions-item>
+        <el-descriptions-item label="关联企微">
+          {{ detailData.linkedWeworkEmployeeName
+            ? `${detailData.linkedWeworkEmployeeName} (${detailData.linkedWeworkUserId || '-'})`
+            : '--' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <DictLabel dict-type="dict_status_enabled" :value="detailData.status" />
+        </el-descriptions-item>
       </el-descriptions>
     </el-drawer>
   </div>
@@ -213,6 +249,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Download } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import Pagination from '@/components/Pagination.vue'
+import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import WeworkAppConfigPanel from '@/components/WeworkAppConfigPanel.vue'
 import { exportToExcel } from '@/utils'
 import {
@@ -257,8 +295,10 @@ const personalForm = reactive({
   accountName: '',
   wechatId: '',
   contactPhone: '',
+  linkedWeworkEmployeeId: undefined as number | undefined,
   status: 'ENABLED',
 })
+const originalLinkedWeworkEmployeeId = ref<number | undefined>()
 const personalRules = {
   accountName: [{ required: true, message: '请输入微信名', trigger: 'blur' }],
   wechatId: [{ required: true, message: '请输入微信号', trigger: 'blur' }],
@@ -281,8 +321,10 @@ const employeeForm = reactive({
   phone: '',
   department: '',
   position: '',
+  linkedPersonalWechatId: undefined as number | undefined,
   status: 'ENABLED',
 })
+const originalLinkedPersonalWechatId = ref<number | undefined>()
 const employeeRules = {
   nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
   weworkUserId: [{ required: true, message: '请输入企微 ID', trigger: 'blur' }],
@@ -297,6 +339,70 @@ const employeeRules = {
 
 const detailVisible = ref(false)
 const detailData = ref<PersonalWechatVO | null>(null)
+const weworkEmployeeOptions = ref<WeworkEmployeeVO[]>([])
+const weworkEmployeeOptionsLoading = ref(false)
+const personalWechatOptions = ref<PersonalWechatVO[]>([])
+const personalWechatOptionsLoading = ref(false)
+
+const searchWeworkEmployeeOptions = async (keyword = '') => {
+  if (!weworkConfig.value) {
+    weworkEmployeeOptions.value = []
+    return
+  }
+  weworkEmployeeOptionsLoading.value = true
+  try {
+    const res = await getWeworkEmployeePage({
+      weworkAccountId: weworkConfig.value.id,
+      nickname: keyword || undefined,
+      pageNo: 1,
+      pageSize: 50,
+    })
+    weworkEmployeeOptions.value = res.list
+  } finally {
+    weworkEmployeeOptionsLoading.value = false
+  }
+}
+
+const searchPersonalWechatOptions = async (keyword = '') => {
+  personalWechatOptionsLoading.value = true
+  try {
+    const res = await getPersonalWechatPage({
+      accountName: keyword || undefined,
+      pageNo: 1,
+      pageSize: 50,
+    })
+    personalWechatOptions.value = res.list
+  } finally {
+    personalWechatOptionsLoading.value = false
+  }
+}
+
+const ensureWeworkEmployeeOption = (row?: WeworkEmployeeVO | PersonalWechatVO | null) => {
+  if (!row || !('linkedWeworkEmployeeId' in row) || !row.linkedWeworkEmployeeId) return
+  const exists = weworkEmployeeOptions.value.some((item) => item.id === row.linkedWeworkEmployeeId)
+  if (!exists) {
+    weworkEmployeeOptions.value.unshift({
+      id: row.linkedWeworkEmployeeId,
+      weworkAccountId: weworkConfig.value?.id || 0,
+      nickname: row.linkedWeworkEmployeeName || `员工#${row.linkedWeworkEmployeeId}`,
+      weworkUserId: row.linkedWeworkUserId || '',
+      status: 'ENABLED',
+    })
+  }
+}
+
+const ensurePersonalWechatOption = (row?: WeworkEmployeeVO | PersonalWechatVO | null) => {
+  if (!row || !('linkedPersonalWechatId' in row) || !row.linkedPersonalWechatId) return
+  const exists = personalWechatOptions.value.some((item) => item.id === row.linkedPersonalWechatId)
+  if (!exists) {
+    personalWechatOptions.value.unshift({
+      id: row.linkedPersonalWechatId,
+      accountName: row.linkedPersonalWechatName || `个微#${row.linkedPersonalWechatId}`,
+      wechatId: row.linkedWechatId || '',
+      status: 'ENABLED',
+    })
+  }
+}
 
 const loadEmployees = async () => {
   if (!weworkConfig.value) {
@@ -453,7 +559,16 @@ const handleExport = async () => {
 const handleAdd = () => {
   if (activePlatform.value !== 'WEWORK') {
     personalDialogTitle.value = '新增个微'
-    Object.assign(personalForm, { id: undefined, accountName: '', wechatId: '', contactPhone: '', status: 'ENABLED' })
+    Object.assign(personalForm, {
+      id: undefined,
+      accountName: '',
+      wechatId: '',
+      contactPhone: '',
+      linkedWeworkEmployeeId: undefined,
+      status: 'ENABLED',
+    })
+    originalLinkedWeworkEmployeeId.value = undefined
+    searchWeworkEmployeeOptions()
     personalDialogVisible.value = true
   }
 }
@@ -465,8 +580,12 @@ const handleEditPersonal = (row: PersonalWechatVO) => {
     accountName: row.accountName,
     wechatId: row.wechatId,
     contactPhone: row.contactPhone || '',
+    linkedWeworkEmployeeId: row.linkedWeworkEmployeeId,
     status: row.status,
   })
+  originalLinkedWeworkEmployeeId.value = row.linkedWeworkEmployeeId
+  searchWeworkEmployeeOptions()
+  ensureWeworkEmployeeOption(row)
   personalDialogVisible.value = true
 }
 
@@ -483,8 +602,11 @@ const handleAddEmployee = () => {
     phone: '',
     department: '',
     position: '',
+    linkedPersonalWechatId: undefined,
     status: 'ENABLED',
   })
+  originalLinkedPersonalWechatId.value = undefined
+  searchPersonalWechatOptions()
   employeeDialogVisible.value = true
 }
 
@@ -497,8 +619,12 @@ const handleEditEmployee = (row: WeworkEmployeeVO) => {
     phone: row.phone || '',
     department: row.department || '',
     position: row.position || '',
+    linkedPersonalWechatId: row.linkedPersonalWechatId,
     status: row.status,
   })
+  originalLinkedPersonalWechatId.value = row.linkedPersonalWechatId
+  searchPersonalWechatOptions()
+  ensurePersonalWechatOption(row)
   employeeDialogVisible.value = true
 }
 
@@ -513,7 +639,7 @@ const submitEmployee = async () => {
   if (!employeeFormRef.value || !weworkConfig.value) return
   await employeeFormRef.value.validate()
   if (employeeForm.id) {
-    await updateWeworkEmployee({
+    const payload: Parameters<typeof updateWeworkEmployee>[0] = {
       id: employeeForm.id,
       nickname: employeeForm.nickname,
       weworkUserId: employeeForm.weworkUserId,
@@ -521,7 +647,13 @@ const submitEmployee = async () => {
       department: employeeForm.department || undefined,
       position: employeeForm.position || undefined,
       status: employeeForm.status,
-    })
+    }
+    if (employeeForm.linkedPersonalWechatId != null) {
+      payload.linkedPersonalWechatId = employeeForm.linkedPersonalWechatId
+    } else if (originalLinkedPersonalWechatId.value != null) {
+      payload.clearLinkedPersonalWechat = true
+    }
+    await updateWeworkEmployee(payload)
   } else {
     await createWeworkEmployee({
       weworkAccountId: weworkConfig.value.id,
@@ -530,6 +662,7 @@ const submitEmployee = async () => {
       phone: employeeForm.phone || undefined,
       department: employeeForm.department || undefined,
       position: employeeForm.position || undefined,
+      linkedPersonalWechatId: employeeForm.linkedPersonalWechatId,
       status: employeeForm.status,
     })
   }
@@ -547,18 +680,25 @@ const submitPersonal = async () => {
   if (!personalFormRef.value) return
   await personalFormRef.value.validate()
   if (personalForm.id) {
-    await updatePersonalWechat({
+    const payload: Parameters<typeof updatePersonalWechat>[0] = {
       id: personalForm.id,
       accountName: personalForm.accountName,
       wechatId: personalForm.wechatId,
       contactPhone: personalForm.contactPhone.trim(),
       status: personalForm.status,
-    })
+    }
+    if (personalForm.linkedWeworkEmployeeId != null) {
+      payload.linkedWeworkEmployeeId = personalForm.linkedWeworkEmployeeId
+    } else if (originalLinkedWeworkEmployeeId.value != null) {
+      payload.clearLinkedWeworkEmployee = true
+    }
+    await updatePersonalWechat(payload)
   } else {
     await createPersonalWechat({
       accountName: personalForm.accountName,
       wechatId: personalForm.wechatId,
       contactPhone: personalForm.contactPhone.trim() || undefined,
+      linkedWeworkEmployeeId: personalForm.linkedWeworkEmployeeId,
       status: personalForm.status,
     })
   }

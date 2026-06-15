@@ -7,7 +7,7 @@ import cn.iocoder.yudao.module.oa.api.dto.phone.PhoneUpdateReq;
 
 public interface PhoneService {
 
-    PageResult<PhoneRespVO> list(String phoneNumber, Long realnameId, String status,
+    PageResult<PhoneRespVO> list(String phoneNumber, Long realnameId, String status, String phoneType,
                                  Integer pageNo, Integer pageSize);
 
     Long create(PhoneCreateReq req);

@@ -117,9 +117,19 @@
 | F-KEEPER | `<UserSelect />` | `sys_user` |
 | F-WECHAT | `<Input />` | 绑定微信 |
 | F-STATUS | `<DictSelect dict-type="dict_phone_status" />` | 字典 |
-| TBL-PHONE | 表格 | `oa_account_phone` |
+| F-DEVICE-NO | `<Input />` | 设备编号（V85） |
+| F-PHONE-TYPE | `<DictSelect dict-type="dict_phone_type" />` | Android / iPhone |
+| F-AOCHUANG | `<DictSelect dict-type="dict_yes_no" />` | 奥创手机 |
+| F-HANDLER | `<Input />` | 经手人 |
+| F-PURCHASE | 批次/日期/时间 | 采购信息区 |
+| F-IMAGES | `<ImageUpload />` ×3 | 设置截图、正/背面照 |
+| SRCH-PHONE-TYPE | 筛选 | 列表按手机类型 |
+| TBL-PHONE | 表格 | `oa_phone` |
 | COL-PHONE-NUMBER | 表格列 | 脱敏显示 |
 | COL-KEEPER | 表格列 | 保管人姓名 |
+| COL-IMAGES | 表格列 | 缩略图预览 |
+
+> **变更 2026-06-15**（ADR-024）：表单分「基础 / 采购 / 影像」；保管人仍为 `<UserSelect />`。
 
 ---
 
@@ -134,7 +144,7 @@
 | F-IS-PRIMARY | `<DictSelect dict-type="dict_yes_no" />` | 字典 |
 | F-PACKAGE | `<Input />` | 套餐名称 |
 | F-ASSIGNED | `<UserSelect />` | 归属人 `sys_user` |
-| F-STATUS | `<DictSelect dict-type="dict_sim_status" />` | 字典 |
+| F-STATUS | `<DictSelect dict-type="dict_sim_status" />` | 含 DAMAGED/LOST（V85） |
 | TBL-SIM | 表格 | `oa_sim_card` |
 | COL-LINKED-COUNT | 表格列 | 关联账号数（可点击） |
 | BTN-VIEW-LINKED | 链接 | "跨平台查询" |
@@ -179,6 +189,9 @@
 |------|------|
 | 基本信息 | 账号名、平台、IP 组、状态 |
 | 🔴 强关联 | 实名人、手机、手机卡、公司、中介人（**全部选择器**） |
+| 公众号扩展（WECHAT_OFFICIAL） | 商标、邮箱、密码、资质类型、使用状态、认证到期、视频号关联、管理员（UserSelect）、身份证（脱敏） |
+| 条件表单 | 企业 → 公司必选；个人 → 隐藏企业、展示实名人区 |
+| 续费认证 | 表格：续费时间/续费人/金额；「新增续费」弹窗（ADR-025） |
 | 凭证 | Cookie / authorization_token（脱敏） |
 | 关联 | 关联的内容/粉丝/作品数据 |
 

@@ -16,7 +16,7 @@
         <el-descriptions-item label="赛事">{{ context.competitionName || context.competitionId || '—' }}</el-descriptions-item>
         <el-descriptions-item label="SLA 截止">{{ formatDateTime(context.slaDeadline) }}</el-descriptions-item>
         <el-descriptions-item label="状态">
-          <el-tag>{{ context.status }}</el-tag>
+          <DictLabel dict-type="dict_sop_node_status" :value="context.status" />
         </el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -77,7 +77,9 @@
       <div v-if="context?.nodeType === 'CONTENT_GENERATION'" class="action-block">
         <template v-if="context.linkedContent">
           <el-alert type="info" :closable="false" show-icon class="content-summary">
-            已关联内容：{{ context.linkedContent.title }}（{{ context.linkedContent.status }}）
+            已关联内容：{{ context.linkedContent.title }}（
+            <DictLabel dict-type="dict_content_status" :value="context.linkedContent.status" />
+            ）
           </el-alert>
           <el-button type="primary" @click="openContentDialog">
             {{ isLinkedContentPendingReview ? '查看内容' : '编辑内容' }}
@@ -129,6 +131,7 @@ import type { UploadRequestOptions } from 'element-plus'
 import { completeTaskExecute, getTaskExecute, saveTaskExecute, uploadTaskExecuteAttachment } from '@/api/task'
 import type { TaskAttachmentVO, TaskExecuteVO } from '@/types/task'
 import ContentEditDialog from '@/views/production/content/ContentEditDialog.vue'
+import DictLabel from '@/components/DictLabel.vue'
 
 const route = useRoute()
 const router = useRouter()

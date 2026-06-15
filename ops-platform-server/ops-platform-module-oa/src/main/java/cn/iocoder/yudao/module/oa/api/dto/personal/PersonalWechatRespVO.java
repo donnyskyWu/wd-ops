@@ -11,6 +11,9 @@ public class PersonalWechatRespVO {
     private String contactPhone;
     private Long phoneId;
     private String phoneNumberMasked;
+    private Long linkedWeworkEmployeeId;
+    private String linkedWeworkEmployeeName;
+    private String linkedWeworkUserId;
     private String status;
     private String apiUrl;
     private String appId;

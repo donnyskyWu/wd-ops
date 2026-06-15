@@ -36,14 +36,22 @@
       <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无待审核内容">
         <el-table-column type="index" label="#" width="60" align="center" />
         <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="contentTypeLabel" label="类型" width="100" align="center" />
+        <el-table-column prop="contentTypeLabel" label="类型" width="100" align="center">
+          <template #default="{ row }">
+            <DictLabel dict-type="dict_content_type" :value="row.contentType" />
+          </template>
+        </el-table-column>
         <el-table-column prop="competitionName" label="赛事" width="160" show-overflow-tooltip />
-        <el-table-column prop="platformName" label="平台" width="100" align="center" />
+        <el-table-column prop="platformName" label="平台" width="100" align="center">
+          <template #default="{ row }">
+            <DictLabel dict-type="dict_platform_type" :value="row.platformType" />
+          </template>
+        </el-table-column>
         <el-table-column prop="submitter" label="提交人" width="100" />
         <el-table-column prop="submittedAt" label="提交时间" width="170" align="center" />
         <el-table-column prop="stage" label="当前阶段" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag>{{ row.stage }}</el-tag>
+          <template #default>
+            <DictLabel dict-type="dict_review_stage" :value="STAGE_API[activeStage]" />
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="120" align="center">
@@ -104,8 +112,9 @@
           </el-descriptions-item>
         </el-descriptions>
 
-        <el-divider content-position="left">正文</el-divider>
-        <div class="body">{{ current.body || '—' }}</div>
+        <el-divider content-position="left">{{ current.bodyFormat === 'LAYOUT' ? '富版式正文' : '正文' }}</el-divider>
+        <LayoutViewer v-if="current.bodyFormat === 'LAYOUT'" :html="current.layoutHtml" />
+        <div v-else class="body">{{ current.body || '—' }}</div>
 
         <el-divider />
         <el-form v-if="current && isPendingReview(current.status)" label-width="80px">
@@ -132,6 +141,7 @@ import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
+import LayoutViewer from '@/components/layout/LayoutViewer.vue'
 
 const STAGE_STATUS: Record<string, string> = {
   FIRST: 'PENDING_FIRST_REVIEW',
@@ -214,12 +224,10 @@ const loadData = async () => {
     const stageLabel = STAGE_LABEL[activeStage.value] || activeStage.value
     tableData.value = (result.list || []).map((row: any) => ({
       ...row,
-      platformName: row.platformType || '—',
       submitter: row.creatorUserName || '—',
       submittedAt: formatDateTime(row.createTime),
       stage: stageLabel,
       competitionName: row.competitionName || row.competitionId || '—',
-      contentTypeLabel: row.contentType || '—',
     }))
     pagination.total = result.total ?? tableData.value.length
   } catch (error) {

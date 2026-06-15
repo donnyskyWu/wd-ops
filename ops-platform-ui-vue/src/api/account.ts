@@ -41,6 +41,40 @@ export function updatePlatformAccount(data: Record<string, unknown>) {
   return request.put({ url: '/oa/account/update', data })
 }
 
+// ==================== 粉丝群（抖音/快手） ====================
+
+export interface FanGroupVO {
+  id: number
+  accountId: number
+  groupName: string
+  memberCount: number
+  createTime?: string
+}
+
+export function getPlatformAccountFanGroups(accountId: number): Promise<FanGroupVO[]> {
+  return request.get({ url: '/oa/account/fan-group/list', params: { accountId } })
+}
+
+export function createPlatformAccountFanGroup(data: {
+  accountId: number
+  groupName: string
+  memberCount: number
+}): Promise<number> {
+  return request.post({ url: '/oa/account/fan-group/create', data })
+}
+
+export function updatePlatformAccountFanGroup(data: {
+  id: number
+  groupName: string
+  memberCount: number
+}): Promise<boolean> {
+  return request.put({ url: '/oa/account/fan-group/update', data })
+}
+
+export function deletePlatformAccountFanGroup(id: number): Promise<boolean> {
+  return request.delete({ url: '/oa/account/fan-group/delete', params: { id } })
+}
+
 // ==================== 趋势数据 ====================
 
 /**

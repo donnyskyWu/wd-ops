@@ -29,13 +29,18 @@
           <span class="masked-text">{{ row.iccidMasked || '--' }}</span>
         </template>
       </el-table-column>
+      <el-table-column prop="phoneCode" label="关联手机编号" width="120">
+        <template #default="{ row }">{{ row.phoneCode || '--' }}</template>
+      </el-table-column>
       <el-table-column prop="phoneNumberMasked" label="手机号" width="130">
         <template #default="{ row }">
           <span class="masked-text">{{ row.phoneNumberMasked || '--' }}</span>
         </template>
       </el-table-column>
       <el-table-column prop="operator" label="运营商" width="100">
-        <template #default="{ row }">{{ OPERATOR_MAP[row.operator] || row.operator }}</template>
+        <template #default="{ row }">
+          <DictLabel dict-type="dict_sim_operator" :value="row.operator" />
+        </template>
       </el-table-column>
       <el-table-column prop="packageName" label="套餐" width="120" />
       <el-table-column prop="totalLinkedAccounts" label="关联账号" width="100" align="center">
@@ -48,9 +53,7 @@
       <el-table-column prop="assignedUserName" label="归属人" width="100" />
       <el-table-column prop="status" label="状态" width="80" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" size="small">
-            {{ row.status === 'ENABLED' ? '在用' : '停用' }}
-          </el-tag>
+          <DictLabel dict-type="dict_sim_status" :value="row.status" />
         </template>
       </el-table-column>
       <el-table-column label="操作" width="200" fixed="right">
@@ -75,15 +78,16 @@
       @size-change="handleSearch"
     />
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
-      <el-form :model="formData" ref="formRef" :rules="formRules" label-width="100px">
-        <el-form-item label="实名人" prop="realnameId">
-          <RealNameSelect v-model="formData.realnameId" />
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="640px">
+      <el-form :model="formData" ref="formRef" :rules="formRules" label-width="110px">
+        <el-form-item label="实名人筛选">
+          <RealNameSelect v-model="formData.realnameId" placeholder="可选，用于筛选手机列表" clearable />
         </el-form-item>
-        <el-form-item label="手机号" prop="phoneId">
+        <el-form-item label="关联手机" prop="phoneId">
           <PhoneSelect
             v-model="formData.phoneId"
             :real-name-id="formData.realnameId"
+            placeholder="从手机管理中选择"
           />
         </el-form-item>
         <el-form-item label="ICCID" prop="iccid">
@@ -120,6 +124,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Download } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import UserSelect from '@/components/selectors/UserSelect.vue'
 import RealNameSelect from '@/components/selectors/RealNameSelect.vue'
 import PhoneSelect from '@/components/selectors/PhoneSelect.vue'
@@ -131,6 +136,13 @@ import {
   updateSimCard,
   type SimCardVO,
 } from '@/api/simcard'
+
+const STATUS_LABEL: Record<string, string> = {
+  ENABLED: '在用',
+  DISABLED: '停用',
+  DAMAGED: '损坏',
+  LOST: '丢失',
+}
 
 const OPERATOR_MAP: Record<string, string> = {
   MOBILE: '中国移动',
@@ -206,15 +218,17 @@ const handleExport = async () => {
     const rows = await fetchAllFilteredRows()
     const exportData = rows.map((row) => ({
       iccidMasked: row.iccidMasked || '',
+      phoneCode: row.phoneCode || '',
       phoneNumberMasked: row.phoneNumberMasked || '',
       operator: OPERATOR_MAP[row.operator] || row.operator || '',
       packageName: row.packageName || '',
       totalLinkedAccounts: row.totalLinkedAccounts ?? 0,
       assignedUserName: row.assignedUserName || '',
-      status: row.status === 'ENABLED' ? '在用' : '停用',
+      status: STATUS_LABEL[row.status] || row.status || '',
     }))
     const columns = [
       { key: 'iccidMasked', label: 'ICCID' },
+      { key: 'phoneCode', label: '关联手机编号' },
       { key: 'phoneNumberMasked', label: '手机号' },
       { key: 'operator', label: '运营商' },
       { key: 'packageName', label: '套餐' },
@@ -251,8 +265,7 @@ const formData = reactive({
 })
 
 const formRules = {
-  realnameId: [{ required: true, message: '请选择实名人', trigger: 'change' }],
-  phoneId: [{ required: true, message: '请选择手机号', trigger: 'change' }],
+  phoneId: [{ required: true, message: '请选择关联手机', trigger: 'change' }],
   iccid: [{ required: true, message: '请输入 ICCID', trigger: 'blur' }],
   operator: [{ required: true, message: '请选择运营商', trigger: 'change' }],
   assignedUserId: [{ required: true, message: '请选择归属人', trigger: 'change' }],

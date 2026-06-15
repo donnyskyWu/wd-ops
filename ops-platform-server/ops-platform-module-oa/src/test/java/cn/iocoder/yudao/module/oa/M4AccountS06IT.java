@@ -106,7 +106,9 @@ class M4AccountS06IT extends OaITBase {
                                   "status": "NORMAL"
                                 }
                                 """, assets.companyId(), assets.realnameId(), assets.phoneId())))
-                .andExpect(jsonPath("$.code").value(1502));
+                .andExpect(jsonPath("$.code").value(1502))
+                .andExpect(jsonPath("$.msg").value(org.hamcrest.Matchers.containsString("手机")))
+                .andExpect(jsonPath("$.msg").value(org.hamcrest.Matchers.containsString("占用")));
     }
 
     @Test

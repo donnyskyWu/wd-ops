@@ -44,6 +44,18 @@
 - [x] `M2TaskS12IT` 通过
 - [x] **S-13 任务内容编辑**（AC-M2-003-6~10）：文档类型 / 文案引用 / 保存确认 COMPLETED
 - [x] `M2ContentS13IT` 通过
+- [x] **S-14 公推模板库**（AC-M2-005-1~7）：模板 CRUD / 导入 / 应用模板 / 富版式正文
+- [x] **S-14b** `layout_schema` + `extractLayoutSchema` + V79 迁移
+- [x] **S-14c** `LayoutMergeService` + apply/preview merge API + 错误码 2036~2038
+- [x] **S-14d** 前端骨架预览、套用预览、导入免责声明
+- [x] **FR-143** ARTICLE 正文 `RichTextEditor` 统一（2026-06-15）
+- [x] **FR-147** 模板编辑页同源 `RichTextEditor`（2026-06-15）
+- [x] **FR-145** V87 图文混排预置模板 seed（2026-06-15）
+- [x] 编辑器全屏/版式侧栏默认收起/图片宽度/微信 HTML（ADR-021 §5）
+- [x] **S-14e** V80 五款 PRESET seed + IT 修订
+- [x] `M2LayoutTemplateS14IT` 通过（merge 保真 P0）
+- [x] ADR-019 **Accepted**（§导入/§套用由 ADR-020 supersede）
+- [x] ADR-020 **Accepted**
 - [x] **BLK-M2-008** 执行说明：`instruction_text` + SOP 编辑 + 执行页展示
 - [x] **BLK-M2-007** 附件只读：`attachment_urls` JSON + Seed + 执行页链接（无上传 API）
 - [ ] ADR-016 其余阻塞项（BLK-M2-004~006、009~011）已产品确认或标注延期

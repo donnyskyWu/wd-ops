@@ -14,6 +14,8 @@
 - [ ] 钉钉部门/人员手动同步（`oa:dept:sync-dingtalk` / `oa:user:sync-dingtalk`）
 - [ ] 用户 `deptId` / `dingUserId` 持久化 + 列表按部门筛选
 - [ ] 钉钉 SSO **未实现**（Phase 2，见 ADR-013）
+- [x] 业务通知 7 类事件 + `sys_notification_event` 去重（V88 · ADR-026）
+- [x] 钉钉工作通知主通道 + 机器人可选降级（ADR-026）
 
 ## 2. 全局规范（🔴 必查）
 

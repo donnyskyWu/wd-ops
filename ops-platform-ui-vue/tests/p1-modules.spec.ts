@@ -5,37 +5,34 @@ import { test, expect } from '@playwright/test'
  * 覆盖: 作品分析、任务管理、内容管理、考核执行、指标管理
  */
 
-test.describe('作品分析测试 @regression', () => {
+test.describe('内部作品分析测试 @regression', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/works-analysis')
+    await page.goto('/internal-content')
     await page.waitForLoadState('networkidle')
   })
 
   test('WORKS-001: 列表数据加载', async ({ page }) => {
     const table = page.locator('.el-table')
     await expect(table).toBeVisible()
+    await expect(page.locator('.stats-cards')).toBeVisible()
   })
 
   test('WORKS-002: 搜索功能', async ({ page }) => {
-    // 验证搜索表单存在
-    const searchInput = page.locator('input[placeholder="作品标题"]')
+    const searchInput = page.locator('input[placeholder="内容标题"]')
     const searchBtn = page.locator('button:has-text("搜索")')
-    
+
     await expect(searchInput).toBeVisible()
     await expect(searchBtn).toBeVisible()
-    
-    // 测试搜索
+
     await searchInput.fill('测试作品')
     await searchBtn.click()
     await page.waitForTimeout(500)
-    
-    // 表格应该仍然可见
+
     await expect(page.locator('.el-table')).toBeVisible()
   })
 
   test('WORKS-003: 爆款标识显示', async ({ page }) => {
-    const hotTag = page.locator('.el-tag:has-text("爆款")')
-    // 爆款标识可能存在也可能不存在，不做强制断言
+    const hotTag = page.locator('.viral-tag')
     const count = await hotTag.count()
     expect(count).toBeGreaterThanOrEqual(0)
   })

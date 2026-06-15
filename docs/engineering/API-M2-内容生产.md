@@ -1,6 +1,6 @@
 # API-M2-内容生产
 
-> **版本**：v1.3 | 2026-06-13
+> **版本**：v1.4 | 2026-06-14
 > **关联 PRD**：[`PRD-M2-内容生产.md`](../product/PRD-M2-内容生产.md)
 > **关联 UX**：[`UX-M2-内容生产.md`](../product/UX-M2-内容生产.md)
 > **关联全局规范**：[`GLOBAL-CONVENTIONS.md`](./GLOBAL-CONVENTIONS.md)
@@ -373,7 +373,11 @@
   "competitionName": "英超-曼联 VS 切尔西",
   "documentType": null,
   "ipGroupId": 9001,
-  "finalVideoUrl": null
+  "finalVideoUrl": null,
+  "bodyFormat": "PLAIN",
+  "layoutJson": null,
+  "layoutHtml": null,
+  "layoutTemplateId": null
 }
 ```
 
@@ -388,6 +392,30 @@
 - `coverImage` **UI 已移除**；库字段保留，可不传
 - `taskId` 非空时：同一 `taskId` 仅允许 1 条内容（1502）
 - `documentType`：`contentType=ARTICLE` 时 `@NotBlank @InDict(type="dict_document_type")`
+- `bodyFormat` `@InDict(type="dict_content_body_format")`；默认 `PLAIN`
+- `layoutJson` / `layoutHtml`：当 `bodyFormat=LAYOUT` 时 `layoutJson` 必填；服务端同步生成/校验 `layoutHtml`
+- `layoutTemplateId` 可选；若传则校验模板存在且类型匹配（**2011**）
+
+### 3.2.6 POST `/admin-api/oa/content/{id}/apply-layout-template`（草案 · S-14）
+
+**请求体** `ContentApplyLayoutTemplateReq`：
+
+```json
+{
+  "layoutTemplateId": 501,
+  "overwrite": false
+}
+```
+
+**业务**：
+- 校验 `contentType=ARTICLE`
+- 校验模板 `status=ENABLED` 且 document_type 匹配（ADR-019 §2.3）
+- 若内容已有 `bodyFormat=LAYOUT` 且 `overwrite=false` → **2012**
+- 复制模板 `layoutJson`/`layoutHtml` → 内容；设置 `layoutTemplateId`；`bodyFormat=LAYOUT`
+
+**响应**：更新后的 `ContentRespVO`
+
+---
 
 ### 3.2.1 GET `/admin-api/oa/content/by-task?taskId=`（✅ S-12）
 
@@ -434,7 +462,7 @@
 
 **业务**（ADR-017）：
 - 校验 `ipGroupId`、内容完整性
-- 按 `review-config` 决定目标状态：`PENDING_FIRST_REVIEW` / `PENDING_SECOND_REVIEW` / `PUBLISHED`
+- 按 `review-config` 决定目标状态：`PENDING_FIRST_REVIEW` / `PENDING_SECOND_REVIEW` / `PENDING_PUBLISH`
 - 记录 `oa_review_record`；返回审核流程 steps（含角色+可审用户）
 
 ---
@@ -455,7 +483,35 @@
 
 **校验**：
 - 当前用户满足 ADR-017 权限（含 IP 组长范围）
-- 驳回 → `REJECTED`；通过 → 按配置进入下一级或 `PUBLISHED`
+- 驳回 → `REJECTED`；通过 → 按配置进入下一级或 `PENDING_PUBLISH`
+
+---
+
+### 3.5.1 GET `/admin-api/oa/content/{id}/publish-options`（✅ ADR-022）
+
+**权限**：`oa:content:publish`
+
+**业务**：内容状态须为 `PENDING_PUBLISH`；返回按平台分组的、已配置 `publish_enabled=1` 的 NORMAL 账号。
+
+---
+
+### 3.5.2 POST `/admin-api/oa/content/{id}/publish`（✅ ADR-022）
+
+**权限**：`oa:content:publish`
+
+**请求体** `ContentPublishReq`：
+
+```json
+{
+  "platformType": "DOUYIN",
+  "accountIds": [9006, 9007]
+}
+```
+
+**业务**：
+- 校验账号 tenant / 平台 / 发布权限
+- 逐账号调用 `PlatformPublishAdapter`（Phase 2：`DevStubPlatformPublishAdapter` mock）
+- 全部成功 → `PUBLISHED`，写入 `oa_content_publish_record`
 
 ---
 
@@ -539,6 +595,179 @@
 
 ---
 
+## 6. 公推模板库 API（FR-M2-005 · 草案 · S-14）
+
+> **路径前缀**：`/admin-api/oa/layout-template/*`  
+> **存储格式**：见 [`ADR-019`](../adr/ADR-019-M2-公推模板库存储与导入.md)
+
+### 6.1 GET `/admin-api/oa/layout-template/list`
+
+**请求参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| templateName | String | ❌ | 模糊 |
+| documentType | String | ❌ | `dict_document_type`；传 `__GENERAL__` 筛「通用（空）」 |
+| status | String | ❌ | `dict_layout_template_status` |
+| sourceType | String | ❌ | `dict_layout_template_source` |
+| pageNum / pageSize | Integer | ❌ | 默认 20 |
+
+**响应**：`PageResult<LayoutTemplateVO>`
+
+```json
+{
+  "id": 501,
+  "templateName": "赛后复盘标准版式",
+  "contentType": "ARTICLE",
+  "documentType": "POST_MATCH_REVIEW",
+  "description": "...",
+  "sourceType": "MANUAL",
+  "sourceUrl": null,
+  "status": "ENABLED",
+  "thumbnailUrl": "https://...",
+  "creatorUserId": 1003,
+  "creatorName": "张三",
+  "updatedAt": "2026-06-14T10:00:00+08:00"
+}
+```
+
+**说明**：列表 **不** 返回完整 `layoutJson`（过大）；详情接口返回。
+
+---
+
+### 6.2 GET `/admin-api/oa/layout-template/{id}`
+
+**响应** `LayoutTemplateDetailVO`：含 `layoutJson`、`layoutHtml`（只读冗余）。
+
+---
+
+### 6.3 GET `/admin-api/oa/layout-template/select-list`
+
+**用途**：内容创作页模板选择器（轻量列表）。
+
+| 参数 | 类型 | 必填 |
+|------|------|------|
+| documentType | String | ❌ | 当前内容 documentType；服务端按 ADR-019 匹配规则过滤 |
+| contentType | String | ✅ | 固定 `ARTICLE` |
+
+**响应**：`List<LayoutTemplateSelectVO>`（id、templateName、documentType、thumbnailUrl）
+
+---
+
+### 6.4 POST `/admin-api/oa/layout-template/create`
+
+**请求体** `LayoutTemplateCreateReq`：
+
+```json
+{
+  "templateName": "标准引流版式",
+  "description": "...",
+  "documentType": null,
+  "layoutJson": { "version": 1, "blocks": [] },
+  "status": "ENABLED"
+}
+```
+
+**校验**：
+- `templateName` `@NotBlank @Size(max=100)`
+- `contentType` 服务端固定 `ARTICLE`
+- `documentType` 可空；非空则 `@InDict(dict_document_type)`
+- `layoutJson` `@NotNull`；schema 校验（**2013** 非法块结构）
+- `status` `@InDict(dict_layout_template_status)`
+
+**业务**：服务端 `layoutHtml = renderAndSanitize(layoutJson)`
+
+---
+
+### 6.5 PUT `/admin-api/oa/layout-template/update`
+
+同 create + `id`；已停用模板可编辑。
+
+---
+
+### 6.6 DELETE `/admin-api/oa/layout-template/{id}`
+
+- 逻辑删除；若被 `oa_production_content.layout_template_id` 引用 → **仍允许删除**（内容保留快照）
+- 无引用要求
+
+---
+
+### 6.7 POST `/admin-api/oa/layout-template/import-url`（BLK-M2-012）
+
+**请求体**：
+
+```json
+{
+  "sourceUrl": "https://mp.weixin.qq.com/s/...",
+  "templateName": "导入-竞品排版",
+  "documentType": null
+}
+```
+
+**响应**：
+
+```json
+{
+  "jobId": 9001,
+  "status": "PENDING"
+}
+```
+
+**异步 Job 完成**：`GET /layout-template/import-job/{jobId}` → `SUCCESS` 时含 `layoutJson` 预览 + 建议 `templateName`
+
+**失败**：`FAILED` + `errorCode`（**2014** URL 不可抓取）
+
+---
+
+### 6.8 POST `/admin-api/oa/layout-template/import-docx`（BLK-M2-013/014）
+
+**请求**：`multipart/form-data`
+
+| 字段 | 类型 | 必填 |
+|------|------|------|
+| file | File | ✅ `.docx` |
+| templateName | String | ❌ |
+| documentType | String | ❌ |
+
+**响应**：同 import-url（异步 Job）
+
+---
+
+### 6.9 POST `/admin-api/oa/layout-template/import-paste`（Fallback）
+
+**请求体**：
+
+```json
+{
+  "templateName": "粘贴导入",
+  "documentType": null,
+  "html": "<section>...</section>"
+}
+```
+
+**业务**：HTML → parse → `layoutJson` + `layoutHtml`；同步返回详情（无异步）
+
+---
+
+### 6.10 GET `/admin-api/oa/layout-template/import-job/{jobId}`
+
+**响应** `LayoutImportJobVO`：
+
+```json
+{
+  "id": 9001,
+  "status": "SUCCESS",
+  "sourceType": "URL",
+  "sourceUrl": "https://...",
+  "previewLayoutJson": { "version": 1, "blocks": [] },
+  "errorMessage": null
+}
+```
+
+**字典** `status`：`PENDING` / `RUNNING` / `SUCCESS` / `FAILED`
+
+---
+
 ## 5. 错误码
 
 | 错误码 | 含义 |
@@ -556,6 +785,13 @@
 | 2006 | 账号平台类型与内容平台类型不匹配 |
 | 2007 | 审核人岗位不匹配 |
 | 2008 | 内容生成节点完成门禁：无关联内容或内容未 COMPLETED |
+| 2010 | 内容状态不允许删除 |
+| **2011** | 版式模板不存在或类型不匹配（FR-M2-005） |
+| **2012** | 内容已有版式且未确认覆盖 |
+| **2013** | `layoutJson` schema 校验失败 |
+| **2014** | 公众号 URL 抓取/解析失败（BLK-M2-012） |
+| **2015** | Word 导入解析失败 |
+| **2016** | 导入 Job 不存在或已过期 |
 
 ---
 
@@ -571,3 +807,4 @@
 | `accountId` | `<AccountSelect />` | 发布平台账号 | 1501 / 1504 |
 | `platform` | `<DictSelect dict-type="dict_platform_type" />` | 平台字典 | 1503 |
 | `reviewStage` | `<DictSelect dict-type="dict_review_stage" />` | 审核阶段 | 1503 |
+| `layoutTemplateId` | `<LayoutTemplateSelect />` | 公推版式模板 | 1501 / 2011 |

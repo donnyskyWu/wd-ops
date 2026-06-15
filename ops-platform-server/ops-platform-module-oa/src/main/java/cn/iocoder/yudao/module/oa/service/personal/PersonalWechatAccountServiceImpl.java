@@ -36,6 +36,7 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
     private final PersonalWechatAccountMapper personalWechatAccountMapper;
     private final PhoneMapper phoneMapper;
     private final AesUtil aesUtil;
+    private final PersonalWechatWeworkLinkService linkService;
 
     @Override
     public PageResult<PersonalWechatRespVO> list(String accountName, String wechatId, String status,
@@ -80,6 +81,9 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         personalWechatAccountMapper.insert(entity);
+        if (req.getLinkedWeworkEmployeeId() != null) {
+            linkService.syncLink(entity.getId(), req.getLinkedWeworkEmployeeId());
+        }
         return entity.getId();
     }
 
@@ -109,6 +113,11 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
         existing.setUpdater(TenantContextHolder.getUsername());
         existing.setUpdateTime(LocalDateTime.now());
         personalWechatAccountMapper.updateById(existing);
+        if (Boolean.TRUE.equals(req.getClearLinkedWeworkEmployee())) {
+            linkService.syncLink(req.getId(), null);
+        } else if (req.getLinkedWeworkEmployeeId() != null) {
+            linkService.syncLink(req.getId(), req.getLinkedWeworkEmployeeId());
+        }
     }
 
     @Override
@@ -171,6 +180,7 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
             vo.setAppSecret(maskIfPresent(entity.getAppSecretEncrypted()));
             vo.setToken(maskIfPresent(entity.getTokenEncrypted()));
         }
+        linkService.enrichPersonalWechat(vo, entity);
         return vo;
     }
 

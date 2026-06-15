@@ -29,5 +29,7 @@ public class WeworkEmployeeCreateReq {
     @Size(max = 100)
     private String position;
 
+    private Long linkedPersonalWechatId;
+
     private String status;
 }

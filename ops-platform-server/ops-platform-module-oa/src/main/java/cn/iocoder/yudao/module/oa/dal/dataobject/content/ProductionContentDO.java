@@ -12,6 +12,14 @@ public class ProductionContentDO extends TenantBaseDO {
 
     private String title;
     private String body;
+    /** dict_content_body_format: PLAIN / LAYOUT */
+    private String bodyFormat;
+    /** 富版式 JSON（bodyFormat=LAYOUT 时 SSOT） */
+    private String layoutJson;
+    /** 消毒后 HTML（查看/审核渲染） */
+    private String layoutHtml;
+    /** 应用来源模板 FK（快照，非强绑定） */
+    private Long layoutTemplateId;
     private String coverImage;
     private Long creatorUserId;
     private Long accountId;
@@ -37,4 +45,8 @@ public class ProductionContentDO extends TenantBaseDO {
     private String generatedVideoUrl;
     /** 最终视频：上传优先，否则取 generatedVideoUrl */
     private String finalVideoUrl;
+    /** 是否已转知识库（0/1） */
+    private Integer transferredToKnowledge;
+    /** 关联知识库记录 FK */
+    private Long knowledgeId;
 }

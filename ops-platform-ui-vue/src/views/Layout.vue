@@ -31,8 +31,7 @@
           <el-menu-item index="/author">作者管理</el-menu-item>
           <el-menu-item index="/account-analysis">账号分析</el-menu-item>
           <el-menu-item index="/fans-analysis">粉丝分析</el-menu-item>
-          <el-menu-item index="/works-analysis">作品分析</el-menu-item>
-          <el-menu-item index="/internal-content">内部内容分析</el-menu-item>
+          <el-menu-item index="/internal-content">内部作品分析</el-menu-item>
           <el-menu-item index="/efficiency">人效盘点</el-menu-item>
         </el-sub-menu>
 
@@ -49,6 +48,7 @@
           <el-menu-item index="/content">内容管理</el-menu-item>
           <el-menu-item index="/content/review">内容审核</el-menu-item>
           <el-menu-item index="/knowledge">内容知识库</el-menu-item>
+          <el-menu-item index="/layout-template">公推模板库</el-menu-item>
         </el-sub-menu>
 
         <!-- 4. 绩效核算 -->
@@ -75,7 +75,6 @@
           <el-menu-item index="/simcard">手机卡管理</el-menu-item>
           <el-menu-item index="/internal-account">平台账号管理</el-menu-item>
           <el-menu-item index="/personal-account">个人账号管理</el-menu-item>
-          <el-menu-item index="/triple-rel">三方关联统计</el-menu-item>
         </el-sub-menu>
 
         <!-- 6. 财务管理（M5） -->

@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.oa.api.dto.content.ContentGenerateResultVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentReviewConfigVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentReviewReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentScriptRefVO;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentTransferKnowledgeResultVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentVO;
@@ -45,4 +46,6 @@ public interface ProductionContentService {
     ContentAiGenerateResultVO aiGenerate(ContentAiGenerateReq req);
 
     ContentReviewConfigVO getReviewConfig();
+
+    ContentTransferKnowledgeResultVO transferToKnowledge(Long id);
 }

@@ -132,8 +132,86 @@
         </el-form-item>
       </template>
 
-      <el-form-item v-if="showBody" label="正文" prop="body">
-        <el-input v-model="formData.body" type="textarea" :rows="12" placeholder="请输入正文或点击生成" />
+      <el-form-item v-if="showArticleLayout && !effectiveReadonly" label="版式模板">
+        <el-button type="primary" plain @click="templateDialogVisible = true">选择并应用模板</el-button>
+        <span v-if="formData.layoutTemplateId" class="text-muted">已关联模板 #{{ formData.layoutTemplateId }}</span>
+      </el-form-item>
+
+      <template v-if="showArticleLayout">
+        <div :class="['article-edit-shell', { 'is-maximized': editorMaximized }]">
+          <div v-if="!effectiveReadonly" class="article-edit-toolbar">
+            <span v-if="editorMaximized" class="article-edit-maximized-title">正文编辑（全屏）</span>
+            <div class="article-edit-toolbar-actions">
+              <el-button
+                v-if="!editorMaximized"
+                size="small"
+                :icon="FullScreen"
+                @click="toggleEditorMaximize"
+              >
+                最大化
+              </el-button>
+              <el-button
+                v-if="editorMaximized"
+                size="small"
+                :icon="CloseBold"
+                @click="editorMaximized = false"
+              >
+                还原
+              </el-button>
+              <el-button
+                v-if="!editorMaximized"
+                size="small"
+                :icon="layoutPanelCollapsed ? Expand : Fold"
+                @click="layoutPanelCollapsed = !layoutPanelCollapsed"
+              >
+                {{ layoutPanelCollapsed ? '展开版式结构' : '收起版式结构' }}
+              </el-button>
+            </div>
+          </div>
+          <el-row :gutter="16" class="article-edit-row">
+            <el-col
+              :xs="24"
+              :md="effectiveReadonly || layoutPanelCollapsed || editorMaximized ? 24 : 14"
+            >
+              <el-form-item label="正文" prop="body">
+                <RichTextEditor
+                  v-if="!effectiveReadonly"
+                  v-model="richBodyHtml"
+                  :placeholder="editorMaximized ? '全屏编辑模式，按 Esc 可还原' : '请输入正文，支持富文本排版'"
+                  :min-height="editorMaximized ? 'calc(100vh - 200px)' : '360px'"
+                />
+                <LayoutViewer v-else :html="displayRichHtml" />
+              </el-form-item>
+            </el-col>
+            <el-col v-if="!effectiveReadonly && !layoutPanelCollapsed && !editorMaximized" :xs="24" :md="10">
+              <el-form-item v-if="formData.bodyFormat === 'LAYOUT'" label="版式结构">
+                <LayoutEditor v-model="formData.layoutJson" :show-preview="false" />
+              </el-form-item>
+              <el-alert
+                v-else
+                type="info"
+                :closable="false"
+                show-icon
+                title="版式结构"
+                description="填写正文后可「选择并应用模板」，右侧将显示可编辑的版式结构。"
+              />
+            </el-col>
+          </el-row>
+          <div v-if="editorMaximized && !effectiveReadonly" class="article-edit-maximized-footer">
+            <el-button type="primary" :loading="saving" :disabled="!canEdit" @click="handleSaveDraft">保存</el-button>
+            <el-button @click="editorMaximized = false">还原</el-button>
+          </div>
+        </div>
+      </template>
+
+      <el-form-item v-else-if="showBody" label="正文" prop="body">
+        <RichTextEditor
+          v-if="!effectiveReadonly"
+          v-model="richBodyHtml"
+          placeholder="请输入正文，支持富文本排版"
+          min-height="360px"
+        />
+        <LayoutViewer v-else :html="displayRichHtml" />
       </el-form-item>
 
       <template v-if="showVideoFields">
@@ -207,15 +285,35 @@
     </el-dialog>
 
     <MatchSelectDialog v-model:visible="matchDialogVisible" @select="handleMatchSelect" />
+    <LayoutTemplateSelectDialog
+      v-model="templateDialogVisible"
+      :document-type="formData.documentType"
+      @select="handleApplyTemplate"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { ref, reactive, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { CloseBold, Expand, Fold, FullScreen } from '@element-plus/icons-vue'
 import DictSelect from '@/components/DictSelect.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
 import MatchSelectDialog from '@/components/selectors/MatchSelectDialog.vue'
+import RichTextEditor from '@/components/editor/RichTextEditor.vue'
+import LayoutEditor from '@/components/layout/LayoutEditor.vue'
+import LayoutViewer from '@/components/layout/LayoutViewer.vue'
+import LayoutTemplateSelectDialog from '@/components/layout/LayoutTemplateSelectDialog.vue'
+import {
+  extractPlainText,
+  parseHtmlToLayoutDocument,
+  plainTextToHtml,
+  renderLayoutHtml,
+  sanitizeLayoutHtml,
+  ensureLayoutArticleHtml,
+} from '@/utils/layoutSync'
+import { applyLayoutTemplate, previewApplyLayoutTemplate, previewTemplateMerge } from '@/api/layoutTemplate'
+import { emptyLayoutDocument, type LayoutDocument } from '@/types/layoutTemplate'
 import {
   createContent,
   updateContent,
@@ -283,7 +381,8 @@ const mapStepStatus = (status: string) => {
 }
 
 const formatStepReviewerLabel = (step: ReviewProgressStep) => {
-  if (step.stepKey === 'DRAFT' || (step.stepKey === 'PUBLISHED' && step.stepStatus === 'WAITING')) {
+  if (step.stepKey === 'DRAFT' || step.stepKey === 'PENDING_PUBLISH'
+      || (step.stepKey === 'PUBLISHED' && step.stepStatus === 'WAITING')) {
     return undefined
   }
   if (step.reviewerDisplay) {
@@ -368,6 +467,10 @@ const formData = reactive({
   accountIds: [] as number[],
   isAi: false,
   body: '',
+  bodyFormat: 'PLAIN' as string,
+  layoutJson: emptyLayoutDocument() as LayoutDocument,
+  layoutHtml: '',
+  layoutTemplateId: undefined as number | undefined,
   taskId: undefined as number | undefined,
   ipGroupId: undefined as number | undefined,
   authorId: undefined as number | undefined,
@@ -378,8 +481,140 @@ const formData = reactive({
 })
 
 const showDocumentType = computed(() => formData.contentType === 'ARTICLE')
+const showArticleLayout = computed(() => formData.contentType === 'ARTICLE')
+const templateDialogVisible = ref(false)
+const richBodyHtml = ref('<p></p>')
+const richSyncing = ref(false)
+const layoutJsonFromRichEditor = ref(false)
+const editorMaximized = ref(false)
+const layoutPanelCollapsed = ref(true)
+
+function toggleEditorMaximize() {
+  editorMaximized.value = !editorMaximized.value
+  if (editorMaximized.value) {
+    layoutPanelCollapsed.value = true
+  }
+}
+
+function onMaximizeKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && editorMaximized.value) {
+    editorMaximized.value = false
+  }
+}
+
+watch(editorMaximized, (maximized) => {
+  if (maximized) {
+    document.body.classList.add('content-editor-maximized-open')
+    document.addEventListener('keydown', onMaximizeKeydown)
+  } else {
+    document.body.classList.remove('content-editor-maximized-open')
+    document.removeEventListener('keydown', onMaximizeKeydown)
+  }
+})
+
+onBeforeUnmount(() => {
+  document.body.classList.remove('content-editor-maximized-open')
+  document.removeEventListener('keydown', onMaximizeKeydown)
+})
+
+function normalizeRichHtml(html: string): string {
+  return sanitizeLayoutHtml(html || '').replace(/\s+/g, ' ').trim()
+}
+
+function endRichSync() {
+  nextTick(() => {
+    richSyncing.value = false
+    layoutJsonFromRichEditor.value = false
+  })
+}
+
+const displayRichHtml = computed(() => {
+  if (formData.bodyFormat === 'LAYOUT' && formData.layoutHtml) {
+    return formData.layoutHtml
+  }
+  return plainTextToHtml(formData.body || '')
+})
+
+function syncRichToForm(html: string) {
+  richSyncing.value = true
+  layoutJsonFromRichEditor.value = true
+  try {
+    const cleaned = html || '<p></p>'
+    formData.body = extractPlainText(cleaned)
+    if (formData.contentType === 'ARTICLE') {
+      formData.bodyFormat = 'LAYOUT'
+      // Preserve editor HTML verbatim for WeChat publish (inline styles, img width, etc.)
+      formData.layoutHtml = ensureLayoutArticleHtml(cleaned)
+      // Best-effort structure sync for layout panel; does not overwrite layoutHtml
+      formData.layoutJson = parseHtmlToLayoutDocument(cleaned)
+    }
+  } finally {
+    endRichSync()
+  }
+}
+
+function initRichBodyFromForm() {
+  richSyncing.value = true
+  try {
+    if (formData.bodyFormat === 'LAYOUT' && formData.layoutHtml) {
+      richBodyHtml.value = formData.layoutHtml
+    } else {
+      richBodyHtml.value = plainTextToHtml(formData.body || '')
+    }
+  } finally {
+    endRichSync()
+  }
+}
+
+watch(richBodyHtml, (html) => {
+  if (richSyncing.value) return
+  const cleaned = html || '<p></p>'
+  if (formData.contentType === 'ARTICLE') {
+    if (
+      formData.bodyFormat === 'LAYOUT' &&
+      normalizeRichHtml(cleaned) === normalizeRichHtml(formData.layoutHtml || '')
+    ) {
+      return
+    }
+    syncRichToForm(cleaned)
+    return
+  }
+  if (showBody.value) {
+    formData.bodyFormat = 'PLAIN'
+    formData.body = extractPlainText(cleaned)
+  }
+})
+
+watch(
+  () => formData.layoutJson,
+  (val) => {
+    if (
+      richSyncing.value ||
+      layoutJsonFromRichEditor.value ||
+      formData.contentType !== 'ARTICLE' ||
+      formData.bodyFormat !== 'LAYOUT'
+    ) {
+      return
+    }
+    if (!val?.blocks?.length) return
+    const rendered = renderLayoutHtml(val)
+    if (normalizeRichHtml(rendered) === normalizeRichHtml(richBodyHtml.value)) return
+    richSyncing.value = true
+    try {
+      // Panel-driven structure edits update editor + layoutHtml together.
+      formData.layoutHtml = rendered
+      richBodyHtml.value = rendered
+      formData.body = extractPlainText(rendered)
+    } finally {
+      endRichSync()
+    }
+  },
+  { deep: true }
+)
 const showScriptRef = computed(() => isTaskMode.value && formData.contentType === 'SHORT_VIDEO')
-const showBody = computed(() => formData.contentType !== 'SHORT_VIDEO')
+const showBody = computed(
+  () => !!formData.contentType && formData.contentType !== 'SHORT_VIDEO' && formData.contentType !== 'ARTICLE',
+)
 const showVideoFields = computed(() => isTaskMode.value && formData.contentType === 'SHORT_VIDEO')
 
 const formRules = computed<FormRules>(() => {
@@ -422,6 +657,10 @@ const resetForm = () => {
     accountIds: [],
     isAi: false,
     body: '',
+    bodyFormat: 'PLAIN',
+    layoutJson: emptyLayoutDocument(),
+    layoutHtml: '',
+    layoutTemplateId: undefined,
     taskId: undefined,
     ipGroupId: undefined,
     authorId: undefined,
@@ -438,6 +677,7 @@ const resetForm = () => {
   scriptRef.value = null
   contentStatus.value = undefined
   reviewProgress.value = []
+  richBodyHtml.value = '<p></p>'
 }
 
 const handleMatchSelect = (match: MatchVO) => {
@@ -498,17 +738,88 @@ const loadScriptRef = async () => {
   }
 }
 
+const handleApplyTemplate = async (template: { id: number; templateName: string }) => {
+  const bodyText = extractPlainText(richBodyHtml.value) || formData.body?.trim()
+  if (!bodyText) {
+    ElMessage.warning('请先填写正文，再套用版式模板')
+    return
+  }
+  if (formData.bodyFormat === 'LAYOUT' && formData.layoutJson?.blocks?.length) {
+    try {
+      await ElMessageBox.confirm('应用模板将覆盖当前富版式样式，正文文字将保留。是否继续？', '确认覆盖', {
+        type: 'warning',
+      })
+    } catch {
+      return
+    }
+  }
+  try {
+    let preview
+    if (formData.contentId) {
+      preview = await previewApplyLayoutTemplate(formData.contentId, template.id)
+    } else {
+      preview = await previewTemplateMerge(template.id, bodyText, formData.layoutJson)
+    }
+    await ElMessageBox.confirm(
+      '左侧为原文，右侧为套用后版式预览。确认应用？',
+      '套用预览',
+      {
+        type: 'info',
+        dangerouslyUseHTMLString: true,
+        message: `<div style="display:flex;gap:12px;max-height:320px;overflow:auto">
+          <div style="flex:1"><strong>原文</strong><pre style="white-space:pre-wrap">${bodyText}</pre></div>
+          <div style="flex:1"><strong>套用效果</strong><div>${preview.layoutHtml || ''}</div></div>
+        </div>`,
+      }
+    )
+    if (formData.contentId) {
+      const updated = (await applyLayoutTemplate(formData.contentId, template.id, true)) as Record<string, any>
+      applyContentRecord(updated, isTaskMode.value)
+      ElMessage.success(`已应用模板：${template.templateName}`)
+      return
+    }
+    formData.bodyFormat = 'LAYOUT'
+    formData.layoutJson = preview.layoutJson
+    formData.layoutHtml = preview.layoutHtml || ''
+    formData.layoutTemplateId = template.id
+    richSyncing.value = true
+    try {
+      richBodyHtml.value = preview.layoutHtml || ''
+      formData.body = extractPlainText(richBodyHtml.value)
+    } finally {
+      richSyncing.value = false
+    }
+    ElMessage.success(`已应用模板：${template.templateName}`)
+  } catch {
+    // cancel or error
+  }
+}
+
 const handleContentTypeChange = () => {
   if (!showDocumentType.value) {
     formData.documentType = undefined
+    formData.bodyFormat = 'PLAIN'
+    formData.layoutJson = emptyLayoutDocument()
+    formData.layoutHtml = ''
+    formData.layoutTemplateId = undefined
+  }
+  if (formData.contentType && formData.contentType !== 'SHORT_VIDEO') {
+    initRichBodyFromForm()
   }
   loadScriptRef()
 }
+
 
 watch(() => formData.contentType, loadScriptRef)
 
 const buildPayload = () => {
   syncCompetitionToForm()
+  if (formData.contentType === 'ARTICLE') {
+    syncRichToForm(richBodyHtml.value)
+  } else if (formData.contentType && formData.contentType !== 'SHORT_VIDEO') {
+    formData.bodyFormat = 'PLAIN'
+    formData.body = extractPlainText(richBodyHtml.value || '')
+  }
   return {
     title: formData.title,
     contentType: formData.contentType!,
@@ -517,6 +828,10 @@ const buildPayload = () => {
     accountIds: formData.accountIds?.length ? formData.accountIds : undefined,
     accountId: formData.accountIds?.[0],
     body: formData.body || '',
+    bodyFormat: formData.bodyFormat,
+    layoutJson: formData.bodyFormat === 'LAYOUT' ? formData.layoutJson : undefined,
+    layoutHtml: formData.bodyFormat === 'LAYOUT' ? formData.layoutHtml : undefined,
+    layoutTemplateId: formData.layoutTemplateId,
     aiGenerated: formData.isAi ? 1 : 0,
     creatorUserId: formData.creatorUserId!,
     taskId: formData.taskId,
@@ -578,7 +893,15 @@ const handleGenerate = async () => {
   try {
     const id = await persistContent()
     const result = await generateContent(id)
-    if (result?.body) formData.body = result.body
+    if (result?.body) {
+      formData.body = result.body
+      if (formData.contentType && formData.contentType !== 'SHORT_VIDEO') {
+        richBodyHtml.value = plainTextToHtml(result.body)
+        if (formData.contentType === 'ARTICLE') {
+          syncRichToForm(richBodyHtml.value)
+        }
+      }
+    }
     if (result?.generatedVideoUrl) formData.generatedVideoUrl = result.generatedVideoUrl
     formData.isAi = true
     ElMessage.success(result?.message || '生成完成（占位）')
@@ -662,7 +985,16 @@ const handleAiGenerate = async () => {
       competitionName: competitionName.value || undefined,
       taskId: props.taskId,
     })
-    formData.body = res?.content || ''
+    const generated = res?.content || ''
+    formData.body = generated
+    if (formData.contentType && formData.contentType !== 'SHORT_VIDEO') {
+      richBodyHtml.value = plainTextToHtml(generated)
+      if (formData.contentType === 'ARTICLE') {
+        syncRichToForm(richBodyHtml.value)
+      } else {
+        formData.bodyFormat = 'PLAIN'
+      }
+    }
     formData.isAi = true
     aiDialogVisible.value = false
     if (res?.mock) {
@@ -678,35 +1010,48 @@ const handleAiGenerate = async () => {
 }
 
 const applyContentRecord = (existing: Record<string, any>, taskMode = false) => {
-  Object.assign(formData, {
-    contentId: existing.id,
-    title: existing.title,
-    contentType: existing.contentType,
-    documentType: existing.documentType,
-    body: existing.body,
-    platformTypes: existing.platformTypes?.length
-      ? existing.platformTypes
-      : existing.platformType
-        ? [existing.platformType]
-        : [],
-    accountIds: existing.accountIds?.length
-      ? existing.accountIds
-      : existing.accountId
-        ? [existing.accountId]
-        : [],
-    ipGroupId: taskMode ? formData.ipGroupId : existing.ipGroupId,
-    authorId: taskMode ? formData.authorId : existing.authorId,
-    generatedVideoUrl: existing.generatedVideoUrl || '',
-    finalVideoUrl: existing.finalVideoUrl || '',
-    isAi: existing.aiGenerated === 1,
-  })
-  contentStatus.value = existing.status
-  reviewProgress.value = existing.reviewProgress || []
-  competitionId.value = existing.competitionId || ''
-  competitionName.value = existing.competitionName || ''
-  syncCompetitionToForm()
-  if (!taskMode) {
-    authorLabel.value = existing.authorName || ''
+  // ADR-021: layoutHtml is SSOT — block layoutJson→HTML sync while hydrating from API.
+  richSyncing.value = true
+  try {
+    Object.assign(formData, {
+      contentId: existing.id,
+      title: existing.title,
+      contentType: existing.contentType,
+      documentType: existing.documentType,
+      body: existing.body,
+      bodyFormat: existing.bodyFormat || 'PLAIN',
+      layoutJson: existing.layoutJson || emptyLayoutDocument(),
+      layoutHtml: existing.layoutHtml || '',
+      layoutTemplateId: existing.layoutTemplateId,
+      platformTypes: existing.platformTypes?.length
+        ? existing.platformTypes
+        : existing.platformType
+          ? [existing.platformType]
+          : [],
+      accountIds: existing.accountIds?.length
+        ? existing.accountIds
+        : existing.accountId
+          ? [existing.accountId]
+          : [],
+      ipGroupId: taskMode ? formData.ipGroupId : existing.ipGroupId,
+      authorId: taskMode ? formData.authorId : existing.authorId,
+      generatedVideoUrl: existing.generatedVideoUrl || '',
+      finalVideoUrl: existing.finalVideoUrl || '',
+      isAi: existing.aiGenerated === 1,
+    })
+    contentStatus.value = existing.status
+    reviewProgress.value = existing.reviewProgress || []
+    competitionId.value = existing.competitionId || ''
+    competitionName.value = existing.competitionName || ''
+    syncCompetitionToForm()
+    if (!taskMode) {
+      authorLabel.value = existing.authorName || ''
+    }
+    if (existing.contentType && existing.contentType !== 'SHORT_VIDEO') {
+      initRichBodyFromForm()
+    }
+  } finally {
+    endRichSync()
   }
 }
 
@@ -831,5 +1176,46 @@ watch(
 }
 .competition-picker .el-input {
   flex: 1;
+}
+.article-edit-row {
+  width: 100%;
+}
+.article-edit-section {
+  width: 100%;
+}
+.article-edit-shell.is-maximized {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  padding: 16px 20px;
+  overflow: auto;
+  background: var(--el-bg-color);
+}
+.article-edit-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px 110px;
+}
+.article-edit-shell.is-maximized .article-edit-toolbar {
+  margin-left: 0;
+}
+.article-edit-toolbar-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.article-edit-maximized-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.article-edit-maximized-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 </style>

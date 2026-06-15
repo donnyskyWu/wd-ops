@@ -6,6 +6,11 @@ spring:
     name: ops-platform-module-oa
   profiles:
     active: dev
+  servlet:
+    multipart:
+      # 与前端富文本图片上限 5MB 一致；默认 1MB 超限会返回 HTTP 403
+      max-file-size: 5MB
+      max-request-size: 10MB
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
@@ -31,6 +36,14 @@ oa:
     client-secret: ${DINGTALK_CLIENT_SECRET:}
     corp-id: ${DINGTALK_CORP_ID:}
     agent-id: ${DINGTALK_AGENT_ID:}
+    robot:
+      enabled: ${DINGTALK_ROBOT_ENABLED:false}
+      robot-id: ${DINGTALK_ROBOT_ID:}
+      webhook-url: ${DINGTALK_ROBOT_WEBHOOK_URL:}
+      secret: ${DINGTALK_ROBOT_SECRET:}
+  notification:
+    platform-base-url: ${OA_PLATFORM_BASE_URL:http://localhost:5173}
+    monitor-scan-cron: ${OA_NOTIFICATION_MONITOR_CRON:0 0/30 * * * ?}
 
 logging:
   level:

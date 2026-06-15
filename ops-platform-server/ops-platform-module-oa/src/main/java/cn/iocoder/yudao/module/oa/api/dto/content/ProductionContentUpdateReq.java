@@ -23,6 +23,11 @@ public class ProductionContentUpdateReq {
     private List<Long> accountIds;
     private Long creatorUserId;
     private String body;
+    @InDict("dict_content_body_format")
+    private String bodyFormat;
+    private Object layoutJson;
+    private String layoutHtml;
+    private Long layoutTemplateId;
     private String coverImage;
     private Integer aiGenerated;
     @InDict("dict_document_type")

@@ -40,6 +40,19 @@ service.interceptors.request.use(
     }
     const tenantId = envTenantId || localStorage.getItem('tenantId') || '1'
     config.headers['X-Tenant-Id'] = tenantId
+
+    // FormData：须去掉 application/json，否则 transformRequest 会把 FormData 序列化成 JSON，
+    // 后端 multipart 端点收到错误 body → Spring Security HTTP 403（空 body）
+    if (config.data instanceof FormData) {
+      // Axios 1.x: false removes Content-Type so the browser sets multipart boundary
+      if (config.headers && typeof config.headers.setContentType === 'function') {
+        config.headers.setContentType(false)
+      } else if (config.headers) {
+        delete config.headers['Content-Type']
+        delete config.headers['content-type']
+      }
+      config.transformRequest = [(data) => data]
+    }
     
     return config
   },
@@ -74,12 +87,19 @@ service.interceptors.response.use(
       return Promise.reject(new Error(msg || '登录已过期'))
     }
 
-    // 业务错误码 1500-1504 / 2006 / M1 1001-1402
+    // 业务错误码 1500-1504 / 2006 / M1 1001-1402 / M2 2010-2040
     if ((code >= 1500 && code <= 1504) || code === 2006
         || (code >= 1001 && code <= 1008) || (code >= 1101 && code <= 1104)
-        || code === 1201 || (code >= 1301 && code <= 1304)) {
+        || code === 1201 || (code >= 1301 && code <= 1304)
+        || (code >= 2010 && code <= 2040)) {
       ElMessage.error(msg || `业务错误(${code})`)
       return Promise.reject(new Error(msg || `业务错误(${code})`))
+    }
+
+    // 服务端业务失败（HTTP 200 但 code=500）
+    if (code === 500) {
+      ElMessage.error(msg || '服务器内部错误')
+      return Promise.reject(new Error(msg || '服务器内部错误'))
     }
     
     // 无权限

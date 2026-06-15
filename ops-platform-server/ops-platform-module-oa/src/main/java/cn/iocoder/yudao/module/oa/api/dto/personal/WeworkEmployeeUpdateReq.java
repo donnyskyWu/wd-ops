@@ -29,5 +29,9 @@ public class WeworkEmployeeUpdateReq {
     @Size(max = 100)
     private String position;
 
+    private Long linkedPersonalWechatId;
+
+    private Boolean clearLinkedPersonalWechat;
+
     private String status;
 }

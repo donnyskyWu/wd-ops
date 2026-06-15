@@ -303,6 +303,23 @@
 
 ---
 
+## S-14 公推模板库 P0（`M2LayoutTemplateS14IT`）
+
+| ID | 标题 | 步骤 | 预期 |
+|----|------|------|------|
+| TC-M2-005-01 | 模板 CRUD | create(layoutSchema) → get → update | code=0；layoutSchema/previewHtml 存在 |
+| TC-M2-005-02 | 粘贴导入 | POST import-paste | sourceType=PASTE；layoutSchema v2 骨架 |
+| TC-M2-005-03 | merge 套用 | ARTICLE 有 body → apply | body **不变**；layoutJson.version=2 |
+| TC-M2-005-04 | 覆盖确认 | 二次 apply overwrite=false | code=2031 |
+| TC-M2-005-05 | body 为空 | apply 无正文 | code=2036 |
+| TC-M2-005-06 | 跨租户模板 | 租户 B 访问租户 A 模板 | code=1504 |
+| TC-M2-005-07 | 审核渲染 | 提交审核后在审核页查看 | 展示 layout_html 非纯 body |
+| TC-M2-005-P01 | PRESET seed | list sourceType=PRESET | ≥5 条 ENABLED |
+| TC-M2-005-P02 | PRESET 套用 | 套用 PRESET-01 | body 不变 |
+| TC-M2-005-P03 | PRESET 只读 | delete/update PRESET | code=2038 或 UI 禁用 |
+
+---
+
 *下一步：M3 绩效核算全套产物。*
 
 ---

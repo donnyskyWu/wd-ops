@@ -39,9 +39,7 @@
       <el-table-column prop="companyName" label="所属公司" min-width="150" show-overflow-tooltip />
       <el-table-column prop="status" label="状态" width="80" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'">
-            {{ row.status === 'ENABLED' ? '启用' : '停用' }}
-          </el-tag>
+          <DictLabel dict-type="dict_realname_status" :value="row.status" />
         </template>
       </el-table-column>
       <el-table-column label="操作" width="200" fixed="right">
@@ -108,6 +106,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Download } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import CompanySelect from '@/components/selectors/CompanySelect.vue'
 import { exportToExcel } from '@/utils'
 import {

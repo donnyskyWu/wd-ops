@@ -33,19 +33,22 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PhoneServiceImpl implements PhoneService {
 
+    private static final String FILE_VIEW_PREFIX = "/admin-api/oa/file/view?key=";
+
     private final PhoneMapper phoneMapper;
     private final RealnameMapper realnameMapper;
     private final SysUserMapper sysUserMapper;
     private final AesUtil aesUtil;
 
     @Override
-    public PageResult<PhoneRespVO> list(String phoneNumber, Long realnameId, String status,
+    public PageResult<PhoneRespVO> list(String phoneNumber, Long realnameId, String status, String phoneType,
                                         Integer pageNo, Integer pageSize) {
         Long tenantId = requireTenantId();
         LambdaQueryWrapper<PhoneDO> wrapper = new LambdaQueryWrapper<PhoneDO>()
                 .eq(PhoneDO::getTenantId, tenantId)
                 .eq(realnameId != null, PhoneDO::getRealnameId, realnameId)
                 .eq(StrUtil.isNotBlank(status), PhoneDO::getStatus, status)
+                .eq(StrUtil.isNotBlank(phoneType), PhoneDO::getPhoneType, phoneType)
                 .orderByDesc(PhoneDO::getId);
         if (StrUtil.isNotBlank(phoneNumber)) {
             if (phoneNumber.matches("^1[3-9]\\d{9}$")) {
@@ -53,7 +56,11 @@ public class PhoneServiceImpl implements PhoneService {
             } else {
                 wrapper.and(w -> w.like(PhoneDO::getPhoneCode, phoneNumber)
                         .or()
-                        .like(PhoneDO::getPhoneModel, phoneNumber));
+                        .like(PhoneDO::getPhoneModel, phoneNumber)
+                        .or()
+                        .like(PhoneDO::getDeviceNumber, phoneNumber)
+                        .or()
+                        .like(PhoneDO::getPurchaseBatch, phoneNumber));
             }
         }
         Page<PhoneDO> page = phoneMapper.selectPage(
@@ -84,6 +91,16 @@ public class PhoneServiceImpl implements PhoneService {
         entity.setPhoneNumberHash(hashPhone(req.getPhoneNumber()));
         entity.setPhoneCode(req.getPhoneCode());
         entity.setPhoneModel(req.getPhoneModel());
+        entity.setSettingsScreenshotKey(sanitizeImageKey(req.getSettingsScreenshotKey(), tenantId));
+        entity.setFrontImageKey(sanitizeImageKey(req.getFrontImageKey(), tenantId));
+        entity.setBackImageKey(sanitizeImageKey(req.getBackImageKey(), tenantId));
+        entity.setPurchaseBatch(req.getPurchaseBatch());
+        entity.setPurchaseDate(req.getPurchaseDate());
+        entity.setPurchaseTime(req.getPurchaseTime());
+        entity.setHandlerName(req.getHandlerName());
+        entity.setDeviceNumber(req.getDeviceNumber());
+        entity.setIsAochuang(req.getIsAochuang());
+        entity.setPhoneType(req.getPhoneType());
         entity.setKeeperId(req.getKeeperId());
         entity.setWechatBound(req.getWechatBound());
         entity.setStatus(StrUtil.blankToDefault(req.getStatus(), "ENABLED"));
@@ -115,6 +132,36 @@ public class PhoneServiceImpl implements PhoneService {
         }
         if (req.getPhoneModel() != null) {
             existing.setPhoneModel(req.getPhoneModel());
+        }
+        if (req.getSettingsScreenshotKey() != null) {
+            existing.setSettingsScreenshotKey(sanitizeImageKey(req.getSettingsScreenshotKey(), existing.getTenantId()));
+        }
+        if (req.getFrontImageKey() != null) {
+            existing.setFrontImageKey(sanitizeImageKey(req.getFrontImageKey(), existing.getTenantId()));
+        }
+        if (req.getBackImageKey() != null) {
+            existing.setBackImageKey(sanitizeImageKey(req.getBackImageKey(), existing.getTenantId()));
+        }
+        if (req.getPurchaseBatch() != null) {
+            existing.setPurchaseBatch(req.getPurchaseBatch());
+        }
+        if (req.getPurchaseDate() != null) {
+            existing.setPurchaseDate(req.getPurchaseDate());
+        }
+        if (req.getPurchaseTime() != null) {
+            existing.setPurchaseTime(req.getPurchaseTime());
+        }
+        if (req.getHandlerName() != null) {
+            existing.setHandlerName(req.getHandlerName());
+        }
+        if (req.getDeviceNumber() != null) {
+            existing.setDeviceNumber(req.getDeviceNumber());
+        }
+        if (req.getIsAochuang() != null) {
+            existing.setIsAochuang(req.getIsAochuang());
+        }
+        if (req.getPhoneType() != null) {
+            existing.setPhoneType(req.getPhoneType());
         }
         if (req.getKeeperId() != null) {
             assertKeeperInTenant(req.getKeeperId(), existing.getTenantId());
@@ -241,6 +288,19 @@ public class PhoneServiceImpl implements PhoneService {
         vo.setPhoneNumberMasked(maskPhone(entity.getPhoneNumberEncrypted()));
         vo.setPhoneCode(entity.getPhoneCode());
         vo.setPhoneModel(entity.getPhoneModel());
+        vo.setSettingsScreenshotKey(entity.getSettingsScreenshotKey());
+        vo.setSettingsScreenshotUrl(toFileViewUrl(entity.getSettingsScreenshotKey()));
+        vo.setFrontImageKey(entity.getFrontImageKey());
+        vo.setFrontImageUrl(toFileViewUrl(entity.getFrontImageKey()));
+        vo.setBackImageKey(entity.getBackImageKey());
+        vo.setBackImageUrl(toFileViewUrl(entity.getBackImageKey()));
+        vo.setPurchaseBatch(entity.getPurchaseBatch());
+        vo.setPurchaseDate(entity.getPurchaseDate());
+        vo.setPurchaseTime(entity.getPurchaseTime());
+        vo.setHandlerName(entity.getHandlerName());
+        vo.setDeviceNumber(entity.getDeviceNumber());
+        vo.setIsAochuang(entity.getIsAochuang());
+        vo.setPhoneType(entity.getPhoneType());
         vo.setKeeperId(entity.getKeeperId());
         vo.setKeeperName(keeperName);
         vo.setWechatBound(entity.getWechatBound());
@@ -263,5 +323,22 @@ public class PhoneServiceImpl implements PhoneService {
         } catch (Exception ex) {
             return "****";
         }
+    }
+
+    private String sanitizeImageKey(String key, Long tenantId) {
+        if (StrUtil.isBlank(key)) {
+            return null;
+        }
+        if (key.contains("..") || !key.startsWith(tenantId + "/")) {
+            throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN.getCode(), "图片文件无效");
+        }
+        return key;
+    }
+
+    private String toFileViewUrl(String key) {
+        if (StrUtil.isBlank(key)) {
+            return null;
+        }
+        return FILE_VIEW_PREFIX + key;
     }
 }

@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.oa.api.dto.account.AccountReplaceReq;
 import cn.iocoder.yudao.module.oa.api.dto.account.AccountRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.account.AccountUpdateReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.company.CompanyDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.operations.ContentDO;
@@ -18,6 +19,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.phone.PhoneDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.realname.RealnameDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.simcard.SimCardDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.company.CompanyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
@@ -38,7 +40,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -48,6 +52,22 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PlatformAccountServiceImpl implements PlatformAccountService {
 
+    private static final Map<String, String> BINDING_FIELD_LABELS = Map.of(
+            "realnameId", "实名人",
+            "phoneId", "手机",
+            "simCardId", "手机卡");
+    private static final String PLATFORM_WECHAT_OFFICIAL = "WECHAT_OFFICIAL";
+    private static final String QUALIFICATION_ENTERPRISE = "ENTERPRISE";
+    private static final String QUALIFICATION_PERSONAL = "PERSONAL";
+    private static final Map<String, String> PLATFORM_LABELS = Map.of(
+            "WECHAT_OFFICIAL", "公众号",
+            "WECHAT_VIDEO", "视频号",
+            "DOUYIN", "抖音",
+            "KUAISHOU", "快手",
+            "XIAOHONGSHU", "小红书",
+            "WEWORK", "企微",
+            "WECHAT_PERSONAL", "个微");
+
     private final AccountMapper accountMapper;
     private final CompanyMapper companyMapper;
     private final RealnameMapper realnameMapper;
@@ -56,6 +76,7 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
     private final IpGroupMapper ipGroupMapper;
     private final FollowerDailyMapper followerDailyMapper;
     private final ContentMapper contentMapper;
+    private final SysUserMapper sysUserMapper;
     private final AesUtil aesUtil;
 
     @Override
@@ -107,6 +128,7 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
                 .eq(ContentDO::getTenantId, entity.getTenantId())
                 .eq(ContentDO::getAccountId, entity.getId()));
         vo.setWorkCount(Math.toIntExact(workCount));
+        enrichWechatOfficialResp(vo, entity);
         return vo;
     }
 
@@ -118,18 +140,23 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
         assertForceReplaceReason(forceReplace, req.getReason());
         Long tenantId = requireTenantId();
         assertPlatformAccountUnique(tenantId, req.getPlatformType(), req.getExternalAccountId(), null);
+        assertAssociationFields(req.getPlatformType(), req.getQualificationType(),
+                req.getCompanyId(), req.getRealnameId(), tenantId);
 
-        assertCompanyEnabled(req.getCompanyId(), tenantId);
-        assertRealnameEnabled(req.getRealnameId(), tenantId);
+        if (req.getCompanyId() != null) {
+            assertCompanyEnabled(req.getCompanyId(), tenantId);
+        }
+        if (req.getRealnameId() != null) {
+            assertRealnameEnabled(req.getRealnameId(), tenantId);
+        }
         if (req.getIntermediaryId() != null) {
             assertRealnameEnabled(req.getIntermediaryId(), tenantId);
         }
         PhoneDO phone = req.getPhoneId() != null ? assertPhoneEnabled(req.getPhoneId(), tenantId) : null;
         SimCardDO sim = req.getSimCardId() != null ? assertSimEnabled(req.getSimCardId(), tenantId) : null;
 
-        resolveBindingConflict("realnameId", req.getRealnameId(), null, forceReplace, req.getReason());
-        resolveBindingConflict("phoneId", req.getPhoneId(), null, forceReplace, req.getReason());
-        resolveBindingConflict("simCardId", req.getSimCardId(), null, forceReplace, req.getReason());
+        resolveBindingConflicts(buildBindingChecks(req.getRealnameId(), req.getPhoneId(), req.getSimCardId()),
+                null, forceReplace, req.getReason());
 
         AccountDO entity = new AccountDO();
         entity.setTenantId(tenantId);
@@ -149,6 +176,7 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
         if (StrUtil.isNotBlank(req.getCookie())) {
             entity.setCookieEncrypted(aesUtil.encrypt(req.getCookie()));
         }
+        applyWechatOfficialFields(entity, req, tenantId);
         entity.setStatus(StrUtil.blankToDefault(req.getStatus(), "NORMAL"));
         entity.setLinkedAt(LocalDateTime.now());
         entity.setCreator(TenantContextHolder.getUsername());
@@ -171,28 +199,44 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
         Long tenantId = existing.getTenantId();
         AccountDO before = snapshotBindings(existing);
 
+        String effectiveQualification = req.getQualificationType() != null
+                ? req.getQualificationType() : existing.getQualificationType();
+        Long effectiveCompanyId = req.getCompanyId() != null ? req.getCompanyId() : existing.getCompanyId();
+        Long effectiveRealnameId = req.getRealnameId() != null ? req.getRealnameId() : existing.getRealnameId();
+        assertAssociationFields(existing.getPlatformType(), effectiveQualification,
+                effectiveCompanyId, effectiveRealnameId, tenantId);
+
         if (req.getCompanyId() != null) {
             assertCompanyEnabled(req.getCompanyId(), tenantId);
             existing.setCompanyId(req.getCompanyId());
         }
+        Map<String, Long> bindingChecks = new LinkedHashMap<>();
         if (req.getRealnameId() != null) {
             assertRealnameEnabled(req.getRealnameId(), tenantId);
-            resolveBindingConflict("realnameId", req.getRealnameId(), existing.getId(), forceReplace, req.getReason());
-            existing.setRealnameId(req.getRealnameId());
+            bindingChecks.put("realnameId", req.getRealnameId());
         }
         if (req.getIntermediaryId() != null) {
             assertRealnameEnabled(req.getIntermediaryId(), tenantId);
             existing.setIntermediaryId(req.getIntermediaryId());
         }
         if (req.getPhoneId() != null) {
+            assertPhoneEnabled(req.getPhoneId(), tenantId);
+            bindingChecks.put("phoneId", req.getPhoneId());
+        }
+        if (req.getSimCardId() != null) {
+            assertSimEnabled(req.getSimCardId(), tenantId);
+            bindingChecks.put("simCardId", req.getSimCardId());
+        }
+        resolveBindingConflicts(bindingChecks, existing.getId(), forceReplace, req.getReason());
+        if (req.getRealnameId() != null) {
+            existing.setRealnameId(req.getRealnameId());
+        }
+        if (req.getPhoneId() != null) {
             PhoneDO phone = assertPhoneEnabled(req.getPhoneId(), tenantId);
-            resolveBindingConflict("phoneId", req.getPhoneId(), existing.getId(), forceReplace, req.getReason());
             existing.setPhoneId(req.getPhoneId());
             existing.setPhoneNumberHash(phone.getPhoneNumberHash());
         }
         if (req.getSimCardId() != null) {
-            assertSimEnabled(req.getSimCardId(), tenantId);
-            resolveBindingConflict("simCardId", req.getSimCardId(), existing.getId(), forceReplace, req.getReason());
             existing.setSimCardId(req.getSimCardId());
         }
         if (req.getAccountName() != null) {
@@ -210,6 +254,7 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
         if (StrUtil.isNotBlank(req.getStatus())) {
             existing.setStatus(req.getStatus());
         }
+        applyWechatOfficialFields(existing, req, tenantId);
         existing.setUpdater(TenantContextHolder.getUsername());
         existing.setUpdateTime(LocalDateTime.now());
         accountMapper.updateById(existing);
@@ -258,21 +303,71 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
         }
     }
 
-    private void resolveBindingConflict(String field, Long entityId, Long currentAccountId,
-                                        boolean forceReplace, String reason) {
-        if (entityId == null) {
-            return;
+    private Map<String, Long> buildBindingChecks(Long realnameId, Long phoneId, Long simCardId) {
+        Map<String, Long> bindings = new LinkedHashMap<>();
+        bindings.put("realnameId", realnameId);
+        bindings.put("phoneId", phoneId);
+        bindings.put("simCardId", simCardId);
+        return bindings;
+    }
+
+    private void resolveBindingConflicts(Map<String, Long> bindings, Long currentAccountId,
+                                         boolean forceReplace, String reason) {
+        List<BindingConflict> conflicts = new ArrayList<>();
+        for (Map.Entry<String, Long> entry : bindings.entrySet()) {
+            if (entry.getValue() == null) {
+                continue;
+            }
+            AccountDO occupied = findOccupant(entry.getKey(), entry.getValue(), currentAccountId);
+            if (occupied != null) {
+                conflicts.add(new BindingConflict(entry.getKey(), entry.getValue(), occupied));
+            }
         }
-        AccountDO occupied = findOccupant(field, entityId, currentAccountId);
-        if (occupied == null) {
+        if (conflicts.isEmpty()) {
             return;
         }
         if (!forceReplace) {
-            throw new ServiceException(OaErrorCodes.ENTITY_ALREADY_BOUND);
+            String detail = conflicts.stream()
+                    .map(c -> formatBindingConflictDetail(c.field(), c.entityId(), c.occupied()))
+                    .collect(Collectors.joining("、"));
+            throw new ServiceException(OaErrorCodes.ENTITY_ALREADY_BOUND.getCode(),
+                    "关联资源已被占用：" + detail);
         }
         assertForceReplaceReason(true, reason);
-        clearBindingField(occupied, field);
-        decrementSingleBound(field, entityId);
+        for (BindingConflict conflict : conflicts) {
+            clearBindingField(conflict.occupied(), conflict.field());
+            decrementSingleBound(conflict.field(), conflict.entityId());
+        }
+    }
+
+    private String formatBindingConflictDetail(String field, Long entityId, AccountDO occupied) {
+        String resourceLabel = BINDING_FIELD_LABELS.getOrDefault(field, "关联资源");
+        String resourceName = loadBindingResourceName(field, entityId);
+        String resourcePart = StrUtil.isNotBlank(resourceName)
+                ? resourceLabel + "「" + resourceName + "」"
+                : resourceLabel + "(ID:" + entityId + ")";
+        String platformLabel = formatPlatformLabel(occupied.getPlatformType());
+        String accountDesc = StrUtil.blankToDefault(occupied.getAccountName(), occupied.getExternalAccountId());
+        return resourcePart + "已被" + platformLabel + "账号「" + accountDesc + "」(ID:" + occupied.getId() + ")占用";
+    }
+
+    private String loadBindingResourceName(String field, Long entityId) {
+        return switch (field) {
+            case "realnameId" -> loadRealName(entityId);
+            case "phoneId" -> maskPhone(entityId);
+            case "simCardId" -> maskSim(entityId);
+            default -> null;
+        };
+    }
+
+    private String formatPlatformLabel(String platformType) {
+        if (StrUtil.isBlank(platformType)) {
+            return "平台";
+        }
+        return PLATFORM_LABELS.getOrDefault(platformType, platformType);
+    }
+
+    private record BindingConflict(String field, Long entityId, AccountDO occupied) {
     }
 
     private void clearBindingField(AccountDO account, String field) {
@@ -542,8 +637,194 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
         vo.setIpGroupId(entity.getIpGroupId());
         vo.setStatus(entity.getStatus());
         vo.setHasCookie(StrUtil.isNotBlank(entity.getCookieEncrypted()));
+        vo.setPublishEnabled(entity.getPublishEnabled() != null && entity.getPublishEnabled() == 1);
         vo.setLinkedAt(entity.getLinkedAt());
         vo.setCreateTime(entity.getCreateTime());
+        vo.setTrademarkName(entity.getTrademarkName());
+        vo.setEmail(entity.getEmail());
+        vo.setHasPassword(StrUtil.isNotBlank(entity.getPasswordEncrypted()));
+        vo.setQualificationType(entity.getQualificationType());
+        vo.setUsageStatus(entity.getUsageStatus());
+        vo.setOriginalAccountName(entity.getOriginalAccountName());
+        vo.setCertExpiryTime(entity.getCertExpiryTime());
+        vo.setCertCount(entity.getCertCount());
+        vo.setLinkedVideoAccountId(entity.getLinkedVideoAccountId());
+        vo.setVideoAccountRegisteredAt(entity.getVideoAccountRegisteredAt());
+        vo.setAdminName(entity.getAdminName());
+        vo.setAdminUserId(entity.getAdminUserId());
+        vo.setHasAdminIdCard(StrUtil.isNotBlank(entity.getAdminIdCardEncrypted()));
         return vo;
+    }
+
+    private void enrichWechatOfficialResp(AccountRespVO vo, AccountDO entity) {
+        if (!PLATFORM_WECHAT_OFFICIAL.equals(entity.getPlatformType())) {
+            return;
+        }
+        if (entity.getLinkedVideoAccountId() != null) {
+            AccountDO video = accountMapper.selectById(entity.getLinkedVideoAccountId());
+            if (video != null) {
+                vo.setLinkedVideoAccountName(video.getAccountName());
+            }
+        }
+        if (entity.getAdminUserId() != null) {
+            SysUserDO admin = sysUserMapper.selectById(entity.getAdminUserId());
+            if (admin != null) {
+                vo.setAdminUserName(admin.getNickname() != null ? admin.getNickname() : admin.getUsername());
+                vo.setAdminPhoneMasked(maskUserPhone(admin.getPhoneEncrypted()));
+            }
+        }
+    }
+
+    private void assertAssociationFields(String platformType, String qualificationType,
+                                         Long companyId, Long realnameId, Long tenantId) {
+        if (PLATFORM_WECHAT_OFFICIAL.equals(platformType)) {
+            if (StrUtil.isBlank(qualificationType)) {
+                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "公众号须选择资质类型");
+            }
+            if (QUALIFICATION_ENTERPRISE.equals(qualificationType)) {
+                if (companyId == null) {
+                    throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "企业资质须关联企业");
+                }
+            } else if (QUALIFICATION_PERSONAL.equals(qualificationType)) {
+                if (realnameId == null) {
+                    throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "个人资质须关联实名人");
+                }
+            } else {
+                throw new ServiceException(OaErrorCodes.DICT_VALUE_INVALID.getCode(), "资质类型不合法");
+            }
+            return;
+        }
+        if (companyId == null || realnameId == null) {
+            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "公司和实名人必填");
+        }
+    }
+
+    private void applyWechatOfficialFields(AccountDO entity, AccountCreateReq req, Long tenantId) {
+        if (!PLATFORM_WECHAT_OFFICIAL.equals(req.getPlatformType())) {
+            return;
+        }
+        entity.setTrademarkName(req.getTrademarkName());
+        entity.setEmail(req.getEmail());
+        if (StrUtil.isNotBlank(req.getPassword())) {
+            entity.setPasswordEncrypted(aesUtil.encrypt(req.getPassword()));
+        }
+        entity.setQualificationType(req.getQualificationType());
+        entity.setUsageStatus(req.getUsageStatus());
+        entity.setOriginalAccountName(req.getOriginalAccountName());
+        entity.setCertExpiryTime(req.getCertExpiryTime());
+        if (entity.getCertCount() == null) {
+            entity.setCertCount(0);
+        }
+        if (req.getLinkedVideoAccountId() != null) {
+            assertLinkedVideoAccount(req.getLinkedVideoAccountId(), tenantId, entity.getId());
+            entity.setLinkedVideoAccountId(req.getLinkedVideoAccountId());
+            AccountDO video = accountMapper.selectById(req.getLinkedVideoAccountId());
+            entity.setVideoAccountRegisteredAt(resolveVideoAccountRegisteredAt(video));
+        }
+        if (req.getAdminUserId() != null) {
+            assertAdminUserEnabled(req.getAdminUserId(), tenantId);
+            entity.setAdminUserId(req.getAdminUserId());
+            entity.setAdminName(resolveAdminDisplayName(req.getAdminUserId()));
+        }
+        if (StrUtil.isNotBlank(req.getAdminIdCard())) {
+            entity.setAdminIdCardEncrypted(aesUtil.encrypt(req.getAdminIdCard()));
+        }
+    }
+
+    private void applyWechatOfficialFields(AccountDO entity, AccountUpdateReq req, Long tenantId) {
+        if (!PLATFORM_WECHAT_OFFICIAL.equals(entity.getPlatformType())) {
+            return;
+        }
+        if (req.getTrademarkName() != null) {
+            entity.setTrademarkName(req.getTrademarkName());
+        }
+        if (req.getEmail() != null) {
+            entity.setEmail(req.getEmail());
+        }
+        if (StrUtil.isNotBlank(req.getPassword())) {
+            entity.setPasswordEncrypted(aesUtil.encrypt(req.getPassword()));
+        }
+        if (req.getQualificationType() != null) {
+            entity.setQualificationType(req.getQualificationType());
+        }
+        if (req.getUsageStatus() != null) {
+            entity.setUsageStatus(req.getUsageStatus());
+        }
+        if (req.getOriginalAccountName() != null) {
+            entity.setOriginalAccountName(req.getOriginalAccountName());
+        }
+        if (req.getCertExpiryTime() != null) {
+            entity.setCertExpiryTime(req.getCertExpiryTime());
+        }
+        if (req.getLinkedVideoAccountId() != null) {
+            assertLinkedVideoAccount(req.getLinkedVideoAccountId(), tenantId, entity.getId());
+            entity.setLinkedVideoAccountId(req.getLinkedVideoAccountId());
+            AccountDO video = accountMapper.selectById(req.getLinkedVideoAccountId());
+            entity.setVideoAccountRegisteredAt(resolveVideoAccountRegisteredAt(video));
+        }
+        if (req.getAdminUserId() != null) {
+            assertAdminUserEnabled(req.getAdminUserId(), tenantId);
+            entity.setAdminUserId(req.getAdminUserId());
+            entity.setAdminName(resolveAdminDisplayName(req.getAdminUserId()));
+        }
+        if (StrUtil.isNotBlank(req.getAdminIdCard())) {
+            entity.setAdminIdCardEncrypted(aesUtil.encrypt(req.getAdminIdCard()));
+        }
+    }
+
+    private void assertLinkedVideoAccount(Long videoAccountId, Long tenantId, Long currentAccountId) {
+        AccountDO video = accountMapper.selectById(videoAccountId);
+        if (video == null) {
+            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "关联视频号不存在");
+        }
+        if (!tenantId.equals(video.getTenantId())) {
+            throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
+        }
+        if (!"WECHAT_VIDEO".equals(video.getPlatformType())) {
+            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "关联账号必须为视频号");
+        }
+        if (currentAccountId != null && currentAccountId.equals(videoAccountId)) {
+            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "不能关联自身");
+        }
+    }
+
+    private void assertAdminUserEnabled(Long userId, Long tenantId) {
+        SysUserDO user = sysUserMapper.selectById(userId);
+        if (user == null) {
+            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "管理员用户不存在");
+        }
+        if (!tenantId.equals(user.getTenantId())) {
+            throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
+        }
+        if (!"ENABLED".equals(user.getStatus())) {
+            throw new ServiceException(OaErrorCodes.ENTITY_DISABLED);
+        }
+    }
+
+    private LocalDateTime resolveVideoAccountRegisteredAt(AccountDO video) {
+        if (video == null) {
+            return null;
+        }
+        return video.getCreateTime();
+    }
+
+    private String resolveAdminDisplayName(Long userId) {
+        SysUserDO user = sysUserMapper.selectById(userId);
+        if (user == null) {
+            return null;
+        }
+        return user.getNickname() != null ? user.getNickname() : user.getUsername();
+    }
+
+    private String maskUserPhone(String encrypted) {
+        if (StrUtil.isBlank(encrypted)) {
+            return null;
+        }
+        try {
+            String plain = aesUtil.decrypt(encrypted);
+            return plain.length() == 11 ? plain.substring(0, 3) + "****" + plain.substring(7) : "****";
+        } catch (Exception ex) {
+            return "****";
+        }
     }
 }

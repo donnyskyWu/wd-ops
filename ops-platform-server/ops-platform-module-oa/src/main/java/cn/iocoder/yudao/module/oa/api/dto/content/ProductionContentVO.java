@@ -11,6 +11,10 @@ public class ProductionContentVO {
     private Long id;
     private String title;
     private String body;
+    private String bodyFormat;
+    private Object layoutJson;
+    private String layoutHtml;
+    private Long layoutTemplateId;
     private String coverImage;
     private Long creatorUserId;
     private String creatorUserName;
@@ -34,6 +38,10 @@ public class ProductionContentVO {
     private String generatedVideoUrl;
     private String finalVideoUrl;
     private LocalDateTime createTime;
+    /** 是否已转知识库 */
+    private Integer transferredToKnowledge;
+    /** 关联知识库记录 ID */
+    private Long knowledgeId;
     /** 审核流程进度（查看详情时返回） */
     private List<ContentReviewStepVO> reviewProgress;
 }

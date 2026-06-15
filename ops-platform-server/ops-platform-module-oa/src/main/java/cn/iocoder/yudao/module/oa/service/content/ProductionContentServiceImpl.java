@@ -18,6 +18,7 @@ import cn.iocoder.yudao.module.oa.api.dto.content.ContentReviewConfigVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentReviewReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentReviewStepVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentScriptRefVO;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentTransferKnowledgeResultVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentVO;
@@ -26,6 +27,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.author.AuthorDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.config.AiModelConfigDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.config.AiPromptConfigDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.content.KnowledgeBaseDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.content.ProductionContentDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.content.ReviewRecordDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
@@ -38,6 +40,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.author.AuthorMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.config.AiModelConfigMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.config.AiPromptConfigMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.content.KnowledgeBaseMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.content.ProductionContentMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.content.ReviewRecordMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
@@ -46,7 +49,9 @@ import cn.iocoder.yudao.module.oa.dal.mysql.plan.ContentPlanCompetitionMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.plan.ContentPlanStepMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.notification.NotificationService;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
+import cn.iocoder.yudao.module.oa.util.LayoutJsonHelper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -69,6 +74,7 @@ import java.util.stream.Collectors;
 public class ProductionContentServiceImpl implements ProductionContentService {
 
     private final ProductionContentMapper productionContentMapper;
+    private final KnowledgeBaseMapper knowledgeBaseMapper;
     private final ReviewRecordMapper reviewRecordMapper;
     private final AccountMapper accountMapper;
     private final SysUserMapper sysUserMapper;
@@ -81,12 +87,14 @@ public class ProductionContentServiceImpl implements ProductionContentService {
     private final ContentPlanStepMapper contentPlanStepMapper;
     private final ContentPlanCompetitionMapper contentPlanCompetitionMapper;
     private final ContentReviewConfigService contentReviewConfigService;
+    private final NotificationService notificationService;
     private final AesUtil aesUtil;
 
     private static final String CONTENT_TYPE_ARTICLE = "ARTICLE";
     private static final String CONTENT_TYPE_SHORT_VIDEO = "SHORT_VIDEO";
     private static final String DOC_TYPE_SHORT_VIDEO_SCRIPT = "SHORT_VIDEO_SCRIPT";
     private static final String MOCK_VIDEO_URL = "https://mock.ops-platform.local/ai-video/placeholder.mp4";
+    private static final String KNOWLEDGE_CATEGORY_CASE = "CASE_LIB";
 
     @Override
     @Transactional
@@ -172,6 +180,7 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         entity.setTenantId(tenantId);
         entity.setTitle(req.getTitle().trim());
         entity.setBody(StrUtil.blankToDefault(resolved.body(), ""));
+        applyLayoutFields(entity, req.getBodyFormat(), req.getLayoutJson(), req.getLayoutHtml(), req.getLayoutTemplateId());
         entity.setCoverImage(req.getCoverImage());
         entity.setCreatorUserId(req.getCreatorUserId());
         entity.setAccountId(resolved.accountId());
@@ -217,6 +226,11 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         }
         if (req.getBody() != null) {
             existing.setBody(req.getBody());
+        }
+        if (req.getBodyFormat() != null || req.getLayoutJson() != null || req.getLayoutHtml() != null
+                || req.getLayoutTemplateId() != null) {
+            applyLayoutFields(existing, req.getBodyFormat(), req.getLayoutJson(), req.getLayoutHtml(),
+                    req.getLayoutTemplateId());
         }
         if (req.getCoverImage() != null) {
             existing.setCoverImage(req.getCoverImage());
@@ -305,6 +319,16 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         productionContentMapper.updateById(content);
         saveReviewRecord(content, contentReviewConfigService.resolveSubmitStage(),
                 "SUBMIT", TenantContextHolder.getUserId(), null);
+        notifyAfterSubmitReview(content);
+    }
+
+    private void notifyAfterSubmitReview(ProductionContentDO content) {
+        try {
+            String stage = contentReviewConfigService.resolveSubmitStage();
+            notificationService.notifyContentReviewSubmit(content, stage);
+        } catch (Exception ignored) {
+            // 通知失败不影响提交流程
+        }
     }
 
     @Override
@@ -339,12 +363,27 @@ public class ProductionContentServiceImpl implements ProductionContentService {
             String nextStatus = nextStatusAfterApprove(content.getStatus(), req.getStage());
             content.setStatus(nextStatus);
             saveReviewRecord(content, req.getStage(), req.getAction(), reviewerId, req.getComment());
+            notifyAfterReviewApprove(content, nextStatus);
         } else {
             throw new ServiceException(OaErrorCodes.DICT_VALUE_INVALID);
         }
         content.setUpdater(TenantContextHolder.getUsername());
         content.setUpdateTime(LocalDateTime.now());
         productionContentMapper.updateById(content);
+    }
+
+    private void notifyAfterReviewApprove(ProductionContentDO content, String nextStatus) {
+        try {
+            if ("PENDING_SECOND_REVIEW".equals(nextStatus)) {
+                notificationService.notifyContentReviewSubmit(content, "SECOND_REVIEW");
+            } else if ("PENDING_PUBLISH".equals(nextStatus)) {
+                notificationService.notifyContentReviewApproved(content);
+            } else if ("PENDING_FINAL_REVIEW".equals(nextStatus)) {
+                notificationService.notifyContentReviewSubmit(content, "FINAL_REVIEW");
+            }
+        } catch (Exception ignored) {
+            // 通知失败不影响审核流程
+        }
     }
 
     private String nextStatusAfterApprove(String currentStatus, String stage) {
@@ -515,6 +554,10 @@ public class ProductionContentServiceImpl implements ProductionContentService {
             steps.add(second);
         }
 
+        ContentReviewStepVO pendingPublish = newStep("PENDING_PUBLISH", "待发布",
+                resolvePendingPublishStepStatus(contentStatus));
+        steps.add(pendingPublish);
+
         ContentReviewStepVO published = newStep("PUBLISHED",
                 "REJECTED".equals(contentStatus) ? "已驳回" : "已发布",
                 resolvePublishedStepStatus(contentStatus));
@@ -573,6 +616,22 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         return "WAITING";
     }
 
+    private String resolvePendingPublishStepStatus(String contentStatus) {
+        if ("PENDING_PUBLISH".equals(contentStatus)) {
+            return "IN_PROGRESS";
+        }
+        if ("PUBLISHED".equals(contentStatus)) {
+            return "COMPLETED";
+        }
+        if ("REJECTED".equals(contentStatus)) {
+            return "WAITING";
+        }
+        if (reviewStatusOrder(contentStatus) > reviewStatusOrder("PENDING_PUBLISH")) {
+            return "COMPLETED";
+        }
+        return "WAITING";
+    }
+
     private String resolvePublishedStepStatus(String contentStatus) {
         if ("PUBLISHED".equals(contentStatus)) {
             return "COMPLETED";
@@ -589,7 +648,8 @@ public class ProductionContentServiceImpl implements ProductionContentService {
             case "PENDING_FIRST_REVIEW" -> 1;
             case "PENDING_SECOND_REVIEW" -> 2;
             case "PENDING_FINAL_REVIEW" -> 3;
-            case "PUBLISHED", "COMPLETED", "REJECTED" -> 4;
+            case "PENDING_PUBLISH" -> 4;
+            case "PUBLISHED", "COMPLETED", "REJECTED" -> 5;
             default -> 0;
         };
     }
@@ -681,6 +741,12 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         vo.setId(entity.getId());
         vo.setTitle(entity.getTitle());
         vo.setBody(entity.getBody());
+        vo.setBodyFormat(entity.getBodyFormat());
+        if (StrUtil.isNotBlank(entity.getLayoutJson())) {
+            vo.setLayoutJson(JSONUtil.parse(entity.getLayoutJson()));
+        }
+        vo.setLayoutHtml(entity.getLayoutHtml());
+        vo.setLayoutTemplateId(entity.getLayoutTemplateId());
         vo.setCoverImage(entity.getCoverImage());
         vo.setCreatorUserId(entity.getCreatorUserId());
         SysUserDO creator = sysUserMapper.selectById(entity.getCreatorUserId());
@@ -733,8 +799,48 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         }
         vo.setGeneratedVideoUrl(entity.getGeneratedVideoUrl());
         vo.setFinalVideoUrl(entity.getFinalVideoUrl());
+        vo.setTransferredToKnowledge(entity.getTransferredToKnowledge() == null ? 0 : entity.getTransferredToKnowledge());
+        vo.setKnowledgeId(entity.getKnowledgeId());
         vo.setCreateTime(entity.getCreateTime());
         return vo;
+    }
+
+    private String resolveKnowledgeContent(ProductionContentDO content) {
+        if ("LAYOUT".equals(content.getBodyFormat()) && StrUtil.isNotBlank(content.getLayoutHtml())) {
+            return content.getLayoutHtml();
+        }
+        return content.getBody() != null ? content.getBody() : "";
+    }
+
+    private static String truncateKnowledgeTitle(String title) {
+        String normalized = StrUtil.blankToDefault(title, "未命名内容").trim();
+        return normalized.length() <= 100 ? normalized : normalized.substring(0, 100);
+    }
+
+    private static String truncateKnowledgeTags(String tags) {
+        if (StrUtil.isBlank(tags)) {
+            return tags;
+        }
+        return tags.length() <= 200 ? tags : tags.substring(0, 200);
+    }
+
+    private String buildKnowledgeTags(ProductionContentDO content) {
+        Set<String> tags = new LinkedHashSet<>();
+        if (StrUtil.isNotBlank(content.getContentType())) {
+            tags.add(content.getContentType());
+        }
+        if (StrUtil.isNotBlank(content.getDocumentType())) {
+            tags.add(content.getDocumentType());
+        }
+        if (StrUtil.isNotBlank(content.getPlatformType())) {
+            tags.add(content.getPlatformType());
+        }
+        for (String platformType : ContentJsonHelper.fromPlatformTypesJson(content.getPlatformTypesJson())) {
+            if (StrUtil.isNotBlank(platformType)) {
+                tags.add(platformType);
+            }
+        }
+        return String.join(",", tags);
     }
 
     private record ResolvedContentFields(Long accountId, String platformType, List<String> platformTypes,
@@ -954,6 +1060,45 @@ public class ProductionContentServiceImpl implements ProductionContentService {
     @Override
     public ContentReviewConfigVO getReviewConfig() {
         return contentReviewConfigService.getConfig();
+    }
+
+    @Override
+    @Transactional
+    @AuditLog(module = "M2-content", action = "transfer-knowledge")
+    public ContentTransferKnowledgeResultVO transferToKnowledge(Long id) {
+        ProductionContentDO content = requireContent(id);
+        if (!"PUBLISHED".equals(content.getStatus())) {
+            throw new ServiceException(OaErrorCodes.CONTENT_STATUS_INVALID);
+        }
+        if (Integer.valueOf(1).equals(content.getTransferredToKnowledge())) {
+            throw new ServiceException(OaErrorCodes.CONTENT_ALREADY_TRANSFERRED);
+        }
+
+        Long tenantId = requireTenantId();
+        KnowledgeBaseDO knowledge = new KnowledgeBaseDO();
+        knowledge.setTenantId(tenantId);
+        knowledge.setTitle(truncateKnowledgeTitle(content.getTitle()));
+        knowledge.setContent(resolveKnowledgeContent(content));
+        knowledge.setCategory(KNOWLEDGE_CATEGORY_CASE);
+        knowledge.setTags(truncateKnowledgeTags(buildKnowledgeTags(content)));
+        knowledge.setIsPublic(1);
+        knowledge.setStatus(1);
+        knowledge.setCreator(TenantContextHolder.getUsername());
+        knowledge.setUpdater(TenantContextHolder.getUsername());
+        knowledge.setCreateTime(LocalDateTime.now());
+        knowledge.setUpdateTime(LocalDateTime.now());
+        knowledgeBaseMapper.insert(knowledge);
+
+        content.setTransferredToKnowledge(1);
+        content.setKnowledgeId(knowledge.getId());
+        content.setUpdater(TenantContextHolder.getUsername());
+        content.setUpdateTime(LocalDateTime.now());
+        productionContentMapper.updateById(content);
+
+        ContentTransferKnowledgeResultVO result = new ContentTransferKnowledgeResultVO();
+        result.setContentId(content.getId());
+        result.setKnowledgeId(knowledge.getId());
+        return result;
     }
 
     @Override
@@ -1287,5 +1432,31 @@ public class ProductionContentServiceImpl implements ProductionContentService {
 
     private boolean isSubmittableStatus(String status) {
         return "DRAFT".equals(status) || "REJECTED".equals(status);
+    }
+
+    private void applyLayoutFields(ProductionContentDO entity, String bodyFormat, Object layoutJson,
+                                   String layoutHtml, Long layoutTemplateId) {
+        if (StrUtil.isNotBlank(bodyFormat)) {
+            entity.setBodyFormat(bodyFormat);
+        } else if (layoutJson != null) {
+            entity.setBodyFormat("LAYOUT");
+        } else if (entity.getBodyFormat() == null) {
+            entity.setBodyFormat("PLAIN");
+        }
+        if (layoutJson != null) {
+            String json = LayoutJsonHelper.toJsonString(layoutJson);
+            entity.setLayoutJson(json);
+            entity.setLayoutHtml(StrUtil.blankToDefault(layoutHtml, LayoutJsonHelper.renderHtml(layoutJson)));
+            entity.setBodyFormat("LAYOUT");
+        } else if (layoutHtml != null) {
+            entity.setLayoutHtml(LayoutJsonHelper.sanitizeHtml(layoutHtml));
+        }
+        if (layoutTemplateId != null) {
+            entity.setLayoutTemplateId(layoutTemplateId);
+        }
+        if ("PLAIN".equals(entity.getBodyFormat()) && layoutJson == null) {
+            entity.setLayoutJson(null);
+            entity.setLayoutHtml(null);
+        }
     }
 }

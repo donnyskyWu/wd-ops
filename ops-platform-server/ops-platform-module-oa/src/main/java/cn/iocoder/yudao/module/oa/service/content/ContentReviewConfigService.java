@@ -63,7 +63,7 @@ public class ContentReviewConfigService {
         if (config.isLevel2Enabled()) {
             return "PENDING_SECOND_REVIEW";
         }
-        return "PUBLISHED";
+        return "PENDING_PUBLISH";
     }
 
     public String resolveSubmitStage() {
@@ -80,13 +80,13 @@ public class ContentReviewConfigService {
     public String resolveNextStatusAfterApprove(String currentStatus, String stage) {
         ContentReviewConfigVO config = getConfig();
         if ("FIRST_REVIEW".equals(stage) && "PENDING_FIRST_REVIEW".equals(currentStatus)) {
-            return config.isLevel2Enabled() ? "PENDING_SECOND_REVIEW" : "PUBLISHED";
+            return config.isLevel2Enabled() ? "PENDING_SECOND_REVIEW" : "PENDING_PUBLISH";
         }
         if ("SECOND_REVIEW".equals(stage) && "PENDING_SECOND_REVIEW".equals(currentStatus)) {
-            return "PUBLISHED";
+            return "PENDING_PUBLISH";
         }
         if ("FINAL_REVIEW".equals(stage) && "PENDING_FINAL_REVIEW".equals(currentStatus)) {
-            return "PUBLISHED";
+            return "PENDING_PUBLISH";
         }
         return null;
     }
@@ -198,7 +198,6 @@ public class ContentReviewConfigService {
         return roleCode;
     }
 
-    /** 待审步骤：查询可审核用户姓名（角色用户 + 一级 OPS_LEADER 时含 IP 组长） */
     public List<String> listEligibleReviewerNames(ProductionContentDO content, String stage) {
         String roleCode = resolveStageRoleCode(stage);
         if (StrUtil.isBlank(roleCode)) {
@@ -231,6 +230,31 @@ public class ContentReviewConfigService {
             }
         }
         return names;
+    }
+
+    /** 待审步骤：查询可审核用户 ID（角色用户 + 一级 OPS_LEADER 时含 IP 组长） */
+    public List<Long> listEligibleReviewerUserIds(ProductionContentDO content, String stage) {
+        String roleCode = resolveStageRoleCode(stage);
+        if (StrUtil.isBlank(roleCode)) {
+            return Collections.emptyList();
+        }
+        Long tenantId = TenantContextHolder.getTenantId();
+        Set<Long> userIds = new LinkedHashSet<>();
+        if ("FIRST_REVIEW".equals(stage) && IP_GROUP_LEADER_ROLE.equals(roleCode)) {
+            if (content.getIpGroupId() != null) {
+                IpGroupDO ipGroup = ipGroupMapper.selectById(content.getIpGroupId());
+                if (ipGroup != null && ipGroup.getLeaderUserId() != null) {
+                    userIds.add(ipGroup.getLeaderUserId());
+                }
+            }
+        } else {
+            for (SysUserDO user : sysUserTokenMapper.selectUsersByRoleCode(tenantId, roleCode)) {
+                if (user.getId() != null) {
+                    userIds.add(user.getId());
+                }
+            }
+        }
+        return new ArrayList<>(userIds);
     }
 
     public String formatReviewerDisplay(String roleLabel, List<String> userNames) {

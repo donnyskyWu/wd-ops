@@ -30,7 +30,11 @@ final class ContentJsonHelper {
         if (StrUtil.isBlank(json)) {
             return Collections.emptyList();
         }
-        return JSONUtil.toList(json, String.class);
+        try {
+            return JSONUtil.toList(json, String.class);
+        } catch (Exception ignored) {
+            return Collections.emptyList();
+        }
     }
 
     static List<Long> fromAccountIdsJson(String json) {

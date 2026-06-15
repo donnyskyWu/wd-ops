@@ -64,7 +64,6 @@ export function uploadTaskExecuteAttachment(id: number, file: File): Promise<Tas
   return request.post({
     url: `/oa/task/${id}/execute/upload`,
     data: formData,
-    headers: { 'Content-Type': 'multipart/form-data' },
   })
 }
 

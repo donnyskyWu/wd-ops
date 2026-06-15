@@ -7,7 +7,9 @@
           <h2 style="margin: 0">
             <el-icon style="vertical-align: middle"><Iphone /></el-icon>
             {{ summary.phoneNumberMasked }}
-            <el-tag style="margin-left: 8px">{{ OPERATOR_MAP[summary.operator || ''] || summary.operator }}</el-tag>
+            <el-tag style="margin-left: 8px">
+              <DictLabel dict-type="dict_sim_operator" :value="summary.operator" />
+            </el-tag>
           </h2>
           <p class="meta">
             <span>关联账号：{{ summary.totalCount ?? 0 }} 个</span>
@@ -45,15 +47,13 @@
             <el-table-column prop="accountName" label="账号名" min-width="160" show-overflow-tooltip />
             <el-table-column prop="platformLabel" label="平台" width="100" align="center">
               <template #default="{ row }">
-                <el-tag>{{ row.platformLabel }}</el-tag>
+                <DictLabel dict-type="dict_platform_type" :value="row.platformType" :fallback="row.platformLabel" />
               </template>
             </el-table-column>
             <el-table-column prop="accountId" label="平台ID" min-width="120" />
             <el-table-column label="状态" width="80" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.status === 'NORMAL' ? 'success' : 'info'" size="small">
-                  {{ row.status === 'NORMAL' ? '正常' : '停用' }}
-                </el-tag>
+                <DictLabel dict-type="dict_account_status" :value="row.status" />
               </template>
             </el-table-column>
             <el-table-column prop="linkedAt" label="关联时间" width="170" />
@@ -87,13 +87,8 @@ import * as echarts from 'echarts'
 import { Iphone } from '@element-plus/icons-vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import { getLinkedAccounts, type LinkedAccountVO, type LinkedAccountsResult } from '@/api/simcard'
-
-const OPERATOR_MAP: Record<string, string> = {
-  MOBILE: '中国移动',
-  UNICOM: '中国联通',
-  TELECOM: '中国电信',
-}
 
 const route = useRoute()
 const router = useRouter()

@@ -1,5 +1,17 @@
 <template>
   <div class="internal-content-page">
+    <!-- 统计卡片 -->
+    <div class="stats-cards">
+      <div v-for="card in statCards" :key="card.label" class="stat-card-item">
+        <el-card shadow="hover">
+          <div class="stat-card">
+            <div class="stat-label">{{ card.label }}</div>
+            <div class="stat-value" :style="{ color: card.color }">{{ card.value }}</div>
+          </div>
+        </el-card>
+      </div>
+    </div>
+
     <!-- 7平台Tab -->
     <el-tabs v-model="activePlatform" @tab-change="handleTabChange" class="platform-tabs">
       <el-tab-pane v-for="platform in platforms" :key="platform.value" :label="platform.label" :name="platform.value" />
@@ -61,7 +73,7 @@
     <div class="action-bar">
       <span class="total-info">共 {{ pagination.total }} 条</span>
       <el-button type="primary" plain @click="openMyImports">我的补录</el-button>
-      <el-button type="warning" plain @click="openImportReview">补录审核</el-button>
+      <el-button type="warning" plain @click="() => openImportReview()">补录审核</el-button>
     </div>
 
     <ContentWrap>
@@ -78,15 +90,25 @@
           </template>
         </el-table-column>
         <el-table-column prop="accountName" label="账号" width="140" />
+        <el-table-column prop="ipGroupName" label="IP组" width="100" />
         <el-table-column prop="publishTime" label="发布时间" width="160">
           <template #default="{ row }">{{ formatDateTime(row.publishTime) }}</template>
         </el-table-column>
         <el-table-column prop="readCount" label="阅读量" width="100" align="right">
-          <template #default="{ row }">{{ (row.readCount || 0).toLocaleString() }}</template>
+          <template #default="{ row }">{{ formatNumber(row.readCount) }}</template>
+        </el-table-column>
+        <el-table-column prop="likeCount" label="点赞" width="90" align="right" />
+        <el-table-column prop="commentCount" label="评论" width="90" align="right" />
+        <el-table-column prop="forwardCount" label="转发" width="90" align="right" />
+        <el-table-column prop="isHit" label="爆款" width="80" align="center">
+          <template #default="{ row }">
+            <span v-if="row.isHit" class="viral-tag">🔥爆款</span>
+            <span v-else>-</span>
+          </template>
         </el-table-column>
         <el-table-column label="操作" width="160" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleViewTrend(row)">趋势</el-button>
+            <el-button link type="primary" @click="handleViewDetail(row)">详情</el-button>
             <el-button link type="warning" @click="handleRowImport(row)">补录</el-button>
           </template>
         </el-table-column>
@@ -101,25 +123,44 @@
       />
     </ContentWrap>
 
-    <!-- 趋势侧抽屉 -->
-    <el-drawer v-model="trendDrawerVisible" :title="`趋势分析 - ${currentContent.title}`" size="640px">
-      <div class="trend-drawer-toolbar">
+    <!-- 详情对话框 -->
+    <el-dialog v-model="detailDialogVisible" :title="`作品详情 - ${currentContent.title || ''}`" width="900px">
+      <el-descriptions :column="2" border size="small" style="margin-bottom: 16px;">
+        <el-descriptions-item label="标题" :span="2">{{ currentContent.title || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="账号">{{ currentContent.accountName || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="IP组">{{ currentContent.ipGroupName || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="类型">
+          <DictLabel dict-type="dict_content_type" :value="currentContent.contentType" />
+        </el-descriptions-item>
+        <el-descriptions-item label="发布时间">{{ formatDateTime(currentContent.publishTime) }}</el-descriptions-item>
+        <el-descriptions-item label="阅读量">{{ formatNumber(currentContent.readCount) }}</el-descriptions-item>
+        <el-descriptions-item label="点赞">{{ formatNumber(currentContent.likeCount) }}</el-descriptions-item>
+        <el-descriptions-item label="评论">{{ formatNumber(currentContent.commentCount) }}</el-descriptions-item>
+        <el-descriptions-item label="转发">{{ formatNumber(currentContent.forwardCount) }}</el-descriptions-item>
+        <el-descriptions-item label="爆款">{{ currentContent.isHit ? '是' : '否' }}</el-descriptions-item>
+        <el-descriptions-item label="数据来源">{{ currentContent.dataSource || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="内容摘要" :span="2">
+          {{ currentContent.summary || currentContent.description || '（正文未单独采集，展示标题与互动指标）' }}
+        </el-descriptions-item>
+      </el-descriptions>
+      <el-divider content-position="left">互动趋势</el-divider>
+      <div class="detail-trend-toolbar">
         <el-date-picker
-          v-model="trendDateRange"
+          v-model="detailDateRange"
           type="daterange"
           range-separator="至"
           start-placeholder="开始日期"
           end-placeholder="结束日期"
           value-format="YYYY-MM-DD"
-          @change="reloadTrendChart"
+          @change="handleDetailDateChange"
         />
-        <el-radio-group v-model="trendQuickRange" @change="handleTrendQuickRange">
+        <el-radio-group v-model="detailQuickRange" @change="(val) => handleDetailQuickRange(String(val))">
           <el-radio-button label="7d">近 7 日</el-radio-button>
           <el-radio-button label="30d">近 30 日</el-radio-button>
         </el-radio-group>
       </div>
-      <div ref="trendChartRef" style="height: 400px;"></div>
-    </el-drawer>
+      <div ref="trendChartRef" style="height: 320px;"></div>
+    </el-dialog>
 
     <!-- 补录列表（我的补录 / 待审核） -->
     <el-dialog v-model="myImportsVisible" :title="myImportsDialogTitle" width="900px">
@@ -202,14 +243,15 @@
 </template>
 
 <script setup lang="ts">
-// P-GATE-UNMOCK-R S-R2-E：去 mock 接真 API
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { Download, Search, Refresh } from '@element-plus/icons-vue'
-import { getInternalContentList, getInternalContentTrend, submitContentImport, getContentImportList, reviewContentImport } from '@/api/internal-content'
+import { getInternalContentList, submitContentImport, getContentImportList, reviewContentImport } from '@/api/internal-content'
+import { getContentStats, getContentTrend } from '@/api/works'
+import type { ContentStats } from '@/types/works'
 import { normalizePlatform } from '@/utils/enum-alias'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
@@ -220,10 +262,6 @@ import { exportToExcel, formatDateTime } from '@/utils'
 
 const route = useRoute()
 
-// 补录类型：前端不再硬编码 mapping，由 DictSelect 直接显示 dict_content_import_type 真实值
-// （S-R5 P2：之前硬编码 4 个含 2 个 dict 没有的 ACCOUNT_BANNED/OTHER，删）
-
-// S-R3：平台 Tab 用后端 dict 真实值；删除"服务号"（不是平台，是 account_type）
 const activePlatform = ref('ALL')
 const platforms = [
   { label: '全部', value: 'ALL' },
@@ -246,19 +284,39 @@ const searchForm = reactive({
   contentType: undefined as string | undefined,
   dateRange: [] as string[],
   ipGroupId: undefined as number | undefined,
-  // S-R7-B4：删 importType（content 列表表无此字段，importType 是 oa_content_import 表的字段）
 })
+
+const stats = ref<ContentStats>({
+  totalCount: 0,
+  hitCount: 0,
+  totalRead: 0,
+  avgRead: 0,
+  totalPublished: 0,
+  totalViews: 0,
+  totalLikes: 0,
+  totalComments: 0,
+  totalShares: 0,
+})
+
+const statCards = computed(() => [
+  { label: '发布总数', value: formatNumber(stats.value?.totalCount || 0), color: '#409EFF' },
+  { label: '阅读/播放', value: formatNumber(stats.value?.totalRead || 0), color: '#67C23A' },
+  { label: '点赞总数', value: formatNumber(stats.value?.totalLikes || 0), color: '#E6A23C' },
+  { label: '评论总数', value: formatNumber(stats.value?.totalComments || 0), color: '#F56C6C' },
+  { label: '转发总数', value: formatNumber(stats.value?.totalShares || 0), color: '#909399' },
+])
+
 const loading = ref(false)
 const exportLoading = ref(false)
 const tableData = ref<any[]>([])
 const pagination = reactive({ pageNo: 1, pageSize: 10, total: 0 })
-const trendDrawerVisible = ref(false)
+
+const detailDialogVisible = ref(false)
 const currentContent = ref<any>({})
 const trendChartRef = ref<HTMLElement>()
-const trendDateRange = ref<string[]>(getDefaultWeekRange())
-const trendQuickRange = ref<'7d' | '30d' | 'custom'>('7d')
+const detailDateRange = ref<string[]>(getDefaultWeekRange())
+const detailQuickRange = ref<'7d' | '30d' | 'custom'>('7d')
 
-// ==================== 我的补录 / 补录审核 ====================
 const myImportsVisible = ref(false)
 const myImportsLoading = ref(false)
 const myImportsList = ref<any[]>([])
@@ -268,7 +326,7 @@ const importReviewStatusFilter = ref<number | undefined>(undefined)
 const myImportsDialogTitle = computed(() =>
   myImportsReviewOnly.value ? '补录审核（待处理）' : '我的补录',
 )
-// S-R5 P2：审核状态 + 补录类型 label 映射（与 dict_content_import_type 对齐）
+
 const REVIEW_STATUS_MAP: Record<number, { label: string; tag: 'info' | 'success' | 'danger' }> = {
   0: { label: '待审核', tag: 'info' },
   1: { label: '已通过', tag: 'success' },
@@ -277,7 +335,6 @@ const REVIEW_STATUS_MAP: Record<number, { label: string; tag: 'info' | 'success'
 const getReviewStatusLabel = (s: number) => REVIEW_STATUS_MAP[s]?.label ?? '-'
 const getReviewStatusTag = (s: number) => REVIEW_STATUS_MAP[s]?.tag ?? 'info'
 const getImportTypeLabel = (t: string) => {
-  // 用 backend dict 真值（之前硬编码 4 个含 2 个 dict 没有的）
   const map: Record<string, string> = {
     API_EXCEPTION: '接口异常',
     OFFLINE: '线下补录',
@@ -285,7 +342,6 @@ const getImportTypeLabel = (t: string) => {
   return map[t] ?? t ?? '-'
 }
 
-// ==================== 数据补录相关 ====================
 const importDialogVisible = ref(false)
 const importFormRef = ref()
 const submitLoading = ref(false)
@@ -308,6 +364,27 @@ const importRules = {
   importType: [{ required: true, message: '请选择补录类型', trigger: 'change' }],
 }
 
+const formatNumber = (num: number) => (num ?? 0).toLocaleString('zh-CN')
+
+const buildListParams = (page: number, size: number) => ({
+  platformType: activePlatform.value === 'ALL' ? undefined : normalizePlatform(activePlatform.value),
+  contentType: searchForm.contentType || undefined,
+  ipGroupId: searchForm.ipGroupId,
+  keyword: searchForm.keyword || undefined,
+  startDate: searchForm.dateRange?.length === 2 ? searchForm.dateRange[0] : undefined,
+  endDate: searchForm.dateRange?.length === 2 ? searchForm.dateRange[1] : undefined,
+  page,
+  size,
+} as any)
+
+const buildStatsParams = () => ({
+  ipGroupId: searchForm.ipGroupId,
+  platformType: activePlatform.value === 'ALL' ? undefined : normalizePlatform(activePlatform.value),
+  contentType: searchForm.contentType || undefined,
+  startDate: searchForm.dateRange?.length === 2 ? searchForm.dateRange[0] : undefined,
+  endDate: searchForm.dateRange?.length === 2 ? searchForm.dateRange[1] : undefined,
+})
+
 const handleRowImport = (row: any) => {
   importForm.contentId = row.id
   importForm.statDate = ''
@@ -324,7 +401,6 @@ const handleImportSubmit = async () => {
   if (!importFormRef.value) return
   await importFormRef.value.validate(async (valid: boolean) => {
     if (!valid) return
-    // S-R5 P0：调真 API submitContentImport
     submitLoading.value = true
     try {
       const id = await submitContentImport({
@@ -351,17 +427,6 @@ const handleImportSubmit = async () => {
   })
 }
 
-const buildListParams = (page: number, size: number) => ({
-  platformType: activePlatform.value === 'ALL' ? undefined : normalizePlatform(activePlatform.value),
-  contentType: searchForm.contentType || undefined,
-  ipGroupId: searchForm.ipGroupId,
-  keyword: searchForm.keyword || undefined,
-  startDate: searchForm.dateRange?.length === 2 ? searchForm.dateRange[0] : undefined,
-  endDate: searchForm.dateRange?.length === 2 ? searchForm.dateRange[1] : undefined,
-  page,
-  size,
-} as any)
-
 const fetchAllFilteredRows = async () => {
   const exportPageSize = 500
   const first: any = await getInternalContentList(buildListParams(1, exportPageSize))
@@ -377,6 +442,27 @@ const fetchAllFilteredRows = async () => {
   return rows
 }
 
+const loadStats = async () => {
+  try {
+    const statsData = await getContentStats(buildStatsParams())
+    if (statsData) {
+      stats.value = {
+        totalCount: statsData.totalCount ?? 0,
+        hitCount: statsData.hitCount ?? 0,
+        totalRead: statsData.totalRead ?? 0,
+        avgRead: statsData.avgRead ?? 0,
+        totalPublished: statsData.totalCount ?? 0,
+        totalViews: statsData.totalRead ?? 0,
+        totalLikes: statsData.totalLikes ?? 0,
+        totalComments: statsData.totalComments ?? 0,
+        totalShares: statsData.totalShares ?? 0,
+      }
+    }
+  } catch {
+    // 卡片保持 0
+  }
+}
+
 const loadData = async () => {
   loading.value = true
   try {
@@ -384,7 +470,7 @@ const loadData = async () => {
     const res: any = await getInternalContentList(params)
     tableData.value = res?.list || []
     pagination.total = res?.total ?? 0
-    // S-R5 P1：contentOptions 拉全量（size=200）覆盖弹窗所有可选内容
+    await loadStats()
     try {
       const allRes: any = await getInternalContentList({ page: 1, size: 200 } as any)
       contentOptions.value = (allRes?.list || []).map((c: any) => ({ id: c.id, title: c.title }))
@@ -406,7 +492,6 @@ const handleReset = () => {
   searchForm.contentType = undefined
   searchForm.dateRange = []
   searchForm.ipGroupId = undefined
-  // S-R7-B4：删 importType reset
   pagination.pageNo = 1
   loadData()
 }
@@ -420,9 +505,12 @@ const handleExport = async () => {
       contentType: row.contentType,
       platformType: row.platformType,
       accountName: row.accountName,
+      ipGroupName: row.ipGroupName ?? '',
       publishTime: row.publishTime ? formatDateTime(row.publishTime) : '',
       readCount: row.readCount ?? 0,
       likeCount: row.likeCount ?? 0,
+      commentCount: row.commentCount ?? 0,
+      forwardCount: row.forwardCount ?? 0,
       dataSource: row.dataSource ?? '',
       isHit: row.isHit ? '是' : '否',
     }))
@@ -431,13 +519,16 @@ const handleExport = async () => {
       { key: 'contentType', label: '类型' },
       { key: 'platformType', label: '平台' },
       { key: 'accountName', label: '账号' },
+      { key: 'ipGroupName', label: 'IP组' },
       { key: 'publishTime', label: '发布时间' },
       { key: 'readCount', label: '阅读量' },
       { key: 'likeCount', label: '点赞' },
+      { key: 'commentCount', label: '评论' },
+      { key: 'forwardCount', label: '转发' },
       { key: 'dataSource', label: '数据来源' },
       { key: 'isHit', label: '是否爆款' },
     ]
-    exportToExcel(exportData, columns, '内部内容分析')
+    exportToExcel(exportData, columns, '内部作品分析')
   } catch (error) {
     console.error('[InternalContent] 导出失败:', error)
     ElMessage.error('导出失败：' + (error instanceof Error ? error.message : String(error)))
@@ -446,71 +537,85 @@ const handleExport = async () => {
   }
 }
 
-let internalTrendChart: echarts.ECharts | null = null
+let detailTrendChart: echarts.ECharts | null = null
 
-const handleTrendQuickRange = (val: string) => {
+const handleDetailQuickRange = (val: string) => {
   if (val === '7d') {
-    trendDateRange.value = getDefaultWeekRange()
+    detailDateRange.value = getDefaultWeekRange()
   } else if (val === '30d') {
-    trendDateRange.value = [
+    detailDateRange.value = [
       dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
       dayjs().format('YYYY-MM-DD'),
     ]
   }
-  reloadTrendChart()
+  if (currentContent.value?.id) {
+    renderTrendChart(currentContent.value.id)
+  }
 }
 
-const reloadTrendChart = async () => {
-  if (!currentContent.value?.id) return
-  await renderTrendChart(currentContent.value)
+const handleDetailDateChange = () => {
+  detailQuickRange.value = 'custom'
+  if (currentContent.value?.id) {
+    renderTrendChart(currentContent.value.id)
+  }
 }
 
-const renderTrendChart = async (row: any) => {
+const renderTrendChart = async (contentId: number) => {
   await nextTick()
   if (!trendChartRef.value || trendChartRef.value.getBoundingClientRect().width === 0) {
-    setTimeout(() => renderTrendChart(row), 100)
+    setTimeout(() => renderTrendChart(contentId), 100)
     return
   }
-  if (internalTrendChart) {
-    internalTrendChart.dispose()
-    internalTrendChart = null
+  if (detailTrendChart) {
+    detailTrendChart.dispose()
+    detailTrendChart = null
   }
-  const chart = echarts.init(trendChartRef.value!)
-  internalTrendChart = chart
-  const [startDate, endDate] = trendDateRange.value || []
-  try {
-    const data: any = await getInternalContentTrend(row.id ?? row.contentId, { startDate, endDate })
-    const series: any[] = data?.series || []
-    if (series.length === 0) {
-      chart.setOption({
-        title: { text: '该内容暂无趋势数据', left: 'center', top: 'middle', textStyle: { color: '#909399', fontSize: 14 } },
-      })
-      return
-    }
-    chart.setOption({
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['阅读量', '播放量'] },
-      xAxis: { type: 'category', data: series.map((p: any) => p.date) },
-      yAxis: [{ type: 'value', name: '阅读量' }, { type: 'value', name: '播放量' }],
-      series: [
-        { name: '阅读量', type: 'line', data: series.map((p: any) => p.readCount ?? 0), smooth: true },
-        { name: '播放量', type: 'line', yAxisIndex: 1, data: series.map((p: any) => p.playCount ?? 0), smooth: true },
-      ],
-    })
-  } catch (e) {
-    ElMessage.error('趋势加载失败：' + (e instanceof Error ? e.message : String(e)))
-    chart.setOption({
-      title: { text: '趋势加载失败', left: 'center', top: 'middle', textStyle: { color: '#F56C6C', fontSize: 14 } },
-    })
-  }
+
+  const [startDate, endDate] = detailDateRange.value?.length === 2
+    ? detailDateRange.value
+    : getDefaultWeekRange()
+  const trendData = await getContentTrend({ contentId, startDate, endDate })
+
+  const chart = echarts.init(trendChartRef.value)
+  detailTrendChart = chart
+
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['阅读量', '互动数'] },
+    xAxis: {
+      type: 'category',
+      data: trendData.map(d => d.date),
+    },
+    yAxis: [
+      { type: 'value', name: '阅读量', position: 'left' },
+      { type: 'value', name: '互动数', position: 'right' },
+    ],
+    series: [
+      {
+        name: '阅读量',
+        type: 'line',
+        data: trendData.map(d => d.readCount),
+        smooth: true,
+        lineStyle: { width: 3 },
+      },
+      {
+        name: '互动数',
+        type: 'bar',
+        yAxisIndex: 1,
+        data: trendData.map(d => (d.likeCount || 0) + (d.commentCount || 0) + (d.forwardCount || 0)),
+        itemStyle: { color: '#67C23A' },
+      },
+    ],
+  })
 }
 
-const handleViewTrend = async (row: any) => {
+const handleViewDetail = async (row: any) => {
   currentContent.value = row
-  trendDateRange.value = getDefaultWeekRange()
-  trendQuickRange.value = '7d'
-  trendDrawerVisible.value = true
-  await renderTrendChart(row)
+  detailDateRange.value = getDefaultWeekRange()
+  detailQuickRange.value = '7d'
+  detailDialogVisible.value = true
+  await nextTick()
+  renderTrendChart(row.id)
 }
 
 onMounted(async () => {
@@ -524,7 +629,13 @@ onMounted(async () => {
   }
 })
 
-// ==================== 我的补录 / 补录审核方法 ====================
+watch(detailDialogVisible, (visible) => {
+  if (!visible && detailTrendChart) {
+    detailTrendChart.dispose()
+    detailTrendChart = null
+  }
+})
+
 const openMyImports = async () => {
   myImportsReviewOnly.value = false
   importReviewStatusFilter.value = undefined
@@ -573,7 +684,7 @@ const handleReview = async (row: any, status: 1 | 2) => {
     await reviewContentImport(row.id, { reviewStatus: status, remark })
     ElMessage.success(`已${action}补录 ID=${row.id}`)
     await loadMyImports()
-    loadData() // 刷新主列表（审核通过后 trend 数据会变）
+    loadData()
   } catch (e: any) {
     ElMessage.error(`${action}失败：` + (e?.response?.data?.msg || e?.message))
   }
@@ -583,7 +694,38 @@ const handleReview = async (row: any, status: 1 | 2) => {
 <style scoped lang="scss">
 .internal-content-page {
   padding: 20px;
-  
+
+  .stats-cards {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+
+    .stat-card-item {
+      min-width: 0;
+
+      .el-card {
+        text-align: center;
+        height: 100%;
+      }
+    }
+
+    .stat-card {
+      text-align: center;
+
+      .stat-label {
+        font-size: 13px;
+        color: #909399;
+        margin-bottom: 6px;
+      }
+
+      .stat-value {
+        font-size: 18px;
+        font-weight: bold;
+      }
+    }
+  }
+
   .platform-tabs { margin-bottom: 16px; }
 
   .internal-content-search-card {
@@ -683,18 +825,24 @@ const handleReview = async (row: any, status: 1 | 2) => {
     gap: 16px;
     margin-bottom: 16px;
   }
-  
+
   .total-info {
     color: #909399;
     font-size: 14px;
   }
+}
 
-  .trend-drawer-toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
+.viral-tag {
+  color: #F56C6C;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.detail-trend-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 </style>

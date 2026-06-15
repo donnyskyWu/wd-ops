@@ -9,6 +9,8 @@ public class SimCardRespVO {
 
     private Long id;
     private Long phoneId;
+    private String phoneCode;
+    private String phoneModel;
     private String phoneNumberMasked;
     private String isPrimary;
     private String operator;
