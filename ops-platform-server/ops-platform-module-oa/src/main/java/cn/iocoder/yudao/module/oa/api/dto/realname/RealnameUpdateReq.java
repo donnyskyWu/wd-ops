@@ -35,4 +35,10 @@ public class RealnameUpdateReq {
 
     @InDict("dict_realname_status")
     private String status;
+
+    @Size(max = 512)
+    private String idCardFrontKey;
+
+    @Size(max = 512)
+    private String idCardBackKey;
 }

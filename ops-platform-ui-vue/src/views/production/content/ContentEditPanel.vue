@@ -164,7 +164,7 @@
                 :icon="layoutPanelCollapsed ? Expand : Fold"
                 @click="layoutPanelCollapsed = !layoutPanelCollapsed"
               >
-                {{ layoutPanelCollapsed ? '展开版式结构' : '收起版式结构' }}
+                {{ layoutPanelCollapsed ? '展开版式工作台' : '收起版式工作台' }}
               </el-button>
             </div>
           </div>
@@ -176,25 +176,29 @@
               <el-form-item label="正文" prop="body">
                 <RichTextEditor
                   v-if="!effectiveReadonly"
+                  ref="richEditorRef"
                   v-model="richBodyHtml"
                   :placeholder="editorMaximized ? '全屏编辑模式，按 Esc 可还原' : '请输入正文，支持富文本排版'"
-                  :min-height="editorMaximized ? 'calc(100vh - 200px)' : '360px'"
+                  :min-height="editorMaximized ? '0' : EDITOR_FRAME_MIN"
+                  :fill-height="editorMaximized"
                 />
                 <LayoutViewer v-else :html="displayRichHtml" />
               </el-form-item>
             </el-col>
             <el-col v-if="!effectiveReadonly && !layoutPanelCollapsed && !editorMaximized" :xs="24" :md="10">
-              <el-form-item v-if="formData.bodyFormat === 'LAYOUT'" label="版式结构">
+              <LayoutResourceSidebar
+                :document-type="formData.documentType"
+                :body="sidebarBodyText"
+                :html="richBodyHtml"
+                :existing-layout-json="formData.layoutJson"
+                :insert-html="insertHtmlAtCursor"
+                :apply-style-to-selection="applyStyleToSelection"
+                @template-applied="handleSidebarTemplateApplied"
+                @typeset-applied="handleSidebarTypesetApplied"
+              />
+              <el-form-item v-if="formData.bodyFormat === 'LAYOUT'" label="版式结构" class="layout-structure-item">
                 <LayoutEditor v-model="formData.layoutJson" :show-preview="false" />
               </el-form-item>
-              <el-alert
-                v-else
-                type="info"
-                :closable="false"
-                show-icon
-                title="版式结构"
-                description="填写正文后可「选择并应用模板」，右侧将显示可编辑的版式结构。"
-              />
             </el-col>
           </el-row>
           <div v-if="editorMaximized && !effectiveReadonly" class="article-edit-maximized-footer">
@@ -209,7 +213,7 @@
           v-if="!effectiveReadonly"
           v-model="richBodyHtml"
           placeholder="请输入正文，支持富文本排版"
-          min-height="360px"
+          :min-height="EDITOR_FRAME_MIN"
         />
         <LayoutViewer v-else :html="displayRichHtml" />
       </el-form-item>
@@ -229,7 +233,7 @@
       </template>
 
       <el-form-item v-if="!effectiveReadonly">
-        <el-button v-if="formData.isAi && showBody" :loading="aiGenerating" @click="openAiDialog">生成</el-button>
+        <el-button v-if="formData.isAi && showAiTextGenerate" :loading="aiGenerating" @click="openAiDialog">生成</el-button>
         <el-button v-if="isTaskMode && showVideoFields" :loading="generating" @click="handleGenerate">生成视频</el-button>
         <el-button type="primary" :loading="saving" :disabled="!canEdit" @click="handleSaveDraft">保存</el-button>
         <el-button
@@ -304,6 +308,7 @@ import RichTextEditor from '@/components/editor/RichTextEditor.vue'
 import LayoutEditor from '@/components/layout/LayoutEditor.vue'
 import LayoutViewer from '@/components/layout/LayoutViewer.vue'
 import LayoutTemplateSelectDialog from '@/components/layout/LayoutTemplateSelectDialog.vue'
+import LayoutResourceSidebar from '@/components/layout/LayoutResourceSidebar.vue'
 import {
   extractPlainText,
   parseHtmlToLayoutDocument,
@@ -488,6 +493,64 @@ const richSyncing = ref(false)
 const layoutJsonFromRichEditor = ref(false)
 const editorMaximized = ref(false)
 const layoutPanelCollapsed = ref(true)
+const richEditorRef = ref<InstanceType<typeof RichTextEditor> | null>(null)
+
+/** Default editor body frame — taller than legacy 480px, capped on short viewports. */
+const EDITOR_FRAME_MIN = 'min(620px, calc(100vh - 280px))'
+
+function insertHtmlAtCursor(html: string) {
+  richEditorRef.value?.insertHtmlAtCursor(html)
+}
+
+function applyStyleToSelection(html: string) {
+  richEditorRef.value?.applyStyleToSelection(html)
+}
+
+function handleSidebarTemplateApplied(payload: {
+  layoutJson: unknown
+  layoutHtml: string
+  templateId: number
+  mode: string
+}) {
+  formData.bodyFormat = 'LAYOUT'
+  formData.layoutJson = payload.layoutJson as LayoutDocument
+  formData.layoutHtml = payload.layoutHtml
+  formData.layoutTemplateId = payload.templateId
+  richSyncing.value = true
+  try {
+    richBodyHtml.value = payload.layoutHtml || ''
+    formData.body = extractPlainText(richBodyHtml.value)
+  } finally {
+    richSyncing.value = false
+  }
+}
+
+function handleSidebarTypesetApplied(payload: {
+  html: string
+  layoutJson?: unknown
+  templateId?: number
+  mode: string
+}) {
+  richSyncing.value = true
+  try {
+    if (payload.mode === 'TEMPLATE' && payload.layoutJson) {
+      formData.bodyFormat = 'LAYOUT'
+      formData.layoutJson = payload.layoutJson as LayoutDocument
+      formData.layoutHtml = payload.html
+      if (payload.templateId) {
+        formData.layoutTemplateId = payload.templateId
+      }
+    }
+    richBodyHtml.value = payload.html
+    syncRichToForm(payload.html)
+  } finally {
+    richSyncing.value = false
+  }
+}
+
+const sidebarBodyText = computed(
+  () => extractPlainText(richBodyHtml.value) || formData.body?.trim() || '',
+)
 
 function toggleEditorMaximize() {
   editorMaximized.value = !editorMaximized.value
@@ -614,6 +677,10 @@ watch(
 const showScriptRef = computed(() => isTaskMode.value && formData.contentType === 'SHORT_VIDEO')
 const showBody = computed(
   () => !!formData.contentType && formData.contentType !== 'SHORT_VIDEO' && formData.contentType !== 'ARTICLE',
+)
+/** AI 文本生成：文章走 showArticleLayout，其它非短视频类型走 showBody */
+const showAiTextGenerate = computed(
+  () => !!formData.contentType && formData.contentType !== 'SHORT_VIDEO',
 )
 const showVideoFields = computed(() => isTaskMode.value && formData.contentType === 'SHORT_VIDEO')
 
@@ -1187,12 +1254,51 @@ watch(
   position: fixed;
   inset: 0;
   z-index: 3000;
+  display: flex;
+  flex-direction: column;
   padding: 16px 20px;
-  overflow: auto;
+  box-sizing: border-box;
+  overflow: hidden;
   background: var(--el-bg-color);
+}
+.article-edit-shell.is-maximized .article-edit-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+}
+.article-edit-shell.is-maximized .article-edit-row :deep(.el-col) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.article-edit-shell.is-maximized .article-edit-row :deep(.el-form-item) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-bottom: 0;
+}
+.article-edit-shell.is-maximized .article-edit-row :deep(.el-form-item__content) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.article-edit-shell.is-maximized .article-edit-row :deep(.rich-text-editor) {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  max-height: none;
+}
+.article-edit-shell.is-maximized .article-edit-row :deep(.rte-content) {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 .article-edit-toolbar {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -1212,6 +1318,7 @@ watch(
 }
 .article-edit-maximized-footer {
   display: flex;
+  flex-shrink: 0;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 12px;

@@ -1,5 +1,8 @@
 server:
   port: 8080
+  tomcat:
+    max-http-form-post-size: 25MB
+    max-swallow-size: 25MB
 
 spring:
   application:
@@ -8,9 +11,9 @@ spring:
     active: dev
   servlet:
     multipart:
-      # 与前端富文本图片上限 5MB 一致；默认 1MB 超限会返回 HTTP 403
-      max-file-size: 5MB
-      max-request-size: 10MB
+      # 富文本图片 5MB；MHTML 公众号归档可达 ~15MB
+      max-file-size: 20MB
+      max-request-size: 25MB
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai

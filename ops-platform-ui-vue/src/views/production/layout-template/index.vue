@@ -28,7 +28,7 @@
 
     <div class="action-bar">
 
-      <el-button v-hasPermi="'oa:layout-template:create'" type="primary" @click="router.push('/layout-template/create')">
+      <el-button type="primary" @click="router.push('/layout-template/create')">
 
         <el-icon><Plus /></el-icon>
 
@@ -36,7 +36,7 @@
 
       </el-button>
 
-      <el-button v-hasPermi="'oa:layout-template:import'" @click="router.push('/layout-template/import')">导入向导</el-button>
+      <el-button @click="router.push('/layout-template/import')">导入向导</el-button>
 
     </div>
 
@@ -44,7 +44,15 @@
 
     <el-table v-loading="loading" :data="list" stripe>
 
-      <el-table-column prop="templateName" label="模板名称" min-width="180" />
+      <el-table-column prop="templateName" label="模板名称" min-width="160" />
+
+      <el-table-column label="预览" width="100">
+        <template #default="{ row }">
+          <div v-if="row.previewHtml" class="list-thumb" v-html="row.previewHtml" />
+          <el-image v-else-if="row.thumbnailUrl" :src="row.thumbnailUrl" fit="cover" class="list-thumb-img" />
+          <span v-else class="no-preview">—</span>
+        </template>
+      </el-table-column>
 
       <el-table-column prop="documentType" label="文档类型" width="140">
 
@@ -96,12 +104,11 @@
 
           <el-button link type="primary" @click="router.push(`/layout-template/${row.id}`)">预览</el-button>
 
-          <el-button v-hasPermi="'oa:layout-template:update'" link type="primary" @click="router.push(`/layout-template/${row.id}/edit`)">
+          <el-button link type="primary" @click="router.push(`/layout-template/${row.id}/edit`)">
             {{ row.sourceType === 'PRESET' ? '查看' : '编辑' }}
           </el-button>
           <el-button
             v-if="row.sourceType === 'PRESET'"
-            v-hasPermi="'oa:layout-template:create'"
             link
             type="primary"
             @click="handleCopy(row.id)"
@@ -112,8 +119,6 @@
           <el-button
 
             v-if="row.status === 'DRAFT'"
-
-            v-hasPermi="'oa:layout-template:update'"
 
             link
 
@@ -131,8 +136,6 @@
 
             v-if="row.status === 'ENABLED'"
 
-            v-hasPermi="'oa:layout-template:update'"
-
             link
 
             type="warning"
@@ -149,8 +152,6 @@
 
             v-if="row.status === 'DISABLED'"
 
-            v-hasPermi="'oa:layout-template:update'"
-
             link
 
             type="success"
@@ -165,7 +166,6 @@
 
           <el-button
             v-if="row.sourceType !== 'PRESET'"
-            v-hasPermi="'oa:layout-template:delete'"
             link
             type="danger"
             @click="handleDelete(row.id)"
@@ -386,6 +386,33 @@ onMounted(loadData)
 
   margin-bottom: 16px;
 
+}
+
+.list-thumb {
+  width: 72px;
+  height: 48px;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1.2;
+  transform: scale(0.85);
+  transform-origin: top left;
+}
+
+.list-thumb :deep(img) {
+  max-width: 100%;
+  height: auto;
+}
+
+.list-thumb-img {
+  width: 72px;
+  height: 48px;
+  border-radius: 4px;
+}
+
+.no-preview {
+  color: var(--el-text-color-placeholder);
 }
 
 </style>

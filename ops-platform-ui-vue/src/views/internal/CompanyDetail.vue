@@ -51,6 +51,20 @@
               <el-descriptions-item label="备注" :span="2">{{ detail.remark || '-' }}</el-descriptions-item>
               <el-descriptions-item label="创建时间">{{ detail.createdAt }}</el-descriptions-item>
               <el-descriptions-item label="更新时间">{{ detail.updatedAt || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="营业执照" :span="2">
+                <div v-if="licensePreviewUrls.length" class="license-grid">
+                  <el-image
+                    v-for="(url, index) in licensePreviewUrls"
+                    :key="url"
+                    :src="url"
+                    fit="cover"
+                    class="license-preview"
+                    :preview-src-list="licensePreviewUrls"
+                    :initial-index="index"
+                  />
+                </div>
+                <span v-else>-</span>
+              </el-descriptions-item>
             </el-descriptions>
           </ContentWrap>
         </el-tab-pane>
@@ -109,7 +123,7 @@
               :closable="false"
               show-icon
               title="容量预警"
-              :description="`剩余容量不足 5 个,建议尽快扩容(点击右上角"扩容"按钮)`"
+              :description="'剩余容量不足 5 个,建议尽快扩容(点击右上角「扩容」按钮)'"
             />
           </ContentWrap>
         </el-tab-pane>
@@ -189,12 +203,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import ContentWrap from '@/components/ContentWrap.vue'
+import { appendFileAuth } from '@/utils/fileUrl'
 import {
-  getCompanyPage,
+  getCompany,
   expandCompany,
 } from '@/api/company'
 import { getPlatformAccountList } from '@/api/account'
@@ -212,25 +227,52 @@ const expandDialogVisible = ref(false)
 const expandSubmitting = ref(false)
 const expandForm = reactive({ delta: 5, reason: '' })
 
+const OA_FILE_VIEW_PREFIX = '/admin-api/oa/file/view?key='
+
+function viewUrlForKey(key?: string): string {
+  if (!key) return ''
+  if (key.startsWith('/admin-api/') || key.startsWith('http://') || key.startsWith('https://')) {
+    return key
+  }
+  return OA_FILE_VIEW_PREFIX + key
+}
+
+const imagePreview = (url?: string, key?: string) => {
+  const resolved = url || viewUrlForKey(key)
+  return resolved ? appendFileAuth(resolved) : ''
+}
+
+const licensePreviewUrls = computed(() => {
+  const d = detail.value
+  if (!d) return [] as string[]
+  const urls = (d.businessLicenseUrls || []) as string[]
+  const keys = (d.businessLicenseKeys || []) as string[]
+  const maxLen = Math.max(urls.length, keys.length)
+  const result: string[] = []
+  for (let i = 0; i < maxLen; i += 1) {
+    const preview = imagePreview(urls[i], keys[i])
+    if (preview) result.push(preview)
+  }
+  return result
+})
+
 const loadDetail = async () => {
   loading.value = true
   try {
     const id = Number(route.params.id)
-    // 后端暂未提供 company/{id} 单独 detail 端点；使用 list 过滤 + mp-stats 拼装
-    const listRes: any = await getCompanyPage({ pageNo: 1, pageSize: 200 })
-    const found = (listRes.list || []).find((x: any) => x.id === id)
-    if (found) {
-      detail.value = {
-        ...found,
-        creditCode: found.creditCode || '',
-        industry: found.industry || '',
-        legalPerson: found.legalName || '',
-        totalQuota: found.mpCapacityStandard ?? 0,
-        usedQuota: found.mpRegisteredCount ?? 0,
-        status: found.status === 'ENABLED' ? 1 : 0,
-        createdAt: found.createTime || '',
-        updatedAt: found.createTime || '',
-      }
+    const found = await getCompany(id)
+    detail.value = {
+      ...found,
+      creditCode: found.creditCode || '',
+      industry: found.industry || '',
+      legalPerson: found.legalName || '',
+      totalQuota: found.mpCapacityStandard ?? 0,
+      usedQuota: found.mpRegisteredCount ?? 0,
+      status: found.status === 'ENABLED' ? 1 : 0,
+      createdAt: found.createTime || '',
+      updatedAt: found.createTime || '',
+      businessLicenseKeys: found.businessLicenseKeys || [],
+      businessLicenseUrls: found.businessLicenseUrls || [],
     }
     // 关联账号通过 /account/list 过滤
     try {
@@ -308,4 +350,6 @@ onMounted(loadDetail)
 .quota-unit { color: #909399; font-size: 12px; }
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .toolbar .title { font-weight: 600; }
+.license-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+.license-preview { width: 160px; height: 100px; border-radius: 4px; border: 1px solid #dcdfe6; }
 </style>

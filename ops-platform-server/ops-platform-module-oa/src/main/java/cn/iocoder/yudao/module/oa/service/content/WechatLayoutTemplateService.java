@@ -43,13 +43,23 @@ public interface WechatLayoutTemplateService {
 
     LayoutImportJobCreateResp importDocx(MultipartFile file, String templateName, String documentType);
 
+    LayoutImportJobCreateResp importMhtml(MultipartFile file, String templateName, String documentType);
+
     LayoutTemplateDetailVO importPaste(LayoutImportPasteReq req);
+
+    LayoutImportJobCreateResp importPastePreview(LayoutImportPasteReq req);
 
     LayoutImportJobVO getImportJob(Long jobId);
 
     ProductionContentVO applyLayoutTemplate(Long contentId, ContentApplyLayoutTemplateReq req);
 
     LayoutMergePreviewVO previewMerge(Long templateId, LayoutMergePreviewReq req);
+
+    LayoutMergePreviewVO partialApply(Long templateId, LayoutMergePreviewReq req);
+
+    LayoutMergePreviewVO applyBackground(Long templateId, LayoutMergePreviewReq req);
+
+    LayoutMergePreviewVO validateExtractFidelity(Object layoutSchema, String sampleBody);
 
     Long copyTemplate(Long id);
 

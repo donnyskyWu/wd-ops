@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.oa.api.dto.content.ContentPublishOptionsVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentPublishReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentPublishResultVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentTransferKnowledgeResultVO;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentTypesetReq;
+import cn.iocoder.yudao.module.oa.api.dto.content.ContentTypesetVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentApplyLayoutTemplateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.LayoutMergePreviewReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.LayoutMergePreviewVO;
@@ -22,6 +24,8 @@ import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentVO;
 import cn.iocoder.yudao.module.oa.service.content.ProductionContentService;
 import cn.iocoder.yudao.module.oa.service.content.WechatLayoutTemplateService;
 import cn.iocoder.yudao.module.oa.service.content.ContentPublishService;
+import cn.iocoder.yudao.module.oa.service.content.TypesettingService;
+import cn.hutool.core.util.StrUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -45,6 +49,7 @@ public class ProductionContentController {
     private final ProductionContentService productionContentService;
     private final WechatLayoutTemplateService layoutTemplateService;
     private final ContentPublishService contentPublishService;
+    private final TypesettingService typesettingService;
 
     @GetMapping("/list")
     public CommonResult<PageResult<ProductionContentVO>> list(
@@ -172,5 +177,24 @@ public class ProductionContentController {
             previewReq.setExistingLayoutJson(content.getLayoutJson());
         }
         return CommonResult.success(layoutTemplateService.previewMerge(req.getLayoutTemplateId(), previewReq));
+    }
+
+    @PostMapping("/typeset")
+    @PreAuthorize("hasAuthority('oa:content:typeset')")
+    public CommonResult<ContentTypesetVO> typeset(@Valid @RequestBody ContentTypesetReq req) {
+        return CommonResult.success(typesettingService.typeset(req));
+    }
+
+    @PostMapping("/{id}/typeset")
+    @PreAuthorize("hasAuthority('oa:content:typeset')")
+    public CommonResult<ContentTypesetVO> typesetContent(
+            @PathVariable Long id,
+            @RequestBody(required = false) ContentTypesetReq req) {
+        ProductionContentVO content = productionContentService.getById(id);
+        ContentTypesetReq effective = req != null ? req : new ContentTypesetReq();
+        if (StrUtil.isBlank(effective.getHtml())) {
+            effective.setHtml(content.getBody() != null ? content.getBody() : "");
+        }
+        return CommonResult.success(typesettingService.typeset(effective));
     }
 }

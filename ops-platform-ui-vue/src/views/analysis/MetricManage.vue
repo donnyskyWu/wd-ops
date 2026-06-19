@@ -85,12 +85,13 @@
           <MetricBuilder
             v-model:data-source="formData.dataSource"
             v-model:metric-formula="formData.metricFormula"
+            v-model:params-json="formData.paramsJson"
           />
         </template>
         <template v-else>
           <el-form-item label="数据源" prop="dataSource">
             <el-select v-model="formData.dataSource" placeholder="可选" filterable clearable style="width: 100%">
-              <el-option v-for="item in METRIC_DATA_SOURCES" :key="item.value" :label="item.label" :value="item.value" />
+              <el-option v-for="item in dataSources" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
           <el-form-item label="计算公式" prop="metricFormula">
@@ -131,8 +132,10 @@ import {
   createMetric,
   updateMetric,
   deleteMetric,
-  METRIC_DATA_SOURCES,
 } from '@/api/metric'
+import { useMetricSchemas } from '@/composables/useMetricSchemas'
+
+const { dataSources, ensureMetricSchemasLoaded } = useMetricSchemas()
 
 interface MetricVO {
   id: number
@@ -141,6 +144,7 @@ interface MetricVO {
   metricType: string
   dataSource?: string
   metricFormula?: string
+  paramsJson?: string
   unit: string
   category: string
   status: number
@@ -170,6 +174,7 @@ const formData = reactive({
   metricType: 'BASIC',
   dataSource: '',
   metricFormula: '',
+  paramsJson: '',
   unit: '',
   description: '',
 })
@@ -271,6 +276,7 @@ const resetFormData = () => {
     metricType: 'BASIC',
     dataSource: '',
     metricFormula: '',
+    paramsJson: '',
     unit: '',
     description: '',
   })
@@ -293,6 +299,7 @@ const handleEdit = (row: MetricVO) => {
     metricType: row.metricType || row.category || 'BASIC',
     dataSource: row.dataSource || '',
     metricFormula: row.metricFormula || '',
+    paramsJson: row.paramsJson || '',
     unit: row.unit || '',
     description: row.description || '',
   })
@@ -314,6 +321,7 @@ const handleSubmit = async () => {
       metricType: formData.metricType,
       dataSource: formData.dataSource,
       metricFormula: formData.metricFormula,
+      paramsJson: formData.paramsJson || undefined,
       unit: formData.unit || undefined,
       description: formData.description || undefined,
     }
@@ -343,7 +351,14 @@ const handleDelete = async (row: MetricVO) => {
   }
 }
 
-onMounted(() => loadList())
+onMounted(async () => {
+  try {
+    await ensureMetricSchemasLoaded()
+  } catch {
+    /* MetricBuilder 会展示错误 */
+  }
+  loadList()
+})
 </script>
 
 <style scoped>

@@ -141,6 +141,7 @@
           <el-menu-item index="/config-threshold">阈值规则配置</el-menu-item>
           <el-menu-item index="/config-ai-model">AI模型</el-menu-item>
           <el-menu-item index="/config-ai-prompt">AI提示词</el-menu-item>
+          <el-menu-item index="/config-metadata">元数据维护</el-menu-item>
         </el-sub-menu>
 
         <!-- 10. 系统管理（M9） -->

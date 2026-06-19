@@ -38,6 +38,11 @@ public class CompanyController {
         return CommonResult.success(companyService.list(companyName, status, pageNo, pageSize));
     }
 
+    @GetMapping("/{id}")
+    public CommonResult<CompanyRespVO> get(@PathVariable Long id) {
+        return CommonResult.success(companyService.get(id));
+    }
+
     @PostMapping("/create")
     public CommonResult<Long> create(@Valid @RequestBody CompanyCreateReq req) {
         return CommonResult.success(companyService.create(req));

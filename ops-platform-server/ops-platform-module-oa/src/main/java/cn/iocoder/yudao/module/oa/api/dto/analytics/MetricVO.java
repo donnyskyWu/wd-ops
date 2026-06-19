@@ -13,6 +13,7 @@ public class MetricVO {
     private String category;
     private String metricFormula;
     private String dataSource;
+    private String paramsJson;
     private Integer status;
     private String description;
 }

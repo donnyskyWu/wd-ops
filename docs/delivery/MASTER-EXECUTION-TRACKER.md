@@ -641,3 +641,31 @@ curl http://localhost:8080/oa/...
 - **6 字段对照�?*（S-R15�?
 - **PowerShell 编码�?*（S-R19）�?批量改中文走 Python UTF-8
 - **MASTER §1.1 + SESSION-PROGRESS** �?slice 必同�?
+
+---
+
+## 17. Phase 2 Backlog（待 Gate 立项）
+
+> **状态**：⬜ 未立项 · **不得**将 §1 Phase 2 行标为 ✅  
+> **SSOT**：[ADR-045](../adr/ADR-045-M10-奥创多账号与设备同步.md) · [M10-三通道采集计划](./M10-三通道采集计划.md)
+
+### 17.1 M10 三通道采集
+
+| ID | 通道 | 切片 | 说明 | 状态 |
+|----|------|------|------|------|
+| P2-M10-00 | 基建 | M10-COL-S-01~S-03 | 采集任务壳 / 日志 / 重试 | ⬜ |
+| P2-M10-A | api.json | M10-API-S-01~S-04 | `UnifiedCollectorAdapter` + 采集配置 | ⬜ |
+| P2-M10-B | 奥创 | M10-AO-S-00~S-07 | 多账号子表 · 设备同步 · 好友/消息 · 桥接骨架 | ⬜ 下一切片 **S-00** |
+| P2-M10-C | 企微 | M10-WECOM-S-01~S-04 | `WeComAdapter` + `oa_wework_account` | ⬜ |
+| P2-M10-04 | 闭环 | M10-COL-S-04 · AO-S-07 · API-S-05~08 · WECOM-S-05 | 私域桥接 / 漏斗分析 | ⬜ P2 |
+
+### 17.2 M2 微信公众号发布（与 M10 采集分离）
+
+| ID | 切片 | 说明 | 依赖 |
+|----|------|------|------|
+| P2-M2-PUB-00 | — | 发布凭证 SSOT（appId/appSecret vs 采集配置复用；ADR 待写） | 产品决策 |
+| P2-M2-PUB-01 | M2-PUB-WX-S-01 | `WechatOfficialPublishAdapter` + access_token 缓存 | P2-M2-PUB-00 |
+| P2-M2-PUB-02 | M2-PUB-WX-S-02 | `layout_html`→图文 · 图片上传 · **`draft/add`** | P2-M2-PUB-01 |
+| P2-M2-PUB-03 | M2-PUB-WX-S-03 | **`freepublish/submit`** + 异步状态轮询 | P2-M2-PUB-02 |
+
+> **API 边界**：推草稿箱用 `draft/add`；`freepublish/submit` 仅**发布**已有草稿（非存草稿）。

@@ -8,4 +8,6 @@ public class LayoutMergePreviewVO {
     private Object layoutJson;
     private String layoutHtml;
     private Integer overflowSegmentCount;
+    /** Fidelity / extraction validation notes (import wizard) */
+    private Object extractionReport;
 }

@@ -43,6 +43,26 @@
                   {{ detail.status === 'ENABLED' ? '启用' : '停用' }}
                 </el-tag>
               </el-descriptions-item>
+              <el-descriptions-item label="身份证正面" :span="2">
+                <el-image
+                  v-if="detail.idCardFrontUrl || detail.idCardFrontKey"
+                  :src="imagePreview(detail.idCardFrontUrl, detail.idCardFrontKey)"
+                  fit="cover"
+                  class="id-card-preview"
+                  :preview-src-list="[imagePreview(detail.idCardFrontUrl, detail.idCardFrontKey)]"
+                />
+                <span v-else>-</span>
+              </el-descriptions-item>
+              <el-descriptions-item label="身份证反面" :span="2">
+                <el-image
+                  v-if="detail.idCardBackUrl || detail.idCardBackKey"
+                  :src="imagePreview(detail.idCardBackUrl, detail.idCardBackKey)"
+                  fit="cover"
+                  class="id-card-preview"
+                  :preview-src-list="[imagePreview(detail.idCardBackUrl, detail.idCardBackKey)]"
+                />
+                <span v-else>-</span>
+              </el-descriptions-item>
             </el-descriptions>
           </ContentWrap>
         </el-tab-pane>
@@ -113,6 +133,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ContentWrap from '@/components/ContentWrap.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import { appendFileAuth } from '@/utils/fileUrl'
 import { getRealname, type RealnameVO } from '@/api/realname'
 import {
   createIntermediary,
@@ -136,6 +157,21 @@ const relationLabelMap: Record<string, string> = {
   AGENCY: '机构合作',
 }
 const relationLabel = (v: string) => relationLabelMap[v] || v
+
+const OA_FILE_VIEW_PREFIX = '/admin-api/oa/file/view?key='
+
+function viewUrlForKey(key?: string): string {
+  if (!key) return ''
+  if (key.startsWith('/admin-api/') || key.startsWith('http://') || key.startsWith('https://')) {
+    return key
+  }
+  return OA_FILE_VIEW_PREFIX + key
+}
+
+const imagePreview = (url?: string, key?: string) => {
+  const resolved = url || viewUrlForKey(key)
+  return resolved ? appendFileAuth(resolved) : ''
+}
 
 const loadDetail = async () => {
   loading.value = true
@@ -252,4 +288,5 @@ onMounted(loadDetail)
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .toolbar .title { font-weight: 600; }
 .form-tip { margin-left: 8px; color: #909399; }
+.id-card-preview { width: 160px; height: 100px; border-radius: 4px; border: 1px solid #dcdfe6; }
 </style>

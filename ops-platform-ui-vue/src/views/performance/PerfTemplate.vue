@@ -3,12 +3,7 @@
 
     <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
       <el-form-item label="岗位">
-        <el-select v-model="searchForm.position" placeholder="请选择" clearable>
-          <el-option label="全部" :value="undefined" />
-          <el-option label="运营组长" value="OPS_LEADER" />
-          <el-option label="公众号运营" value="MP_OPS" />
-          <el-option label="抖音运营" value="DOUYIN_OPS" />
-        </el-select>
+        <DictSelect v-model="searchForm.position" dict-type="dict_position" clearable />
       </el-form-item>
       <el-form-item label="状态">
         <el-select v-model="searchForm.isActive" placeholder="请选择" clearable>
@@ -28,7 +23,11 @@
     </div>
 
     <el-table :data="templateList" v-loading="loading" stripe>
-      <el-table-column prop="position" label="岗位" width="120" />
+      <el-table-column label="岗位" min-width="160">
+        <template #default="{ row }">
+          <span>{{ row.positionLabel || row.positionLabels?.join('、') || '-' }}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="templateName" label="模板名称" min-width="180" />
       <el-table-column prop="itemCount" label="指标数量" width="100" align="center">
         <template #default="{ row }">{{ row.itemCount }}项</template>
@@ -81,12 +80,8 @@
         <el-form-item label="模板名称" prop="templateName">
           <el-input v-model="formData.templateName" placeholder="请输入模板名称" maxlength="100" />
         </el-form-item>
-        <el-form-item label="适用岗位" prop="position">
-          <el-select v-model="formData.position" placeholder="请选择岗位" style="width: 100%">
-            <el-option label="运营组长" value="OPS_LEADER" />
-            <el-option label="公众号运营" value="MP_OPS" />
-            <el-option label="抖音运营" value="DOUYIN_OPS" />
-          </el-select>
+        <el-form-item label="适用岗位" prop="positions">
+          <DictSelect v-model="formData.positions" dict-type="dict_position" multiple />
         </el-form-item>
         <el-form-item label="是否立即生效" prop="isActive">
           <el-switch v-model="formData.isActive" />
@@ -202,6 +197,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
+import DictSelect from '@/components/DictSelect.vue'
 import {
   getTemplateList,
   createTemplate,
@@ -237,7 +233,9 @@ const loadList = async () => {
     })
     templateList.value = (res.list || []).map((row: any) => ({
       id: row.id,
-      position: row.position,
+      positions: row.positions || (row.position ? [row.position] : []),
+      positionLabel: row.positionLabel || row.positionLabels?.join('、') || row.position || '',
+      positionLabels: row.positionLabels || [],
       templateName: row.templateName,
       itemCount: row.itemCount ?? 0,
       isActive: row.isActive === 1 || row.isActive === true,
@@ -287,14 +285,16 @@ const loadMetricOptions = async () => {
 const formData = reactive<any>({
   id: undefined as number | undefined,
   templateName: '',
-  position: '',
+  positions: [] as string[],
   isActive: true,
   items: [] as any[],
 })
 
 const formRules = {
   templateName: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
-  position: [{ required: true, message: '请选择岗位', trigger: 'change' }],
+  positions: [
+    { required: true, type: 'array', min: 1, message: '请至少选择一个岗位', trigger: 'change' },
+  ],
 }
 
 const totalWeight = computed(() => {
@@ -306,7 +306,7 @@ const handleAdd = () => {
   Object.assign(formData, {
     id: undefined,
     templateName: '',
-    position: '',
+    positions: [] as string[],
     isActive: true,
     items: [],
   })
@@ -380,7 +380,7 @@ const handleSubmit = async () => {
       const payload = {
         id: formData.id,
         templateName: formData.templateName,
-        position: formData.position,
+        positions: formData.positions,
         isActive: formData.isActive ? 1 : 0,
         items: formData.items.map((it: any) => ({
           metricId: it.metricId,
@@ -409,7 +409,7 @@ const handleDialogClose = () => {
   Object.assign(formData, {
     id: undefined,
     templateName: '',
-    position: '',
+    positions: [] as string[],
     isActive: true,
     items: [],
   })

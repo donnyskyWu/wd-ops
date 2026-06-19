@@ -1,8 +1,6 @@
 package cn.iocoder.yudao.module.oa.service.content;
 
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
@@ -31,8 +29,11 @@ import cn.iocoder.yudao.module.oa.dal.mysql.content.LayoutImportJobMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.content.ProductionContentMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.content.WechatLayoutTemplateMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.util.DocxToHtmlConverter;
+import cn.iocoder.yudao.module.oa.util.LayoutImportExtractor;
 import cn.iocoder.yudao.module.oa.util.LayoutJsonHelper;
 import cn.iocoder.yudao.module.oa.util.LayoutSchemaHelper;
+import cn.iocoder.yudao.module.oa.util.WechatArticleHtmlFetcher;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -43,12 +44,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 @Slf4j
 @Service
@@ -60,6 +59,7 @@ public class WechatLayoutTemplateServiceImpl implements WechatLayoutTemplateServ
     private static final String GENERAL_FILTER = "__GENERAL__";
     private static final String SOURCE_PRESET = "PRESET";
     private static final long MAX_DOCX_BYTES = 10L * 1024 * 1024;
+    private static final long MAX_MHTML_BYTES = 20L * 1024 * 1024;
 
     private final WechatLayoutTemplateMapper templateMapper;
     private final LayoutImportJobMapper importJobMapper;
@@ -125,7 +125,10 @@ public class WechatLayoutTemplateServiceImpl implements WechatLayoutTemplateServ
         Long tenantId = requireTenantId();
         JSONObject schema = resolveRequestSchema(req.getLayoutSchema(), req.getLayoutJson());
         String schemaJson = LayoutSchemaHelper.toJsonString(schema);
-        String previewHtml = LayoutSchemaHelper.renderSchemaPreview(schema);
+        String previewHtml = resolveVisualPreviewHtml(req.getPreviewHtml(), schema);
+        String layoutHtml = StrUtil.isNotBlank(req.getLayoutHtml())
+                ? LayoutJsonHelper.sanitizeHtml(req.getLayoutHtml())
+                : previewHtml;
         WechatLayoutTemplateDO entity = new WechatLayoutTemplateDO();
         entity.setTenantId(tenantId);
         entity.setTemplateName(req.getTemplateName().trim());
@@ -135,9 +138,13 @@ public class WechatLayoutTemplateServiceImpl implements WechatLayoutTemplateServ
         entity.setLayoutSchema(schemaJson);
         entity.setSchemaVersion(2);
         entity.setLayoutJson(LayoutJsonHelper.toJsonString(LayoutJsonHelper.emptyDocument()));
-        entity.setLayoutHtml(previewHtml);
+        entity.setLayoutHtml(layoutHtml);
         entity.setPreviewHtml(previewHtml);
-        entity.setSourceType("MANUAL");
+        if (StrUtil.isNotBlank(req.getStyleCss())) {
+            entity.setStyleCss(req.getStyleCss().trim());
+        }
+        entity.setSourceType(StrUtil.blankToDefault(req.getSourceType(), "MANUAL"));
+        entity.setSourceUrl(req.getSourceUrl());
         entity.setStatus(req.getStatus());
         entity.setCreatorUserId(TenantContextHolder.getUserId());
         entity.setCreator(TenantContextHolder.getUsername());
@@ -242,13 +249,8 @@ public class WechatLayoutTemplateServiceImpl implements WechatLayoutTemplateServ
         try {
             job.setStatus("RUNNING");
             importJobMapper.updateById(job);
-            String html = fetchArticleHtml(req.getSourceUrl());
-            JSONObject v1 = LayoutJsonHelper.parseHtmlToLayout(html);
-            JSONObject schema = LayoutSchemaHelper.extractLayoutSchemaFromLayoutJson(v1);
-            JSONObject report = LayoutSchemaHelper.buildExtractionReport(v1, schema);
-            job.setPreviewLayoutSchema(LayoutSchemaHelper.toJsonString(schema));
-            job.setExtractionReport(JSONUtil.toJsonStr(report));
-            job.setPreviewLayoutJson(null);
+            String html = WechatArticleHtmlFetcher.fetchFromUrl(req.getSourceUrl());
+            applyExtractResultToJob(job, LayoutImportExtractor.extract(html));
             job.setSuggestedName(StrUtil.blankToDefault(req.getTemplateName(), suggestNameFromUrl(req.getSourceUrl())));
             job.setStatus("SUCCESS");
             job.setUpdateTime(LocalDateTime.now());
@@ -286,12 +288,7 @@ public class WechatLayoutTemplateServiceImpl implements WechatLayoutTemplateServ
             job.setStatus("RUNNING");
             importJobMapper.updateById(job);
             String html = docxToHtml(file);
-            JSONObject v1 = LayoutJsonHelper.parseHtmlToLayout(html);
-            JSONObject schema = LayoutSchemaHelper.extractLayoutSchemaFromLayoutJson(v1);
-            JSONObject report = LayoutSchemaHelper.buildExtractionReport(v1, schema);
-            job.setPreviewLayoutSchema(LayoutSchemaHelper.toJsonString(schema));
-            job.setExtractionReport(JSONUtil.toJsonStr(report));
-            job.setPreviewLayoutJson(null);
+            applyExtractResultToJob(job, LayoutImportExtractor.extract(html));
             job.setSuggestedName(StrUtil.blankToDefault(templateName,
                     StrUtil.removeSuffix(original, ".docx")));
             job.setStatus("SUCCESS");
@@ -312,20 +309,98 @@ public class WechatLayoutTemplateServiceImpl implements WechatLayoutTemplateServ
 
     @Override
     @Transactional
+    public LayoutImportJobCreateResp importMhtml(MultipartFile file, String templateName, String documentType) {
+        if (file == null || file.isEmpty()) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "上传文件不能为空");
+        }
+        if (file.getSize() > MAX_MHTML_BYTES) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "MHTML 文件不能超过 20MB");
+        }
+        String original = file.getOriginalFilename();
+        if (original == null || !original.toLowerCase().endsWith(".mhtml")) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "仅支持 .mhtml 文件");
+        }
+        Long tenantId = requireTenantId();
+        LayoutImportJobDO job = newJob(tenantId, "MHTML", null);
+        importJobMapper.insert(job);
+        try {
+            job.setStatus("RUNNING");
+            importJobMapper.updateById(job);
+            byte[] bytes = file.getBytes();
+            if (bytes.length < 50_000) {
+                throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
+                        "MHTML 文件过小（" + bytes.length + " 字节），可能上传不完整，请重试");
+            }
+            String html = WechatArticleHtmlFetcher.parseMhtml(bytes);
+            applyExtractResultToJob(job, LayoutImportExtractor.extract(html));
+            job.setSuggestedName(StrUtil.blankToDefault(templateName,
+                    StrUtil.removeSuffix(original, ".mhtml")));
+            job.setStatus("SUCCESS");
+            job.setUpdateTime(LocalDateTime.now());
+            importJobMapper.updateById(job);
+        } catch (Exception ex) {
+            log.warn("layout import-mhtml failed: {}", ex.getMessage());
+            job.setStatus("FAILED");
+            job.setErrorMessage(StrUtil.sub(ex.getMessage(), 0, 480));
+            job.setUpdateTime(LocalDateTime.now());
+            importJobMapper.updateById(job);
+        }
+        LayoutImportJobCreateResp resp = new LayoutImportJobCreateResp();
+        resp.setJobId(job.getId());
+        resp.setStatus(job.getStatus());
+        return resp;
+    }
+
+    @Override
+    @Transactional
     @AuditLog(module = "M2-layout-template", action = "import-paste")
     public LayoutTemplateDetailVO importPaste(LayoutImportPasteReq req) {
-        JSONObject schema = LayoutSchemaHelper.extractLayoutSchemaFromHtml(req.getHtml());
+        LayoutImportExtractor.ExtractResult extracted = LayoutImportExtractor.extract(req.getHtml());
         LayoutTemplateCreateReq createReq = new LayoutTemplateCreateReq();
         createReq.setTemplateName(req.getTemplateName().trim());
         createReq.setDocumentType(req.getDocumentType());
-        createReq.setLayoutSchema(schema);
+        createReq.setLayoutSchema(extracted.getLayoutSchema());
+        createReq.setPreviewHtml(extracted.getPreviewHtml());
+        createReq.setLayoutHtml(extracted.getLayoutHtml());
+        createReq.setStyleCss(extracted.getStyleCss());
         createReq.setStatus("DRAFT");
-        createReq.setDescription("粘贴 HTML 导入（仅版式骨架）");
+        createReq.setDescription("粘贴 HTML 导入");
+        createReq.setSourceType("PASTE");
         Long id = create(createReq);
         WechatLayoutTemplateDO saved = requireTemplate(id);
         saved.setSourceType("PASTE");
         templateMapper.updateById(saved);
         return toDetailVO(saved);
+    }
+
+    @Override
+    @Transactional
+    public LayoutImportJobCreateResp importPastePreview(LayoutImportPasteReq req) {
+        if (StrUtil.isBlank(req.getHtml())) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "HTML 内容不能为空");
+        }
+        Long tenantId = requireTenantId();
+        LayoutImportJobDO job = newJob(tenantId, "PASTE", null);
+        importJobMapper.insert(job);
+        try {
+            job.setStatus("RUNNING");
+            importJobMapper.updateById(job);
+            applyExtractResultToJob(job, LayoutImportExtractor.extract(req.getHtml()));
+            job.setSuggestedName(StrUtil.blankToDefault(req.getTemplateName(), "粘贴导入"));
+            job.setStatus("SUCCESS");
+            job.setUpdateTime(LocalDateTime.now());
+            importJobMapper.updateById(job);
+        } catch (Exception ex) {
+            log.warn("layout import-paste-preview failed: {}", ex.getMessage());
+            job.setStatus("FAILED");
+            job.setErrorMessage(StrUtil.sub(ex.getMessage(), 0, 480));
+            job.setUpdateTime(LocalDateTime.now());
+            importJobMapper.updateById(job);
+        }
+        LayoutImportJobCreateResp resp = new LayoutImportJobCreateResp();
+        resp.setJobId(job.getId());
+        resp.setStatus(job.getStatus());
+        return resp;
     }
 
     @Override
@@ -342,7 +417,10 @@ public class WechatLayoutTemplateServiceImpl implements WechatLayoutTemplateServ
             vo.setPreviewLayoutSchema(JSONUtil.parse(job.getPreviewLayoutSchema()));
         }
         if (StrUtil.isNotBlank(job.getExtractionReport())) {
-            vo.setExtractionReport(JSONUtil.parse(job.getExtractionReport()));
+            JSONObject report = JSONUtil.parseObj(job.getExtractionReport());
+            vo.setExtractionReport(report);
+            vo.setPreviewHtml(report.getStr("previewHtml"));
+            vo.setStyleCss(report.getStr("styleCss"));
         }
         if (StrUtil.isNotBlank(job.getPreviewLayoutJson())) {
             vo.setPreviewLayoutJson(JSONUtil.parse(job.getPreviewLayoutJson()));
@@ -352,17 +430,107 @@ public class WechatLayoutTemplateServiceImpl implements WechatLayoutTemplateServ
 
     @Override
     public LayoutMergePreviewVO previewMerge(Long templateId, LayoutMergePreviewReq req) {
+        return doMergePreview(templateId, req, req.getParamOverrides(), false);
+    }
+
+    @Override
+    public LayoutMergePreviewVO partialApply(Long templateId, LayoutMergePreviewReq req) {
+        List<String> types = req.getIncludeBlockTypes();
+        if (types == null || types.isEmpty()) {
+            types = List.of("heading", "slot", "divider", "fixed", "section");
+        }
+        req.setIncludeBlockTypes(types);
+        return doMergePreview(templateId, req, req.getParamOverrides(), false);
+    }
+
+    @Override
+    public LayoutMergePreviewVO applyBackground(Long templateId, LayoutMergePreviewReq req) {
+        return doMergePreview(templateId, req, req.getParamOverrides(), true);
+    }
+
+    private LayoutMergePreviewVO doMergePreview(Long templateId, LayoutMergePreviewReq req,
+                                                Object paramOverrides, boolean backgroundOnly) {
         WechatLayoutTemplateDO template = requireTemplate(templateId);
         JSONObject schema = resolveTemplateSchema(template);
+        mergeDefaultParams(schema, template, paramOverrides != null ? paramOverrides : req.getParamOverrides());
         if (StrUtil.isBlank(req.getBody())) {
             throw new ServiceException(OaErrorCodes.LAYOUT_APPLY_BODY_EMPTY);
         }
         LayoutMergeService.MergeResult result = layoutMergeService.merge(
-                req.getBody(), req.getExistingLayoutJson(), schema);
+                req.getBody(), req.getExistingLayoutJson(), schema,
+                paramOverrides != null ? paramOverrides : req.getParamOverrides(),
+                req.getIncludeBlockTypes(), backgroundOnly);
         LayoutMergePreviewVO vo = new LayoutMergePreviewVO();
         vo.setLayoutJson(result.getLayoutJson());
         vo.setLayoutHtml(result.getLayoutHtml());
         vo.setOverflowSegmentCount(result.getOverflowSegmentCount());
+        return vo;
+    }
+
+    private void mergeDefaultParams(JSONObject schema, WechatLayoutTemplateDO template, Object reqOverrides) {
+        JSONObject effective = null;
+        if (StrUtil.isNotBlank(template.getDefaultParams())) {
+            JSONObject defaults = JSONUtil.parseObj(template.getDefaultParams());
+            if (reqOverrides == null) {
+                effective = defaults;
+            } else {
+                effective = JSONUtil.parseObj(JSONUtil.toJsonStr(reqOverrides));
+                for (String key : defaults.keySet()) {
+                    if (!effective.containsKey(key)) {
+                        effective.set(key, defaults.get(key));
+                    }
+                }
+            }
+        } else if (reqOverrides != null) {
+            effective = JSONUtil.parseObj(JSONUtil.toJsonStr(reqOverrides));
+        }
+        if (effective != null) {
+            applyParamOverridesToSchema(schema, effective);
+        }
+    }
+
+    private void applyParamOverridesToSchema(JSONObject schema, JSONObject overrides) {
+        JSONObject globalStyles = schema.getJSONObject("globalStyles");
+        if (globalStyles == null) {
+            return;
+        }
+        for (String key : overrides.keySet()) {
+            Object val = overrides.get(key);
+            if (val instanceof JSONObject styleOverride) {
+                JSONObject existing = globalStyles.getJSONObject(key);
+                if (existing == null) {
+                    globalStyles.set(key, styleOverride);
+                } else {
+                    existing.putAll(styleOverride);
+                }
+            }
+        }
+    }
+
+    @Override
+    public LayoutMergePreviewVO validateExtractFidelity(Object layoutSchema, String sampleBody) {
+        JSONObject schema = JSONUtil.parseObj(JSONUtil.toJsonStr(layoutSchema));
+        LayoutSchemaHelper.validateLayoutSchema(schema);
+        String body = StrUtil.blankToDefault(sampleBody,
+                "示例标题\n\n这是第一段正文，用于验证模板槽位与段落映射。\n\n这是第二段正文。");
+        LayoutMergeService.MergeResult result = layoutMergeService.merge(body, null, schema);
+        LayoutMergePreviewVO vo = new LayoutMergePreviewVO();
+        vo.setLayoutJson(result.getLayoutJson());
+        vo.setLayoutHtml(result.getLayoutHtml());
+        vo.setOverflowSegmentCount(result.getOverflowSegmentCount());
+        JSONObject fidelity = new JSONObject();
+        fidelity.set("sampleBodySegmentCount", LayoutSchemaHelper.splitBody(body).size());
+        fidelity.set("outputBlockCount", result.getLayoutJson().getJSONArray("blocks").size());
+        fidelity.set("structurePreserved", result.getOverflowSegmentCount() == 0);
+        List<String> notes = new ArrayList<>();
+        if (result.getOverflowSegmentCount() > 0) {
+            notes.add("样本正文有 " + result.getOverflowSegmentCount() + " 段落入默认段落样式（槽位不足）");
+        } else {
+            notes.add("样本正文段数与模板槽位匹配，结构还原良好");
+        }
+        notes.add("装饰区块与复杂嵌套 HTML 可能无法 100% 还原");
+        fidelity.set("fidelityNotes", notes);
+        vo.setExtractionReport(fidelity);
         return vo;
     }
 
@@ -427,6 +595,24 @@ public class WechatLayoutTemplateServiceImpl implements WechatLayoutTemplateServ
         return StrUtil.equals(templateDocumentType, contentDocumentType);
     }
 
+    private void applyExtractResultToJob(LayoutImportJobDO job, LayoutImportExtractor.ExtractResult extracted) {
+        JSONObject report = extracted.getExtractionReport();
+        report.set("previewHtml", extracted.getPreviewHtml());
+        if (StrUtil.isNotBlank(extracted.getStyleCss())) {
+            report.set("styleCss", extracted.getStyleCss());
+        }
+        job.setPreviewLayoutSchema(LayoutSchemaHelper.toJsonString(extracted.getLayoutSchema()));
+        job.setExtractionReport(JSONUtil.toJsonStr(report));
+        job.setPreviewLayoutJson(null);
+    }
+
+    private String resolveVisualPreviewHtml(String requestPreviewHtml, JSONObject schema) {
+        if (StrUtil.isNotBlank(requestPreviewHtml)) {
+            return LayoutImportExtractor.sanitizeImportHtml(requestPreviewHtml);
+        }
+        return LayoutSchemaHelper.renderSchemaPreview(schema);
+    }
+
     private LayoutImportJobDO newJob(Long tenantId, String sourceType, String sourceUrl) {
         LayoutImportJobDO job = new LayoutImportJobDO();
         job.setTenantId(tenantId);
@@ -441,53 +627,14 @@ public class WechatLayoutTemplateServiceImpl implements WechatLayoutTemplateServ
         return job;
     }
 
-    private String fetchArticleHtml(String sourceUrl) {
-        HttpResponse response = HttpRequest.get(sourceUrl)
-                .timeout(8000)
-                .header("User-Agent", "Mozilla/5.0 (compatible; OpsPlatform/1.0)")
-                .execute();
-        if (!response.isOk()) {
-            throw new ServiceException(OaErrorCodes.LAYOUT_URL_IMPORT_FAILED);
-        }
-        String body = response.body();
-        if (StrUtil.isBlank(body)) {
-            throw new ServiceException(OaErrorCodes.LAYOUT_URL_IMPORT_FAILED);
-        }
-        String rich = StrUtil.subBetween(body, "<div class=\"rich_media_content", "</div>");
-        if (StrUtil.isNotBlank(rich)) {
-            return "<div class=\"rich_media_content" + rich + "</div>";
-        }
-        String jsContent = StrUtil.subBetween(body, "id=\"js_content\"", "</div>");
-        if (StrUtil.isNotBlank(jsContent)) {
-            int start = jsContent.indexOf('>');
-            if (start >= 0) {
-                return "<div id=\"js_content\"" + jsContent.substring(start + 1) + "</div>";
-            }
-        }
-        throw new ServiceException(OaErrorCodes.LAYOUT_URL_IMPORT_FAILED);
-    }
-
     private String docxToHtml(MultipartFile file) throws IOException {
-        StringBuilder paragraphs = new StringBuilder();
-        try (ZipInputStream zis = new ZipInputStream(file.getInputStream())) {
-            ZipEntry entry;
-            while ((entry = zis.getNextEntry()) != null) {
-                if ("word/document.xml".equals(entry.getName())) {
-                    String xml = new String(zis.readAllBytes(), StandardCharsets.UTF_8);
-                    for (String text : xml.split("</w:p>")) {
-                        String plain = text.replaceAll("<[^>]+>", "").trim();
-                        if (StrUtil.isNotBlank(plain)) {
-                            paragraphs.append("<p>").append(plain).append("</p>");
-                        }
-                    }
-                    break;
-                }
-            }
+        byte[] bytes = file.getBytes();
+        String html = DocxToHtmlConverter.convert(bytes);
+        if (!DocxToHtmlConverter.hasExtractableContent(html)) {
+            throw new ServiceException(OaErrorCodes.LAYOUT_DOCX_IMPORT_FAILED.getCode(),
+                    "Word 文档未包含可解析的正文内容");
         }
-        if (paragraphs.isEmpty()) {
-            throw new ServiceException(OaErrorCodes.LAYOUT_DOCX_IMPORT_FAILED);
-        }
-        return paragraphs.toString();
+        return html;
     }
 
     private String suggestNameFromUrl(String url) {
@@ -560,8 +707,13 @@ public class WechatLayoutTemplateServiceImpl implements WechatLayoutTemplateServ
         vo.setSourceUrl(entity.getSourceUrl());
         vo.setStatus(entity.getStatus());
         vo.setThumbnailUrl(entity.getThumbnailUrl());
+        vo.setPreviewHtml(entity.getPreviewHtml());
         vo.setCreatorUserId(entity.getCreatorUserId());
         vo.setUpdateTime(entity.getUpdateTime());
+        vo.setTags(entity.getTags());
+        if (StrUtil.isNotBlank(entity.getDefaultParams())) {
+            vo.setDefaultParams(JSONUtil.parse(entity.getDefaultParams()));
+        }
         SysUserDO creator = sysUserMapper.selectById(entity.getCreatorUserId());
         if (creator != null) {
             vo.setCreatorName(creator.getNickname() != null ? creator.getNickname() : creator.getUsername());

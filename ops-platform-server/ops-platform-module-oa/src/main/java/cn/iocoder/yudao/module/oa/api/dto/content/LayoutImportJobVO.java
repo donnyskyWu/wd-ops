@@ -12,6 +12,9 @@ public class LayoutImportJobVO {
     private Object previewLayoutJson;
     private Object previewLayoutSchema;
     private Object extractionReport;
+    /** Full-fidelity imported HTML for wizard preview (ADR-027 §4.2). */
+    private String previewHtml;
+    private String styleCss;
     private String suggestedName;
     private String errorMessage;
 }

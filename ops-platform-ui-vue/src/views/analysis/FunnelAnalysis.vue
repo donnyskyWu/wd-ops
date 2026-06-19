@@ -12,7 +12,7 @@
       <div class="funnel-search-card">
         <el-form :model="queryForm" label-width="72px" @submit.prevent="loadFunnelData">
           <el-row :gutter="16" class="search-row" align="middle">
-            <el-col :xs="24" :sm="12" :lg="5" class="funnel-select-col">
+            <el-col :xs="24" :sm="12" :lg="7" class="funnel-select-col">
               <el-form-item label="选择漏斗">
                 <el-select
                   v-model="queryForm.funnelId"
@@ -418,7 +418,8 @@ onMounted(() => {
       @media (min-width: 1200px) {
         flex: 0 0 auto;
         width: auto;
-        max-width: 200px;
+        min-width: 280px;
+        max-width: 320px;
       }
     }
 

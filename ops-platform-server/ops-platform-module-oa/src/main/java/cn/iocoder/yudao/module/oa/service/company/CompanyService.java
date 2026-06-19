@@ -11,6 +11,8 @@ public interface CompanyService {
 
     PageResult<CompanyRespVO> list(String companyName, String status, Integer pageNo, Integer pageSize);
 
+    CompanyRespVO get(Long id);
+
     Long create(CompanyCreateReq req);
 
     void update(CompanyUpdateReq req);

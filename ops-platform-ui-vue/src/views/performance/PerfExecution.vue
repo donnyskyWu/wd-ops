@@ -283,22 +283,38 @@ const handleCreate = () => {
   createDialogVisible.value = true
 }
 
+const resolvePeriodRange = (): [string, string] | null => {
+  if (createForm.cycleType === CycleType.MONTH && createForm.month) {
+    const [year, month] = createForm.month.split('-').map(Number)
+    const lastDay = new Date(year, month, 0).getDate()
+    return [
+      `${createForm.month}-01`,
+      `${createForm.month}-${String(lastDay).padStart(2, '0')}`,
+    ]
+  }
+  if (createForm.dateRange && createForm.dateRange.length >= 2) {
+    return [createForm.dateRange[0], createForm.dateRange[1]]
+  }
+  return null
+}
+
 const handleConfirmCreate = async () => {
   if (!createFormRef.value) return
 
   try {
     await createFormRef.value.validate()
-    if (!createForm.dateRange || createForm.dateRange.length < 2) {
-      ElMessage.warning('请选择日期范围')
+    const periodRange = resolvePeriodRange()
+    if (!periodRange) {
+      ElMessage.warning('请选择考核周期')
       return
     }
     await createPerfRecord({
       targetUserId: createForm.evaluateeId,
       periodType: createForm.cycleType,
-      periodStart: createForm.dateRange[0],
-      periodEnd: createForm.dateRange[1],
+      periodStart: periodRange[0],
+      periodEnd: periodRange[1],
     })
-    ElMessage.success('创建成功，系统正在自动计算得分...')
+    ElMessage.success('创建成功，已自动计算指标得分')
     createDialogVisible.value = false
     loadList()
   } catch (error) {

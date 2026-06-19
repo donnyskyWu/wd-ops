@@ -18,5 +18,9 @@ public class RealnameRespVO {
     private String gender;
     private String status;
     private Integer accountBoundCount;
+    private String idCardFrontKey;
+    private String idCardFrontUrl;
+    private String idCardBackKey;
+    private String idCardBackUrl;
     private LocalDateTime createTime;
 }

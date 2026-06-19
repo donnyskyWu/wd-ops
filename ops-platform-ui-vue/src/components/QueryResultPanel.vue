@@ -114,7 +114,7 @@ import * as echarts from 'echarts'
 import {
   METRIC_CALC_METHODS,
   METRIC_FILTER_OPERATORS,
-  METRIC_TABLE_SCHEMAS,
+  getMetricTableSchemas,
   QUERY_CHART_TYPES,
   defaultQueryChartConfig,
   getAvailableFields,
@@ -184,7 +184,7 @@ function resolveColumnLabel(col: string, cfg: QueryBuilderConfig | null | undefi
   }
   if (!cfg?.dataSource) return col
 
-  const schema = METRIC_TABLE_SCHEMAS[cfg.dataSource]
+  const schema = getMetricTableSchemas()[cfg.dataSource]
   const mainField = schema?.fields.find((f) => f.name === col)
   if (mainField) return mainField.label
 
@@ -233,7 +233,7 @@ const summary = computed(() => {
       conditions: props.sqlText || '-',
     }
   }
-  const schema = METRIC_TABLE_SCHEMAS[cfg.dataSource]
+  const schema = getMetricTableSchemas()[cfg.dataSource]
   const fieldLabel = (name: string) => schema?.fields.find((f) => f.name === name)?.label ?? name
   const calcLabel = cfg.calcMethod
     ? METRIC_CALC_METHODS.find((m) => m.value === cfg.calcMethod)?.label ?? cfg.calcMethod

@@ -250,6 +250,44 @@ public final class DashboardSqlParamBinder {
         return sql;
     }
 
+    /** 绑定指标构建器自定义参数占位符（:p_xxx） */
+    public static String bindCustomParams(String sqlText, Map<String, String> customParams) {
+        if (sqlText == null || sqlText.isBlank() || customParams == null || customParams.isEmpty()) {
+            return sqlText;
+        }
+        String sql = sqlText;
+        for (Map.Entry<String, String> entry : customParams.entrySet()) {
+            String key = entry.getKey();
+            if (StrUtil.isBlank(key) || !isActiveCustomParamValue(entry.getValue())) {
+                continue;
+            }
+            sql = replaceParam(sql, key, quoteLiteral(entry.getValue()));
+        }
+        return sql;
+    }
+
+    /** 空值或「全部」(ALL) 不参与指标参数绑定 */
+    public static boolean isActiveCustomParamValue(String value) {
+        if (StrUtil.isBlank(value)) {
+            return false;
+        }
+        return !"ALL".equalsIgnoreCase(value.trim());
+    }
+
+    private static String quoteLiteral(String value) {
+        if (value == null) {
+            return "NULL";
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            return "''";
+        }
+        if (trimmed.matches("-?\\d+(\\.\\d+)?")) {
+            return trimmed;
+        }
+        return quoteString(trimmed);
+    }
+
     private static String injectAndConditions(String sql, String fragment) {
         String upper = sql.toUpperCase(Locale.ROOT);
         int limitIdx = upper.lastIndexOf(" LIMIT ");

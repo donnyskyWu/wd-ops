@@ -16,5 +16,7 @@ public class MetricDO extends TenantBaseDO {
     private String category;
     private String metricFormula;
     private String dataSource;
+    /** 指标构建器 JSON（含参数化查询条件） */
+    private String paramsJson;
     private Integer status;
 }

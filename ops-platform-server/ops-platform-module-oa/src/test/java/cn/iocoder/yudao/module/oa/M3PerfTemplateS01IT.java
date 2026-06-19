@@ -32,7 +32,7 @@ class M3PerfTemplateS01IT extends OaITBase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "position": "OPERATOR",
+                                  "positions": ["OPERATOR"],
                                   "templateName": "IT-运营专员考核",
                                   "isActive": 1,
                                   "items": [
@@ -80,7 +80,7 @@ class M3PerfTemplateS01IT extends OaITBase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "position": "OPERATOR",
+                                  "positions": ["OPERATOR"],
                                   "templateName": "IT-权重错误",
                                   "items": [
                                     {
@@ -100,7 +100,35 @@ class M3PerfTemplateS01IT extends OaITBase {
     }
 
     @Test
-    @DisplayName("M3-S-01: SEED 模板≥2")
+    @DisplayName("M3-S-01: 创建多岗位模板")
+    void createMultiPositionTemplate() throws Exception {
+        mockMvc.perform(post("/admin-api/oa/perf/template/create")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "positions": ["OPERATOR", "OPS_LEADER"],
+                                  "templateName": "IT-多岗位考核",
+                                  "isActive": 0,
+                                  "items": [
+                                    {
+                                      "metricId": 9501,
+                                      "weight": 100.00,
+                                      "calcRule": "AUTO",
+                                      "scoreStandard": {
+                                        "ranges": [
+                                          {"min": 0, "max": 9999, "score": 80, "grade": "A"}
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(jsonPath("$.code").value(0));
+    }
+
+    @Test
     void seedTemplates() throws Exception {
         mockMvc.perform(get("/admin-api/oa/perf/template/list")
                         .header("Authorization", ADMIN)

@@ -20,4 +20,5 @@ public class MetricCreateReq {
     private String description;
     private String metricFormula;
     private String dataSource;
+    private String paramsJson;
 }

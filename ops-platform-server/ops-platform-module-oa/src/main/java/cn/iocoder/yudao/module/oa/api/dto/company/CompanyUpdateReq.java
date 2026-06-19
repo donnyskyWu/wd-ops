@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class CompanyUpdateReq {
 
@@ -31,4 +33,7 @@ public class CompanyUpdateReq {
 
     @InDict("dict_company_status")
     private String status;
+
+    @Size(max = 10)
+    private List<@Size(max = 512) String> businessLicenseKeys;
 }

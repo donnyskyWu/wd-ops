@@ -143,6 +143,40 @@ class DashboardSqlParamBinderTest {
     }
 
     @Test
+    @DisplayName("bindCustomParams 跳过空值参数")
+    void bindCustomParamsSkipsBlankValues() {
+        String sql = "SELECT COUNT(*) FROM oa_content t WHERE t.account_id = :p_account_id";
+        String bound = DashboardSqlParamBinder.bindCustomParams(sql, Map.of("p_account_id", "  "));
+        assertEquals(sql, bound);
+    }
+
+    @Test
+    @DisplayName("bindCustomParams 跳过 ALL（全部）哨兵值")
+    void bindCustomParamsSkipsAllSentinel() {
+        String sql = "SELECT COUNT(*) FROM oa_content t WHERE t.platform_type = :p_platform_type";
+        String bound = DashboardSqlParamBinder.bindCustomParams(sql, Map.of("p_platform_type", "ALL"));
+        assertEquals(sql, bound);
+        assertFalse(DashboardSqlParamBinder.isActiveCustomParamValue("ALL"));
+        assertFalse(DashboardSqlParamBinder.isActiveCustomParamValue(" all "));
+        assertTrue(DashboardSqlParamBinder.isActiveCustomParamValue("DOUYIN"));
+    }
+
+    @Test
+    @DisplayName("bindCustomParams 绑定指标参数占位符")
+    void bindCustomParamsReplacesMetricPlaceholders() {
+        String sql = "SELECT COUNT(*) FROM oa_content t WHERE t.account_id = :p_account_id AND t.platform_type = :p_platform_type";
+        Map<String, String> params = Map.of(
+                "p_account_id", "42",
+                "p_platform_type", "DOUYIN"
+        );
+        String bound = DashboardSqlParamBinder.bindCustomParams(sql, params);
+        assertEquals(
+                "SELECT COUNT(*) FROM oa_content t WHERE t.account_id = 42 AND t.platform_type = 'DOUYIN'",
+                bound
+        );
+    }
+
+    @Test
     @DisplayName("GlobalFilterConfig 可从 dateField 回退解析 dateColumn")
     void globalFilterConfigFallbackColumn() {
         GlobalFilterConfig cfg = GlobalFilterConfig.fromWidgetDef(Map.of(

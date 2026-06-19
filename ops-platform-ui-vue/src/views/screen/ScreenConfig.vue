@@ -432,6 +432,7 @@ import {
   unpackQueryBuilderParams,
   type MetricFieldMeta,
 } from '@/constants/metricSchema'
+import { ensureMetricSchemasLoaded } from '@/composables/useMetricSchemas'
 import {
   BUILTIN_CHART_KEYS,
   BUILTIN_KPI_KEYS,
@@ -1022,6 +1023,11 @@ watch(() => layout.widgets, () => {
 }, { deep: true })
 
 onMounted(async () => {
+  try {
+    await ensureMetricSchemasLoaded()
+  } catch {
+    /* 大屏全局筛选依赖元数据，失败时选项为空 */
+  }
   await loadList()
   await loadPickers()
   if (list.value.length) {

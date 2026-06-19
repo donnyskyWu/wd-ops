@@ -89,7 +89,9 @@ public final class LayoutSchemaHelper {
 
     public static JSONObject extractLayoutSchemaFromHtml(String html) {
         JSONObject v1 = LayoutJsonHelper.parseHtmlToLayout(html);
-        return extractLayoutSchemaFromLayoutJson(v1);
+        JSONObject schema = extractLayoutSchemaFromLayoutJson(v1);
+        enrichGlobalStylesFromBlocks(v1, schema);
+        return schema;
     }
 
     public static JSONObject extractLayoutSchemaFromLayoutJson(Object layoutJson) {
@@ -108,6 +110,10 @@ public final class LayoutSchemaHelper {
                 continue;
             }
             String type = block.getStr("type");
+            if ("paragraph".equals(type) && isDecorativeBlock(block)) {
+                schemaBlocks.add(fixedBlock("decor", "divider"));
+                continue;
+            }
             JSONObject schemaBlock = switch (type) {
                 case "heading" -> {
                     JSONObject h = new JSONObject();
@@ -150,18 +156,97 @@ public final class LayoutSchemaHelper {
             schemaBlocks.add(slotBlock("paragraph", "paragraph", true, true));
         }
         schema.set("blocks", schemaBlocks);
+        enrichGlobalStylesFromBlocks(v1, schema);
         return schema;
+    }
+
+    /** Merge observed block styles from v1 into schema globalStyles for higher-fidelity apply. */
+    public static void enrichGlobalStylesFromBlocks(JSONObject v1, JSONObject schema) {
+        JSONObject globalStyles = schema.getJSONObject("globalStyles");
+        if (globalStyles == null) {
+            globalStyles = defaultGlobalStyles();
+            schema.set("globalStyles", globalStyles);
+        }
+        JSONArray v1Blocks = v1.getJSONArray("blocks");
+        if (v1Blocks == null) {
+            return;
+        }
+        for (int i = 0; i < v1Blocks.size(); i++) {
+            JSONObject block = v1Blocks.getJSONObject(i);
+            if (block == null) {
+                continue;
+            }
+            JSONObject styles = block.getJSONObject("styles");
+            if (styles == null || styles.isEmpty()) {
+                continue;
+            }
+            String styleRef = switch (block.getStr("type")) {
+                case "heading" -> "heading" + block.getInt("level", 2);
+                case "quote" -> "quote";
+                case "divider" -> "divider";
+                case "image" -> "image";
+                case "list" -> "list";
+                default -> "paragraph";
+            };
+            JSONObject existing = globalStyles.getJSONObject(styleRef);
+            if (existing == null) {
+                globalStyles.set(styleRef, JSONUtil.parseObj(styles.toString()));
+            } else {
+                existing.putAll(styles);
+            }
+        }
     }
 
     public static JSONObject buildExtractionReport(JSONObject v1, JSONObject schema) {
         JSONObject report = new JSONObject();
         int stripped = countTextChars(v1);
+        int slotCount = schema.getJSONArray("blocks") != null ? schema.getJSONArray("blocks").size() : 0;
+        int fixedCount = countBlockType(schema, "fixed");
         report.set("strippedCharCount", stripped);
-        report.set("slotCount", schema.getJSONArray("blocks").size());
-        report.set("warnings", stripped > 500
-                ? List.of("样本正文已剥离，仅保留版式骨架")
-                : List.of());
+        report.set("slotCount", slotCount);
+        report.set("fixedBlockCount", fixedCount);
+        List<String> warnings = new ArrayList<>();
+        if (stripped > 500) {
+            warnings.add("样本正文已剥离，仅保留版式骨架");
+        }
+        if (fixedCount == 0 && stripped > 100) {
+            warnings.add("未识别到装饰区块，套用后可能缺少分隔/背景元素");
+        }
+        report.set("warnings", warnings);
         return report;
+    }
+
+    private static int countBlockType(JSONObject schema, String type) {
+        JSONArray blocks = schema.getJSONArray("blocks");
+        if (blocks == null) {
+            return 0;
+        }
+        int count = 0;
+        for (int i = 0; i < blocks.size(); i++) {
+            JSONObject b = blocks.getJSONObject(i);
+            if (b != null && type.equals(b.getStr("type"))) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean isDecorativeBlock(JSONObject block) {
+        String text = extractBlockText(block);
+        if (StrUtil.isNotBlank(text) && text.length() > 5) {
+            return false;
+        }
+        return "image".equals(block.getStr("type"))
+                || (block.getJSONObject("styles") != null
+                && StrUtil.isNotBlank(block.getJSONObject("styles").getStr("backgroundColor")));
+    }
+
+    private static JSONObject fixedBlock(String fixedType, String styleRef) {
+        JSONObject fixed = new JSONObject();
+        fixed.set("type", "fixed");
+        fixed.set("fixedType", fixedType);
+        fixed.set("styleRef", styleRef);
+        return fixed;
     }
 
     public static String renderSchemaPreview(Object layoutSchema) {

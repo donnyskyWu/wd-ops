@@ -96,6 +96,8 @@ export interface LayoutTemplateVO {
 
   thumbnailUrl?: string
 
+  previewHtml?: string
+
   creatorUserId: number
 
   creatorName?: string
@@ -150,6 +152,16 @@ export interface LayoutTemplateForm {
 
   status: string
 
+  previewHtml?: string
+
+  layoutHtml?: string
+
+  styleCss?: string
+
+  sourceType?: string
+
+  sourceUrl?: string
+
 }
 
 
@@ -168,7 +180,19 @@ export interface LayoutImportJobVO {
 
   previewLayoutSchema?: LayoutSchema
 
-  extractionReport?: { strippedCharCount?: number; slotCount?: number; warnings?: string[] }
+  extractionReport?: {
+    strippedCharCount?: number
+    slotCount?: number
+    fixedBlockCount?: number
+    warnings?: string[]
+    fidelityNotes?: string[]
+    structurePreserved?: boolean
+    previewMode?: string
+    inlineStyleCount?: number
+  }
+
+  previewHtml?: string
+  styleCss?: string
 
   suggestedName?: string
 
@@ -185,6 +209,8 @@ export interface LayoutMergePreviewVO {
   layoutHtml: string
 
   overflowSegmentCount?: number
+
+  extractionReport?: LayoutImportJobVO['extractionReport']
 
 }
 

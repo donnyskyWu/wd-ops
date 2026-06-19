@@ -386,6 +386,7 @@ function insertEmoji(emoji: string) {
 <style scoped>
 .rte-toolbar {
   display: flex;
+  flex-shrink: 0;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;

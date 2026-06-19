@@ -38,7 +38,7 @@
               v-if="!isPreset"
               v-model="richHtml"
               placeholder="编辑版式骨架，支持公众号兼容排版与图片缩放"
-              min-height="360px"
+              min-height="min(620px, calc(100vh - 280px))"
             />
             <LayoutViewer v-else :html="richHtml || previewHtml" />
           </el-tab-pane>
@@ -53,7 +53,6 @@
         <el-button v-if="isPreset" type="primary" :loading="saving" @click="handleCopy">复制后编辑</el-button>
         <el-button
           v-if="isEdit && form.status === 'DRAFT' && !isPreset"
-          v-hasPermi="'oa:layout-template:update'"
           type="success"
           :loading="publishing"
           @click="handlePublish"
@@ -62,7 +61,6 @@
         </el-button>
         <el-button
           v-if="isEdit && form.status === 'ENABLED'"
-          v-hasPermi="'oa:layout-template:update'"
           type="warning"
           :loading="publishing"
           @click="handleDisable"
@@ -71,7 +69,6 @@
         </el-button>
         <el-button
           v-if="isEdit && form.status === 'DISABLED'"
-          v-hasPermi="'oa:layout-template:update'"
           type="success"
           :loading="publishing"
           @click="handleEnable"

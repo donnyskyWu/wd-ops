@@ -148,6 +148,18 @@ export function importLayoutPaste(data: { templateName: string; html: string; do
 
 
 
+export function importLayoutPastePreview(data: { templateName: string; html: string; documentType?: string }) {
+
+  return request
+
+    .post<{ jobId: number; status: string }>({ url: '/oa/layout-template/import-paste-preview', data })
+
+    .then((res) => res as unknown as { jobId: number; status: string })
+
+}
+
+
+
 export function importLayoutDocx(formData: FormData) {
 
   return request
@@ -155,6 +167,24 @@ export function importLayoutDocx(formData: FormData) {
     .post<{ jobId: number; status: string }>({
 
       url: '/oa/layout-template/import-docx',
+
+      data: formData,
+
+    })
+
+    .then((res) => res as unknown as { jobId: number; status: string })
+
+}
+
+
+
+export function importLayoutMhtml(formData: FormData) {
+
+  return request
+
+    .post<{ jobId: number; status: string }>({
+
+      url: '/oa/layout-template/import-mhtml',
 
       data: formData,
 
@@ -178,20 +208,56 @@ export function getLayoutImportJob(jobId: number) {
 
 
 
-export function previewTemplateMerge(templateId: number, body: string, existingLayoutJson?: unknown) {
-
+export function validateExtractFidelity(layoutSchema: unknown, sampleBody?: string) {
   return request
-
     .post<LayoutMergePreviewVO>({
-
-      url: `/oa/layout-template/${templateId}/preview-merge`,
-
-      data: { body, existingLayoutJson }
-
+      url: '/oa/layout-template/validate-extract-fidelity',
+      data: { layoutSchema, sampleBody },
     })
-
     .then((res) => res as unknown as LayoutMergePreviewVO)
+}
 
+export function previewTemplateMerge(
+  templateId: number,
+  body: string,
+  existingLayoutJson?: unknown,
+  paramOverrides?: Record<string, Record<string, string>>,
+) {
+  return request
+    .post<LayoutMergePreviewVO>({
+      url: `/oa/layout-template/${templateId}/preview-merge`,
+      data: { body, existingLayoutJson, paramOverrides },
+    })
+    .then((res) => res as unknown as LayoutMergePreviewVO)
+}
+
+export function partialApplyTemplate(
+  templateId: number,
+  body: string,
+  includeBlockTypes?: string[],
+  paramOverrides?: Record<string, Record<string, string>>,
+  existingLayoutJson?: unknown,
+) {
+  return request
+    .post<LayoutMergePreviewVO>({
+      url: `/oa/layout-template/${templateId}/partial-apply`,
+      data: { body, includeBlockTypes, paramOverrides, existingLayoutJson },
+    })
+    .then((res) => res as unknown as LayoutMergePreviewVO)
+}
+
+export function applyTemplateBackground(
+  templateId: number,
+  body: string,
+  paramOverrides?: Record<string, Record<string, string>>,
+  existingLayoutJson?: unknown,
+) {
+  return request
+    .post<LayoutMergePreviewVO>({
+      url: `/oa/layout-template/${templateId}/apply-background`,
+      data: { body, paramOverrides, existingLayoutJson },
+    })
+    .then((res) => res as unknown as LayoutMergePreviewVO)
 }
 
 

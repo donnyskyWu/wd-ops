@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.oa.service.company;
 
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
@@ -16,6 +17,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.company.CompanyExpansionMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.company.CompanyMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
+import cn.iocoder.yudao.module.oa.util.ImageKeyHelper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -48,6 +51,11 @@ public class CompanyServiceImpl implements CompanyService {
     }
 
     @Override
+    public CompanyRespVO get(Long id) {
+        return toResp(getRequiredInTenant(id));
+    }
+
+    @Override
     @Transactional
     @AuditLog(module = "公司管理", action = "新增公司")
     public Long create(CompanyCreateReq req) {
@@ -67,6 +75,7 @@ public class CompanyServiceImpl implements CompanyService {
         entity.setMpCapacityStandard(req.getMpCapacityStandard() == null ? 0 : req.getMpCapacityStandard());
         entity.setMpRegisteredCount(0);
         entity.setStatus(StrUtil.blankToDefault(req.getStatus(), "ENABLED"));
+        entity.setBusinessLicenseKeys(serializeLicenseKeys(req.getBusinessLicenseKeys(), tenantId));
         entity.setCreator(TenantContextHolder.getUsername());
         entity.setUpdater(TenantContextHolder.getUsername());
         entity.setCreateTime(LocalDateTime.now());
@@ -100,6 +109,9 @@ public class CompanyServiceImpl implements CompanyService {
         }
         if (StrUtil.isNotBlank(req.getStatus())) {
             existing.setStatus(req.getStatus());
+        }
+        if (req.getBusinessLicenseKeys() != null) {
+            existing.setBusinessLicenseKeys(serializeLicenseKeys(req.getBusinessLicenseKeys(), existing.getTenantId()));
         }
         existing.setUpdater(TenantContextHolder.getUsername());
         existing.setUpdateTime(LocalDateTime.now());
@@ -204,8 +216,29 @@ public class CompanyServiceImpl implements CompanyService {
         int registered = entity.getMpRegisteredCount() == null ? 0 : entity.getMpRegisteredCount();
         vo.setMpRemaining(Math.max(capacity - registered, 0));
         vo.setStatus(entity.getStatus());
+        List<String> licenseKeys = parseLicenseKeys(entity.getBusinessLicenseKeys());
+        vo.setBusinessLicenseKeys(licenseKeys);
+        vo.setBusinessLicenseUrls(ImageKeyHelper.toFileViewUrls(licenseKeys));
         vo.setCreateTime(entity.getCreateTime());
         return vo;
+    }
+
+    private List<String> parseLicenseKeys(String json) {
+        if (StrUtil.isBlank(json)) {
+            return Collections.emptyList();
+        }
+        return JSONUtil.toList(json, String.class);
+    }
+
+    private String serializeLicenseKeys(List<String> keys, Long tenantId) {
+        if (keys == null) {
+            return null;
+        }
+        List<String> sanitized = ImageKeyHelper.sanitizeImageKeys(keys, tenantId);
+        if (sanitized == null || sanitized.isEmpty()) {
+            return "[]";
+        }
+        return JSONUtil.toJsonStr(sanitized);
     }
 
     private String maskIdCard(String encrypted) {

@@ -1,9 +1,19 @@
 /** PRD/API-M6 预定义数据源表字段与关联（来自 migration 结构） */
 
+import type { MetadataQueryConditionType } from '@/api/metadata'
+
 export interface MetricFieldMeta {
   name: string
   label: string
   type: 'number' | 'string' | 'date' | 'datetime'
+}
+
+export interface MetricFilterFieldMeta {
+  name: string
+  label: string
+  queryConditionType: MetadataQueryConditionType
+  dictType?: string
+  dataType?: string
 }
 
 export interface MetricJoinMeta {
@@ -23,129 +33,62 @@ export interface MetricTableSchema {
   joins: MetricJoinMeta[]
 }
 
-export const METRIC_TABLE_SCHEMAS: Record<string, MetricTableSchema> = {
-  oa_content: {
-    table: 'oa_content',
-    label: '内容表',
-    alias: 't',
-    fields: [
-      { name: 'id', label: 'ID', type: 'number' },
-      { name: 'account_id', label: '账号ID', type: 'number' },
-      { name: 'title', label: '标题', type: 'string' },
-      { name: 'platform_type', label: '平台', type: 'string' },
-      { name: 'content_type', label: '内容类型', type: 'string' },
-      { name: 'publish_time', label: '发布时间', type: 'datetime' },
-      { name: 'read_count', label: '阅读数', type: 'number' },
-      { name: 'like_count', label: '点赞数', type: 'number' },
-      { name: 'comment_count', label: '评论数', type: 'number' },
-      { name: 'forward_count', label: '转发数', type: 'number' },
-      { name: 'is_hit', label: '是否爆款', type: 'number' },
-      { name: 'status', label: '状态', type: 'string' },
-    ],
-    joins: [
-      { table: 'oa_account', label: '账号表', localKey: 'account_id', foreignKey: 'id' },
-    ],
-  },
-  oa_content_daily: {
-    table: 'oa_content_daily',
-    label: '内容日统计',
-    alias: 't',
-    fields: [
-      { name: 'id', label: 'ID', type: 'number' },
-      { name: 'content_id', label: '内容ID', type: 'number' },
-      { name: 'stat_date', label: '统计日期', type: 'date' },
-      { name: 'read_count', label: '阅读数', type: 'number' },
-      { name: 'play_count', label: '播放数', type: 'number' },
-    ],
-    joins: [
-      { table: 'oa_content', label: '内容表', localKey: 'content_id', foreignKey: 'id' },
-    ],
-  },
-  oa_account: {
-    table: 'oa_account',
-    label: '账号表',
-    alias: 't',
-    fields: [
-      { name: 'id', label: 'ID', type: 'number' },
-      { name: 'platform_type', label: '平台', type: 'string' },
-      { name: 'account_name', label: '账号名称', type: 'string' },
-      { name: 'external_account_id', label: '外部账号ID', type: 'string' },
-      { name: 'status', label: '状态', type: 'string' },
-    ],
-    joins: [],
-  },
-  oa_follower_daily: {
-    table: 'oa_follower_daily',
-    label: '粉丝日统计',
-    alias: 't',
-    fields: [
-      { name: 'id', label: 'ID', type: 'number' },
-      { name: 'account_id', label: '账号ID', type: 'number' },
-      { name: 'stat_date', label: '统计日期', type: 'date' },
-      { name: 'follower_count', label: '粉丝数', type: 'number' },
-      { name: 'new_follower', label: '新增粉丝', type: 'number' },
-      { name: 'unfollow_count', label: '取关数', type: 'number' },
-      { name: 'net_growth', label: '净增', type: 'number' },
-      { name: 'growth_rate', label: '增长率', type: 'number' },
-    ],
-    joins: [
-      { table: 'oa_account', label: '账号表', localKey: 'account_id', foreignKey: 'id' },
-    ],
-  },
-  oa_order: {
-    table: 'oa_order',
-    label: '订单表',
-    alias: 't',
-    fields: [
-      { name: 'id', label: 'ID', type: 'number' },
-      { name: 'order_no', label: '订单号', type: 'string' },
-      { name: 'order_amount', label: '订单金额', type: 'number' },
-      { name: 'order_time', label: '下单时间', type: 'datetime' },
-      { name: 'account_id', label: '账号ID', type: 'number' },
-      { name: 'ip_group_id', label: 'IP组ID', type: 'number' },
-    ],
-    joins: [
-      { table: 'oa_account', label: '账号表', localKey: 'account_id', foreignKey: 'id' },
-    ],
-  },
-  oa_order_attribution: {
-    table: 'oa_order_attribution',
-    label: '订单归因',
-    alias: 't',
-    fields: [
-      { name: 'id', label: 'ID', type: 'number' },
-      { name: 'order_id', label: '订单ID', type: 'number' },
-      { name: 'account_id', label: '账号ID', type: 'number' },
-      { name: 'ip_group_id', label: 'IP组ID', type: 'number' },
-      { name: 'author_id', label: '作者ID', type: 'number' },
-      { name: 'revenue', label: '收入', type: 'number' },
-      { name: 'cost', label: '成本', type: 'number' },
-      { name: 'roi', label: 'ROI', type: 'number' },
-      { name: 'stat_date', label: '统计日期', type: 'date' },
-    ],
-    joins: [
-      { table: 'oa_order', label: '订单表', localKey: 'order_id', foreignKey: 'id' },
-      { table: 'oa_account', label: '账号表', localKey: 'account_id', foreignKey: 'id' },
-    ],
-  },
-  oa_account_cost: {
-    table: 'oa_account_cost',
-    label: '账号成本',
-    alias: 't',
-    fields: [
-      { name: 'id', label: 'ID', type: 'number' },
-      { name: 'account_id', label: '账号ID', type: 'number' },
-      { name: 'cost_type', label: '成本类型', type: 'string' },
-      { name: 'amount', label: '金额', type: 'number' },
-      { name: 'pay_method', label: '支付方式', type: 'string' },
-      { name: 'pay_date', label: '支付日期', type: 'date' },
-      { name: 'period', label: '周期', type: 'string' },
-    ],
-    joins: [
-      { table: 'oa_account', label: '账号表', localKey: 'account_id', foreignKey: 'id' },
-    ],
-  },
+/**
+ * 表关联定义 — ADR-046 未建模 join 元数据，暂保留静态配置。
+ * 字段/实体由 M8 元数据 API 驱动（见 composables/useMetricSchemas.ts）。
+ */
+export const METRIC_TABLE_JOINS: Record<string, MetricJoinMeta[]> = {
+  oa_content: [
+    { table: 'oa_account', label: '账号表', localKey: 'account_id', foreignKey: 'id' },
+  ],
+  oa_content_daily: [
+    { table: 'oa_content', label: '内容表', localKey: 'content_id', foreignKey: 'id' },
+  ],
+  oa_account: [],
+  oa_follower_daily: [
+    { table: 'oa_account', label: '账号表', localKey: 'account_id', foreignKey: 'id' },
+  ],
+  oa_order: [
+    { table: 'oa_account', label: '账号表', localKey: 'account_id', foreignKey: 'id' },
+  ],
+  oa_order_attribution: [
+    { table: 'oa_order', label: '订单表', localKey: 'order_id', foreignKey: 'id' },
+    { table: 'oa_account', label: '账号表', localKey: 'account_id', foreignKey: 'id' },
+  ],
+  oa_account_cost: [
+    { table: 'oa_account', label: '账号表', localKey: 'account_id', foreignKey: 'id' },
+  ],
 }
+
+/** 运行时 schema 缓存，由 ensureMetricSchemasLoaded() 填充 */
+let _metricTableSchemas: Record<string, MetricTableSchema> = {}
+
+export function getMetricTableSchemas(): Record<string, MetricTableSchema> {
+  return _metricTableSchemas
+}
+
+export function setMetricTableSchemas(schemas: Record<string, MetricTableSchema>): void {
+  _metricTableSchemas = schemas
+}
+
+/** @deprecated 请使用 getMetricTableSchemas()；保留别名便于渐进迁移 */
+export const METRIC_TABLE_SCHEMAS: Record<string, MetricTableSchema> = new Proxy(
+  {} as Record<string, MetricTableSchema>,
+  {
+    get(_target, prop: string) {
+      return _metricTableSchemas[prop]
+    },
+    ownKeys() {
+      return Reflect.ownKeys(_metricTableSchemas)
+    },
+    getOwnPropertyDescriptor(_target, prop) {
+      if (prop in _metricTableSchemas) {
+        return { configurable: true, enumerable: true, value: _metricTableSchemas[prop as string] }
+      }
+      return undefined
+    },
+  },
+)
 
 export const METRIC_CALC_METHODS = [
   { value: 'COUNT', label: '计数 (COUNT)', needsField: false },
@@ -175,6 +118,12 @@ export interface MetricFilterCondition {
   field: string
   operator: string
   value: string
+  /** 分析时作为可输入参数 */
+  asParameter?: boolean
+  queryConditionType?: MetadataQueryConditionType
+  dictType?: string
+  /** SQL 占位符名，默认 p_{field} */
+  paramKey?: string
 }
 
 export interface MetricBuilderConfig {
@@ -218,6 +167,86 @@ export function defaultQueryChartConfig(columns: string[]): QueryChartConfig {
   return { chartType: 'bar', xField, yField, seriesField: '' }
 }
 
+export function createEmptyMetricConfig(dataSource = ''): MetricBuilderConfig {
+  return {
+    dataSource,
+    calcMethod: 'COUNT',
+    calcField: '',
+    groupByFields: [],
+    joinTables: [],
+    conditions: [],
+  }
+}
+
+export function resolveParamKey(cond: MetricFilterCondition): string {
+  if (cond.paramKey?.trim()) return cond.paramKey.trim()
+  const base = cond.field.replace(/\./g, '_')
+  return `p_${base}`
+}
+
+export function packMetricBuilderParams(config: MetricBuilderConfig): string {
+  return JSON.stringify({ builder: config })
+}
+
+export function unpackMetricBuilderParams(paramsJson?: string | null): MetricBuilderConfig | null {
+  if (!paramsJson) return null
+  try {
+    const parsed = JSON.parse(paramsJson) as { builder?: MetricBuilderConfig }
+    if (parsed.builder?.dataSource) {
+      return { ...createEmptyMetricConfig(), ...parsed.builder }
+    }
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
+/** 从构建器配置提取参数化条件（去重按 paramKey） */
+export function extractMetricParameters(config: MetricBuilderConfig | null): MetricFilterCondition[] {
+  if (!config?.conditions?.length) return []
+  const seen = new Set<string>()
+  const result: MetricFilterCondition[] = []
+  for (const cond of config.conditions) {
+    if (!cond.asParameter || !cond.field || !cond.operator) continue
+    const key = resolveParamKey(cond)
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(cond)
+  }
+  return result
+}
+
+/** 「全部」/ 未选择时不参与 WHERE 与参数绑定的哨兵值（与 dict_platform_type.ALL 等对齐） */
+const METRIC_PARAM_NO_FILTER_VALUES = new Set(['', 'ALL', '__ALL__'])
+
+/** 参数值是否应生效为筛选条件（空值或「全部」哨兵 → false） */
+export function isMetricBindParamActive(raw: string | null | undefined): boolean {
+  if (raw == null) return false
+  const trimmed = String(raw).trim()
+  if (!trimmed) return false
+  return !METRIC_PARAM_NO_FILTER_VALUES.has(trimmed.toUpperCase())
+}
+
+/** 将参数值绑定到 SQL（前端预览用，与后端 bindCustomParams 对齐） */
+export function bindMetricCustomParams(sql: string, bindParams: Record<string, string>): string {
+  if (!sql || !bindParams || !Object.keys(bindParams).length) return sql
+  let result = sql
+  for (const [key, raw] of Object.entries(bindParams)) {
+    if (!isMetricBindParamActive(raw)) continue
+    const value = quoteLiteralForBind(raw)
+    result = result.replaceAll(`:${key}`, value)
+  }
+  return result
+}
+
+function quoteLiteralForBind(raw: string | undefined): string {
+  if (raw == null) return 'NULL'
+  const trimmed = raw.trim()
+  if (!trimmed) return "''"
+  if (/^-?\d+(\.\d+)?$/.test(trimmed)) return trimmed
+  return `'${trimmed.replace(/'/g, "''")}'`
+}
+
 export function createEmptyQueryConfig(dataSource = 'oa_content_daily'): QueryBuilderConfig {
   return {
     dataSource,
@@ -248,11 +277,39 @@ function buildConditionSql(
   alias: string,
   cond: MetricFilterCondition,
   fields: MetricFieldMeta[],
+  bindParams?: Record<string, string>,
 ): string {
   const fieldMeta = fields.find((f) => f.name === cond.field)
-  const col = `${alias}.${cond.field}`
+  const col = cond.field.includes('.') ? cond.field : `${alias}.${cond.field}`
   if (cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL') {
     return `${col} ${cond.operator}`
+  }
+  if (cond.asParameter) {
+    const pk = resolveParamKey(cond)
+    if (cond.queryConditionType === 'DATE_RANGE') {
+      if (bindParams) {
+        const raw = bindParams[pk]
+        let start = bindParams[`${pk}_start`]?.trim() ?? ''
+        let end = bindParams[`${pk}_end`]?.trim() ?? ''
+        if (raw?.trim()) {
+          const parts = raw.split(',')
+          if (!start) start = parts[0]?.trim() ?? ''
+          if (!end) end = parts[1]?.trim() ?? ''
+        }
+        const rangeParts: string[] = []
+        if (start) rangeParts.push(`${col} >= :${pk}_start`)
+        if (end) rangeParts.push(`${col} <= :${pk}_end`)
+        if (rangeParts.length) return rangeParts.join(' AND ')
+      }
+      return `${col} >= :${pk}_start AND ${col} <= :${pk}_end`
+    }
+    if (cond.operator === 'LIKE') {
+      return `${col} LIKE CONCAT('%', :${pk}, '%')`
+    }
+    if (cond.operator === 'IN') {
+      return `${col} IN (:${pk})`
+    }
+    return `${col} ${cond.operator} :${pk}`
   }
   if (cond.operator === 'IN') {
     const parts = cond.value.split(',').map((v) => quoteValue(fieldMeta, v.trim()))
@@ -264,11 +321,79 @@ function buildConditionSql(
   return `${col} ${cond.operator} ${quoteValue(fieldMeta, cond.value)}`
 }
 
+function conditionIsActive(cond: MetricFilterCondition): boolean {
+  if (!cond.field || !cond.operator) return false
+  if (cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL') return true
+  if (cond.asParameter) return true
+  return !!(cond.value || cond.value === '0')
+}
+
+/** 运行时参数是否已填写（空值/全部则跳过该 WHERE 条件） */
+export function paramHasBindValue(cond: MetricFilterCondition, bindParams: Record<string, string>): boolean {
+  const pk = resolveParamKey(cond)
+  if (cond.queryConditionType === 'DATE_RANGE') {
+    const raw = bindParams[pk]
+    if (raw?.trim()) {
+      const [start, end] = raw.split(',')
+      return isMetricBindParamActive(start) || isMetricBindParamActive(end)
+    }
+    return isMetricBindParamActive(bindParams[`${pk}_start`])
+      || isMetricBindParamActive(bindParams[`${pk}_end`])
+  }
+  return isMetricBindParamActive(bindParams[pk])
+}
+
+/** 字段 code → 元数据中文名；未命中时回退 field code */
+export function resolveFieldLabel(fieldName: string, dataSource: string, joinTables: string[] = []): string {
+  if (!fieldName) return fieldName
+  if (fieldName === 'metric_value') return '指标值'
+
+  const schema = getMetricTableSchemas()[dataSource]
+  const mainField = schema?.fields.find((f) => f.name === fieldName)
+  if (mainField) return mainField.label
+
+  const available = getAvailableFields(dataSource, joinTables)
+  const exact = available.find((f) => f.name === fieldName)
+  if (exact) return exact.label
+
+  const suffix = fieldName.includes('.') ? fieldName.split('.').pop()! : fieldName
+  const bySuffix = available.find((f) => f.name === suffix || f.name.endsWith(`.${suffix}`))
+  if (bySuffix) return bySuffix.label
+
+  return fieldName
+}
+
+/** save：持久化公式，不含参数化条件；runtime：分析/预览，含 :p_xxx 占位符 */
+export type MetricSqlBuildMode = 'save' | 'runtime'
+
+export interface MetricSqlBuildOptions {
+  mode?: MetricSqlBuildMode
+  /** runtime 模式下：仅保留已填写值的参数化条件 */
+  bindParams?: Record<string, string>
+}
+
+function filterConditionsForMode(
+  conditions: MetricFilterCondition[],
+  mode: MetricSqlBuildMode,
+  bindParams?: Record<string, string>,
+): MetricFilterCondition[] {
+  return conditions.filter((c) => {
+    if (!conditionIsActive(c)) return false
+    if (mode === 'save' && c.asParameter) return false
+    if (mode === 'runtime' && c.asParameter && bindParams) {
+      return paramHasBindValue(c, bindParams)
+    }
+    return true
+  })
+}
+
 function buildFromWhereClause(
   schema: MetricTableSchema,
   mainAlias: string,
   joinTables: string[],
   conditions: MetricFilterCondition[],
+  mode: MetricSqlBuildMode = 'save',
+  bindParams?: Record<string, string>,
 ): { fromClause: string; whereClause: string } {
   const fromParts = [`${schema.table} ${mainAlias}`]
   const joined = new Set<string>()
@@ -287,13 +412,9 @@ function buildFromWhereClause(
     `${mainAlias}.tenant_id = :tenantId`,
     `${mainAlias}.deleted = 0`,
   ]
-  conditions
-    .filter((c) => c.field && c.operator)
-    .forEach((c) => {
-      if ((c.operator === 'IS NULL' || c.operator === 'IS NOT NULL') || c.value || c.value === '0') {
-        whereParts.push(buildConditionSql(mainAlias, c, schema.fields))
-      }
-    })
+  filterConditionsForMode(conditions, mode, bindParams).forEach((c) => {
+    whereParts.push(buildConditionSql(mainAlias, c, schema.fields, bindParams))
+  })
 
   return {
     fromClause: fromParts.join(' '),
@@ -313,7 +434,7 @@ function buildAggExpr(calcMethod: MetricCalcMethod, mainAlias: string, calcField
 }
 
 export function buildQuerySqlFromConfig(config: QueryBuilderConfig): string {
-  const schema = METRIC_TABLE_SCHEMAS[config.dataSource]
+  const schema = getMetricTableSchemas()[config.dataSource]
   if (!schema) return ''
 
   const mainAlias = schema.alias
@@ -354,8 +475,12 @@ export function buildQuerySqlFromConfig(config: QueryBuilderConfig): string {
   return sql
 }
 
-export function buildMetricSqlFromConfig(config: MetricBuilderConfig): string {
-  const schema = METRIC_TABLE_SCHEMAS[config.dataSource]
+export function buildMetricSqlFromConfig(
+  config: MetricBuilderConfig,
+  options: MetricSqlBuildOptions = {},
+): string {
+  const mode = options.mode ?? 'save'
+  const schema = getMetricTableSchemas()[config.dataSource]
   if (!schema) return ''
 
   const mainAlias = schema.alias
@@ -383,6 +508,8 @@ export function buildMetricSqlFromConfig(config: MetricBuilderConfig): string {
     mainAlias,
     config.joinTables,
     config.conditions,
+    mode,
+    options.bindParams,
   )
 
   let sql = `SELECT ${selectCols.join(', ')} FROM ${fromClause} WHERE ${whereClause}`
@@ -392,12 +519,46 @@ export function buildMetricSqlFromConfig(config: MetricBuilderConfig): string {
   return sql
 }
 
+/** 分析/预览时生成含参数占位符的完整 SQL；优先从 params_json 重建，兼容旧数据直接带 :p_ 的公式 */
+export function buildRuntimeMetricSql(
+  savedFormula: string,
+  paramsJson?: string | null,
+  bindParams?: Record<string, string>,
+): string {
+  const builder = unpackMetricBuilderParams(paramsJson)
+  if (builder?.dataSource) {
+    const runtimeSql = buildMetricSqlFromConfig(builder, { mode: 'runtime', bindParams })
+    if (runtimeSql) return runtimeSql
+  }
+  return savedFormula
+}
+
+/** 解析指标查询结果列的中文表头 */
+export function resolveMetricResultColumnLabel(
+  col: string,
+  config: MetricBuilderConfig | null | undefined,
+): string {
+  if (col === 'metric_value') {
+    if (config?.calcMethod) {
+      return METRIC_CALC_METHODS.find((m) => m.value === config.calcMethod)?.label ?? '指标值'
+    }
+    return '指标值'
+  }
+  if (!config?.dataSource) return col
+  return resolveFieldLabel(col, config.dataSource, config.joinTables)
+}
+
+export function metricFormulaHasCustomParams(formula: string): boolean {
+  return /:p_[a-zA-Z0-9_]+/.test(formula)
+}
+
 export function getAvailableFields(dataSource: string, joinTables: string[]): MetricFieldMeta[] {
-  const schema = METRIC_TABLE_SCHEMAS[dataSource]
+  const schemas = getMetricTableSchemas()
+  const schema = schemas[dataSource]
   if (!schema) return []
   const fields = [...schema.fields]
   joinTables.forEach((jt) => {
-    const joinSchema = METRIC_TABLE_SCHEMAS[jt]
+    const joinSchema = schemas[jt]
     if (joinSchema) {
       joinSchema.fields.forEach((f) => {
         fields.push({ ...f, name: `${getJoinAlias(jt)}.${f.name}`, label: `[${joinSchema.label}] ${f.label}` })
@@ -423,7 +584,7 @@ export function getFilterableIpGroupFields(dataSource: string, joinTables: strin
 export function resolveFieldSqlColumn(fieldName: string, dataSource: string): string {
   if (!fieldName) return ''
   if (fieldName.includes('.')) return fieldName
-  const schema = METRIC_TABLE_SCHEMAS[dataSource]
+  const schema = getMetricTableSchemas()[dataSource]
   if (!schema) return fieldName
   return `${schema.alias}.${fieldName}`
 }

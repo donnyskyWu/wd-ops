@@ -14,6 +14,10 @@ export interface RealnameVO {
   wechat?: string
   gender?: string
   status: string
+  idCardFrontKey?: string
+  idCardFrontUrl?: string
+  idCardBackKey?: string
+  idCardBackUrl?: string
   createTime?: string
 }
 
@@ -31,6 +35,8 @@ export interface RealnameCreateReq {
   wechat?: string
   gender?: string
   status?: string
+  idCardFrontKey?: string
+  idCardBackKey?: string
 }
 
 export interface RealnameUpdateReq extends Partial<RealnameCreateReq> {

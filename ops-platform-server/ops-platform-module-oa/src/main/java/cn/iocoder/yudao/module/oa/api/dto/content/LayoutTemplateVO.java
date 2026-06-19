@@ -16,7 +16,11 @@ public class LayoutTemplateVO {
     private String sourceUrl;
     private String status;
     private String thumbnailUrl;
+    /** Inline preview snippet for list cards when thumbnailUrl absent. */
+    private String previewHtml;
     private Long creatorUserId;
     private String creatorName;
     private LocalDateTime updateTime;
+    private String tags;
+    private Object defaultParams;
 }

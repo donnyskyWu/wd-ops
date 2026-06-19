@@ -562,6 +562,13 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/config/AiPromptConfig.vue'),
         meta: { title: 'AI提示词' }
       },
+      // 配置管理 - 元数据维护
+      {
+        path: '/config-metadata',
+        name: 'ConfigMetadata',
+        component: () => import('@/views/config/MetadataManage.vue'),
+        meta: { title: '元数据维护' }
+      },
 
       // ===== 10. 系统管理（7个独立子页面）=====
       // 系统管理 - 用户管理

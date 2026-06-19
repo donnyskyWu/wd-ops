@@ -131,6 +131,15 @@ public class LayoutTemplateController {
         return CommonResult.success(layoutTemplateService.importDocx(file, templateName, documentType));
     }
 
+    @PostMapping("/import-mhtml")
+    @PreAuthorize("hasAuthority('oa:layout-template:import')")
+    public CommonResult<LayoutImportJobCreateResp> importMhtml(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(required = false) String templateName,
+            @RequestParam(required = false) String documentType) {
+        return CommonResult.success(layoutTemplateService.importMhtml(file, templateName, documentType));
+    }
+
     @PostMapping("/{id}/preview-merge")
     @PreAuthorize("hasAuthority('oa:layout-template:list')")
     public CommonResult<LayoutMergePreviewVO> previewMerge(
@@ -139,10 +148,41 @@ public class LayoutTemplateController {
         return CommonResult.success(layoutTemplateService.previewMerge(id, req));
     }
 
+    @PostMapping("/{id}/partial-apply")
+    @PreAuthorize("hasAuthority('oa:layout-template:list')")
+    public CommonResult<LayoutMergePreviewVO> partialApply(
+            @PathVariable Long id,
+            @Valid @RequestBody LayoutMergePreviewReq req) {
+        return CommonResult.success(layoutTemplateService.partialApply(id, req));
+    }
+
+    @PostMapping("/{id}/apply-background")
+    @PreAuthorize("hasAuthority('oa:layout-template:list')")
+    public CommonResult<LayoutMergePreviewVO> applyBackground(
+            @PathVariable Long id,
+            @Valid @RequestBody LayoutMergePreviewReq req) {
+        return CommonResult.success(layoutTemplateService.applyBackground(id, req));
+    }
+
     @PostMapping("/{id}/copy")
     @PreAuthorize("hasAuthority('oa:layout-template:create')")
     public CommonResult<Long> copy(@PathVariable Long id) {
         return CommonResult.success(layoutTemplateService.copyTemplate(id));
+    }
+
+    @PostMapping("/validate-extract-fidelity")
+    @PreAuthorize("hasAuthority('oa:layout-template:import')")
+    public CommonResult<LayoutMergePreviewVO> validateExtractFidelity(
+            @RequestBody java.util.Map<String, Object> body) {
+        Object schema = body.get("layoutSchema");
+        String sampleBody = body.get("sampleBody") != null ? String.valueOf(body.get("sampleBody")) : null;
+        return CommonResult.success(layoutTemplateService.validateExtractFidelity(schema, sampleBody));
+    }
+
+    @PostMapping("/import-paste-preview")
+    @PreAuthorize("hasAuthority('oa:layout-template:import')")
+    public CommonResult<LayoutImportJobCreateResp> importPastePreview(@Valid @RequestBody LayoutImportPasteReq req) {
+        return CommonResult.success(layoutTemplateService.importPastePreview(req));
     }
 
     @PostMapping("/import-paste")

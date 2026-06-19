@@ -25,4 +25,6 @@ public class WechatLayoutTemplateDO extends TenantBaseDO {
     private String sourceUrl;
     private String status;
     private Long creatorUserId;
+    private String tags;
+    private String defaultParams;
 }

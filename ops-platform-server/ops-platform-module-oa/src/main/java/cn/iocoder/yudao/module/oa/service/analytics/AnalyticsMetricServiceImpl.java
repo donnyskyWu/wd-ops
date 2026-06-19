@@ -63,6 +63,7 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
         entity.setCategory(req.getMetricType() != null ? req.getMetricType() : "ANALYTICS");
         entity.setMetricFormula(req.getMetricFormula());
         entity.setDataSource(req.getDataSource());
+        entity.setParamsJson(req.getParamsJson());
         entity.setStatus(1);
         entity.setCreator(TenantContextHolder.getUsername());
         entity.setUpdater(TenantContextHolder.getUsername());
@@ -87,6 +88,9 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
         }
         if (req.getDataSource() != null) {
             existing.setDataSource(req.getDataSource());
+        }
+        if (req.getParamsJson() != null) {
+            existing.setParamsJson(req.getParamsJson());
         }
         if (req.getStatus() != null) {
             existing.setStatus(req.getStatus());
@@ -124,6 +128,7 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
                                      Map<String, Object> widgetDef) {
         SqlSafetySupport.assertSelectOnly(req.getMetricFormula());
         String sql = DashboardSqlParamBinder.prepareSql(req.getMetricFormula(), bindParams, widgetDef);
+        sql = DashboardSqlParamBinder.bindCustomParams(sql, req.getBindParams());
         if (!sql.toUpperCase(Locale.ROOT).contains(" LIMIT ")) {
             sql = sql + " LIMIT 20";
         }
@@ -166,6 +171,7 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
         vo.setUnit(row.getUnit());
         vo.setMetricFormula(row.getMetricFormula());
         vo.setDataSource(row.getDataSource());
+        vo.setParamsJson(row.getParamsJson());
         vo.setStatus(row.getStatus());
         return vo;
     }

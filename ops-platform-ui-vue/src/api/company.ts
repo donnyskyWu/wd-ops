@@ -16,6 +16,8 @@ export interface CompanyVO {
   mpRegisteredCount: number
   mpRemaining?: number
   status: string
+  businessLicenseKeys?: string[]
+  businessLicenseUrls?: string[]
   createTime?: string
 }
 
@@ -33,6 +35,7 @@ export interface CompanyCreateReq {
   legalIdCard?: string
   mpCapacityStandard?: number
   status?: string
+  businessLicenseKeys?: string[]
 }
 
 export interface CompanyUpdateReq {
@@ -44,6 +47,7 @@ export interface CompanyUpdateReq {
   legalIdCard?: string
   mpCapacityStandard?: number
   status?: string
+  businessLicenseKeys?: string[]
 }
 
 export interface CompanyExpandReq {
@@ -58,6 +62,10 @@ export function getCompanyPage(params: {
   pageSize?: number
 }): Promise<CompanyPageResult> {
   return request.get({ url: '/oa/company/list', params })
+}
+
+export function getCompany(id: number): Promise<CompanyVO> {
+  return request.get({ url: `/oa/company/${id}` })
 }
 
 export function createCompany(data: CompanyCreateReq): Promise<number> {

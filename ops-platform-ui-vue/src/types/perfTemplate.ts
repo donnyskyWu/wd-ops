@@ -75,8 +75,12 @@ export interface PerfTemplateItem {
 export interface PerfTemplateListItem {
   /** 模板ID */
   id: number
-  /** 岗位名称 */
-  position: string
+  /** 岗位编码列表 */
+  positions: string[]
+  /** 岗位名称（拼接展示） */
+  positionLabel: string
+  /** 岗位名称列表 */
+  positionLabels?: string[]
   /** 模板名称 */
   templateName: string
   /** 指标数量 */
@@ -95,8 +99,10 @@ export interface PerfTemplateDetail {
   id?: number
   /** 模板名称 */
   templateName: string
-  /** 岗位 */
-  position: string
+  /** 岗位编码列表 */
+  positions: string[]
+  /** 岗位名称列表 */
+  positionLabels?: string[]
   /** 是否立即生效 */
   isActive: boolean
   /** 指标列表 */

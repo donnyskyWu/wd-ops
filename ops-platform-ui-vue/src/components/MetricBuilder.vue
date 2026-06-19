@@ -1,5 +1,6 @@
 <template>
-  <div class="metric-builder">
+  <div v-loading="schemaLoading" class="metric-builder">
+    <el-alert v-if="schemaError" type="error" :title="schemaError" show-icon :closable="false" class="schema-error" />
     <div class="builder-layout">
       <div class="builder-main">
         <el-form label-width="96px" size="default">
@@ -91,7 +92,13 @@
           <el-form-item label="查询条件">
             <div class="conditions-wrap">
               <div v-for="(cond, idx) in config.conditions" :key="idx" class="condition-row">
-                <el-select v-model="cond.field" placeholder="字段" filterable style="width: 140px" @change="emitFormula">
+                <el-select
+                  v-model="cond.field"
+                  placeholder="字段"
+                  filterable
+                  style="width: 130px"
+                  @change="onConditionFieldChange(cond)"
+                >
                   <el-option
                     v-for="f in schemaFields"
                     :key="f.name"
@@ -99,16 +106,32 @@
                     :value="f.name"
                   />
                 </el-select>
-                <el-select v-model="cond.operator" placeholder="运算符" style="width: 110px" @change="emitFormula">
+                <el-select v-model="cond.operator" placeholder="运算符" style="width: 100px" @change="emitFormula">
                   <el-option v-for="op in METRIC_FILTER_OPERATORS" :key="op.value" :label="op.label" :value="op.value" />
                 </el-select>
-                <el-input
-                  v-if="cond.operator !== 'IS NULL' && cond.operator !== 'IS NOT NULL'"
-                  v-model="cond.value"
-                  placeholder="值"
-                  style="flex: 1"
-                  @input="emitFormula"
-                />
+                <el-checkbox v-model="cond.asParameter" class="param-toggle" @change="onParameterToggle(cond)">
+                  参数
+                </el-checkbox>
+                <template v-if="cond.asParameter">
+                  <DictSelect
+                    v-model="cond.queryConditionType"
+                    dict-type="dict_metadata_query_condition_type"
+                    placeholder="条件类别"
+                    style="width: 130px"
+                    @change="emitFormula"
+                  />
+                </template>
+                <template v-else-if="cond.operator !== 'IS NULL' && cond.operator !== 'IS NOT NULL'">
+                  <MetricConditionInput
+                    v-model="cond.value"
+                    :query-condition-type="cond.queryConditionType || fieldMetaMap[cond.field]?.queryConditionType"
+                    :dict-type="cond.dictType || fieldMetaMap[cond.field]?.dictType"
+                    placeholder="值"
+                    style="flex: 1"
+                    @update:model-value="emitFormula"
+                  />
+                </template>
+                <span v-else-if="cond.asParameter" class="param-hint">分析时输入</span>
                 <el-button link type="danger" @click="removeCondition(idx)">
                   <el-icon><Delete /></el-icon>
                 </el-button>
@@ -132,7 +155,7 @@
             placeholder="点击「生成公式」或手动编辑 SQL"
             @update:model-value="onFormulaInput"
           />
-          <div class="form-tip">自动生成 SELECT 语句，含 tenant_id 占位符 :tenantId</div>
+          <div class="form-tip">保存的公式仅含固定条件；勾选「参数」的条件写入 params_json，分析/预览时动态注入 :p_字段名 占位符</div>
         </el-form-item>
       </div>
 
@@ -173,50 +196,58 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
 import {
   METRIC_CALC_METHODS,
   METRIC_FILTER_OPERATORS,
-  METRIC_TABLE_SCHEMAS,
+  getMetricTableSchemas,
   buildMetricSqlFromConfig,
+  buildRuntimeMetricSql,
+  createEmptyMetricConfig,
+  packMetricBuilderParams,
+  unpackMetricBuilderParams,
+  extractMetricParameters,
+  resolveParamKey,
   type MetricBuilderConfig,
   type MetricFieldMeta,
+  type MetricFilterCondition,
+  type MetricFilterFieldMeta,
 } from '@/constants/metricSchema'
-import { previewMetric, METRIC_DATA_SOURCES } from '@/api/metric'
+import { previewMetric } from '@/api/metric'
+import { fetchMetadataList, fetchMetadataFieldsByCode, toMetricFilterMeta } from '@/api/metadata'
+import { useMetricSchemas } from '@/composables/useMetricSchemas'
+import DictSelect from '@/components/DictSelect.vue'
+import MetricConditionInput from '@/components/MetricConditionInput.vue'
 
 const props = defineProps<{
   dataSource: string
   metricFormula: string
+  paramsJson?: string
 }>()
 
 const emit = defineEmits<{
   (e: 'update:dataSource', v: string): void
   (e: 'update:metricFormula', v: string): void
+  (e: 'update:paramsJson', v: string): void
 }>()
 
-const dataSources = METRIC_DATA_SOURCES
+const { loading: schemaLoading, error: schemaError, dataSources, ensureMetricSchemasLoaded } = useMetricSchemas()
 const previewing = ref(false)
 const previewRows = ref<Record<string, unknown>[]>([])
 const previewColumns = ref<string[]>([])
 const previewError = ref('')
+const fieldMetaMap = ref<Record<string, MetricFilterFieldMeta>>({})
 
-const config = reactive<MetricBuilderConfig>({
-  dataSource: props.dataSource || '',
-  calcMethod: 'COUNT',
-  calcField: '',
-  groupByFields: [],
-  joinTables: [],
-  conditions: [],
-})
+const config = reactive<MetricBuilderConfig>(createEmptyMetricConfig(props.dataSource || ''))
 
 const formula = computed({
   get: () => props.metricFormula,
   set: (v: string) => emit('update:metricFormula', v),
 })
 
-const schema = computed(() => METRIC_TABLE_SCHEMAS[config.dataSource])
+const schema = computed(() => getMetricTableSchemas()[config.dataSource])
 const schemaFields = computed(() => schema.value?.fields ?? [])
 const availableJoins = computed(() => schema.value?.joins ?? [])
 const calcNeedsField = computed(() =>
@@ -226,39 +257,111 @@ const numericFields = computed(() =>
   schemaFields.value.filter((f) => f.type === 'number'),
 )
 
+function applyBuilderConfig(builder: MetricBuilderConfig) {
+  config.dataSource = builder.dataSource
+  config.calcMethod = builder.calcMethod || 'COUNT'
+  config.calcField = builder.calcField || ''
+  config.groupByFields = [...(builder.groupByFields || [])]
+  config.joinTables = [...(builder.joinTables || [])]
+  config.conditions = (builder.conditions || []).map((c) => ({ ...c }))
+}
+
+async function loadFieldMeta(dataSource: string) {
+  fieldMetaMap.value = {}
+  if (!dataSource) return
+  try {
+    const res = await fetchMetadataList({ status: 'ENABLED', pageNum: 1, pageSize: 200 })
+    const entity = (res?.list ?? []).find((e) => e.physicalTable === dataSource)
+    if (!entity) return
+    const fields = await fetchMetadataFieldsByCode(entity.entityCode)
+    const meta = toMetricFilterMeta(fields)
+    fieldMetaMap.value = Object.fromEntries(meta.map((m) => [m.name, m]))
+  } catch {
+    /* 元数据不可用时仍可用文本输入 */
+  }
+}
+
+function syncParamsJson() {
+  emit('update:paramsJson', packMetricBuilderParams(config))
+}
+
 watch(
   () => props.dataSource,
-  (v) => {
+  async (v) => {
     if (v && v !== config.dataSource) {
       config.dataSource = v
+      await loadFieldMeta(v)
     }
   },
 )
 
+watch(
+  () => props.paramsJson,
+  (v) => {
+    const unpacked = unpackMetricBuilderParams(v)
+    if (unpacked?.dataSource) {
+      applyBuilderConfig(unpacked)
+    }
+  },
+  { immediate: true },
+)
+
+onMounted(async () => {
+  try {
+    await ensureMetricSchemasLoaded()
+    if (config.dataSource) {
+      await loadFieldMeta(config.dataSource)
+    }
+  } catch {
+    /* schemaError 已赋值 */
+  }
+})
+
 function resetBuilderState(dataSource: string) {
-  config.dataSource = dataSource
-  config.calcMethod = 'COUNT'
-  config.calcField = ''
-  config.groupByFields = []
-  config.joinTables = []
-  config.conditions = []
+  Object.assign(config, createEmptyMetricConfig(dataSource))
   previewRows.value = []
   previewColumns.value = []
   previewError.value = ''
 }
 
-function onDataSourceChange(v: string) {
+async function onDataSourceChange(v: string) {
   resetBuilderState(v)
   emit('update:dataSource', v)
+  await loadFieldMeta(v)
   emitFormula()
 }
 
+function createCondition(): MetricFilterCondition {
+  return { field: '', operator: '=', value: '', asParameter: false }
+}
+
 function addCondition() {
-  config.conditions.push({ field: '', operator: '=', value: '' })
+  config.conditions.push(createCondition())
 }
 
 function removeCondition(idx: number) {
   config.conditions.splice(idx, 1)
+  emitFormula()
+}
+
+function onConditionFieldChange(cond: MetricFilterCondition) {
+  const meta = fieldMetaMap.value[cond.field]
+  if (meta) {
+    cond.queryConditionType = meta.queryConditionType
+    cond.dictType = meta.dictType
+  }
+  emitFormula()
+}
+
+function onParameterToggle(cond: MetricFilterCondition) {
+  if (cond.asParameter) {
+    const meta = fieldMetaMap.value[cond.field]
+    if (meta && !cond.queryConditionType) {
+      cond.queryConditionType = meta.queryConditionType
+      cond.dictType = meta.dictType
+    }
+    cond.value = ''
+  }
   emitFormula()
 }
 
@@ -270,10 +373,21 @@ function pickField(f: MetricFieldMeta) {
     }
   } else {
     const empty = config.conditions.find((c) => !c.field)
+    const meta = fieldMetaMap.value[f.name]
     if (empty) {
       empty.field = f.name
+      if (meta) {
+        empty.queryConditionType = meta.queryConditionType
+        empty.dictType = meta.dictType
+      }
     } else {
-      config.conditions.push({ field: f.name, operator: '=', value: '' })
+      const cond = createCondition()
+      cond.field = f.name
+      if (meta) {
+        cond.queryConditionType = meta.queryConditionType
+        cond.dictType = meta.dictType
+      }
+      config.conditions.push(cond)
     }
   }
   emitFormula()
@@ -290,21 +404,47 @@ function generateFormula() {
   }
   const sql = buildMetricSqlFromConfig(config)
   emit('update:metricFormula', sql)
+  syncParamsJson()
   ElMessage.success('公式已生成')
 }
 
 function emitFormula() {
   if (!config.dataSource) return
   const sql = buildMetricSqlFromConfig(config)
-  if (sql) emit('update:metricFormula', sql)
+  if (sql) {
+    emit('update:metricFormula', sql)
+    syncParamsJson()
+  }
 }
 
 function onFormulaInput(v: string) {
   emit('update:metricFormula', v)
 }
 
+function buildPreviewBindParams(): Record<string, string> {
+  const params: Record<string, string> = {}
+  for (const cond of extractMetricParameters(config)) {
+    const pk = resolveParamKey(cond)
+    if (cond.queryConditionType === 'DATE_RANGE') {
+      if (cond.value) {
+        const [start, end] = cond.value.split(',')
+        if (start) params[`${pk}_start`] = start
+        if (end) params[`${pk}_end`] = end
+      }
+    } else if (cond.value) {
+      params[pk] = cond.value
+    }
+  }
+  return params
+}
+
 async function handlePreview() {
-  const sql = props.metricFormula?.trim()
+  if (!config.dataSource) {
+    ElMessage.warning('请先选择数据源')
+    return
+  }
+  const bindParams = buildPreviewBindParams()
+  const sql = buildRuntimeMetricSql(props.metricFormula?.trim() || '', packMetricBuilderParams(config), bindParams)
   if (!sql) {
     ElMessage.warning('请先生成或填写计算公式')
     return
@@ -314,7 +454,7 @@ async function handlePreview() {
   previewRows.value = []
   previewColumns.value = []
   try {
-    const res: any = await previewMetric({ metricFormula: sql })
+    const res: any = await previewMetric({ metricFormula: sql, bindParams })
     const data = res?.data ?? res
     const rows = data?.rows ?? []
     previewRows.value = Array.isArray(rows) ? rows : [rows]
@@ -332,6 +472,7 @@ async function handlePreview() {
 
 <style scoped>
 .metric-builder { width: 100%; }
+.schema-error { margin-bottom: 12px; }
 .builder-layout {
   display: flex;
   gap: 16px;
@@ -368,10 +509,13 @@ async function handlePreview() {
 .conditions-wrap { width: 100%; }
 .condition-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
   margin-bottom: 8px;
 }
+.param-toggle { margin-right: 0; }
+.param-hint { color: #909399; font-size: 12px; flex: 1; }
 .builder-actions {
   display: flex;
   gap: 8px;

@@ -19,4 +19,6 @@ public class RealnameDO extends TenantBaseDO {
     private String gender;
     private String status;
     private Integer accountBoundCount;
+    private String idCardFrontKey;
+    private String idCardBackKey;
 }

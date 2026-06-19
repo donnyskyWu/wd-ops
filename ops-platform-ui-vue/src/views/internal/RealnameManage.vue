@@ -64,7 +64,7 @@
       @size-change="handleSearch"
     />
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="720px">
       <el-form :model="formData" :rules="formRules" ref="formRef" label-width="100px">
         <el-form-item label="所属公司">
           <CompanySelect v-model="formData.companyId" />
@@ -75,11 +75,23 @@
         <el-form-item label="证件类型" prop="idType">
           <DictSelect v-model="formData.idType" dict-type="dict_id_type" />
         </el-form-item>
-        <el-form-item label="身份证号" prop="idCard">
+        <el-form-item v-if="formData.id" label="身份证号">
+          <el-input :model-value="editingIdCardMasked" disabled placeholder="已登记证件号" />
+        </el-form-item>
+        <el-form-item v-else label="身份证号" prop="idCard">
           <el-input v-model="formData.idCard" placeholder="18位身份证号" maxlength="18" />
         </el-form-item>
-        <el-form-item label="手机号" prop="phone">
+        <el-form-item v-if="formData.id" label="新身份证号">
+          <el-input v-model="formData.idCard" placeholder="不修改请留空" maxlength="18" />
+        </el-form-item>
+        <el-form-item v-if="formData.id" label="手机号">
+          <el-input :model-value="editingPhoneMasked" disabled placeholder="已登记手机号" />
+        </el-form-item>
+        <el-form-item v-else label="手机号" prop="phone">
           <el-input v-model="formData.phone" placeholder="请输入手机号" maxlength="11" />
+        </el-form-item>
+        <el-form-item v-if="formData.id" label="新手机号">
+          <el-input v-model="formData.phone" placeholder="不修改请留空" maxlength="11" />
         </el-form-item>
         <el-form-item label="性别">
           <DictSelect v-model="formData.gender" dict-type="dict_gender" clearable />
@@ -90,6 +102,28 @@
         <el-form-item label="状态">
           <DictSelect v-model="formData.status" dict-type="dict_realname_status" />
         </el-form-item>
+
+        <el-divider content-position="left">证件图片</el-divider>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="身份证正面">
+              <ImageUploadField
+                :key="`front-${formData.id ?? 'new'}-${formData.idCardFrontKey || 'empty'}`"
+                v-model="formData.idCardFrontKey"
+                v-model:preview-url="formData.idCardFrontUrl"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="身份证反面">
+              <ImageUploadField
+                :key="`back-${formData.id ?? 'new'}-${formData.idCardBackKey || 'empty'}`"
+                v-model="formData.idCardBackKey"
+                v-model:preview-url="formData.idCardBackUrl"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -108,10 +142,12 @@ import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
 import CompanySelect from '@/components/selectors/CompanySelect.vue'
+import ImageUploadField from '@/components/ImageUploadField.vue'
 import { exportToExcel } from '@/utils'
 import {
   createRealname,
   deleteRealname,
+  getRealname,
   getRealnamePage,
   updateRealname,
   type RealnameVO,
@@ -213,6 +249,9 @@ const handleExport = async () => {
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增实名人')
 const formRef = ref()
+const editingIdCardMasked = ref('')
+const editingPhoneMasked = ref('')
+const loadedImageKeys = ref({ front: '', back: '' })
 
 const formData = reactive({
   id: undefined as number | undefined,
@@ -224,13 +263,32 @@ const formData = reactive({
   wechat: '',
   gender: undefined as string | undefined,
   status: 'ENABLED',
+  idCardFrontKey: '',
+  idCardFrontUrl: '',
+  idCardBackKey: '',
+  idCardBackUrl: '',
 })
 
 const formRules = {
   realName: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
   idType: [{ required: true, message: '请选择证件类型', trigger: 'change' }],
-  idCard: [{ required: true, message: '请输入身份证号', trigger: 'blur' }],
-  phone: [{ required: true, message: '请输入手机号', trigger: 'blur' }],
+  idCard: [{
+    validator: (_: unknown, val: string, cb: (e?: Error) => void) => {
+      if (formData.id) { cb(); return }
+      if (!val || !/^[1-9]\d{5}(19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dXx]$/.test(val)) {
+        cb(new Error('请输入正确的18位身份证号'))
+      } else cb()
+    },
+    trigger: 'blur',
+  }],
+  phone: [{
+    validator: (_: unknown, val: string, cb: (e?: Error) => void) => {
+      if (formData.id) { cb(); return }
+      if (!val || !/^1[3-9]\d{9}$/.test(val)) cb(new Error('请输入正确的11位手机号'))
+      else cb()
+    },
+    trigger: 'blur',
+  }],
 }
 
 const resetForm = () => {
@@ -244,7 +302,14 @@ const resetForm = () => {
     wechat: '',
     gender: undefined,
     status: 'ENABLED',
+    idCardFrontKey: '',
+    idCardFrontUrl: '',
+    idCardBackKey: '',
+    idCardBackUrl: '',
   })
+  editingIdCardMasked.value = ''
+  editingPhoneMasked.value = ''
+  loadedImageKeys.value = { front: '', back: '' }
 }
 
 const handleAdd = () => {
@@ -253,26 +318,65 @@ const handleAdd = () => {
   dialogVisible.value = true
 }
 
-const handleEdit = (row: RealnameVO) => {
+const handleEdit = async (row: RealnameVO) => {
   dialogTitle.value = '编辑实名人'
-  Object.assign(formData, {
-    id: row.id,
-    companyId: row.companyId,
-    realName: row.realName,
-    idType: row.idType || 'ID_CARD',
-    idCard: '',
-    phone: '',
-    wechat: row.wechat || '',
-    gender: row.gender,
-    status: row.status || 'ENABLED',
-  })
-  dialogVisible.value = true
+  try {
+    const detail = await getRealname(row.id)
+    editingIdCardMasked.value = detail.idCardMasked || '--'
+    editingPhoneMasked.value = detail.phoneMasked || '--'
+    loadedImageKeys.value = {
+      front: detail.idCardFrontKey || '',
+      back: detail.idCardBackKey || '',
+    }
+    Object.assign(formData, {
+      id: detail.id,
+      companyId: detail.companyId,
+      realName: detail.realName,
+      idType: detail.idType || 'ID_CARD',
+      idCard: '',
+      phone: '',
+      wechat: detail.wechat || '',
+      gender: detail.gender,
+      status: detail.status || 'ENABLED',
+      idCardFrontKey: detail.idCardFrontKey || '',
+      idCardFrontUrl: detail.idCardFrontUrl || '',
+      idCardBackKey: detail.idCardBackKey || '',
+      idCardBackUrl: detail.idCardBackUrl || '',
+    })
+    dialogVisible.value = true
+  } catch {
+    /* 错误已由拦截器提示 */
+  }
+}
+
+const buildImageKeyPayload = () => {
+  const payload: Record<string, string | undefined> = {}
+  if (formData.idCardFrontKey) {
+    payload.idCardFrontKey = formData.idCardFrontKey
+  } else if (loadedImageKeys.value.front) {
+    payload.idCardFrontKey = ''
+  }
+  if (formData.idCardBackKey) {
+    payload.idCardBackKey = formData.idCardBackKey
+  } else if (loadedImageKeys.value.back) {
+    payload.idCardBackKey = ''
+  }
+  return payload
 }
 
 const handleSubmit = async () => {
   if (!formRef.value) return
   await formRef.value.validate(async (valid: boolean) => {
     if (!valid) return
+    if (formData.id && formData.idCard
+        && !/^[1-9]\d{5}(19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dXx]$/.test(formData.idCard)) {
+      ElMessage.warning('新身份证号格式不正确')
+      return
+    }
+    if (formData.id && formData.phone && !/^1[3-9]\d{9}$/.test(formData.phone)) {
+      ElMessage.warning('新手机号格式不正确')
+      return
+    }
     try {
       if (formData.id) {
         const payload: Record<string, unknown> = {
@@ -283,6 +387,7 @@ const handleSubmit = async () => {
           wechat: formData.wechat,
           gender: formData.gender,
           status: formData.status,
+          ...buildImageKeyPayload(),
         }
         if (formData.idCard) payload.idCard = formData.idCard
         if (formData.phone) payload.phone = formData.phone
@@ -297,6 +402,8 @@ const handleSubmit = async () => {
           wechat: formData.wechat,
           gender: formData.gender,
           status: formData.status,
+          idCardFrontKey: formData.idCardFrontKey || undefined,
+          idCardBackKey: formData.idCardBackKey || undefined,
         })
       }
       ElMessage.success('保存成功')

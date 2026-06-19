@@ -13,17 +13,13 @@ import cn.iocoder.yudao.module.oa.api.dto.perf.PerfRecordItemDetailVO;
 import cn.iocoder.yudao.module.oa.api.dto.perf.PerfRecordVO;
 import cn.iocoder.yudao.module.oa.api.dto.perf.ScoreStandardDTO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
-import cn.iocoder.yudao.module.oa.dal.dataobject.operations.ContentDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.MetricDO;
-import cn.iocoder.yudao.module.oa.dal.dataobject.perf.OrderAttributionDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfItemRecordDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfRecordDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfTemplateDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfTemplateItemDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.MetricMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.perf.OrderAttributionMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfItemRecordMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfRecordMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateItemMapper;
@@ -37,9 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
@@ -63,8 +57,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
     private final PerfTemplateItemMapper perfTemplateItemMapper;
     private final MetricMapper metricMapper;
     private final SysUserMapper sysUserMapper;
-    private final OrderAttributionMapper orderAttributionMapper;
-    private final ContentMapper contentMapper;
+    private final PerfMetricValueResolver perfMetricValueResolver;
 
     @Override
     public PageResult<PerfRecordVO> list(Long ipGroupId, Long targetUserId, String periodType, String status,
@@ -118,6 +111,9 @@ public class PerfRecordServiceImpl implements PerfRecordService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         perfRecordMapper.insert(entity);
+        PerfRecordCalculateReq calcReq = new PerfRecordCalculateReq();
+        calcReq.setRecordId(entity.getId());
+        calculate(calcReq);
         return entity.getId();
     }
 
@@ -281,49 +277,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
     }
 
     private BigDecimal resolveMetricValue(MetricDO metric, PerfRecordDO record) {
-        if (metric == null) {
-            return BigDecimal.ZERO;
-        }
-        Long tenantId = record.getTenantId();
-        LocalDate start = record.getPeriodStart();
-        LocalDate end = record.getPeriodEnd();
-        return switch (metric.getMetricCode()) {
-            case "REVENUE" -> sumAttribution(tenantId, record.getTargetUserId(), start, end, true);
-            case "ROI" -> {
-                BigDecimal revenue = sumAttribution(tenantId, record.getTargetUserId(), start, end, true);
-                BigDecimal cost = sumAttribution(tenantId, record.getTargetUserId(), start, end, false);
-                yield cost.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO
-                        : revenue.divide(cost, 4, RoundingMode.HALF_UP);
-            }
-            case "POST_COUNT" -> BigDecimal.valueOf(countContent(tenantId, record.getIpGroupId(), start, end));
-            default -> new BigDecimal("50");
-        };
-    }
-
-    private BigDecimal sumAttribution(Long tenantId, Long opsUserId, LocalDate start, LocalDate end, boolean revenue) {
-        List<OrderAttributionDO> rows = orderAttributionMapper.selectList(new LambdaQueryWrapper<OrderAttributionDO>()
-                .eq(OrderAttributionDO::getTenantId, tenantId)
-                .eq(OrderAttributionDO::getOpsUserId, opsUserId)
-                .ge(OrderAttributionDO::getStatDate, start)
-                .le(OrderAttributionDO::getStatDate, end));
-        return rows.stream()
-                .map(row -> revenue ? row.getRevenue() : row.getCost())
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    private long countContent(Long tenantId, Long ipGroupId, LocalDate start, LocalDate end) {
-        LambdaQueryWrapper<ContentDO> wrapper = new LambdaQueryWrapper<ContentDO>()
-                .eq(ContentDO::getTenantId, tenantId)
-                .ge(ContentDO::getPublishTime, start.atStartOfDay())
-                .le(ContentDO::getPublishTime, end.atTime(LocalTime.MAX));
-        if (ipGroupId != null) {
-            // 通过账号关联 IP 组：简化按 account 在同期有内容的计数
-            wrapper.inSql(ContentDO::getAccountId,
-                    "SELECT id FROM oa_account WHERE tenant_id = " + tenantId + " AND ip_group_id = " + ipGroupId);
-        }
-        Long count = contentMapper.selectCount(wrapper);
-        return count == null ? 0L : count;
+        return perfMetricValueResolver.resolve(metric, record);
     }
 
     private PerfRecordVO toVO(PerfRecordDO record, Map<Long, String> userNames) {

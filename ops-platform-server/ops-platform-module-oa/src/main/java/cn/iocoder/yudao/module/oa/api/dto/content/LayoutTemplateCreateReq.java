@@ -23,4 +23,10 @@ public class LayoutTemplateCreateReq {
     @NotBlank
     @InDict("dict_layout_template_status")
     private String status;
+    /** Full visual HTML from import; overrides skeleton preview when present. */
+    private String previewHtml;
+    private String layoutHtml;
+    private String styleCss;
+    private String sourceType;
+    private String sourceUrl;
 }

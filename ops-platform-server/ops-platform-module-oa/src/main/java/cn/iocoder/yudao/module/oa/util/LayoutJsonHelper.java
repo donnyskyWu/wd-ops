@@ -220,6 +220,10 @@ public final class LayoutJsonHelper {
     }
 
     private static JSONObject paragraphBlock(String text) {
+        return paragraphBlock(text, null);
+    }
+
+    private static JSONObject paragraphBlock(String text, String htmlSeg) {
         JSONObject block = new JSONObject();
         block.set("type", "paragraph");
         block.set("align", "left");
@@ -230,6 +234,9 @@ public final class LayoutJsonHelper {
         child.set("italic", false);
         children.add(child);
         block.set("children", children);
+        if (htmlSeg != null) {
+            attachInlineStyles(block, htmlSeg);
+        }
         return block;
     }
 
@@ -274,12 +281,14 @@ public final class LayoutJsonHelper {
             block.set("type", "heading");
             block.set("level", level);
             block.set("text", stripTags(seg));
+            attachInlineStyles(block, seg);
             return block;
         }
         if (lower.contains("<blockquote")) {
             JSONObject block = new JSONObject();
             block.set("type", "quote");
             block.set("text", stripTags(seg));
+            attachInlineStyles(block, seg);
             return block;
         }
         if (lower.contains("<img")) {
@@ -301,7 +310,40 @@ public final class LayoutJsonHelper {
             block.set("items", items);
             return block;
         }
-        return paragraphBlock(stripTags(seg));
+        return paragraphBlock(stripTags(seg), seg);
+    }
+
+    private static void attachInlineStyles(JSONObject block, String htmlSeg) {
+        String styleAttr = ReUtil.getGroup1("(?is)\\bstyle=[\"']([^\"']*)[\"']", htmlSeg);
+        if (StrUtil.isBlank(styleAttr)) {
+            return;
+        }
+        JSONObject styles = new JSONObject();
+        for (String decl : styleAttr.split(";")) {
+            String[] kv = decl.split(":", 2);
+            if (kv.length == 2 && StrUtil.isNotBlank(kv[0])) {
+                styles.set(kebabToCamel(kv[0].trim()), kv[1].trim());
+            }
+        }
+        if (!styles.isEmpty()) {
+            block.set("styles", styles);
+        }
+    }
+
+    private static String kebabToCamel(String kebab) {
+        StringBuilder sb = new StringBuilder();
+        boolean upper = false;
+        for (char c : kebab.toCharArray()) {
+            if (c == '-') {
+                upper = true;
+            } else if (upper) {
+                sb.append(Character.toUpperCase(c));
+                upper = false;
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
     private static String stripTags(String html) {

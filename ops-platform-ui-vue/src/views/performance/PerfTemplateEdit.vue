@@ -30,8 +30,8 @@
             <el-form-item label="模板名称" required>
               <el-input v-model="form.name" placeholder="如：抖音主账号运营模板" />
             </el-form-item>
-            <el-form-item label="岗位">
-              <DictSelect v-model="form.position" dict-type="dict_position" />
+            <el-form-item label="岗位" required>
+              <DictSelect v-model="form.positions" dict-type="dict_position" multiple />
             </el-form-item>
             <el-form-item label="适用平台">
               <el-select v-model="form.platform" multiple style="width: 100%">
@@ -193,7 +193,7 @@ const activeTab = ref('basic')
 const form = reactive<any>({
   id: undefined as number | undefined,
   name: '',
-  position: undefined,
+  positions: [] as string[],
   platform: [] as string[],
   cycle: 'monthly',
   baseScore: 0,
@@ -299,7 +299,7 @@ const loadDetail = async () => {
       Object.assign(form, {
         id: data.id,
         name: data.templateName || '',
-        position: data.position || '',
+        positions: data.positions?.length ? data.positions : (data.position ? [data.position] : []),
         platform: data.platform || [],
         cycle: data.cycle || 'monthly',
         baseScore: data.baseScore ?? 0,
@@ -335,8 +335,8 @@ const save = async () => {
     activeTab.value = 'basic'
     return
   }
-  if (!form.position) {
-    ElMessage.warning('请选择岗位')
+  if (!form.positions?.length) {
+    ElMessage.warning('请至少选择一个岗位')
     activeTab.value = 'basic'
     return
   }
@@ -360,7 +360,7 @@ const save = async () => {
     const payload = {
       id: form.id,
       templateName: form.name,
-      position: form.position,
+      positions: form.positions,
       isActive: form.status === 1 ? 1 : 0,
       items: form.metrics.map((m: any) => ({
         metricId: m.metricId,

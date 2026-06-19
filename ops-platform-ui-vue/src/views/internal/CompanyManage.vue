@@ -65,7 +65,7 @@
     />
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="720px">
       <el-form :model="formData" :rules="formRules" ref="formRef" label-width="120px">
         <el-form-item label="公司名称" prop="name">
           <el-input v-model="formData.name" placeholder="请输入公司名称" />
@@ -91,6 +91,12 @@
             <el-radio :value="true">启用</el-radio>
             <el-radio :value="false">停用</el-radio>
           </el-radio-group>
+        </el-form-item>
+        <el-form-item label="营业执照">
+          <MultiImageUploadField
+            v-model="formData.businessLicenseKeys"
+            v-model:preview-urls="formData.businessLicenseUrls"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -132,10 +138,12 @@ import { Plus, Download } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
+import MultiImageUploadField from '@/components/MultiImageUploadField.vue'
 import { exportToExcel } from '@/utils'
 import {
   createCompany,
   expandCompany,
+  getCompany,
   getCompanyPage,
   updateCompany,
   type CompanyVO,
@@ -164,6 +172,8 @@ interface CompanyRow {
   standardCount: number
   registeredCount: number
   status: boolean
+  businessLicenseKeys: string[]
+  businessLicenseUrls: string[]
 }
 
 const mapRow = (item: CompanyVO): CompanyRow => ({
@@ -176,6 +186,8 @@ const mapRow = (item: CompanyVO): CompanyRow => ({
   standardCount: item.mpCapacityStandard ?? 0,
   registeredCount: item.mpRegisteredCount ?? 0,
   status: item.status === 'ENABLED',
+  businessLicenseKeys: item.businessLicenseKeys || [],
+  businessLicenseUrls: item.businessLicenseUrls || [],
 })
 
 const loadList = async () => {
@@ -273,6 +285,7 @@ const getCapacityText = (registered: number, standard: number) => {
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增公司')
 const formRef = ref()
+const loadedLicenseKeys = ref<string[]>([])
 
 const formData = reactive({
   id: undefined as number | undefined,
@@ -283,6 +296,8 @@ const formData = reactive({
   legalPerson: '',
   standardCount: 5,
   status: true,
+  businessLicenseKeys: [] as string[],
+  businessLicenseUrls: [] as string[],
 })
 
 const formRules = {
@@ -294,22 +309,53 @@ const formRules = {
 
 const handleAdd = () => {
   dialogTitle.value = '新增公司'
+  loadedLicenseKeys.value = []
+  Object.assign(formData, {
+    id: undefined,
+    name: '',
+    creditCode: '',
+    industry: '',
+    address: '',
+    legalPerson: '',
+    standardCount: 5,
+    status: true,
+    businessLicenseKeys: [],
+    businessLicenseUrls: [],
+  })
   dialogVisible.value = true
 }
 
-const handleEdit = (row: any) => {
+const handleEdit = async (row: CompanyRow) => {
   dialogTitle.value = '编辑公司'
-  Object.assign(formData, {
-    id: row.id,
-    name: row.name,
-    creditCode: row.creditCode,
-    industry: row.industry,
-    address: row.address,
-    legalPerson: row.legalPerson,
-    standardCount: row.standardCount,
-    status: row.status,
-  })
-  dialogVisible.value = true
+  try {
+    const detail = await getCompany(row.id)
+    loadedLicenseKeys.value = [...(detail.businessLicenseKeys || [])]
+    Object.assign(formData, {
+      id: detail.id,
+      name: detail.companyName,
+      creditCode: detail.creditCode,
+      industry: detail.industry || '',
+      address: detail.address || '',
+      legalPerson: detail.legalName || '',
+      standardCount: detail.mpCapacityStandard ?? 0,
+      status: detail.status === 'ENABLED',
+      businessLicenseKeys: [...(detail.businessLicenseKeys || [])],
+      businessLicenseUrls: [...(detail.businessLicenseUrls || [])],
+    })
+    dialogVisible.value = true
+  } catch {
+    /* 错误已由 request 拦截器提示 */
+  }
+}
+
+const buildLicenseKeyPayload = () => {
+  if (formData.businessLicenseKeys.length > 0) {
+    return { businessLicenseKeys: formData.businessLicenseKeys }
+  }
+  if (loadedLicenseKeys.value.length > 0) {
+    return { businessLicenseKeys: [] as string[] }
+  }
+  return {}
 }
 
 const handleSubmit = async () => {
@@ -327,9 +373,12 @@ const handleSubmit = async () => {
         status: formData.status ? 'ENABLED' : 'DISABLED',
       }
       if (formData.id) {
-        await updateCompany({ id: formData.id, ...payload })
+        await updateCompany({ id: formData.id, ...payload, ...buildLicenseKeyPayload() })
       } else {
-        await createCompany(payload)
+        await createCompany({
+          ...payload,
+          businessLicenseKeys: formData.businessLicenseKeys,
+        })
       }
       ElMessage.success('保存成功')
       dialogVisible.value = false

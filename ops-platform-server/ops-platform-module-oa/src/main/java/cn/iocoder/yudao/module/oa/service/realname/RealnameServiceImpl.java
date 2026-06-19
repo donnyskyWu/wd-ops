@@ -14,6 +14,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.company.CompanyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.realname.RealnameMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
+import cn.iocoder.yudao.module.oa.util.ImageKeyHelper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -72,6 +73,8 @@ public class RealnameServiceImpl implements RealnameService {
         entity.setGender(req.getGender());
         entity.setStatus(StrUtil.blankToDefault(req.getStatus(), "ENABLED"));
         entity.setAccountBoundCount(0);
+        entity.setIdCardFrontKey(ImageKeyHelper.sanitizeImageKey(req.getIdCardFrontKey(), tenantId));
+        entity.setIdCardBackKey(ImageKeyHelper.sanitizeImageKey(req.getIdCardBackKey(), tenantId));
         entity.setCreator(TenantContextHolder.getUsername());
         entity.setUpdater(TenantContextHolder.getUsername());
         entity.setCreateTime(LocalDateTime.now());
@@ -109,6 +112,20 @@ public class RealnameServiceImpl implements RealnameService {
         }
         if (StrUtil.isNotBlank(req.getStatus())) {
             existing.setStatus(req.getStatus());
+        }
+        if (req.getIdCardFrontKey() != null) {
+            if (StrUtil.isBlank(req.getIdCardFrontKey())) {
+                existing.setIdCardFrontKey(null);
+            } else {
+                existing.setIdCardFrontKey(ImageKeyHelper.sanitizeImageKey(req.getIdCardFrontKey(), existing.getTenantId()));
+            }
+        }
+        if (req.getIdCardBackKey() != null) {
+            if (StrUtil.isBlank(req.getIdCardBackKey())) {
+                existing.setIdCardBackKey(null);
+            } else {
+                existing.setIdCardBackKey(ImageKeyHelper.sanitizeImageKey(req.getIdCardBackKey(), existing.getTenantId()));
+            }
         }
         existing.setUpdater(TenantContextHolder.getUsername());
         existing.setUpdateTime(LocalDateTime.now());
@@ -198,6 +215,10 @@ public class RealnameServiceImpl implements RealnameService {
         vo.setGender(entity.getGender());
         vo.setStatus(entity.getStatus());
         vo.setAccountBoundCount(entity.getAccountBoundCount());
+        vo.setIdCardFrontKey(entity.getIdCardFrontKey());
+        vo.setIdCardFrontUrl(ImageKeyHelper.toFileViewUrl(entity.getIdCardFrontKey()));
+        vo.setIdCardBackKey(entity.getIdCardBackKey());
+        vo.setIdCardBackUrl(ImageKeyHelper.toFileViewUrl(entity.getIdCardBackKey()));
         vo.setCreateTime(entity.getCreateTime());
         return vo;
     }

@@ -3,7 +3,7 @@
  */
 import { request } from '@/utils/request'
 
-/** PRD/API-M6 预定义数据源表名 */
+/** @deprecated 数据源列表改由 M8 元数据 API 动态加载（useMetricSchemas） */
 export const METRIC_DATA_SOURCES = [
   { label: '内容表 (oa_content)', value: 'oa_content' },
   { label: '内容日统计 (oa_content_daily)', value: 'oa_content_daily' },
@@ -22,7 +22,7 @@ export function buildMetricFormulaTemplate(dataSource: string, metricType: strin
   return `SELECT COUNT(*) AS metric_value FROM ${dataSource} t WHERE t.tenant_id = :tenantId AND t.deleted = 0`
 }
 
-export function previewMetric(data: { metricFormula: string }) {
+export function previewMetric(data: { metricFormula: string; bindParams?: Record<string, string> }) {
   return request.post({ url: '/oa/metric/preview', data })
 }
 

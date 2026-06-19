@@ -1,6 +1,9 @@
 <template>
 
-  <div class="rich-text-editor" :class="{ 'is-disabled': disabled, 'is-readonly': readonly }">
+  <div
+    class="rich-text-editor"
+    :class="{ 'is-disabled': disabled, 'is-readonly': readonly, 'is-fill-height': fillHeight }"
+  >
 
     <EditorToolbar
 
@@ -42,7 +45,7 @@
 
 <script setup lang="ts">
 
-import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import { ElMessage } from 'element-plus'
 
@@ -101,6 +104,12 @@ const props = withDefaults(
 
     minHeight?: string
 
+    /** When set, caps editor frame height so body scrolls internally; defaults to minHeight unless fillHeight. */
+    maxHeight?: string
+
+    /** Fill parent flex/grid area; body scrolls inside .rte-content (use with maximize layouts). */
+    fillHeight?: boolean
+
   }>(),
 
   {
@@ -115,9 +124,22 @@ const props = withDefaults(
 
     minHeight: '240px',
 
+    maxHeight: undefined,
+
+    fillHeight: false,
+
   },
 
 )
+
+const frameMaxHeight = computed(() => {
+  if (props.fillHeight || props.maxHeight === 'none') return 'none'
+  if (props.maxHeight !== undefined) return props.maxHeight
+  if (props.minHeight.includes('%') || props.minHeight.includes('vh') || props.minHeight.includes('min(')) {
+    return props.minHeight
+  }
+  return props.minHeight
+})
 
 
 
@@ -319,6 +341,25 @@ onBeforeUnmount(() => {
 
 })
 
+function insertHtmlAtCursor(html: string) {
+  if (!editor.value || !html) return
+  editor.value.chain().focus().insertContent(html).run()
+}
+
+function applyStyleToSelection(styleHtml: string) {
+  if (!editor.value || !styleHtml) return
+  const { from, to, empty } = editor.value.state.selection
+  if (empty) return
+  const selectedText = editor.value.state.doc.textBetween(from, to, ' ')
+  const wrapped = styleHtml.replace(/>([^<]*)<\//, `>${selectedText || '内容'}<`)
+  editor.value.chain().focus().deleteSelection().insertContent(wrapped).run()
+}
+
+defineExpose({
+  insertHtmlAtCursor,
+  applyStyleToSelection,
+  getEditor: () => editor.value,
+})
 </script>
 
 
@@ -327,6 +368,14 @@ onBeforeUnmount(() => {
 
 .rich-text-editor {
 
+  display: flex;
+
+  flex-direction: column;
+
+  min-height: v-bind(minHeight);
+
+  max-height: v-bind(frameMaxHeight);
+
   border: 1px solid var(--el-border-color);
 
   border-radius: 8px;
@@ -334,6 +383,32 @@ onBeforeUnmount(() => {
   overflow: hidden;
 
   background: #fff;
+
+}
+
+
+
+.rich-text-editor.is-fill-height {
+
+  flex: 1;
+
+  min-height: 0;
+
+  height: 100%;
+
+  max-height: none;
+
+}
+
+
+
+.rte-content {
+
+  flex: 1;
+
+  min-height: 0;
+
+  overflow-y: auto;
 
 }
 
@@ -349,7 +424,7 @@ onBeforeUnmount(() => {
 
 .rte-content :deep(.ProseMirror) {
 
-  min-height: v-bind(minHeight);
+  min-height: 100%;
 
   padding: 12px 16px;
 

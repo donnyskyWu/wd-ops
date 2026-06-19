@@ -9,7 +9,9 @@ import lombok.Getter;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Merge content body into layout schema → layout_json v2 instance (ADR-020).
@@ -31,14 +33,25 @@ public class LayoutMergeService {
     }
 
     public MergeResult merge(String body, Object existingLayout, Object layoutSchema) {
+        return merge(body, existingLayout, layoutSchema, null, null, false);
+    }
+
+    public MergeResult merge(String body, Object existingLayout, Object layoutSchema,
+                             Object paramOverrides, List<String> includeBlockTypes, Boolean backgroundOnly) {
         String effectiveBody = body;
         if (existingLayout != null && (effectiveBody == null || effectiveBody.isBlank())) {
             effectiveBody = LayoutSchemaHelper.extractTextFromLayout(existingLayout);
         }
         List<String> segments = new ArrayList<>(LayoutSchemaHelper.splitBody(effectiveBody));
         JSONObject schema = JSONUtil.parseObj(JSONUtil.toJsonStr(layoutSchema));
+        applyParamOverrides(schema, paramOverrides);
+
+        if (Boolean.TRUE.equals(backgroundOnly)) {
+            return mergeBackgroundOnly(segments, schema);
+        }
+
+        JSONArray schemaBlocks = filterBlocks(schema.getJSONArray("blocks"), includeBlockTypes);
         JSONObject globalStyles = schema.getJSONObject("globalStyles");
-        JSONArray schemaBlocks = schema.getJSONArray("blocks");
         JSONArray out = new JSONArray();
         int segIdx = 0;
 
@@ -107,6 +120,61 @@ public class LayoutMergeService {
         }
         String html = LayoutJsonHelper.renderHtml(doc, false);
         return new MergeResult(doc, html, overflow);
+    }
+
+    /** Apply only globalStyles to existing segments as plain paragraphs (background-only mode). */
+    private MergeResult mergeBackgroundOnly(List<String> segments, JSONObject schema) {
+        JSONObject globalStyles = schema.getJSONObject("globalStyles");
+        JSONObject paraStyles = LayoutSchemaHelper.resolveStyles(globalStyles, "paragraph");
+        JSONArray out = new JSONArray();
+        for (String seg : segments) {
+            out.add(LayoutSchemaHelper.paragraphInstance(seg, paraStyles, "left"));
+        }
+        JSONObject doc = new JSONObject();
+        doc.set("version", 2);
+        doc.set("blocks", out);
+        doc.set("backgroundOnly", true);
+        String html = LayoutJsonHelper.renderHtml(doc, false);
+        return new MergeResult(doc, html, 0);
+    }
+
+    private JSONArray filterBlocks(JSONArray blocks, List<String> includeBlockTypes) {
+        if (blocks == null || includeBlockTypes == null || includeBlockTypes.isEmpty()) {
+            return blocks;
+        }
+        Set<String> allowed = new HashSet<>(includeBlockTypes);
+        JSONArray filtered = new JSONArray();
+        for (int i = 0; i < blocks.size(); i++) {
+            JSONObject block = blocks.getJSONObject(i);
+            if (block != null && allowed.contains(block.getStr("type"))) {
+                filtered.add(block);
+            }
+        }
+        return filtered;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void applyParamOverrides(JSONObject schema, Object paramOverrides) {
+        if (paramOverrides == null) {
+            return;
+        }
+        JSONObject overrides = JSONUtil.parseObj(JSONUtil.toJsonStr(paramOverrides));
+        JSONObject globalStyles = schema.getJSONObject("globalStyles");
+        if (globalStyles == null) {
+            globalStyles = new JSONObject();
+            schema.set("globalStyles", globalStyles);
+        }
+        for (String key : overrides.keySet()) {
+            Object val = overrides.get(key);
+            if (val instanceof JSONObject styleOverride) {
+                JSONObject existing = globalStyles.getJSONObject(key);
+                if (existing == null) {
+                    globalStyles.set(key, styleOverride);
+                } else {
+                    existing.putAll(styleOverride);
+                }
+            }
+        }
     }
 
     private int consumeSlot(JSONArray out, JSONObject block, JSONObject globalStyles,

@@ -1,5 +1,6 @@
 <template>
-  <div class="query-builder">
+  <div v-loading="schemaLoading" class="query-builder">
+    <el-alert v-if="schemaError" type="error" :title="schemaError" show-icon :closable="false" class="schema-error" />
     <div class="builder-layout">
       <div class="builder-main">
         <el-form label-width="96px" size="default">
@@ -198,18 +199,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ArrowDown, Delete } from '@element-plus/icons-vue'
 import {
   METRIC_CALC_METHODS,
   METRIC_FILTER_OPERATORS,
-  METRIC_TABLE_SCHEMAS,
+  getMetricTableSchemas,
   buildQuerySqlFromConfig,
   createEmptyQueryConfig,
   type MetricFieldMeta,
   type QueryBuilderConfig,
 } from '@/constants/metricSchema'
-import { METRIC_DATA_SOURCES } from '@/api/metric'
+import { useMetricSchemas } from '@/composables/useMetricSchemas'
 
 const props = withDefaults(defineProps<{
   modelValue: QueryBuilderConfig
@@ -231,11 +232,11 @@ const emit = defineEmits<{
   (e: 'update:sqlText', v: string): void
 }>()
 
-const dataSources = METRIC_DATA_SOURCES
+const { loading: schemaLoading, error: schemaError, dataSources, ensureMetricSchemasLoaded } = useMetricSchemas()
 
 const config = reactive<QueryBuilderConfig>({ ...createEmptyQueryConfig(), ...props.modelValue })
 
-const schema = computed(() => METRIC_TABLE_SCHEMAS[config.dataSource])
+const schema = computed(() => getMetricTableSchemas()[config.dataSource])
 const schemaFields = computed(() => schema.value?.fields ?? [])
 const availableJoins = computed(() => schema.value?.joins ?? [])
 const calcNeedsField = computed(() =>
@@ -309,10 +310,19 @@ function emitSql() {
 function onSqlInput(v: string) {
   emit('update:sqlText', v)
 }
+
+onMounted(async () => {
+  try {
+    await ensureMetricSchemasLoaded()
+  } catch {
+    /* schemaError 已赋值 */
+  }
+})
 </script>
 
 <style scoped>
 .query-builder { width: 100%; }
+.schema-error { margin-bottom: 12px; }
 .builder-layout {
   display: flex;
   gap: 16px;

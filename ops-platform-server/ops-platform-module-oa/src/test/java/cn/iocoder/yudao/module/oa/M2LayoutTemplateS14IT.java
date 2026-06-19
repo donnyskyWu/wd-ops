@@ -97,23 +97,35 @@ class M2LayoutTemplateS14IT extends OaITBase {
     }
 
     @Test
-    @DisplayName("S-14 P0: import-paste 提取骨架")
-    void importPaste() throws Exception {
-        mockMvc.perform(post(TPL_BASE + "/import-paste")
+    @DisplayName("S-14 P0: import-paste-preview 提取骨架（三步预览流）")
+    void importPastePreview() throws Exception {
+        MvcResult preview = mockMvc.perform(post(TPL_BASE + "/import-paste-preview")
                         .header("Authorization", ADMIN)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "templateName": "IT-S14-粘贴",
-                                  "html": "<h2>粘贴标题</h2><p>段落内容应被剥离</p>"
+                                  "html": "<h2 style=\\"color:#07c160;font-size:22px;\\">粘贴标题</h2><p style=\\"color:#333;font-size:16px;\\">段落内容</p>"
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.data.sourceType").value("PASTE"))
-                .andExpect(jsonPath("$.data.layoutSchema.version").value(2))
-                .andExpect(jsonPath("$.data.layoutSchema.blocks").isArray());
+                .andExpect(jsonPath("$.data.jobId").exists())
+                .andExpect(jsonPath("$.data.status").value("SUCCESS"))
+                .andReturn();
+        Long jobId = JsonPath.parse(preview.getResponse().getContentAsString()).read("$.data.jobId", Long.class);
+
+        mockMvc.perform(get(TPL_BASE + "/import-job/" + jobId)
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.previewLayoutSchema.version").value(2))
+                .andExpect(jsonPath("$.data.previewLayoutSchema.blocks").isArray())
+                .andExpect(jsonPath("$.data.previewHtml").exists())
+                .andExpect(jsonPath("$.data.previewHtml").value(org.hamcrest.Matchers.containsString("color:#333")));
     }
 
     @Test
