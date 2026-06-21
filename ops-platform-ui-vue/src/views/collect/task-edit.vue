@@ -47,10 +47,7 @@
           </div>
         </el-form-item>
         <el-form-item label="状态" prop="status">
-          <el-radio-group v-model="form.status">
-            <el-radio value="ENABLED">启用</el-radio>
-            <el-radio value="DISABLED">停用</el-radio>
-          </el-radio-group>
+          <DictSelect v-model="form.status" dict-type="dict_collect_status" placeholder="请选择状态" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="submitting" @click="handleSubmit">保存</el-button>
@@ -95,7 +92,6 @@ import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import DictSelect from '@/components/DictSelect.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
 import { getCollectTaskDetail, createCollectTask, updateCollectTask } from '@/api/collect'
-import { mockCollectTasks } from '@/mock/collect'
 
 const route = useRoute()
 const router = useRouter()
@@ -116,7 +112,7 @@ const form = reactive({
   frequency: undefined as string | undefined,
   cron: '',
   apiConfig: '',
-  status: 'ENABLED',
+  status: 'PENDING',
 })
 const rules: FormRules = {
   name: [{ required: true, message: '请输入任务名', trigger: 'blur' }],
@@ -159,12 +155,7 @@ const loadDetail = async () => {
     Object.assign(form, data)
     Object.assign(monitor, data)
   } catch {
-    // mock 兜底
-    const m = mockCollectTasks.find((t) => t.id === id)
-    if (m) {
-      Object.assign(form, m)
-      Object.assign(monitor, m)
-    }
+    ElMessage.error('加载任务详情失败')
   } finally {
     loading.value = false
   }

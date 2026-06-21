@@ -20,4 +20,15 @@ public class PersonalWechatRespVO {
     private String appSecret;
     private String token;
     private String createTime;
+    private String aochuangWechatAccountId;
+    private Long aochuangAccountRefId;
+    private String aochuangAccountName;
+    private String aochuangBindStatus;
+    private String aochuangNickname;
+    private String aochuangAvatar;
+    private Boolean aochuangIsAlive;
+    private String lastDeviceSyncAt;
+    private String lastFriendSyncAt;
+    private String lastMessageSyncAt;
+    private String collectStatus;
 }

@@ -20,6 +20,8 @@ oa:
     mode: dev-fixed
   crypto:
     aes-key: MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=
+  aochuang:
+    stub: true
 
 logging:
   level:

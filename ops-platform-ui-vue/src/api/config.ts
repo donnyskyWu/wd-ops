@@ -122,6 +122,25 @@ export interface AoCreateApiVO {
   currentUsage?: number
 }
 
+export interface AoCreateAccountVO {
+  id: number
+  aocreateApiId?: number
+  accountName: string
+  aochuangAccountId: string
+  status?: string
+  connStatus?: string
+  lastDeviceSyncAt?: string
+  createTime?: string
+  updateTime?: string
+}
+
+export interface AoCreateAccountTestResultVO {
+  success: boolean
+  deviceCount: number
+  connStatus?: string
+  message?: string
+}
+
 export interface ImportResultVO {
   successCount: number
   failCount: number
@@ -166,6 +185,29 @@ export const internalCollectApi = {
   },
   saveAoCreate(data: Record<string, unknown>) {
     return request.post<boolean>({ url: '/oa/config/internal-collect/aocreate', data })
+  },
+  listAoCreateAccounts(params?: Record<string, unknown>) {
+    return request.get<ConfigPageResult<AoCreateAccountVO>>({
+      url: '/oa/config/internal-collect/aocreate/accounts/list',
+      params,
+    })
+  },
+  createAoCreateAccount(data: Record<string, unknown>) {
+    return request.post<number>({ url: '/oa/config/internal-collect/aocreate/accounts/create', data })
+  },
+  updateAoCreateAccount(data: Record<string, unknown>) {
+    return request.put<boolean>({ url: '/oa/config/internal-collect/aocreate/accounts/update', data })
+  },
+  deleteAoCreateAccount(id: number) {
+    return request.delete<boolean>({
+      url: '/oa/config/internal-collect/aocreate/accounts/delete',
+      params: { id },
+    })
+  },
+  testAoCreateAccountConnection(id: number) {
+    return request.post<AoCreateAccountTestResultVO>({
+      url: `/oa/config/internal-collect/aocreate/accounts/${id}/test-connection`,
+    })
   },
 }
 

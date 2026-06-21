@@ -14,6 +14,9 @@ public interface AccountAnalysisService {
     PageResult<AccountAnalysisVO> list(String platform, Long ipGroupId, String keyword,
                                        Integer pageNo, Integer pageSize);
 
+    PageResult<AccountAnalysisVO> list(String platform, Long ipGroupId, String keyword,
+                                       Integer pageNo, Integer pageSize, LocalDate statDate);
+
     /**
      * 账号粉丝详情（按日期倒序）
      */

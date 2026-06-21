@@ -293,6 +293,12 @@ export const mockDictMap: Record<string, Array<{ label: string; value: string; c
     { label: '失败', value: 'FAILED', colorType: 'danger' },
     { label: '部分成功', value: 'PARTIAL', colorType: 'warning' },
   ],
+  dict_aochuang_bind_status: [
+    { label: '未绑定', value: 'UNBOUND', colorType: 'info' },
+    { label: '自动绑定', value: 'AUTO', colorType: 'success' },
+    { label: '手工绑定', value: 'MANUAL', colorType: 'warning' },
+    { label: '待绑定', value: 'PENDING', colorType: 'primary' },
+  ],
   // 质量检查类型（PRD-M10 §4.2.3 / API-M10 COMPLETENESS 示例）
   dict_quality_check_type: [
     { label: '完整性', value: 'COMPLETENESS' },

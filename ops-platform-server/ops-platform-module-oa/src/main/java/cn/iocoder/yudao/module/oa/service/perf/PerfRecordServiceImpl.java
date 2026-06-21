@@ -93,10 +93,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
         if (duplicate > 0) {
             throw new ServiceException(OaErrorCodes.PERF_DUPLICATE_PERIOD);
         }
-        PerfTemplateDO template = perfTemplateService.findActiveByPosition(user.getPosition());
-        if (template == null) {
-            throw new ServiceException(OaErrorCodes.PERF_NO_TEMPLATE);
-        }
+        PerfTemplateDO template = resolveTemplate(req.getTemplateId(), user);
         PerfRecordDO entity = new PerfRecordDO();
         entity.setTenantId(tenantId);
         entity.setTemplateId(template.getId());
@@ -392,5 +389,23 @@ public class PerfRecordServiceImpl implements PerfRecordService {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED.getCode(), "缺少租户上下文");
         }
         return tenantId;
+    }
+
+    private PerfTemplateDO resolveTemplate(Long templateId, SysUserDO user) {
+        if (templateId != null) {
+            PerfTemplateDO template = perfTemplateMapper.selectById(templateId);
+            if (template == null || !Objects.equals(template.getTenantId(), requireTenantId())) {
+                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
+            }
+            if (!Objects.equals(template.getIsActive(), 1)) {
+                throw new ServiceException(OaErrorCodes.ENTITY_DISABLED);
+            }
+            return template;
+        }
+        PerfTemplateDO template = perfTemplateService.findActiveByPosition(user.getPosition());
+        if (template == null) {
+            throw new ServiceException(OaErrorCodes.PERF_NO_TEMPLATE);
+        }
+        return template;
     }
 }

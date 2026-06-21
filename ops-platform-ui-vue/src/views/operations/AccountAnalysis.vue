@@ -15,14 +15,24 @@
 
     <!-- 筛选区 -->
     <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
-      <el-form-item label="IP组">
+      <el-form-item v-if="!isPersonalWechatTab" label="IP组">
         <IpGroupTreeSelect v-model="searchForm.ipGroupId" />
       </el-form-item>
       <el-form-item label="关键词">
         <el-input v-model="searchForm.keyword" placeholder="账号名称/ID" clearable />
       </el-form-item>
-      <el-form-item label="状态">
+      <el-form-item v-if="!isPersonalWechatTab" label="状态">
         <DictSelect v-model="searchForm.accountStatus" dict-type="dict_account_status" placeholder="全部" clearable />
+      </el-form-item>
+      <el-form-item v-if="isPersonalWechatTab" label="统计日期">
+        <el-date-picker
+          v-model="searchForm.statDate"
+          type="date"
+          value-format="YYYY-MM-DD"
+          placeholder="默认最新"
+          clearable
+          style="width: 160px"
+        />
       </el-form-item>
     </TableSearch>
 
@@ -32,7 +42,12 @@
         <el-icon><Download /></el-icon>
         导出
       </el-button>
-      <el-button type="primary" :disabled="!selectedRows.length" @click="trendDialogVisible = true">
+      <el-button
+        v-if="!isPersonalWechatTab"
+        type="primary"
+        :disabled="!selectedRows.length"
+        @click="trendDialogVisible = true"
+      >
         <el-icon><TrendCharts /></el-icon>
         趋势对比
       </el-button>
@@ -41,32 +56,53 @@
     <!-- 内容区 -->
     <ContentWrap>
       <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%" @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="50" align="center" />
+        <el-table-column v-if="!isPersonalWechatTab" type="selection" width="50" align="center" />
         <el-table-column prop="accountName" label="账号名称" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="platformName" label="平台" width="90" align="center">
+        <el-table-column v-if="!isPersonalWechatTab" prop="platformName" label="平台" width="90" align="center">
           <template #default="{ row }">
             <el-tag :type="getPlatformTagType(row.platformType)">
               {{ getPlatformLabel(row.platformType) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="ipGroupName" label="所属IP组" width="100" />
-        <el-table-column prop="followerCount" label="粉丝数" width="110" align="right">
+        <el-table-column v-if="!isPersonalWechatTab" prop="ipGroupName" label="所属IP组" width="100" />
+        <el-table-column
+          prop="followerCount"
+          :label="isPersonalWechatTab ? '好友数' : '粉丝数'"
+          width="110"
+          align="right"
+        >
           <template #default="{ row }">
             {{ formatNumber(row.followerCount) }}
           </template>
         </el-table-column>
-        <el-table-column prop="contentCount" label="内容数" width="90" align="center" />
-        <el-table-column prop="accountStatus" label="状态" width="90" align="center">
+        <template v-if="isPersonalWechatTab">
+          <el-table-column prop="messagesSent" label="发送消息" width="100" align="right">
+            <template #default="{ row }">{{ formatNumber(row.messagesSent ?? 0) }}</template>
+          </el-table-column>
+          <el-table-column prop="messagesReceived" label="接收消息" width="100" align="right">
+            <template #default="{ row }">{{ formatNumber(row.messagesReceived ?? 0) }}</template>
+          </el-table-column>
+          <el-table-column prop="statDate" label="统计日期" width="120" align="center">
+            <template #default="{ row }">{{ row.statDate || '--' }}</template>
+          </el-table-column>
+          <el-table-column prop="collectStatus" label="采集状态" width="100" align="center">
+            <template #default="{ row }">
+              <DictLabel dict-type="dict_collect_status" :value="row.collectStatus || 'PENDING'" />
+            </template>
+          </el-table-column>
+        </template>
+        <el-table-column v-else prop="contentCount" label="内容数" width="90" align="center" />
+        <el-table-column v-if="!isPersonalWechatTab" prop="accountStatus" label="状态" width="90" align="center">
           <template #default="{ row }">
             <el-tag :type="row.accountStatus === AccountStatus.ENABLED ? 'success' : 'info'">
               {{ row.statusText }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="realName" label="实名人" width="100" />
-        <el-table-column prop="operatorName" label="运营人员" width="100" />
-        <el-table-column label="操作" width="180" align="center" fixed="right">
+        <el-table-column v-if="!isPersonalWechatTab" prop="realName" label="实名人" width="100" />
+        <el-table-column v-if="!isPersonalWechatTab" prop="operatorName" label="运营人员" width="100" />
+        <el-table-column v-if="!isPersonalWechatTab" label="操作" width="180" align="center" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleViewDetail(row, 'follower')">
               粉丝详情
@@ -135,6 +171,7 @@ import TableSearch from '@/components/TableSearch.vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { exportToExcel } from '@/utils'
 import { normalizePlatform, normalizeAccountStatus, PLATFORM_LABEL, type PlatformType as DictPlatform } from '@/utils/enum-alias'
@@ -151,8 +188,8 @@ const activePlatform = ref<DictPlatform>('WECHAT_OFFICIAL')
 const searchForm = reactive({
   ipGroupId: undefined as number | undefined,
   keyword: '',
-  // S-R3：AccountStatus 用后端真实值
   accountStatus: undefined as 'NORMAL' | 'DISABLED' | undefined,
+  statDate: undefined as string | undefined,
 })
 const loading = ref(false)
 const tableData = ref<any[]>([])
@@ -175,6 +212,8 @@ const trendHint = computed(() =>
     : '请先在列表勾选 1~5 个账号，再打开趋势对比'
 )
 
+const isPersonalWechatTab = computed(() => activePlatform.value === 'WECHAT_PERSONAL')
+
 const handleSelectionChange = (rows: any[]) => {
   selectedRows.value = rows
 }
@@ -187,16 +226,15 @@ const loadData = async () => {
     const params: AccountQuery = {
       ipGroupId: searchForm.ipGroupId,
       keyword: searchForm.keyword || undefined,
-      // S-R3：用 normalize 转换前端值到后端 dict 真实值
       accountStatus: normalizeAccountStatus(searchForm.accountStatus),
-      // S-R3：用 normalize 转换 PlatformType（前端 ALL→后端 ALL，其他按 alias）
       platform: normalizePlatform(activePlatform.value),
-      // S-R3：后端 controller 收 page/size 不是 pageNo/size
       page: pagination.pageNo,
       size: pagination.pageSize,
     } as any
+    if (isPersonalWechatTab.value && searchForm.statDate) {
+      ;(params as any).statDate = searchForm.statDate
+    }
 
-    // spec: 调用 /oa/account-analysis/list（不是 /oa/account/list）
     const result = await getAccountAnalysisList(params as any)
     tableData.value = result?.list || []
     pagination.total = result?.total ?? 0
@@ -219,22 +257,32 @@ const handleReset = () => {
   searchForm.ipGroupId = undefined
   searchForm.keyword = ''
   searchForm.accountStatus = undefined
+  searchForm.statDate = undefined
   pagination.pageNo = 1
   loadData()
 }
 
 const handleExport = () => {
-  const columns = [
-    { key: 'accountName', label: '账号名称' },
-    { key: 'platformName', label: '平台' },
-    { key: 'ipGroupName', label: '所属IP组' },
-    { key: 'followerCount', label: '粉丝数' },
-    { key: 'contentCount', label: '内容数' },
-    { key: 'statusText', label: '状态' },
-    { key: 'realName', label: '实名人' },
-    { key: 'operatorName', label: '运营人员' },
-  ]
-  exportToExcel(tableData.value, columns, '账号数据分析')
+  const columns = isPersonalWechatTab.value
+    ? [
+        { key: 'accountName', label: '账号名称' },
+        { key: 'followerCount', label: '好友数' },
+        { key: 'messagesSent', label: '发送消息' },
+        { key: 'messagesReceived', label: '接收消息' },
+        { key: 'statDate', label: '统计日期' },
+        { key: 'collectStatus', label: '采集状态' },
+      ]
+    : [
+        { key: 'accountName', label: '账号名称' },
+        { key: 'platformName', label: '平台' },
+        { key: 'ipGroupName', label: '所属IP组' },
+        { key: 'followerCount', label: '粉丝数' },
+        { key: 'contentCount', label: '内容数' },
+        { key: 'statusText', label: '状态' },
+        { key: 'realName', label: '实名人' },
+        { key: 'operatorName', label: '运营人员' },
+      ]
+  exportToExcel(tableData.value, columns, isPersonalWechatTab.value ? '个微数据分析' : '账号数据分析')
 }
 
 // P-GATE-UNMOCK-R S-R2-B：跳真实详情（后端已补 /{id}/followers 和 /{id}/contents）
@@ -253,6 +301,7 @@ const getPlatformTagType = (platformType: string) => {
     KUAISHOU: 'warning',
     XIAOHONGSHU: '',
     WEWORK: 'info',
+    WECHAT_PERSONAL: 'success',
   }
   return types[platformType] || ''
 }

@@ -55,6 +55,15 @@
         </el-form>
       </div>
 
+      <el-alert
+        v-if="selectedPresetFunnel?.funnelType === 'PRIVATE_DOMAIN'"
+        type="info"
+        :closable="false"
+        show-icon
+        class="private-domain-hint"
+        title="私域转化漏斗基于奥创好友与已通过的身份桥接（oa_private_domain_conversion_bridge）统计，与平台筛选无关。"
+      />
+
       <el-card class="chart-card" shadow="never">
         <template #header><div class="card-header"><span>漏斗转化图</span></div></template>
         <div ref="funnelChartRef" style="height: 450px" v-loading="loadingData" />
@@ -178,7 +187,13 @@ const queryForm = reactive({
   platformType: '' as string,
 })
 
-const funnelOptions = computed(() => funnelList.value)
+const funnelOptions = computed(() =>
+  funnelList.value.filter((f) => f.funnelType === 'PRIVATE_DOMAIN' || f.funnelType === 'CONVERSION')
+)
+
+const selectedPresetFunnel = computed(() =>
+  funnelList.value.find((f) => f.id === queryForm.funnelId) ?? null
+)
 
 const defaultFunnelSteps = () => [
   { stepName: '阅读总量', eventCode: 'CONTENT_READ_TOTAL', stepOrder: 1 },
@@ -201,7 +216,14 @@ const formatCount = (count: any) => {
 }
 
 const getFunnelTypeLabel = (type: string) => {
-  const map: Record<string, string> = { CONTENT: '内容漏斗', FOLLOWER: '粉丝漏斗', ORDER: '订单漏斗' }
+  const map: Record<string, string> = {
+    CONTENT: '内容漏斗',
+    FOLLOWER: '粉丝漏斗',
+    ORDER: '订单漏斗',
+    PRIVATE_DOMAIN: '私域转化',
+    CONVERSION: '内容转化',
+    CUSTOM: '自定义',
+  }
   return map[type] || type || '-'
 }
 
@@ -212,9 +234,10 @@ const loadFunnelList = async () => {
     const data = res?.data ?? res
     const list = data?.list ?? data?.records ?? []
     funnelList.value = list
-    customFunnelList.value = list
+    customFunnelList.value = list.filter((f) => f.funnelType === 'CUSTOM')
     if (list.length > 0 && !queryForm.funnelId) {
-      queryForm.funnelId = list[0].id
+      const privateDomain = list.find((f) => f.funnelType === 'PRIVATE_DOMAIN')
+      queryForm.funnelId = privateDomain?.id ?? funnelOptions.value[0]?.id ?? list[0].id
       await loadFunnelData()
     }
   } catch (e) {

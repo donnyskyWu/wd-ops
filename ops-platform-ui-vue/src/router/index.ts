@@ -653,6 +653,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/collect/quality.vue'),
         meta: { title: '数据质量' }
       },
+      {
+        path: '/collect/private-domain-bridge',
+        name: 'PrivateDomainBridge',
+        component: () => import('@/views/collect/private-domain-bridge.vue'),
+        meta: { title: '私域桥接' }
+      },
     ]
   }
 ]

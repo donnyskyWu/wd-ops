@@ -32,9 +32,10 @@ public class AccountAnalysisController {
             @RequestParam(required = false) String platform,
             @RequestParam(required = false) Long ipGroupId,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate statDate,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer size) {
-        return CommonResult.success(accountAnalysisService.list(platform, ipGroupId, keyword, page, size));
+        return CommonResult.success(accountAnalysisService.list(platform, ipGroupId, keyword, page, size, statDate));
     }
 
     // P-GATE-UNMOCK-R S-R2-B：账号粉丝详情（按账号 ID）

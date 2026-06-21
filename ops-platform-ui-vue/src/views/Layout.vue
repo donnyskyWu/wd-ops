@@ -96,6 +96,7 @@
           <el-menu-item index="/collect/task">采集任务</el-menu-item>
           <el-menu-item index="/collect/log">采集日志</el-menu-item>
           <el-menu-item index="/collect/quality">数据质量</el-menu-item>
+          <el-menu-item index="/collect/private-domain-bridge">私域桥接</el-menu-item>
         </el-sub-menu>
 
         <!-- 7. 数据分析（M6） -->

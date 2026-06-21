@@ -18,4 +18,6 @@ public class PerfRecordCreateReq {
     private LocalDate periodStart;
     @NotNull
     private LocalDate periodEnd;
+    /** 可选；指定时优先使用所选模板，否则按被考核人岗位自动匹配 */
+    private Long templateId;
 }

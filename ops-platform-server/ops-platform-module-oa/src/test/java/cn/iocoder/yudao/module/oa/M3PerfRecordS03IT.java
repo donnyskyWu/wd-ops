@@ -42,6 +42,43 @@ class M3PerfRecordS03IT extends OaITBase {
     }
 
     @Test
+    @DisplayName("M3-S-03: 手动指定模板创建（岗位无匹配模板）")
+    void createRecordWithManualTemplate() throws Exception {
+        mockMvc.perform(post("/admin-api/oa/perf/record/create")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "targetUserId": 1004,
+                                  "templateId": 9512,
+                                  "periodType": "MONTH",
+                                  "periodStart": "2026-07-01",
+                                  "periodEnd": "2026-07-31"
+                                }
+                                """))
+                .andExpect(jsonPath("$.code").value(0));
+    }
+
+    @Test
+    @DisplayName("M3-S-03: 岗位无模板且未指定 templateId 拒绝 (2013)")
+    void createRecordWithoutTemplateFails() throws Exception {
+        mockMvc.perform(post("/admin-api/oa/perf/record/create")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "targetUserId": 1004,
+                                  "periodType": "MONTH",
+                                  "periodStart": "2026-08-01",
+                                  "periodEnd": "2026-08-31"
+                                }
+                                """))
+                .andExpect(jsonPath("$.code").value(2013));
+    }
+
+    @Test
     @DisplayName("M3-S-03: 重复周期拒绝 (2008)")
     void duplicatePeriod() throws Exception {
         mockMvc.perform(post("/admin-api/oa/perf/record/create")

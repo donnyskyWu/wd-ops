@@ -3,9 +3,20 @@ package cn.iocoder.yudao.module.oa.controller.personal;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatApiConfigReq;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatBindDeviceReq;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatCreateAndBindReq;
 import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatSyncDevicesReq;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatSyncDevicesRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatSyncFriendsReq;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatSyncFriendsRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatSyncMessagesReq;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatSyncMessagesRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatDailyStatsRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatUpdateReq;
+import cn.iocoder.yudao.module.oa.api.dto.personal.AochuangFriendRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.personal.AochuangMessageRespVO;
 import cn.iocoder.yudao.module.oa.service.personal.PersonalWechatAccountService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +30,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/admin-api/oa/internal/personal-account")
@@ -70,5 +84,66 @@ public class PersonalWechatAccountController {
     @GetMapping("/api-config/{id}")
     public CommonResult<PersonalWechatRespVO> getApiConfig(@PathVariable Long id) {
         return CommonResult.success(personalWechatAccountService.getApiConfig(id));
+    }
+
+    @PostMapping("/sync-devices")
+    public CommonResult<PersonalWechatSyncDevicesRespVO> syncDevices(
+            @RequestBody(required = false) PersonalWechatSyncDevicesReq req) {
+        return CommonResult.success(personalWechatAccountService.syncDevices(req));
+    }
+
+    @PostMapping("/{id}/bind-device")
+    public CommonResult<Boolean> bindDevice(@PathVariable Long id,
+                                            @Valid @RequestBody PersonalWechatBindDeviceReq req) {
+        personalWechatAccountService.bindDevice(id, req);
+        return CommonResult.success(true);
+    }
+
+    @PostMapping("/create-and-bind")
+    public CommonResult<Long> createAndBind(@Valid @RequestBody PersonalWechatCreateAndBindReq req) {
+        return CommonResult.success(personalWechatAccountService.createAndBindDevice(req));
+    }
+
+    @PostMapping("/{id}/sync-friends")
+    public CommonResult<PersonalWechatSyncFriendsRespVO> syncFriends(
+            @PathVariable Long id,
+            @RequestBody(required = false) PersonalWechatSyncFriendsReq req) {
+        return CommonResult.success(personalWechatAccountService.syncFriends(id, req));
+    }
+
+    @GetMapping("/{id}/friends")
+    public CommonResult<PageResult<AochuangFriendRespVO>> listFriends(
+            @PathVariable Long id,
+            @RequestParam(required = false) String nickname,
+            @RequestParam(defaultValue = "1") Integer pageNo,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        return CommonResult.success(personalWechatAccountService.listFriends(id, nickname, pageNo, pageSize));
+    }
+
+    @PostMapping("/{id}/sync-messages")
+    public CommonResult<PersonalWechatSyncMessagesRespVO> syncMessages(
+            @PathVariable Long id,
+            @RequestBody(required = false) PersonalWechatSyncMessagesReq req) {
+        return CommonResult.success(personalWechatAccountService.syncMessages(id, req));
+    }
+
+    @GetMapping("/{id}/messages")
+    public CommonResult<PageResult<AochuangMessageRespVO>> listMessages(
+            @PathVariable Long id,
+            @RequestParam(required = false) String aochuangFriendId,
+            @RequestParam(defaultValue = "1") Integer pageNo,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        return CommonResult.success(personalWechatAccountService.listMessages(
+                id, aochuangFriendId, pageNo, pageSize));
+    }
+
+    @GetMapping("/{id}/daily-stats")
+    public CommonResult<List<PersonalWechatDailyStatsRespVO>> listDailyStats(
+            @PathVariable Long id,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(
+                    iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(
+                    iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return CommonResult.success(personalWechatAccountService.listDailyStats(id, startDate, endDate));
     }
 }

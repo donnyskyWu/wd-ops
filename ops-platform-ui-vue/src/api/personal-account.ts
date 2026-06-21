@@ -19,6 +19,89 @@ export interface PersonalWechatVO {
   linkedWeworkEmployeeName?: string
   linkedWeworkUserId?: string
   createTime?: string
+  aochuangWechatAccountId?: string
+  aochuangAccountRefId?: number
+  aochuangAccountName?: string
+  aochuangBindStatus?: string
+  aochuangNickname?: string
+  aochuangAvatar?: string
+  aochuangIsAlive?: boolean
+  lastDeviceSyncAt?: string
+  lastFriendSyncAt?: string
+  lastMessageSyncAt?: string
+  collectStatus?: string
+}
+
+export interface AochuangPendingDeviceVO {
+  aochuangWechatAccountId: string
+  wechatId?: string
+  alias?: string
+  nickname?: string
+  avatar?: string
+  isAlive?: boolean
+  aochuangAccountRefId?: number
+  aochuangAccountName?: string
+  suggestedPersonalWechatId?: number
+  fuzzyScore?: number
+}
+
+export interface PersonalWechatSyncDevicesResult {
+  autoBoundCount: number
+  updatedSnapshotCount: number
+  pendingCount: number
+  pendingDevices: AochuangPendingDeviceVO[]
+}
+
+export interface AochuangFriendVO {
+  id: number
+  personalWechatId: number
+  aochuangWechatAccountId: string
+  aochuangFriendId: string
+  wechatId?: string
+  alias?: string
+  nickname?: string
+  avatar?: string
+  remark?: string
+  syncedAt?: string
+}
+
+export interface PersonalWechatSyncFriendsResult {
+  syncedCount: number
+  createdCount: number
+  updatedCount: number
+  completed: boolean
+}
+
+export interface AochuangMessageVO {
+  id: number
+  personalWechatId: number
+  aochuangWechatAccountId: string
+  aochuangMessageId: string
+  aochuangFriendId?: string
+  msgType?: string
+  direction?: string
+  content?: string
+  messageTime?: string
+  syncedAt?: string
+}
+
+export interface PersonalWechatDailyStatsVO {
+  personalWechatId: number
+  statDate: string
+  totalFriends?: number
+  newFriends?: number
+  deletedFriends?: number
+  messagesSent?: number
+  messagesReceived?: number
+  groupCount?: number
+}
+
+export interface PersonalWechatSyncMessagesResult {
+  syncedCount: number
+  createdCount: number
+  updatedCount: number
+  dailyStatsDays: number
+  completed: boolean
 }
 
 export interface WeworkEmployeeVO {
@@ -105,6 +188,72 @@ export function savePersonalWechatApiConfig(data: {
 
 export function getPersonalWechatApiConfig(id: number): Promise<PersonalWechatVO> {
   return request.get({ url: `/oa/internal/personal-account/api-config/${id}` })
+}
+
+export function syncPersonalWechatDevices(data?: { aoCreateAccountId?: number }): Promise<PersonalWechatSyncDevicesResult> {
+  return request.post({ url: '/oa/internal/personal-account/sync-devices', data: data || {} })
+}
+
+export function bindPersonalWechatDevice(
+  id: number,
+  data: {
+    aochuangWechatAccountId: string
+    aochuangAccountRefId: number
+    bindStatus?: string
+    aochuangNickname?: string
+    aochuangAvatar?: string
+    aochuangIsAlive?: boolean
+  }
+): Promise<boolean> {
+  return request.post({ url: `/oa/internal/personal-account/${id}/bind-device`, data })
+}
+
+export function createAndBindPersonalWechat(data: {
+  accountName: string
+  wechatId: string
+  contactPhone?: string
+  aochuangWechatAccountId: string
+  aochuangAccountRefId: number
+  aochuangNickname?: string
+  aochuangAvatar?: string
+  aochuangIsAlive?: boolean
+}): Promise<number> {
+  return request.post({ url: '/oa/internal/personal-account/create-and-bind', data })
+}
+
+export function syncPersonalWechatFriends(
+  id: number,
+  data?: { fullSync?: boolean }
+): Promise<PersonalWechatSyncFriendsResult> {
+  return request.post({ url: `/oa/internal/personal-account/${id}/sync-friends`, data: data || {} })
+}
+
+export function getPersonalWechatFriends(
+  id: number,
+  params?: { nickname?: string; pageNo?: number; pageSize?: number }
+): Promise<PageResult<AochuangFriendVO>> {
+  return request.get({ url: `/oa/internal/personal-account/${id}/friends`, params })
+}
+
+export function syncPersonalWechatMessages(
+  id: number,
+  data?: { fullSync?: boolean }
+): Promise<PersonalWechatSyncMessagesResult> {
+  return request.post({ url: `/oa/internal/personal-account/${id}/sync-messages`, data: data || {} })
+}
+
+export function getPersonalWechatMessages(
+  id: number,
+  params?: { aochuangFriendId?: string; pageNo?: number; pageSize?: number }
+): Promise<PageResult<AochuangMessageVO>> {
+  return request.get({ url: `/oa/internal/personal-account/${id}/messages`, params })
+}
+
+export function getPersonalWechatDailyStats(
+  id: number,
+  params?: { startDate?: string; endDate?: string }
+): Promise<PersonalWechatDailyStatsVO[]> {
+  return request.get({ url: `/oa/internal/personal-account/${id}/daily-stats`, params })
 }
 
 export function getWeworkPage(params: {

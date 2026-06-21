@@ -61,21 +61,21 @@
             <span style="color: #f56c6c">{{ row.failCount || 0 }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="100" align="center">
+        <el-table-column prop="status" label="状态" width="110" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'">
-              {{ row.status === 'ENABLED' ? '启用' : '停用' }}
-            </el-tag>
+            <DictSelect
+              :model-value="row.status"
+              dict-type="dict_collect_status"
+              disabled
+              style="display: inline-block; width: auto"
+            />
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="260" fixed="right" align="center">
+        <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleRun(row)">立即执行</el-button>
             <el-button link type="primary" @click="handleViewLog(row)">日志</el-button>
             <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button link :type="row.status === 'ENABLED' ? 'warning' : 'success'" @click="handleToggle(row)">
-              {{ row.status === 'ENABLED' ? '停用' : '启用' }}
-            </el-button>
             <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -105,10 +105,8 @@ import DictSelect from '@/components/DictSelect.vue'
 import {
   getCollectTaskPage,
   runCollectTask,
-  toggleCollectTaskStatus,
   deleteCollectTask,
 } from '@/api/collect'
-import { mockCollectTasks } from '@/mock/collect'
 
 const router = useRouter()
 
@@ -132,8 +130,8 @@ const loadData = async () => {
     tableData.value = res.list || res.data?.list || []
     pagination.total = res.total ?? res.data?.total ?? tableData.value.length
   } catch {
-    tableData.value = [...mockCollectTasks]
-    pagination.total = tableData.value.length
+    tableData.value = []
+    pagination.total = 0
   } finally {
     loading.value = false
   }
@@ -159,15 +157,6 @@ const handleRun = async (row: any) => {
   } catch {}
 }
 const handleViewLog = (row: any) => router.push({ path: '/collect/log', query: { taskId: row.id } })
-const handleToggle = async (row: any) => {
-  const newStatus = row.status === 'ENABLED' ? 'DISABLED' : 'ENABLED'
-  try {
-    await ElMessageBox.confirm(`确认${newStatus === 'ENABLED' ? '启用' : '停用'}【${row.name}】？`, '提示', { type: 'warning' })
-    await toggleCollectTaskStatus(row.id, newStatus)
-    ElMessage.success('操作成功')
-    loadData()
-  } catch {}
-}
 const handleDelete = async (row: any) => {
   try {
     await ElMessageBox.confirm(`确认删除【${row.name}】？`, '危险操作', { type: 'error' })

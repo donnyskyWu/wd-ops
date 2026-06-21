@@ -121,9 +121,9 @@ export interface PerfRecordDetail {
  */
 export interface CreatePerfRecordRequest {
   /** 被考核人ID */
-  evaluateeId: number
+  evaluateeId?: number
   /** 模板ID */
-  templateId: number
+  templateId?: number
   /** 周期类型 */
   cycleType: CycleType
   /** 考核月份（月度时） */

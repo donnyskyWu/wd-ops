@@ -18,6 +18,7 @@ export function getPerfRecordList(params: PerfRecordQuery) {
 
 export function createPerfRecord(data: {
   targetUserId: number
+  templateId?: number
   periodType: string
   periodStart: string
   periodEnd: string

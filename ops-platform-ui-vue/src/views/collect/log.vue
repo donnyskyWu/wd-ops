@@ -50,6 +50,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="recordCount" label="采集记录" width="100" align="right" />
+        <el-table-column prop="retryCount" label="重试次数" width="90" align="center" />
         <el-table-column prop="errorMessage" label="错误信息" min-width="240">
           <template #default="{ row }">
             <el-button v-if="row.errorMessage" link type="danger" @click="showError(row.errorMessage)">
@@ -88,15 +89,14 @@ import TableSearch from '@/components/TableSearch.vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
-import { getCollectLogPage } from '@/api/collect'
-import { mockCollectLogs, mockCollectTasks } from '@/mock/collect'
+import { getCollectLogPage, getCollectTaskPage } from '@/api/collect'
 
 const route = useRoute()
 const router = useRouter()
 
 const loading = ref(false)
 const tableData = ref<any[]>([])
-const taskOptions = mockCollectTasks
+const taskOptions = ref<any[]>([])
 const errorVisible = ref(false)
 const errorText = ref('')
 
@@ -118,15 +118,34 @@ const formatDuration = (ms: number) => {
   return `${Math.floor(ms / 60000)}m${Math.floor((ms % 60000) / 1000)}s`
 }
 
+const loadTasks = async () => {
+  try {
+    const res = await getCollectTaskPage({ pageNo: 1, pageSize: 200 }) as any
+    taskOptions.value = res.list || res.data?.list || []
+  } catch {
+    taskOptions.value = []
+  }
+}
+
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getCollectLogPage(searchForm as any) as any
+    const params: Record<string, unknown> = {
+      taskId: searchForm.taskId,
+      status: searchForm.status,
+      pageNo: pagination.pageNo,
+      pageSize: pagination.pageSize,
+    }
+    if (searchForm.dateRange?.length === 2) {
+      params.startDate = searchForm.dateRange[0]
+      params.endDate = searchForm.dateRange[1]
+    }
+    const res = await getCollectLogPage(params) as any
     tableData.value = res.list || res.data?.list || []
     pagination.total = res.total ?? res.data?.total ?? tableData.value.length
   } catch {
-    tableData.value = [...mockCollectLogs]
-    pagination.total = tableData.value.length
+    tableData.value = []
+    pagination.total = 0
   } finally {
     loading.value = false
   }
@@ -145,7 +164,10 @@ const showError = (text: string) => {
 }
 const handleViewTask = (row: any) => router.push(`/collect/task/${row.taskId}`)
 
-onMounted(loadData)
+onMounted(() => {
+  loadTasks()
+  loadData()
+})
 </script>
 
 <style scoped>

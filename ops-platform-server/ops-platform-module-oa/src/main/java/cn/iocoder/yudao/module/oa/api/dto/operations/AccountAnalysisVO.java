@@ -14,4 +14,9 @@ public class AccountAnalysisVO {
     private String status;
     private Long followerCount;
     private Integer contentCount;
+    /** 个微日统计（M10-AO-S-06） */
+    private Integer messagesSent;
+    private Integer messagesReceived;
+    private String collectStatus;
+    private String statDate;
 }

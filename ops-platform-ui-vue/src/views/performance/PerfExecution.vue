@@ -3,11 +3,7 @@
 
     <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
       <el-form-item label="被考核人">
-        <el-select v-model="searchForm.evaluateeId" placeholder="请选择" clearable>
-          <el-option label="全部" :value="undefined" />
-          <el-option label="张三" :value="1" />
-          <el-option label="李四" :value="2" />
-        </el-select>
+        <UserSelect v-model="searchForm.evaluateeId" placeholder="请选择被考核人" />
       </el-form-item>
       <el-form-item label="状态">
         <el-select v-model="searchForm.status" placeholder="请选择" clearable>
@@ -73,14 +69,24 @@
     <el-dialog v-model="createDialogVisible" title="创建考核" width="500px">
       <el-form :model="createForm" :rules="createRules" ref="createFormRef" label-width="100px">
         <el-form-item label="被考核人" prop="evaluateeId">
-          <el-select v-model="createForm.evaluateeId" placeholder="请选择成员" style="width: 100%">
-            <el-option label="张三 - 公众号运营" :value="1" />
-            <el-option label="李四 - 抖音运营" :value="2" />
-          </el-select>
+          <UserSelect v-model="createForm.evaluateeId" placeholder="请选择被考核人" />
         </el-form-item>
-        <el-form-item label="考核模板">
-          <el-input v-model="createForm.templateName" placeholder="自动关联" disabled />
-          <div class="form-tip">自动关联被考核人岗位的生效模板</div>
+        <el-form-item label="考核模板" prop="templateId">
+          <el-select
+            v-model="createForm.templateId"
+            placeholder="请选择考核模板"
+            filterable
+            style="width: 100%"
+            :loading="templateLoading"
+          >
+            <el-option
+              v-for="item in templateOptions"
+              :key="item.id"
+              :label="formatTemplateLabel(item)"
+              :value="item.id"
+            />
+          </el-select>
+          <div class="form-tip">仅展示当前租户已生效的考核模板</div>
         </el-form-item>
         <el-form-item label="周期类型" prop="cycleType">
           <el-radio-group v-model="createForm.cycleType">
@@ -171,13 +177,16 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
+import UserSelect from '@/components/selectors/UserSelect.vue'
 import {
   getPerfRecordList,
   createPerfRecord,
   calculatePerfRecord,
   confirmPerfRecord,
 } from '@/api/perfRecord'
+import { getTemplateList } from '@/api/perfTemplate'
 import type { PerfRecordListItem, PerfRecordDetail, CreatePerfRecordRequest } from '@/types/perfExecution'
+import type { PerfTemplateListItem } from '@/types/perfTemplate'
 import { PerfRecordStatus, CycleType } from '@/types/perfExecution'
 
 const loading = ref(false)
@@ -255,18 +264,22 @@ const getStatusLabel = (status: string) => {
 
 // 创建考核
 const createDialogVisible = ref(false)
-const createForm = reactive<CreatePerfRecordRequest & { dateRange?: string[]; templateName?: string }>({
-  evaluateeId: 0,
-  templateId: 0,
+const templateLoading = ref(false)
+const templateOptions = ref<PerfTemplateListItem[]>([])
+const createForm = reactive<CreatePerfRecordRequest & { dateRange?: string[] }>({
+  evaluateeId: undefined,
+  templateId: undefined,
   cycleType: CycleType.MONTH,
   month: undefined,
   dateRange: undefined,
-  templateName: '公众号运营考核模板（自动关联）',
 })
 
 const createRules = reactive<FormRules>({
   evaluateeId: [
     { required: true, message: '请选择被考核人', trigger: 'change', type: 'number', min: 1 }
+  ],
+  templateId: [
+    { required: true, message: '请选择考核模板', trigger: 'change', type: 'number', min: 1 }
   ],
   cycleType: [
     { required: true, message: '请选择周期类型', trigger: 'change' }
@@ -279,8 +292,55 @@ const createRules = reactive<FormRules>({
   ]
 })
 
-const handleCreate = () => {
+const resetCreateForm = () => {
+  createForm.evaluateeId = undefined
+  createForm.templateId = undefined
+  createForm.cycleType = CycleType.MONTH
+  createForm.month = undefined
+  createForm.dateRange = undefined
+  createFormRef.value?.clearValidate()
+}
+
+const formatTemplateLabel = (item: PerfTemplateListItem) => {
+  const position = item.positionLabel || item.positions?.join('、') || ''
+  return position ? `${item.templateName}（${position}）` : item.templateName
+}
+
+const loadTemplateOptions = async () => {
+  templateLoading.value = true
+  try {
+    const res: any = await getTemplateList({
+      pageNum: 1,
+      pageSize: 200,
+      isActive: 1,
+    } as any)
+    templateOptions.value = (res.list || []).map((row: any) => ({
+      id: row.id,
+      positions: row.positions || (row.position ? [row.position] : []),
+      positionLabel: row.positionLabel || row.positionLabels?.join('、') || row.position || '',
+      positionLabels: row.positionLabels || [],
+      templateName: row.templateName,
+      itemCount: row.itemCount ?? 0,
+      isActive: row.isActive === 1 || row.isActive === true,
+      createdAt: row.createTime || row.createdAt || '',
+    })) as PerfTemplateListItem[]
+  } catch {
+    templateOptions.value = []
+  } finally {
+    templateLoading.value = false
+  }
+}
+
+const handleCreate = async () => {
+  resetCreateForm()
   createDialogVisible.value = true
+  await loadTemplateOptions()
+}
+
+const CYCLE_TYPE_TO_PERIOD: Record<CycleType, string> = {
+  [CycleType.MONTH]: 'MONTH',
+  [CycleType.WEEK]: 'WEEK',
+  [CycleType.CUSTOM]: 'CUSTOM',
 }
 
 const resolvePeriodRange = (): [string, string] | null => {
@@ -309,8 +369,9 @@ const handleConfirmCreate = async () => {
       return
     }
     await createPerfRecord({
-      targetUserId: createForm.evaluateeId,
-      periodType: createForm.cycleType,
+      targetUserId: createForm.evaluateeId!,
+      templateId: Number(createForm.templateId),
+      periodType: CYCLE_TYPE_TO_PERIOD[createForm.cycleType],
       periodStart: periodRange[0],
       periodEnd: periodRange[1],
     })

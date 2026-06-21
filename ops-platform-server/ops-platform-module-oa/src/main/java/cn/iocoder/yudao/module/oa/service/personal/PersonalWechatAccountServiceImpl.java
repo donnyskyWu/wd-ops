@@ -6,14 +6,30 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatApiConfigReq;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatBindDeviceReq;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatCreateAndBindReq;
 import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatSyncDevicesReq;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatSyncDevicesRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatSyncFriendsReq;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatSyncFriendsRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatSyncMessagesReq;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatSyncMessagesRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatDailyStatsRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.personal.PersonalWechatUpdateReq;
+import cn.iocoder.yudao.module.oa.api.dto.personal.AochuangFriendRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.personal.AochuangMessageRespVO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.config.AoCreateAccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.personal.PersonalWechatAccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.phone.PhoneDO;
+import cn.iocoder.yudao.module.oa.dal.mysql.config.AoCreateAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.PersonalWechatAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.phone.PhoneMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.collect.aochuang.DeviceSyncService;
+import cn.iocoder.yudao.module.oa.service.collect.aochuang.FriendSyncService;
+import cn.iocoder.yudao.module.oa.service.collect.aochuang.MessageSyncService;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -21,6 +37,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -35,8 +52,14 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
 
     private final PersonalWechatAccountMapper personalWechatAccountMapper;
     private final PhoneMapper phoneMapper;
+    private final AoCreateAccountMapper aoCreateAccountMapper;
     private final AesUtil aesUtil;
     private final PersonalWechatWeworkLinkService linkService;
+    private final DeviceSyncService deviceSyncService;
+    private final FriendSyncService friendSyncService;
+    private final MessageSyncService messageSyncService;
+    private final PersonalWechatDailyStatsService dailyStatsService;
+    private final PersonalWechatCollectStatusService collectStatusService;
 
     @Override
     public PageResult<PersonalWechatRespVO> list(String accountName, String wechatId, String status,
@@ -76,6 +99,8 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
         entity.setContactPhone(normalizeContactPhone(req.getContactPhone()));
         entity.setPhoneId(req.getPhoneId());
         entity.setStatus(StrUtil.blankToDefault(req.getStatus(), "ENABLED"));
+        entity.setAochuangBindStatus("UNBOUND");
+        entity.setCollectStatus(PersonalWechatCollectStatusService.PENDING);
         entity.setCreator(TenantContextHolder.getUsername());
         entity.setUpdater(TenantContextHolder.getUsername());
         entity.setCreateTime(LocalDateTime.now());
@@ -162,6 +187,90 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
         return vo;
     }
 
+    @Override
+    public PersonalWechatSyncDevicesRespVO syncDevices(PersonalWechatSyncDevicesReq req) {
+        Long aoCreateAccountId = req != null ? req.getAoCreateAccountId() : null;
+        return deviceSyncService.syncDevices(aoCreateAccountId);
+    }
+
+    @Override
+    public void bindDevice(Long id, PersonalWechatBindDeviceReq req) {
+        deviceSyncService.bindDevice(id, req);
+    }
+
+    @Override
+    public Long createAndBindDevice(PersonalWechatCreateAndBindReq req) {
+        return deviceSyncService.createAndBindDevice(req);
+    }
+
+    @Override
+    public PersonalWechatSyncFriendsRespVO syncFriends(Long id, PersonalWechatSyncFriendsReq req) {
+        collectStatusService.markRunning(id);
+        try {
+            PersonalWechatSyncFriendsRespVO result = friendSyncService.syncFriends(id, req);
+            collectStatusService.markResult(id, Boolean.TRUE.equals(result.getCompleted()));
+            return result;
+        } catch (ServiceException ex) {
+            collectStatusService.markFailed(id);
+            throw ex;
+        }
+    }
+
+    @Override
+    public PageResult<AochuangFriendRespVO> listFriends(Long id, String nickname,
+                                                        Integer pageNo, Integer pageSize) {
+        return friendSyncService.listFriends(id, nickname, pageNo, pageSize);
+    }
+
+    @Override
+    public PersonalWechatSyncMessagesRespVO syncMessages(Long id, PersonalWechatSyncMessagesReq req) {
+        collectStatusService.markRunning(id);
+        try {
+            PersonalWechatSyncMessagesRespVO result = messageSyncService.syncMessages(id, req);
+            collectStatusService.markResult(id, Boolean.TRUE.equals(result.getCompleted()));
+            return result;
+        } catch (ServiceException ex) {
+            collectStatusService.markFailed(id);
+            throw ex;
+        }
+    }
+
+    @Override
+    public PageResult<AochuangMessageRespVO> listMessages(Long id, String aochuangFriendId,
+                                                          Integer pageNo, Integer pageSize) {
+        return messageSyncService.listMessages(id, aochuangFriendId, pageNo, pageSize);
+    }
+
+    @Override
+    public List<PersonalWechatDailyStatsRespVO> listDailyStats(Long id, LocalDate startDate, LocalDate endDate) {
+        return dailyStatsService.listDailyStats(id, startDate, endDate);
+    }
+
+    private void fillAochuangFields(PersonalWechatRespVO vo, PersonalWechatAccountDO entity) {
+        vo.setAochuangWechatAccountId(entity.getAochuangWechatAccountId());
+        vo.setAochuangAccountRefId(entity.getAochuangAccountRefId());
+        vo.setAochuangBindStatus(entity.getAochuangBindStatus());
+        vo.setAochuangNickname(entity.getAochuangNickname());
+        vo.setAochuangAvatar(entity.getAochuangAvatar());
+        vo.setAochuangIsAlive(entity.getAochuangIsAlive());
+        vo.setCollectStatus(StrUtil.blankToDefault(entity.getCollectStatus(), PersonalWechatCollectStatusService.PENDING));
+        if (entity.getLastDeviceSyncAt() != null) {
+            vo.setLastDeviceSyncAt(entity.getLastDeviceSyncAt().format(DT_FMT));
+        }
+        if (entity.getLastFriendSyncAt() != null) {
+            vo.setLastFriendSyncAt(entity.getLastFriendSyncAt().format(DT_FMT));
+        }
+        if (entity.getLastMessageSyncAt() != null) {
+            vo.setLastMessageSyncAt(entity.getLastMessageSyncAt().format(DT_FMT));
+        }
+        if (entity.getAochuangAccountRefId() != null) {
+            AoCreateAccountDO aoAccount = aoCreateAccountMapper.selectById(entity.getAochuangAccountRefId());
+            if (aoAccount != null && requireTenantId().equals(aoAccount.getTenantId())) {
+                vo.setAochuangAccountName(aoAccount.getAccountName());
+            }
+        }
+    }
+
     private PersonalWechatRespVO toResp(PersonalWechatAccountDO entity, boolean maskCredentials) {
         PersonalWechatRespVO vo = new PersonalWechatRespVO();
         vo.setId(entity.getId());
@@ -180,6 +289,7 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
             vo.setAppSecret(maskIfPresent(entity.getAppSecretEncrypted()));
             vo.setToken(maskIfPresent(entity.getTokenEncrypted()));
         }
+        fillAochuangFields(vo, entity);
         linkService.enrichPersonalWechat(vo, entity);
         return vo;
     }

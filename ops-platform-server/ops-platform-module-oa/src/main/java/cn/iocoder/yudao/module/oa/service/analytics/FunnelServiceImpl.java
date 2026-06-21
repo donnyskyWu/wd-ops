@@ -12,11 +12,15 @@ import cn.iocoder.yudao.module.oa.api.dto.analytics.MetricPreviewVO;
 import cn.iocoder.yudao.module.oa.api.dto.perf.ExportJobVO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.analytics.FunnelDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.analytics.FunnelStepDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.bridging.PrivateDomainConversionBridgeDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.collect.AochuangFriendDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.operations.ContentDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.operations.FollowerDailyDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.MetricDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.analytics.FunnelMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.analytics.FunnelStepMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.bridging.PrivateDomainConversionBridgeMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.collect.AochuangFriendMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.MetricMapper;
@@ -41,12 +45,19 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FunnelServiceImpl implements FunnelService {
 
+    private static final String REVIEW_APPROVED = "APPROVED";
+    private static final String IDENTITY_AOCHUANG_FRIEND = "AOCHUANG_FRIEND";
+    private static final String IDENTITY_PHONE = "PHONE";
+    private static final String IDENTITY_MP_FOLLOWER = "MP_FOLLOWER";
+
     private final FunnelMapper funnelMapper;
     private final FunnelStepMapper funnelStepMapper;
     private final ContentMapper contentMapper;
     private final FollowerDailyMapper followerDailyMapper;
     private final MetricMapper metricMapper;
     private final AnalyticsMetricService analyticsMetricService;
+    private final AochuangFriendMapper aochuangFriendMapper;
+    private final PrivateDomainConversionBridgeMapper bridgeMapper;
 
     @Override
     public PageResult<FunnelVO> list(Integer pageNum, Integer pageSize) {
@@ -161,8 +172,62 @@ public class FunnelServiceImpl implements FunnelService {
                             .orderByDesc(FollowerDailyDO::getFollowerCount)
                             .last("LIMIT 1"))
                     .stream().mapToLong(FollowerDailyDO::getFollowerCount).findFirst().orElse(0L);
+            case "AOCHUANG_FRIEND" -> countAochuangFriends(tenantId, startDate, endDate);
+            case "PD_BRIDGE_APPROVED" -> countApprovedBridges(tenantId, IDENTITY_AOCHUANG_FRIEND, null, startDate, endDate);
+            case "PD_BRIDGE_PHONE" -> countApprovedBridges(tenantId, IDENTITY_AOCHUANG_FRIEND, IDENTITY_PHONE, startDate, endDate);
+            case "PD_BRIDGE_MP_FOLLOWER" -> countApprovedBridges(tenantId, IDENTITY_AOCHUANG_FRIEND, IDENTITY_MP_FOLLOWER, startDate, endDate);
             default -> contents.size();
         };
+    }
+
+    private long countAochuangFriends(Long tenantId, LocalDate startDate, LocalDate endDate) {
+        LambdaQueryWrapper<AochuangFriendDO> wrapper = new LambdaQueryWrapper<AochuangFriendDO>()
+                .eq(AochuangFriendDO::getTenantId, tenantId);
+        applyFriendDateRange(wrapper, startDate, endDate);
+        return aochuangFriendMapper.selectCount(wrapper);
+    }
+
+    private long countApprovedBridges(Long tenantId, String sourceType, String targetType,
+                                      LocalDate startDate, LocalDate endDate) {
+        LambdaQueryWrapper<PrivateDomainConversionBridgeDO> wrapper = new LambdaQueryWrapper<PrivateDomainConversionBridgeDO>()
+                .eq(PrivateDomainConversionBridgeDO::getTenantId, tenantId)
+                .eq(PrivateDomainConversionBridgeDO::getReviewStatus, REVIEW_APPROVED)
+                .eq(PrivateDomainConversionBridgeDO::getSourceType, sourceType);
+        if (targetType != null) {
+            wrapper.eq(PrivateDomainConversionBridgeDO::getTargetType, targetType);
+        }
+        applyBridgeDateRange(wrapper, startDate, endDate);
+        return bridgeMapper.selectCount(wrapper);
+    }
+
+    private static void applyFriendDateRange(LambdaQueryWrapper<AochuangFriendDO> wrapper,
+                                             LocalDate startDate, LocalDate endDate) {
+        if (startDate != null) {
+            LocalDateTime start = startDate.atStartOfDay();
+            wrapper.and(w -> w.ge(AochuangFriendDO::getSyncedAt, start)
+                    .or(n -> n.isNull(AochuangFriendDO::getSyncedAt).ge(AochuangFriendDO::getCreateTime, start)));
+        }
+        if (endDate != null) {
+            LocalDateTime end = endDate.plusDays(1).atStartOfDay();
+            wrapper.and(w -> w.lt(AochuangFriendDO::getSyncedAt, end)
+                    .or(n -> n.isNull(AochuangFriendDO::getSyncedAt).lt(AochuangFriendDO::getCreateTime, end)));
+        }
+    }
+
+    private static void applyBridgeDateRange(LambdaQueryWrapper<PrivateDomainConversionBridgeDO> wrapper,
+                                             LocalDate startDate, LocalDate endDate) {
+        if (startDate != null) {
+            LocalDateTime start = startDate.atStartOfDay();
+            wrapper.and(w -> w.ge(PrivateDomainConversionBridgeDO::getLinkedAt, start)
+                    .or(n -> n.isNull(PrivateDomainConversionBridgeDO::getLinkedAt)
+                            .ge(PrivateDomainConversionBridgeDO::getCreateTime, start)));
+        }
+        if (endDate != null) {
+            LocalDateTime end = endDate.plusDays(1).atStartOfDay();
+            wrapper.and(w -> w.lt(PrivateDomainConversionBridgeDO::getLinkedAt, end)
+                    .or(n -> n.isNull(PrivateDomainConversionBridgeDO::getLinkedAt)
+                            .lt(PrivateDomainConversionBridgeDO::getCreateTime, end)));
+        }
     }
 
     private long executeMetricScalar(String formula) {

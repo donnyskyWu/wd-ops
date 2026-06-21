@@ -92,3 +92,31 @@ export function getQualityCheckPage(params: any): Promise<{ list: QualityCheckVO
 export function getQualityLogPage(params: any): Promise<{ list: QualityLogVO[]; total: number }> {
   return request.get({ url: '/oa/collect/quality/log/page', params })
 }
+
+// ==================== 私域桥接 (M10-AO-S-07) ====================
+export interface PrivateDomainBridgeVO {
+  id: number
+  sourceType: string
+  sourceId: number
+  sourceLabel?: string
+  targetType: string
+  targetId: number
+  targetLabel?: string
+  matchMethod: string
+  confidence?: number
+  matchEvidenceJson?: string
+  reviewStatus: string
+  linkedBy?: string
+  linkedAt?: string
+  createTime?: string
+}
+
+export function getPrivateDomainBridgePage(params: any): Promise<{ list: PrivateDomainBridgeVO[]; total: number }> {
+  return request.get({ url: '/oa/collect/private-domain-bridge/page', params })
+}
+export function confirmPrivateDomainBridge(id: number): Promise<boolean> {
+  return request.post({ url: `/oa/collect/private-domain-bridge/${id}/confirm` })
+}
+export function rejectPrivateDomainBridge(id: number, data?: { reason?: string }): Promise<boolean> {
+  return request.post({ url: `/oa/collect/private-domain-bridge/${id}/reject`, data })
+}

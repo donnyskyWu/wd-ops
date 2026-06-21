@@ -22,4 +22,16 @@ public class PersonalWechatAccountDO extends TenantBaseDO {
     private String appSecretEncrypted;
     private String tokenEncrypted;
     private String status;
+    /** 奥创设备 ID（同步写入，默认只读） */
+    private String aochuangWechatAccountId;
+    /** FK → oa_aocreate_account.id */
+    private Long aochuangAccountRefId;
+    private String aochuangBindStatus;
+    private String aochuangNickname;
+    private String aochuangAvatar;
+    private Boolean aochuangIsAlive;
+    private java.time.LocalDateTime lastDeviceSyncAt;
+    private java.time.LocalDateTime lastFriendSyncAt;
+    private java.time.LocalDateTime lastMessageSyncAt;
+    private String collectStatus;
 }

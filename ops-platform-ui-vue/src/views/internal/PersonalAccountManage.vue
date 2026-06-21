@@ -28,6 +28,9 @@
         <el-icon><Plus /></el-icon>
         新增账号
       </el-button>
+      <el-button type="warning" :loading="syncLoading" @click="handleSyncDevices">
+        同步个微设备
+      </el-button>
       <span class="total-info">共 {{ pagination.total }} 条</span>
     </div>
 
@@ -79,6 +82,22 @@
       <el-table :data="personalList" v-loading="loading" border stripe>
       <el-table-column prop="accountName" label="微信名" min-width="140" show-overflow-tooltip />
       <el-table-column prop="wechatId" label="微信号" width="160" />
+      <el-table-column label="奥创设备" min-width="140" show-overflow-tooltip>
+        <template #default="{ row }">
+          {{ row.aochuangWechatAccountId || '--' }}
+        </template>
+      </el-table-column>
+      <el-table-column label="绑定状态" width="100" align="center">
+        <template #default="{ row }">
+          <DictLabel v-if="row.aochuangBindStatus" dict-type="dict_aochuang_bind_status" :value="row.aochuangBindStatus" />
+          <span v-else>--</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="采集状态" width="100" align="center">
+        <template #default="{ row }">
+          <DictLabel dict-type="dict_collect_status" :value="row.collectStatus || 'PENDING'" />
+        </template>
+      </el-table-column>
       <el-table-column prop="contactPhone" label="联系电话" width="130" />
       <el-table-column label="关联企微" min-width="140" show-overflow-tooltip>
         <template #default="{ row }">
@@ -91,9 +110,43 @@
         </template>
       </el-table-column>
       <el-table-column prop="createTime" label="创建时间" width="170" />
-      <el-table-column label="操作" width="220" fixed="right" align="center">
+      <el-table-column label="操作" width="380" fixed="right" align="center">
         <template #default="{ row }">
           <el-button link type="primary" @click="handleViewPersonal(row)">详情</el-button>
+          <el-button
+            v-if="row.aochuangWechatAccountId"
+            link
+            type="warning"
+            :loading="friendSyncLoadingId === row.id"
+            @click="handleSyncFriends(row)"
+          >
+            同步好友
+          </el-button>
+          <el-button
+            v-if="row.aochuangWechatAccountId"
+            link
+            type="primary"
+            @click="handleViewFriends(row)"
+          >
+            好友
+          </el-button>
+          <el-button
+            v-if="row.aochuangWechatAccountId"
+            link
+            type="warning"
+            :loading="messageSyncLoadingId === row.id"
+            @click="handleSyncMessages(row)"
+          >
+            同步消息
+          </el-button>
+          <el-button
+            v-if="row.aochuangWechatAccountId"
+            link
+            type="primary"
+            @click="handleViewMessages(row)"
+          >
+            消息
+          </el-button>
           <el-button link type="primary" @click="handleEditPersonal(row)">编辑</el-button>
           <el-button link type="danger" @click="handleDeletePersonal(row)">删除</el-button>
         </template>
@@ -238,8 +291,144 @@
         <el-descriptions-item label="状态">
           <DictLabel dict-type="dict_status_enabled" :value="detailData.status" />
         </el-descriptions-item>
+        <el-descriptions-item label="奥创设备 ID">{{ detailData.aochuangWechatAccountId || '--' }}</el-descriptions-item>
+        <el-descriptions-item label="绑定状态">
+          <DictLabel v-if="detailData.aochuangBindStatus" dict-type="dict_aochuang_bind_status" :value="detailData.aochuangBindStatus" />
+          <span v-else>--</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="采集状态">
+          <DictLabel dict-type="dict_collect_status" :value="detailData.collectStatus || 'PENDING'" />
+        </el-descriptions-item>
+        <el-descriptions-item label="奥创昵称">{{ detailData.aochuangNickname || '--' }}</el-descriptions-item>
+        <el-descriptions-item label="最近设备同步">{{ detailData.lastDeviceSyncAt || '--' }}</el-descriptions-item>
+        <el-descriptions-item label="最近好友同步">{{ detailData.lastFriendSyncAt || '--' }}</el-descriptions-item>
+        <el-descriptions-item label="最近消息同步">{{ detailData.lastMessageSyncAt || '--' }}</el-descriptions-item>
       </el-descriptions>
     </el-drawer>
+
+    <!-- 好友列表 -->
+    <el-dialog v-model="friendsDialogVisible" :title="friendsDialogTitle" width="720px" destroy-on-close>
+      <el-table :data="friendList" v-loading="friendsLoading" border stripe max-height="420">
+        <el-table-column prop="nickname" label="昵称" min-width="120" />
+        <el-table-column prop="wechatId" label="微信号" width="140" />
+        <el-table-column prop="remark" label="备注" min-width="100" show-overflow-tooltip />
+        <el-table-column prop="syncedAt" label="同步时间" width="170" />
+      </el-table>
+      <div v-if="friendsPagination.total > friendsPagination.pageSize" class="friends-pagination">
+        <el-pagination
+          v-model:current-page="friendsPagination.pageNo"
+          v-model:page-size="friendsPagination.pageSize"
+          :total="friendsPagination.total"
+          layout="total, prev, pager, next"
+          @current-change="loadFriends"
+        />
+      </div>
+      <template #footer>
+        <el-button @click="friendsDialogVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="friendSyncLoadingId === friendsPersonalId" @click="syncFriendsInDialog">
+          同步好友
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 消息列表 -->
+    <el-dialog v-model="messagesDialogVisible" :title="messagesDialogTitle" width="820px" destroy-on-close>
+      <el-table :data="messageList" v-loading="messagesLoading" border stripe max-height="420">
+        <el-table-column prop="messageTime" label="时间" width="170" />
+        <el-table-column prop="direction" label="方向" width="80" align="center">
+          <template #default="{ row }">
+            <DictLabel v-if="row.direction" dict-type="dict_aochuang_message_direction" :value="row.direction" />
+            <span v-else>--</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="msgType" label="类型" width="80" align="center">
+          <template #default="{ row }">
+            <DictLabel v-if="row.msgType" dict-type="dict_aochuang_message_type" :value="row.msgType" />
+            <span v-else>--</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="aochuangFriendId" label="好友 ID" width="140" show-overflow-tooltip />
+        <el-table-column prop="content" label="内容" min-width="200" show-overflow-tooltip />
+      </el-table>
+      <div v-if="messagesPagination.total > messagesPagination.pageSize" class="friends-pagination">
+        <el-pagination
+          v-model:current-page="messagesPagination.pageNo"
+          v-model:page-size="messagesPagination.pageSize"
+          :total="messagesPagination.total"
+          layout="total, prev, pager, next"
+          @current-change="loadMessages"
+        />
+      </div>
+      <template #footer>
+        <el-button @click="messagesDialogVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="messageSyncLoadingId === messagesPersonalId" @click="syncMessagesInDialog">
+          同步消息
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 设备同步结果 -->
+    <el-dialog v-model="syncDialogVisible" title="同步个微设备" width="880px" destroy-on-close>
+      <el-alert
+        v-if="syncResult"
+        :title="`自动绑定 ${syncResult.autoBoundCount} 个，更新快照 ${syncResult.updatedSnapshotCount} 个，待绑定 ${syncResult.pendingCount} 个`"
+        type="info"
+        :closable="false"
+        show-icon
+        class="sync-summary"
+      />
+      <el-table v-if="syncResult?.pendingDevices?.length" :data="syncResult.pendingDevices" border stripe max-height="360">
+        <el-table-column prop="nickname" label="奥创昵称" min-width="120" />
+        <el-table-column prop="wechatId" label="微信号" width="140" />
+        <el-table-column prop="aochuangWechatAccountId" label="设备 ID" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="aochuangAccountName" label="奥创账号" width="120" />
+        <el-table-column label="建议匹配" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="row.fuzzyScore && row.fuzzyScore >= 0.6" type="warning">
+              {{ (row.fuzzyScore * 100).toFixed(0) }}%
+            </el-tag>
+            <span v-else>--</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="200" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button
+              v-if="row.suggestedPersonalWechatId"
+              link
+              type="primary"
+              @click="handleBindPendingToExisting(row)"
+            >
+              绑定建议档案
+            </el-button>
+            <el-button link type="success" @click="openCreateBindDialog(row)">新建并绑定</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-else description="暂无待绑定设备" :image-size="80" />
+      <template #footer>
+        <el-button @click="syncDialogVisible = false">关闭</el-button>
+        <el-button type="primary" @click="handleSyncDevices">重新同步</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 新建并绑定 -->
+    <el-dialog v-model="createBindDialogVisible" title="新建个微并绑定设备" width="480px" destroy-on-close>
+      <el-form :model="createBindForm" ref="createBindFormRef" :rules="createBindRules" label-width="100px">
+        <el-form-item label="微信名" prop="accountName">
+          <el-input v-model="createBindForm.accountName" maxlength="100" />
+        </el-form-item>
+        <el-form-item label="微信号" prop="wechatId">
+          <el-input v-model="createBindForm.wechatId" maxlength="64" />
+        </el-form-item>
+        <el-form-item label="设备 ID">
+          <el-input v-model="createBindForm.aochuangWechatAccountId" disabled />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="createBindDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="createBindLoading" @click="submitCreateBind">确认绑定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -259,11 +448,22 @@ import {
   createPersonalWechat,
   updatePersonalWechat,
   deletePersonalWechat,
+  syncPersonalWechatDevices,
+  bindPersonalWechatDevice,
+  createAndBindPersonalWechat,
+  syncPersonalWechatFriends,
+  getPersonalWechatFriends,
+  syncPersonalWechatMessages,
+  getPersonalWechatMessages,
   getWeworkEmployeePage,
   createWeworkEmployee,
   updateWeworkEmployee,
   deleteWeworkEmployee,
   type PersonalWechatVO,
+  type PersonalWechatSyncDevicesResult,
+  type AochuangPendingDeviceVO,
+  type AochuangFriendVO,
+  type AochuangMessageVO,
   type WeworkVO,
   type WeworkEmployeeVO,
 } from '@/api/personal-account'
@@ -272,6 +472,10 @@ type PlatformType = 'WEWORK' | 'PERSONAL_WX'
 
 const activePlatform = ref<PlatformType>('WEWORK')
 const loading = ref(false)
+const syncLoading = ref(false)
+const friendSyncLoadingId = ref<number | null>(null)
+const messageSyncLoadingId = ref<number | null>(null)
+const createBindLoading = ref(false)
 const exportLoading = ref(false)
 const employeeLoading = ref(false)
 const personalList = ref<PersonalWechatVO[]>([])
@@ -339,6 +543,33 @@ const employeeRules = {
 
 const detailVisible = ref(false)
 const detailData = ref<PersonalWechatVO | null>(null)
+const friendsDialogVisible = ref(false)
+const friendsDialogTitle = ref('好友列表')
+const friendsPersonalId = ref<number | null>(null)
+const friendList = ref<AochuangFriendVO[]>([])
+const friendsLoading = ref(false)
+const friendsPagination = reactive({ pageNo: 1, pageSize: 10, total: 0 })
+const messagesDialogVisible = ref(false)
+const messagesDialogTitle = ref('消息列表')
+const messagesPersonalId = ref<number | null>(null)
+const messageList = ref<AochuangMessageVO[]>([])
+const messagesLoading = ref(false)
+const messagesPagination = reactive({ pageNo: 1, pageSize: 10, total: 0 })
+const syncDialogVisible = ref(false)
+const syncResult = ref<PersonalWechatSyncDevicesResult | null>(null)
+const createBindDialogVisible = ref(false)
+const createBindFormRef = ref<any>()
+const createBindForm = reactive({
+  accountName: '',
+  wechatId: '',
+  aochuangWechatAccountId: '',
+  aochuangAccountRefId: undefined as number | undefined,
+  aochuangNickname: '',
+})
+const createBindRules = {
+  accountName: [{ required: true, message: '请输入微信名', trigger: 'blur' }],
+  wechatId: [{ required: true, message: '请输入微信号', trigger: 'blur' }],
+}
 const weworkEmployeeOptions = ref<WeworkEmployeeVO[]>([])
 const weworkEmployeeOptionsLoading = ref(false)
 const personalWechatOptions = ref<PersonalWechatVO[]>([])
@@ -676,6 +907,165 @@ const handleViewPersonal = async (row: PersonalWechatVO) => {
   detailVisible.value = true
 }
 
+const handleSyncDevices = async () => {
+  syncLoading.value = true
+  try {
+    syncResult.value = await syncPersonalWechatDevices()
+    syncDialogVisible.value = true
+    ElMessage.success('设备同步完成')
+    loadData()
+  } catch {
+    ElMessage.error('设备同步失败')
+  } finally {
+    syncLoading.value = false
+  }
+}
+
+const handleSyncFriends = async (row: PersonalWechatVO) => {
+  friendSyncLoadingId.value = row.id
+  try {
+    const result = await syncPersonalWechatFriends(row.id, { fullSync: true })
+    ElMessage.success(`好友同步完成：新增 ${result.createdCount}，更新 ${result.updatedCount}`)
+    loadData()
+  } catch {
+    ElMessage.error('好友同步失败')
+  } finally {
+    friendSyncLoadingId.value = null
+  }
+}
+
+const loadFriends = async () => {
+  if (!friendsPersonalId.value) return
+  friendsLoading.value = true
+  try {
+    const res = await getPersonalWechatFriends(friendsPersonalId.value, {
+      pageNo: friendsPagination.pageNo,
+      pageSize: friendsPagination.pageSize,
+    })
+    friendList.value = res.list
+    friendsPagination.total = res.total
+  } finally {
+    friendsLoading.value = false
+  }
+}
+
+const handleViewFriends = async (row: PersonalWechatVO) => {
+  friendsPersonalId.value = row.id
+  friendsDialogTitle.value = `好友列表 · ${row.accountName}`
+  friendsPagination.pageNo = 1
+  friendsDialogVisible.value = true
+  await loadFriends()
+}
+
+const syncFriendsInDialog = async () => {
+  if (!friendsPersonalId.value) return
+  friendSyncLoadingId.value = friendsPersonalId.value
+  try {
+    const result = await syncPersonalWechatFriends(friendsPersonalId.value, { fullSync: true })
+    ElMessage.success(`好友同步完成：新增 ${result.createdCount}，更新 ${result.updatedCount}`)
+    await loadFriends()
+    loadData()
+  } catch {
+    ElMessage.error('好友同步失败')
+  } finally {
+    friendSyncLoadingId.value = null
+  }
+}
+
+const handleSyncMessages = async (row: PersonalWechatVO) => {
+  messageSyncLoadingId.value = row.id
+  try {
+    const result = await syncPersonalWechatMessages(row.id, { fullSync: true })
+    ElMessage.success(`消息同步完成：新增 ${result.createdCount}，更新 ${result.updatedCount}，日统计 ${result.dailyStatsDays} 天`)
+    loadData()
+  } catch {
+    ElMessage.error('消息同步失败')
+  } finally {
+    messageSyncLoadingId.value = null
+  }
+}
+
+const loadMessages = async () => {
+  if (!messagesPersonalId.value) return
+  messagesLoading.value = true
+  try {
+    const res = await getPersonalWechatMessages(messagesPersonalId.value, {
+      pageNo: messagesPagination.pageNo,
+      pageSize: messagesPagination.pageSize,
+    })
+    messageList.value = res.list
+    messagesPagination.total = res.total
+  } finally {
+    messagesLoading.value = false
+  }
+}
+
+const handleViewMessages = async (row: PersonalWechatVO) => {
+  messagesPersonalId.value = row.id
+  messagesDialogTitle.value = `消息列表 · ${row.accountName}`
+  messagesPagination.pageNo = 1
+  messagesDialogVisible.value = true
+  await loadMessages()
+}
+
+const syncMessagesInDialog = async () => {
+  if (!messagesPersonalId.value) return
+  messageSyncLoadingId.value = messagesPersonalId.value
+  try {
+    const result = await syncPersonalWechatMessages(messagesPersonalId.value, { fullSync: true })
+    ElMessage.success(`消息同步完成：新增 ${result.createdCount}，更新 ${result.updatedCount}，日统计 ${result.dailyStatsDays} 天`)
+    await loadMessages()
+    loadData()
+  } catch {
+    ElMessage.error('消息同步失败')
+  } finally {
+    messageSyncLoadingId.value = null
+  }
+}
+
+const handleBindPendingToExisting = async (row: AochuangPendingDeviceVO) => {
+  if (!row.suggestedPersonalWechatId || !row.aochuangAccountRefId) return
+  await bindPersonalWechatDevice(row.suggestedPersonalWechatId, {
+    aochuangWechatAccountId: row.aochuangWechatAccountId,
+    aochuangAccountRefId: row.aochuangAccountRefId,
+    bindStatus: 'MANUAL',
+    aochuangNickname: row.nickname,
+    aochuangAvatar: row.avatar,
+    aochuangIsAlive: row.isAlive,
+  })
+  ElMessage.success('绑定成功')
+  await handleSyncDevices()
+}
+
+const openCreateBindDialog = (row: AochuangPendingDeviceVO) => {
+  createBindForm.accountName = row.nickname || ''
+  createBindForm.wechatId = row.wechatId || row.alias || ''
+  createBindForm.aochuangWechatAccountId = row.aochuangWechatAccountId
+  createBindForm.aochuangAccountRefId = row.aochuangAccountRefId
+  createBindForm.aochuangNickname = row.nickname || ''
+  createBindDialogVisible.value = true
+}
+
+const submitCreateBind = async () => {
+  if (!createBindFormRef.value || !createBindForm.aochuangAccountRefId) return
+  await createBindFormRef.value.validate()
+  createBindLoading.value = true
+  try {
+    await createAndBindPersonalWechat({
+      accountName: createBindForm.accountName,
+      wechatId: createBindForm.wechatId,
+      aochuangWechatAccountId: createBindForm.aochuangWechatAccountId,
+      aochuangAccountRefId: createBindForm.aochuangAccountRefId,
+      aochuangNickname: createBindForm.aochuangNickname || undefined,
+    })
+    ElMessage.success('新建并绑定成功')
+    createBindDialogVisible.value = false
+    await handleSyncDevices()
+  } finally {
+    createBindLoading.value = false
+  }
+}
+
 const submitPersonal = async () => {
   if (!personalFormRef.value) return
   await personalFormRef.value.validate()
@@ -741,6 +1131,8 @@ onMounted(() => loadData())
     margin-bottom: 16px;
   }
   .total-info { color: #909399; font-size: 14px; }
+  .sync-summary { margin-bottom: 16px; }
+  .friends-pagination { margin-top: 12px; display: flex; justify-content: flex-end; }
   .employee-form {
     :deep(.el-divider__text) { font-weight: 600; color: #303133; }
   }
