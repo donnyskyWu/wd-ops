@@ -21,6 +21,8 @@ import cn.iocoder.yudao.module.oa.dal.mysql.analytics.ContentDailyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentDataImportMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
+import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataMergeSupport;
+import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataQueryService;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -46,6 +48,7 @@ public class InternalContentServiceImpl implements InternalContentService {
     private final AccountMapper accountMapper;
     private final SysUserMapper sysUserMapper;
     private final ContentDailyMapper contentDailyMapper;
+    private final CollectedDataQueryService collectedDataQueryService;
 
     @Override
     public PageResult<InternalContentVO> list(String platformType, String dataSource, String contentType,
@@ -85,9 +88,42 @@ public class InternalContentServiceImpl implements InternalContentService {
             wrapper = wrapper.le(ContentDO::getPublishTime, endDate.atTime(23, 59, 59));
         }
         wrapper.orderByDesc(ContentDO::getPublishTime);
-        Page<ContentDO> p = contentMapper.selectPage(
-                new Page<>(page == null ? 1 : page, size == null ? 20 : size), wrapper);
-        return new PageResult<>(p.getRecords().stream().map(this::toInternalVO).collect(Collectors.toList()), p.getTotal());
+        List<InternalContentVO> legacy = contentMapper.selectList(wrapper).stream()
+                .map(this::toInternalVO).collect(Collectors.toList());
+        java.util.Set<Long> accountIdSet = accountIdsFilter != null ? accountIdsFilter
+                : accountMapper.selectList(new LambdaQueryWrapper<AccountDO>()
+                        .eq(AccountDO::getTenantId, tenantId)
+                        .eq(StrUtil.isNotBlank(platformType), AccountDO::getPlatformType, platformType))
+                .stream().map(AccountDO::getId).collect(Collectors.toSet());
+        PageResult<InternalContentVO> collected = collectedDataQueryService.pageInternalContents(
+                tenantId, accountIdSet, platformType, contentType, keyword, startDate, endDate, 1, Integer.MAX_VALUE);
+        PageResult<InternalContentVO> merged = CollectedDataMergeSupport.mergeInternalAndPage(
+                legacy, collected.getList(), page, size);
+        enrichInternalAccountNames(merged.getList());
+        return merged;
+    }
+
+    private void enrichInternalAccountNames(List<InternalContentVO> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return;
+        }
+        java.util.Set<Long> accountIds = rows.stream()
+                .map(InternalContentVO::getAccountId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        java.util.Map<Long, AccountDO> accountMap = accountIds.isEmpty()
+                ? java.util.Collections.emptyMap()
+                : accountMapper.selectBatchIds(accountIds).stream()
+                .collect(Collectors.toMap(AccountDO::getId, a -> a, (a, b) -> a));
+        for (InternalContentVO vo : rows) {
+            if (vo.getAccountName() != null || vo.getAccountId() == null) {
+                continue;
+            }
+            AccountDO account = accountMap.get(vo.getAccountId());
+            if (account != null) {
+                vo.setAccountName(account.getAccountName());
+            }
+        }
     }
 
     @Override

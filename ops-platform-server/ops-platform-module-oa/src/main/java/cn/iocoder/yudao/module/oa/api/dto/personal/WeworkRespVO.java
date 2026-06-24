@@ -11,5 +11,7 @@ public class WeworkRespVO {
     private String agentId;
     private String secret;
     private String status;
+    private String connStatus;
+    private String lastHealthCheckAt;
     private String createTime;
 }

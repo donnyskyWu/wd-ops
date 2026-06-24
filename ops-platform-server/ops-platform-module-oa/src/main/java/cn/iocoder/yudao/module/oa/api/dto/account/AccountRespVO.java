@@ -28,6 +28,11 @@ public class AccountRespVO {
     private Integer workCount;
     private String status;
     private Boolean hasCookie;
+    private Boolean hasMpToken;
+    private Boolean hasAuthToken;
+    private Boolean hasAppSecret;
+    private String appId;
+    private String fieldMapping;
     private Boolean publishEnabled;
     private LocalDateTime linkedAt;
     private LocalDateTime createTime;

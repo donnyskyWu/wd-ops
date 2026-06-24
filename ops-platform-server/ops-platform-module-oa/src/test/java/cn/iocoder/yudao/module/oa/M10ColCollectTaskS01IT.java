@@ -1,6 +1,11 @@
 package cn.iocoder.yudao.module.oa;
 
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
+import cn.iocoder.yudao.module.oa.service.collect.unified.UnifiedCollectorAdapter;
+import cn.iocoder.yudao.module.oa.util.AesUtil;
 import com.jayway.jsonpath.JsonPath;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +32,15 @@ class M10ColCollectTaskS01IT extends OaITBase {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private UnifiedCollectorAdapter unifiedCollectorAdapter;
+
+    @Autowired
+    private cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper accountMapper;
+
+    @Autowired
+    private AesUtil aesUtil;
 
     @Test
     @DisplayName("M10-COL-S-01: 采集任务 CRUD + 分页")
@@ -192,7 +206,16 @@ class M10ColCollectTaskS01IT extends OaITBase {
     @Test
     @DisplayName("M10-COL-S-01: 立即执行写入日志")
     void runCreatesLog() throws Exception {
-        MvcResult createResult = mockMvc.perform(post("/admin-api/oa/collect/task/create")
+        TenantContextHolder.setTenantId(Long.parseLong(TENANT));
+        TenantContextHolder.setUsername("it-m10-col-s01");
+        try {
+            AccountDO account = accountMapper.selectById(SEED_ACCOUNT_ID);
+            account.setCookieEncrypted(aesUtil.encrypt("bizuin=123; data_bizuin=123"));
+            account.setMpTokenEncrypted(aesUtil.encrypt("1234567890"));
+            accountMapper.updateById(account);
+            unifiedCollectorAdapter.bindAccount(SEED_ACCOUNT_ID);
+
+            MvcResult createResult = mockMvc.perform(post("/admin-api/oa/collect/task/create")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -224,5 +247,8 @@ class M10ColCollectTaskS01IT extends OaITBase {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.total").value(1))
                 .andExpect(jsonPath("$.data.list[0].status").value("SUCCESS"));
+        } finally {
+            TenantContextHolder.clear();
+        }
     }
 }

@@ -13,6 +13,9 @@ public final class OaErrorCodes {
     public static final ErrorCode ENTITY_ALREADY_BOUND = ErrorCode.of(1502, "关联实体已被引用");
     public static final ErrorCode DICT_VALUE_INVALID = ErrorCode.of(1503, "字典值不合法");
     public static final ErrorCode TENANT_FORBIDDEN = ErrorCode.of(1504, "跨租户访问禁止");
+    /** M8 INTERNAL 平台 Tab 硬切（ADR-047） */
+    public static final ErrorCode INTERNAL_COLLECT_PLATFORM_DEPRECATED = ErrorCode.of(1510,
+            "平台采集凭证已迁至平台账号管理 → 采集 Tab，请在该处维护");
 
     /** 业务唯一性冲突（手机号/账号 ID 等） */
     public static final ErrorCode DUPLICATE_ENTITY = ErrorCode.of(2021, "数据已存在，不可重复");

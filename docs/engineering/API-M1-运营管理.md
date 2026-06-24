@@ -400,6 +400,8 @@
 
 **`/list` 关键参数**：`platform`（枚举：WECHAT_OFFICIAL / WECHAT_VIDEO / DOUYIN / KUAISHOU / XIAOHONGSHU / WECHAT_SERVICE / WEWORK / WX_PERSONAL / ALL）、`ipGroupId`、`keyword`、`accountStatus`、`realnameId`、`operatorUserId`、`page`、`size`
 
+**M10 采集桥接（ADR-049）**：Channel-A 五平台列表/详情合并 `CollectedDataQueryService` 读取的 M10 表；响应项可含 `dataSource=COLLECT`。粉丝/作品数优先采集快照，否则回退 `oa_account_status_log` / 补录表。
+
 ### 4.2 粉丝分析（FR-M1-004）
 
 | 方法 | 路径 | 说明 |
@@ -435,13 +437,15 @@
 |------|------|------|
 | GET | `/admin-api/oa/internal-content/list` | 内部作品列表 |
 | GET | `/admin-api/oa/internal-content/{id}/trend` | 趋势（抽屉默认近 7 日） |
-
-**`/list` 关键参数**：`startDate`、`endDate`（可选；前端默认不传=全量）、`ipGroupId`、`keyword`、`platformType`、`contentType`、`page`、`size`
 | POST | `/admin-api/oa/internal-content/export` | 导出 |
 | **POST** | **`/admin-api/oa/internal-content/import`** | **数据补录（v9.1 新增）** |
 | GET | `/admin-api/oa/internal-content/import/list` | 补录记录列表 |
 | GET | `/admin-api/oa/internal-content/import/{id}` | 补录详情 |
 | PUT | `/admin-api/oa/internal-content/import/{id}/review` | 审核补录 |
+
+**`/list` 关键参数**：`startDate`、`endDate`（可选；前端默认不传=全量）、`ipGroupId`、`keyword`、`platformType`、`contentType`、`page`、`size`
+
+**M10 采集桥接（ADR-049）**：Channel-A 五平台合并 M10 作品/笔记表；`dataSource=COLLECT` 标识采集来源；补录审核数据仍按 ADR-M1-001 合并。
 
 **补录请求体** `ImportContentDataReq`：
 

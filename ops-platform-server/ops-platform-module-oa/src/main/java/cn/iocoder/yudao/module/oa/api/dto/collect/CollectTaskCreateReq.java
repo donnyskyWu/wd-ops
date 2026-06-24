@@ -20,13 +20,14 @@ public class CollectTaskCreateReq {
     @NotNull
     private Long accountId;
 
-    @NotBlank
     @InDict("dict_collect_method")
     private String method;
 
-    @NotBlank
     @InDict("dict_collect_source")
     private String source;
+
+    @InDict("dict_collect_data_type")
+    private String dataType;
 
     @NotBlank
     @InDict("dict_collect_frequency")

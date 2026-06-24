@@ -14,6 +14,7 @@ public class CollectTaskRespVO {
     private String accountName;
     private String method;
     private String source;
+    private String dataType;
     private String frequency;
     private String cron;
     /** 脱敏占位；有配置时返回 ****** */

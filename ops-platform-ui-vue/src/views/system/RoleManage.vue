@@ -31,7 +31,7 @@
         <el-table-column prop="permissionCount" label="权限数" width="100" align="center" />
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
-            <DictLabel dict-type="dict_status_enabled" :value="row.status" />
+            <DictLabel dict-type="dict_user_status" :value="row.status" />
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="170" align="center" />

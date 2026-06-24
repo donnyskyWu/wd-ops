@@ -200,6 +200,10 @@
         <el-form-item label="状态">
           <DictSelect v-model="formData.status" dict-type="dict_account_status" />
         </el-form-item>
+        <el-form-item v-if="formData.id" label="采集配置">
+          <el-link type="primary" @click="goToCollectConfig">前往详情配置采集</el-link>
+          <span class="collect-hint">（凭证与绑定请在详情页「采集」Tab 维护）</span>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -503,6 +507,12 @@ const handleView = (row: PlatformAccountVO) => {
   router.push(`/platform-account/${row.id}`)
 }
 
+const goToCollectConfig = () => {
+  if (!formData.id) return
+  dialogVisible.value = false
+  router.push({ path: `/platform-account/${formData.id}`, query: { tab: 'collect' } })
+}
+
 const buildPayload = (forceReplace: boolean, reason?: string) => {
   const base = {
     platformType: formData.platformType,
@@ -593,5 +603,6 @@ onMounted(loadData)
   .platform-tabs { margin-bottom: 16px; }
   .action-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
   .total-info { color: #909399; font-size: 14px; }
+  .collect-hint { margin-left: 8px; color: #909399; font-size: 13px; }
 }
 </style>

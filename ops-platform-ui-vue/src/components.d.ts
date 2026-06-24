@@ -115,6 +115,7 @@ declare module 'vue' {
     TypesetCompareDialog: typeof import('./components/layout/TypesetCompareDialog.vue')['default']
     TypesettingPanel: typeof import('./components/layout/TypesettingPanel.vue')['default']
     UserSelect: typeof import('./components/selectors/UserSelect.vue')['default']
+    WeworkAccountSelect: typeof import('./components/selectors/WeworkAccountSelect.vue')['default']
     WeworkAppConfigPanel: typeof import('./components/WeworkAppConfigPanel.vue')['default']
   }
   export interface ComponentCustomProperties {

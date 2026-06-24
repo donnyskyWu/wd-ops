@@ -3,9 +3,20 @@
     <template #header>
       <div class="card-header">
         <span>企业微信应用配置</span>
-        <el-button type="primary" link @click="handleEdit">
-          {{ weworkConfig ? '编辑配置' : '新增配置' }}
-        </el-button>
+        <div class="header-actions">
+          <el-button
+            v-if="weworkConfig"
+            type="success"
+            link
+            :loading="testLoading"
+            @click="handleTestConnection"
+          >
+            测试连接
+          </el-button>
+          <el-button type="primary" link @click="handleEdit">
+            {{ weworkConfig ? '编辑配置' : '新增配置' }}
+          </el-button>
+        </div>
       </div>
     </template>
     <el-descriptions v-if="weworkConfig" :column="2" border size="small">
@@ -17,6 +28,11 @@
           {{ weworkConfig.status === 'ENABLED' ? '正常' : '停用' }}
         </el-tag>
       </el-descriptions-item>
+      <el-descriptions-item label="连接状态">
+        <DictLabel v-if="weworkConfig.connStatus" dict-type="dict_conn_status" :value="weworkConfig.connStatus" />
+        <span v-else>—</span>
+      </el-descriptions-item>
+      <el-descriptions-item label="最近探活">{{ weworkConfig.lastHealthCheckAt || '—' }}</el-descriptions-item>
     </el-descriptions>
     <el-empty v-else description="尚未配置企业微信应用，请点击右上角新增" :image-size="64" />
   </el-card>
@@ -58,10 +74,12 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import DictLabel from '@/components/DictLabel.vue'
 import {
   getWeworkPage,
   createWework,
   updateWework,
+  testWeworkConnection,
   type WeworkVO,
 } from '@/api/personal-account'
 
@@ -71,6 +89,7 @@ const emit = defineEmits<{
 
 const loading = ref(false)
 const submitLoading = ref(false)
+const testLoading = ref(false)
 const weworkList = ref<WeworkVO[]>([])
 const weworkConfig = computed(() => weworkList.value[0] ?? null)
 
@@ -139,6 +158,22 @@ const handleEdit = () => {
   dialogVisible.value = true
 }
 
+const handleTestConnection = async () => {
+  if (!weworkConfig.value) return
+  testLoading.value = true
+  try {
+    const result = await testWeworkConnection(weworkConfig.value.id)
+    if (result.success) {
+      ElMessage.success(result.message || '连接正常')
+    } else {
+      ElMessage.error(result.message || '连接失败')
+    }
+    await loadConfig()
+  } finally {
+    testLoading.value = false
+  }
+}
+
 const submit = async () => {
   if (!formRef.value) return
   await formRef.value.validate()
@@ -179,6 +214,12 @@ onMounted(() => loadConfig())
     display: flex;
     justify-content: space-between;
     align-items: center;
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
   }
 }
 </style>

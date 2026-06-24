@@ -26,34 +26,37 @@ class M8ConfigS01IT extends OaITBase {
     private MockMvc mockMvc;
 
     @Test
-    @DisplayName("M8-S-01: 内部采集配置创建 + 列表")
-    void internalCollectCreateAndList() throws Exception {
-        createInternalCollect("M8-内部采集A");
-
-        mockMvc.perform(get("/admin-api/oa/config/internal-collect/list")
-                        .header("Authorization", AUTH)
-                        .header("X-Tenant-Id", TENANT)
-                        .param("configName", "M8-内部采集A"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.data.total").value(1))
-                .andExpect(jsonPath("$.data.list[0].accountId").value(9001));
-    }
-
-    @Test
-    @DisplayName("M8-S-01: 非法采集频率 (1503)")
-    void invalidCollectFrequencyFails() throws Exception {
+    @DisplayName("M8-S-01: INTERNAL 平台类创建已退役 (1510)")
+    void internalPlatformCreateRejected() throws Exception {
         mockMvc.perform(post("/admin-api/oa/config/internal-collect/create")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "configName": "M8-非法频率",
+                                  "configName": "M8-内部采集A",
                                   "platformType": "WECHAT_OFFICIAL",
                                   "accountId": 9001,
-                                  "collectFrequency": "INVALID_FREQ",
+                                  "collectFrequency": "DAILY",
                                   "collectMethod": "INTERNAL"
+                                }
+                                """))
+                .andExpect(jsonPath("$.code").value(1510));
+    }
+
+    @Test
+    @DisplayName("M8-S-01: 非法采集频率 (1503)")
+    void invalidCollectFrequencyFails() throws Exception {
+        mockMvc.perform(post("/admin-api/oa/config/external-collect/create")
+                        .header("Authorization", AUTH)
+                        .header("X-Tenant-Id", TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "configName": "M8-非法频率",
+                                  "platformType": "NEWRANK",
+                                  "collectFrequency": "INVALID_FREQ",
+                                  "collectMethod": "API"
                                 }
                                 """))
                 .andExpect(jsonPath("$.code").value(1503));
@@ -166,20 +169,4 @@ class M8ConfigS01IT extends OaITBase {
                 .andExpect(jsonPath("$.code").value(0));
     }
 
-    private void createInternalCollect(String name) throws Exception {
-        mockMvc.perform(post("/admin-api/oa/config/internal-collect/create")
-                        .header("Authorization", AUTH)
-                        .header("X-Tenant-Id", TENANT)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(String.format("""
-                                {
-                                  "configName": "%s",
-                                  "platformType": "WECHAT_OFFICIAL",
-                                  "accountId": 9001,
-                                  "collectFrequency": "DAILY",
-                                  "collectMethod": "INTERNAL"
-                                }
-                                """, name)))
-                .andExpect(jsonPath("$.code").value(0));
-    }
 }

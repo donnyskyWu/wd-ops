@@ -31,6 +31,7 @@ import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUser;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
+import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataQueryService;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -78,6 +79,7 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
     private final ContentMapper contentMapper;
     private final SysUserMapper sysUserMapper;
     private final AesUtil aesUtil;
+    private final CollectedDataQueryService collectedDataQueryService;
 
     @Override
     public PageResult<AccountRespVO> list(String platformType, String accountName, Long companyId,
@@ -124,9 +126,20 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
                 .last("LIMIT 1"));
         vo.setFollowerCount(latestFollower != null && latestFollower.getFollowerCount() != null
                 ? latestFollower.getFollowerCount() : 0L);
+        if ((vo.getFollowerCount() == null || vo.getFollowerCount() == 0L)
+                && collectedDataQueryService.supportsPlatform(entity.getPlatformType())) {
+            Long collectedFollowers = collectedDataQueryService.latestFollowerCount(entity.getTenantId(), entity.getId());
+            if (collectedFollowers != null) {
+                vo.setFollowerCount(collectedFollowers);
+            }
+        }
         long workCount = contentMapper.selectCount(new LambdaQueryWrapper<ContentDO>()
                 .eq(ContentDO::getTenantId, entity.getTenantId())
                 .eq(ContentDO::getAccountId, entity.getId()));
+        if (collectedDataQueryService.supportsPlatform(entity.getPlatformType())) {
+            workCount += collectedDataQueryService.workCount(entity.getTenantId(), entity.getId(),
+                    entity.getPlatformType());
+        }
         vo.setWorkCount(Math.toIntExact(workCount));
         enrichWechatOfficialResp(vo, entity);
         return vo;
@@ -176,6 +189,7 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
         if (StrUtil.isNotBlank(req.getCookie())) {
             entity.setCookieEncrypted(aesUtil.encrypt(req.getCookie()));
         }
+        applyCollectorCredentialFields(entity, req);
         applyWechatOfficialFields(entity, req, tenantId);
         entity.setStatus(StrUtil.blankToDefault(req.getStatus(), "NORMAL"));
         entity.setLinkedAt(LocalDateTime.now());
@@ -251,6 +265,7 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
         if (req.getCookie() != null) {
             existing.setCookieEncrypted(StrUtil.isBlank(req.getCookie()) ? null : aesUtil.encrypt(req.getCookie()));
         }
+        applyCollectorCredentialFields(existing, req);
         if (StrUtil.isNotBlank(req.getStatus())) {
             existing.setStatus(req.getStatus());
         }
@@ -637,6 +652,11 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
         vo.setIpGroupId(entity.getIpGroupId());
         vo.setStatus(entity.getStatus());
         vo.setHasCookie(StrUtil.isNotBlank(entity.getCookieEncrypted()));
+        vo.setHasMpToken(StrUtil.isNotBlank(entity.getMpTokenEncrypted()));
+        vo.setHasAuthToken(StrUtil.isNotBlank(entity.getAuthTokenEncrypted()));
+        vo.setHasAppSecret(StrUtil.isNotBlank(entity.getAppSecretEncrypted()));
+        vo.setAppId(entity.getAppId());
+        vo.setFieldMapping(entity.getFieldMapping());
         vo.setPublishEnabled(entity.getPublishEnabled() != null && entity.getPublishEnabled() == 1);
         vo.setLinkedAt(entity.getLinkedAt());
         vo.setCreateTime(entity.getCreateTime());
@@ -696,6 +716,42 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
         }
         if (companyId == null || realnameId == null) {
             throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "公司和实名人必填");
+        }
+    }
+
+    private void applyCollectorCredentialFields(AccountDO entity, AccountCreateReq req) {
+        if (StrUtil.isNotBlank(req.getMpToken())) {
+            entity.setMpTokenEncrypted(aesUtil.encrypt(req.getMpToken()));
+        }
+        if (StrUtil.isNotBlank(req.getAuthToken())) {
+            entity.setAuthTokenEncrypted(aesUtil.encrypt(req.getAuthToken()));
+        }
+        if (StrUtil.isNotBlank(req.getAppSecret())) {
+            entity.setAppSecretEncrypted(aesUtil.encrypt(req.getAppSecret()));
+        }
+        if (req.getAppId() != null) {
+            entity.setAppId(req.getAppId());
+        }
+        if (req.getFieldMapping() != null) {
+            entity.setFieldMapping(req.getFieldMapping());
+        }
+    }
+
+    private void applyCollectorCredentialFields(AccountDO entity, AccountUpdateReq req) {
+        if (req.getMpToken() != null) {
+            entity.setMpTokenEncrypted(StrUtil.isBlank(req.getMpToken()) ? null : aesUtil.encrypt(req.getMpToken()));
+        }
+        if (req.getAuthToken() != null) {
+            entity.setAuthTokenEncrypted(StrUtil.isBlank(req.getAuthToken()) ? null : aesUtil.encrypt(req.getAuthToken()));
+        }
+        if (req.getAppSecret() != null) {
+            entity.setAppSecretEncrypted(StrUtil.isBlank(req.getAppSecret()) ? null : aesUtil.encrypt(req.getAppSecret()));
+        }
+        if (req.getAppId() != null) {
+            entity.setAppId(req.getAppId());
+        }
+        if (req.getFieldMapping() != null) {
+            entity.setFieldMapping(req.getFieldMapping());
         }
     }
 

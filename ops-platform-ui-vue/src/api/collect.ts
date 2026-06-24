@@ -12,6 +12,7 @@ export interface CollectTaskVO {
   accountName?: string
   method: string
   source: string
+  dataType?: string
   frequency: string
   cron?: string
   apiConfig?: string
@@ -39,8 +40,11 @@ export function updateCollectTask(data: Partial<CollectTaskVO>): Promise<boolean
 export function deleteCollectTask(id: number): Promise<boolean> {
   return request.delete({ url: '/oa/collect/task/delete', params: { id } })
 }
+/** 全量采集（如抖音 4 类型串行）可能超过默认 15s，单独放宽超时 */
+const RUN_TASK_TIMEOUT_MS = 180_000
+
 export function runCollectTask(id: number): Promise<boolean> {
-  return request.post({ url: `/oa/collect/task/${id}/run` })
+  return request.post({ url: `/oa/collect/task/${id}/run`, timeout: RUN_TASK_TIMEOUT_MS })
 }
 export function toggleCollectTaskStatus(id: number, status: string): Promise<boolean> {
   return request.put({ url: `/oa/collect/task/${id}/status`, params: { status } })
@@ -56,10 +60,48 @@ export interface CollectLogVO {
   durationMs: number
   recordCount: number
   errorMessage?: string
+  retryCount?: number
+}
+
+export interface CollectLogTypeResultVO {
+  dataType?: string
+  success?: boolean
+  errorMessage?: string
+  summary?: string
+  targetTable?: string
+  targetHint?: string
+  recordCount?: number
+  metrics?: Record<string, unknown>
+  samples?: Record<string, unknown>[]
+}
+
+export interface CollectLogResultVO {
+  summary?: string
+  dataType?: string
+  targetTable?: string
+  targetHint?: string
+  recordCount?: number
+  metrics?: Record<string, unknown>
+  samples?: Record<string, unknown>[]
+  typeResults?: CollectLogTypeResultVO[]
+}
+
+export interface CollectLogDetailVO extends CollectLogVO {
+  platformType?: string
+  accountId?: number
+  accountName?: string
+  source?: string
+  dataType?: string
+  endAt?: string
+  result?: CollectLogResultVO
 }
 
 export function getCollectLogPage(params: any): Promise<{ list: CollectLogVO[]; total: number }> {
   return request.get({ url: '/oa/collect/log/page', params })
+}
+
+export function getCollectLogDetail(id: number): Promise<CollectLogDetailVO> {
+  return request.get({ url: `/oa/collect/log/${id}` })
 }
 
 // ==================== 质量 ====================

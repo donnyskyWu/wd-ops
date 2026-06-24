@@ -646,17 +646,17 @@ curl http://localhost:8080/oa/...
 
 ## 17. Phase 2 Backlog（待 Gate 立项）
 
-> **状态**：⬜ 未立项 · **不得**将 §1 Phase 2 行标为 ✅  
-> **SSOT**：[ADR-045](../adr/ADR-045-M10-奥创多账号与设备同步.md) · [M10-三通道采集计划](./M10-三通道采集计划.md)
+> **状态**：🔵 P2-M10-A Channel-A 多平台 MVP 代码+IT 完成（S-01~S-06 + V121/V122 全量 dataType + ADR-049 展示桥接 · [ADR-047](../adr/ADR-047-M4-平台账号凭证SSOT与Collector映射.md) · [ADR-049](../adr/ADR-049-M10-全量采集与展示桥接.md)）· **待正式 Gate 签收** · **不得**将 §1 Phase 2 行标为 ✅  
+> **SSOT**：[ADR-045](../adr/ADR-045-M10-奥创多账号与设备同步.md) · [ADR-047](../adr/ADR-047-M4-平台账号凭证SSOT与Collector映射.md) · [ADR-048](../adr/ADR-048-M10-企微采集通道草案.md) · [ADR-049](../adr/ADR-049-M10-全量采集与展示桥接.md) · [M10-三通道采集计划](./M10-三通道采集计划.md)
 
 ### 17.1 M10 三通道采集
 
 | ID | 通道 | 切片 | 说明 | 状态 |
 |----|------|------|------|------|
 | P2-M10-00 | 基建 | M10-COL-S-01~S-03 | 采集任务壳 / 日志 / 重试 | ⬜ |
-| P2-M10-A | api.json | M10-API-S-01~S-04 | `UnifiedCollectorAdapter` + 采集配置 | ⬜ |
-| P2-M10-B | 奥创 | M10-AO-S-00~S-07 | 多账号子表 · 设备同步 · 好友/消息 · 桥接骨架 | ⬜ 下一切片 **S-00** |
-| P2-M10-C | 企微 | M10-WECOM-S-01~S-04 | `WeComAdapter` + `oa_wework_account` | ⬜ |
+| P2-M10-A | api.json | M10-API-S-01~S-06 + V121/V122 全量 dataType | `UnifiedCollectorAdapter` + bind + 多平台落库 + `CollectedDataQueryService` 桥接（[ADR-047](../adr/ADR-047-M4-平台账号凭证SSOT与Collector映射.md) · [ADR-049](../adr/ADR-049-M10-全量采集与展示桥接.md)） | 🔵 MVP 完成：stub/HTTP IT + 展示桥接 IT；**待 Gate 签收**与生产 collector 全类型人工联调 |
+| P2-M10-B | 奥创 | M10-AO-S-00~S-07 | 多账号子表 · 设备同步 · 签名客户端（§4.1 ADR-045）· 好友/消息 · 桥接骨架 | ⬜ 下一切片 **S-00**（`AochuangApiClient` 签名已实现） |
+| P2-M10-C | 企微 | M10-WECOM-S-01~S-04 | `WeComAdapter` + `oa_wework_account` · [ADR-048](../adr/ADR-048-M10-企微采集通道草案.md) 已采纳 | 🔵 S-01~S-04 IT 通过；待 Gate 与 M1 微信分析人工联调 |
 | P2-M10-04 | 闭环 | M10-COL-S-04 · AO-S-07 · API-S-05~08 · WECOM-S-05 | 私域桥接 / 漏斗分析 | ⬜ P2 |
 
 ### 17.2 M2 微信公众号发布（与 M10 采集分离）

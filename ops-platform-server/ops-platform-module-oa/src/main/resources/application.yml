@@ -33,6 +33,10 @@ oa:
     mode: dev-fixed
   crypto:
     aes-key: MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=
+  unified-collector:
+    base-url: http://127.0.0.1:8000
+    api-token: test-key-2026
+    timeout-ms: 30000
   dingtalk:
     enabled: ${DINGTALK_ENABLED:false}
     client-id: ${DINGTALK_CLIENT_ID:}
@@ -47,6 +51,14 @@ oa:
   notification:
     platform-base-url: ${OA_PLATFORM_BASE_URL:http://localhost:5173}
     monitor-scan-cron: ${OA_NOTIFICATION_MONITOR_CRON:0 0/30 * * * ?}
+  collect:
+    schedule:
+      enabled: true
+      scan-cron: ${OA_COLLECT_SCHEDULE_CRON:0 * * * * ?}
+  wework:
+    base-url: https://qyapi.weixin.qq.com
+    stub: false
+    timeout-ms: 15000
 
 logging:
   level:

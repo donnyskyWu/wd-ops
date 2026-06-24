@@ -23,6 +23,7 @@ public class CollectRunService {
     private final CollectLogMapper collectLogMapper;
     private final CollectExecutionService collectExecutionService;
     private final CollectRetryService collectRetryService;
+    private final CollectLogResultBuilder collectLogResultBuilder;
 
     @Transactional
     public void run(Long taskId) {
@@ -51,16 +52,28 @@ public class CollectRunService {
         log.setRetryCount(retryCount);
         fillCreateFromTask(log, task);
 
-        if (result.isSuccess()) {
-            log.setStatus("SUCCESS");
+        boolean hasTypeOutcomes = result.getTypeOutcomes() != null && !result.getTypeOutcomes().isEmpty();
+        if (result.isSuccess() || hasTypeOutcomes) {
+            log.setStatus(result.isSuccess() ? "SUCCESS" : "PARTIAL");
             log.setRecordCount(result.getRecordCount());
+            log.setResultJson(collectLogResultBuilder.build(task, result));
+            if (!result.isSuccess()) {
+                log.setErrorMessage(result.getErrorMessage());
+            }
             collectLogMapper.insert(log);
 
             task.setStatus("PENDING");
             task.setLastRunAt(start);
-            task.setRunCount(Objects.requireNonNullElse(task.getRunCount(), 0) + 1);
+            if (result.isSuccess()) {
+                task.setNextRunAt(CollectNextRunHelper.computeNextRun(task.getCron(), end));
+                task.setRunCount(Objects.requireNonNullElse(task.getRunCount(), 0) + 1);
+            }
             ConfigTenantSupport.fillUpdate(task);
             collectTaskMapper.updateById(task);
+            if (result.isSuccess()) {
+                return;
+            }
+            scheduleRetryAfterCommit(taskId, tenantId, retryCount, result.getErrorMessage());
             return;
         }
 
@@ -69,6 +82,8 @@ public class CollectRunService {
         log.setErrorMessage(result.getErrorMessage());
         collectLogMapper.insert(log);
 
+        task.setStatus("PENDING");
+        task.setLastRunAt(start);
         ConfigTenantSupport.fillUpdate(task);
         collectTaskMapper.updateById(task);
 

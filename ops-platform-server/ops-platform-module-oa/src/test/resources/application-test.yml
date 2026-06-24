@@ -22,6 +22,10 @@ oa:
     aes-key: MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=
   aochuang:
     stub: true
+  unified-collector:
+    stub: true
+  wework:
+    stub: true
 
 logging:
   level:

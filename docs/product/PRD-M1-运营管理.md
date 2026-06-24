@@ -285,6 +285,23 @@
 - When 点击"导出 Excel"
 - Then 调用 `POST /account-analysis/export`，异步返回文件下载，文件名 `accounts_{yyyyMMddHHmmss}.xlsx`
 
+#### 4.3.5 M10 采集数据展示桥接（2026-06-24 · ADR-049）
+
+Channel-A 五平台（公众号/视频号/抖音/快手/小红书）采集落库后，账号分析 / 粉丝分析 / 内部内容分析 **只读合并** M10 表，无需运营手工导入。
+
+| 规则 | 说明 |
+|------|------|
+| 支持平台 | `WECHAT_OFFICIAL`、`WECHAT_VIDEO`、`DOUYIN`、`KUAISHOU`、`XIAOHONGSHU` |
+| 数据来源标识 | 响应字段 `dataSource=COLLECT` 表示来自 M10 采集表 |
+| 粉丝 | 优先 `oa_account_status_log` 日聚合；无日聚合时公众号/抖音可回退粉丝明细表 |
+| 作品/内容 | 读 `oa_wechat_mp_article`、`oa_douyin_video` 等；与补录数据合并规则仍遵循 ADR-M1-001 |
+| 不在范围 | 企微（专用微信分析 API · ADR-048）、个微、Bilibili 作品列表 |
+
+**AC-M1-003-4**（采集桥接）
+- Given 抖音账号已执行 M10 全量采集且 `oa_douyin_video` 有数据
+- When 进入账号分析抖音 Tab 或内部内容分析
+- Then 列表可见采集作品，`dataSource=COLLECT`
+
 ---
 
 ### FR-M1-004 粉丝分析（对应 5.4）

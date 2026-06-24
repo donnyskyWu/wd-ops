@@ -121,6 +121,10 @@ public class WeworkAccountServiceImpl implements WeworkAccountService {
         vo.setAgentId(entity.getAgentId());
         vo.setSecret(StrUtil.isNotBlank(entity.getSecretEncrypted()) ? MASK : null);
         vo.setStatus(entity.getStatus());
+        vo.setConnStatus(entity.getConnStatus());
+        if (entity.getLastHealthCheckAt() != null) {
+            vo.setLastHealthCheckAt(entity.getLastHealthCheckAt().format(DT_FMT));
+        }
         if (entity.getCreateTime() != null) {
             vo.setCreateTime(entity.getCreateTime().format(DT_FMT));
         }

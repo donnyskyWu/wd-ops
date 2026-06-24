@@ -1,20 +1,25 @@
-# 本地钉钉凭证（勿提交 git）
-# 复制为 application-dev-local.yml 并填入真实值
-#
-# 业务通知主通道：工作通知 asyncsend_v2（点对点，无需 Webhook）
-# 群机器人 webhook 仅作可选降级，一般不必配置
-oa:
-  dingtalk:
-    enabled: true
-    client-id: your-app-key
-    client-secret: your-app-secret
-    corp-id: your-corp-id
-    agent-id: 4335523092
-    # 可选降级（工作通知失败时）
-    robot:
-      enabled: false
-      robot-id: dingryhozmk70mxggg9s
-      webhook-url: https://oapi.dingtalk.com/robot/send?access_token=YOUR_ACCESS_TOKEN
-      secret: SECyour-sign-secret
-  notification:
-    platform-base-url: http://localhost:5173
+# 本地钉钉凭证（勿提交 git）
+# 复制为 application-dev-local.yml 并填入真实值
+#
+# 业务通知主通道：工作通知 asyncsend_v2（点对点，无需 Webhook）
+# 群机器人 webhook 仅作可选降级，一般不必配置
+oa:
+  dingtalk:
+    enabled: true
+    client-id: your-app-key
+    client-secret: your-app-secret
+    corp-id: your-corp-id
+    agent-id: 4335523092
+    # 可选降级（工作通知失败时）
+    robot:
+      enabled: false
+      robot-id: dingryhozmk70mxggg9s
+      webhook-url: https://oapi.dingtalk.com/robot/send?access_token=YOUR_ACCESS_TOKEN
+      secret: SECyour-sign-secret
+  notification:
+    platform-base-url: http://localhost:5173
+  # unify-collector-api（Channel-A · 真实 E2E 联调）
+  unified-collector:
+    base-url: http://127.0.0.1:8000
+    api-token: test-key-2026
+    stub: false

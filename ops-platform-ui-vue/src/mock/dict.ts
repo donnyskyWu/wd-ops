@@ -149,11 +149,6 @@ export const mockDictMap: Record<string, Array<{ label: string; value: string; c
     { label: '账号', value: 'ACCOUNT' },
     { label: '人员', value: 'PERSON' },
   ],
-  // 通用启用/停用
-  dict_status_enabled: [
-    { label: '启用', value: 'ENABLED', colorType: 'success' },
-    { label: '停用', value: 'DISABLED', colorType: 'info' },
-  ],
   dict_config_status: [
     { label: '启用', value: 'ENABLED', colorType: 'success' },
     { label: '停用', value: 'DISABLED', colorType: 'info' },

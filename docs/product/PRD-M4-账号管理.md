@@ -433,6 +433,32 @@
 - When 再创建
 - Then 错误码 2006（同平台 account_id 重复）
 
+#### 4.5.5 采集 Tab（ADR-047 · Channel-A）
+
+> **SSOT**：[ADR-047](../adr/ADR-047-M4-平台账号凭证SSOT与Collector映射.md) — 平台类内部采集凭证统一维护于 M4，M8 INTERNAL 平台 Tab 已退役。
+
+平台账号详情新增 **「采集」Tab**（`WECHAT_OFFICIAL` / `WECHAT_VIDEO` / `DOUYIN` / `KUAISHOU` / `XIAOHONGSHU` / `BILIBILI`）：
+
+| 能力 | 说明 |
+|------|------|
+| 凭证编辑 | Cookie、mp_token（公众号）、auth_token + field_mapping（快手）；AppId/AppSecret 仅档案，**不参与 MVP 采集** |
+| 绑定采集服务 | 调用 M10 collector-bind API，写入 `oa_collector_account_bind` |
+| 测试连接 / 同步凭证 | 探活与 credential 同步至 unify-collector-api |
+| 批量绑定 | 租户内凭证齐全且未绑定账号一键 batch-import |
+| 建任务 | frequency / cron 仍在 M10 采集任务模块，不在此 Tab 重复 CRUD |
+
+#### 4.5.6 采集数据展示（ADR-049 · 2026-06-24）
+
+平台账号详情页（`PlatformAccountDetail`）对 Channel-A 五平台 **只读展示** M10 采集结果：
+
+| 能力 | 数据源 |
+|------|--------|
+| 作品/内容列表与统计 | `CollectedDataQueryService` → 各平台 M10 表 |
+| 内容趋势 | `contentTrendByDay` |
+| 粉丝数 / 作品数 | 采集表 + `oa_account_status_log` |
+
+不在本页展示：企微日聚合（M1 微信分析 Tab）、奥创个微明细。
+
 ---
 
 ### FR-M4-006 个人账号管理（5.21）

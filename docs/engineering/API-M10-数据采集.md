@@ -1,6 +1,6 @@
 # API-M10-数据采集
 
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v1.1 | 2026-06-24
 > **关联全局规范**：[`GLOBAL-CONVENTIONS.md`](./GLOBAL-CONVENTIONS.md)
 
 ---
@@ -27,10 +27,13 @@
   "source": "WECHAT_MP_API",
   "frequency": "DAILY",
   "cron": "0 0 2 * * ?",
-  "apiConfig": "{...}",        // 加密
+  "dataType": null,
+  "apiConfig": "{...}",
   "status": "ENABLED"
 }
 ```
+
+> **`dataType`**：省略或 `null` 表示按平台 **全量** 采集（ADR-049）；存库规范化后仍为 `null`。指定单一值时仅执行该类型（IT/API 保留；运营 UI 不暴露）。
 
 **校验**：
 - `platformType` `@InDict(type="dict_platform_type")`
@@ -57,8 +60,45 @@
 | 参数 | 字典 |
 |------|------|
 | taskId | - |
-| status | `dict_collect_status` |
+| status | `dict_collect_status`（含 `PARTIAL`） |
 | startDate / endDate | - |
+
+### 1.7 GET `/admin-api/oa/collect/log/{id}`
+
+返回日志详情，含结构化 `result`（V120 `result_json`）。
+
+```json
+{
+  "id": 101,
+  "taskId": 12,
+  "status": "PARTIAL",
+  "recordCount": 42,
+  "platformType": "DOUYIN",
+  "accountId": 9006,
+  "result": {
+    "summary": "4/4 types attempted, 3 succeeded",
+    "dataType": "ALL",
+    "typeResults": [
+      {
+        "dataType": "FOLLOWER_STATS",
+        "success": true,
+        "recordCount": 1,
+        "targetTable": "oa_account_status_log"
+      },
+      {
+        "dataType": "DOUYIN_VIDEO_LIST",
+        "success": true,
+        "recordCount": 15,
+        "targetTable": "oa_douyin_video"
+      }
+    ]
+  }
+}
+```
+
+**业务**：
+- 单类型执行：`typeResults` 为空，顶层 `dataType` / `recordCount` / `samples` 有效
+- 全量执行：`dataType=ALL`，`typeResults` 逐类型明细；日志 `status` 按 ADR-049 Q3 判定
 
 ---
 
@@ -93,7 +133,132 @@
 
 ---
 
-## 3. 错误码
+## 3. Collector 绑定 API（Channel-A · ADR-047）
+
+> 凭证 SSOT 在 M4 `oa_account`；本组 API 负责 import / bind / 探活。详见 [ADR-047](../adr/ADR-047-M4-平台账号凭证SSOT与Collector映射.md)。
+
+### 3.1 GET `/admin-api/oa/account/{oaAccountId}/collector-bind`
+
+返回 `oa_collector_account_bind` 绑定状态（无 bind 时 `data` 为 `null`）。
+
+| 字段 | 说明 |
+|------|------|
+| `oaAccountId` | M4 平台账号 ID |
+| `collectorAccountId` | collector 侧 `acc_{platform}_{hash}` |
+| `platformType` | `dict_platform_type` |
+| `bindStatus` | `dict_collector_bind_status` |
+| `connStatus` | `dict_conn_status` |
+
+**权限**：`oa:account:list`
+
+### 3.2 POST `/admin-api/oa/account/{oaAccountId}/collector-bind`
+
+从 M4 凭证组装 credential → 调用 collector `POST /api/v1/accounts/import` → 写入 bind 行。
+
+**业务**：MVP **不读** `app_secret_encrypted`（ADR-047 Q1）。
+
+### 3.3 POST `/admin-api/oa/account/{oaAccountId}/collector-bind/sync`
+
+凭证变更后同步至 collector（re-import / update credential）。
+
+### 3.4 POST `/admin-api/oa/account/{oaAccountId}/collector-bind/test-connection`
+
+探活：collector `GET /api/v1/accounts/health`，更新 `conn_status`。
+
+**响应**：
+
+```json
+{
+  "success": true,
+  "connStatus": "CONNECTED",
+  "collectorAccountId": "acc_wechat_mp_xxx",
+  "message": "连接正常"
+}
+```
+
+### 3.5 POST `/admin-api/oa/collector-bind/batch-import`
+
+租户内批量绑定：扫描 Channel-A 支持平台、凭证齐全且尚无 bind 的 `oa_account`，逐条 import。
+
+**权限**：`oa:account:list`
+
+**响应**：
+
+```json
+{
+  "scanned": 12,
+  "imported": 3,
+  "skipped": 8,
+  "failed": 1,
+  "items": [
+    { "oaAccountId": 9006, "platformType": "DOUYIN", "result": "IMPORTED", "message": null }
+  ]
+}
+```
+
+| `result` | 含义 |
+|----------|------|
+| `IMPORTED` | 成功 import 并写入 bind |
+| `SKIPPED` | 已有 bind 或凭证不完整 |
+| `FAILED` | collector 或校验失败 |
+
+---
+
+## 4. Channel-A 采集源（`dict_collect_source`）
+
+M10 任务 `source` + `method=INTERNAL` 经 `UnifiedCollectorAdapter` 路由至 unify-collector-api。
+
+| `source` | `platform_type` | collector `platform` | MVP 凭证（M4） |
+|----------|-----------------|----------------------|----------------|
+| `WECHAT_MP_API` | `WECHAT_OFFICIAL` | `wechat_mp` | cookie + mp_token |
+| `WECHAT_CHANNELS_API` | `WECHAT_VIDEO` | `wechat_channels` | cookie |
+| `DOUYIN_OPEN_API` | `DOUYIN` | `douyin` | cookie |
+| `KUAISHOU_OPEN_API` | `KUAISHOU` | `kuaishou` | cookie + auth_token + field_mapping |
+| `XIAOHONGSHU_OPEN_API` | `XIAOHONGSHU` | `xiaohongshu` | cookie |
+| `BILIBILI_OPEN_API` | `BILIBILI` | `bilibili` | cookie |
+
+**不经 Channel-A bind**：`AOCHUANG_API`（奥创 · ADR-045）、`WECOM_API`（企微 · ADR-048）、`PERSONAL_WECHAT_API`（个微）— 见 ADR-045 / ADR-048。
+
+任务创建时 `accountId` 强关联 M4 账号（企微 → `oa_wework_account.id`）；执行时 Channel-A：`oa_account_id` → bind → `collector_account_id`。
+
+---
+
+## 5. 平台默认 dataType（ADR-049）
+
+`CollectPlatformDefaults` — `data_type` 为空时按序执行：
+
+| `platform_type` | 默认 `source` | dataTypes（顺序） |
+|-----------------|---------------|-------------------|
+| `WECHAT_OFFICIAL` | `WECHAT_MP_API` | MP_FOLLOWER_STATS → MP_FOLLOWER_LIST → MP_ARTICLE_LIST → MP_ARTICLE_STATS → MP_ARTICLE_CONTENT |
+| `WECHAT_VIDEO` | `WECHAT_CHANNELS_API` | FOLLOWER_STATS → WECHAT_VIDEO_LIST → WECHAT_VIDEO_STATS |
+| `DOUYIN` | `DOUYIN_OPEN_API` | FOLLOWER_STATS → DOUYIN_FOLLOWER_LIST → DOUYIN_VIDEO_LIST → DOUYIN_VIDEO_STATS |
+| `KUAISHOU` | `KUAISHOU_OPEN_API` | FOLLOWER_STATS → KUAISHOU_VIDEO_LIST → KUAISHOU_VIDEO_STATS |
+| `XIAOHONGSHU` | `XIAOHONGSHU_OPEN_API` | FOLLOWER_STATS → XIAOHONGSHU_NOTE_LIST → XIAOHONGSHU_NOTE_STATS |
+| `BILIBILI` | `BILIBILI_OPEN_API` | FOLLOWER_STATS only |
+| `WEWORK` | `WECOM_API` | WECOM_DAILY_STATS |
+
+创建/更新任务时 `method` / `source` 可由后端按上表补全（请求体可省略）。
+
+---
+
+## 6. Channel-A 落库表（V116 / V121 / V122）
+
+| 表 | dataType | UK |
+|----|----------|-----|
+| `oa_wechat_mp_follower` | MP_FOLLOWER_LIST | tenant + account + openid |
+| `oa_wechat_mp_article` | MP_ARTICLE_* | tenant + account + msgid_itemidx |
+| `oa_douyin_follower` | DOUYIN_FOLLOWER_LIST | tenant + account + follower_id |
+| `oa_douyin_video` | DOUYIN_VIDEO_* | tenant + account + video_id |
+| `oa_wechat_video_work` | WECHAT_VIDEO_* | tenant + account + video_id |
+| `oa_kuaishou_video` | KUAISHOU_VIDEO_* | tenant + account + video_id |
+| `oa_xiaohongshu_note` | XIAOHONGSHU_NOTE_* | tenant + account + note_id |
+| `oa_wework_daily_stats` | WECOM_DAILY_STATS | tenant + wework_account + stat_date |
+
+粉丝日聚合写入 `oa_account_status_log`（`FOLLOWER_STATS` 哨兵路由）。
+
+---
+
+## 7. 错误码
 
 | 错误码 | 含义 |
 |--------|------|
@@ -102,6 +267,7 @@
 | 2021 | cron 表达式非法 |
 | 2022 | 采集失败 |
 | 2023 | 质量检查规则非法 |
+| 2024 | Collector 绑定失败 / 凭证不完整 |
 
 ---
 

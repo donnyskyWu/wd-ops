@@ -76,6 +76,66 @@ oa:
 
 用户须先通过「同步钉钉」写入 `ding_user_id`，否则工作通知会跳过该用户（站内信仍正常）。
 
+### Unified Collector（Channel-A · ADR-047）
+
+M10 经 `UnifiedCollectorAdapter` 调用本地或远程 unify-collector-api（默认 `http://127.0.0.1:8000`）。
+
+| 配置项 | 说明 |
+|--------|------|
+| `oa.unified-collector.base-url` | collector 基址 |
+| `oa.unified-collector.api-token` | Bearer Token（默认 `test-key-2026`） |
+| `oa.unified-collector.timeout-ms` | HTTP 超时（默认 30000） |
+| `oa.unified-collector.stub` | `true` = 不调用真实 collector（IT 默认）；**真实 E2E 联调设 `false`** |
+
+**真实 E2E 示例**（复制到 `application-dev-local.yml` 或环境变量）：
+
+```yaml
+oa:
+  unified-collector:
+    base-url: http://127.0.0.1:8000
+    api-token: test-key-2026
+    stub: false
+```
+
+启动 collector 后探活：
+
+```powershell
+curl http://127.0.0.1:8000/livez
+```
+
+**可选 Live Smoke IT**（默认 CI 跳过，需真实 collector 运行中）：
+
+```powershell
+cd ops-platform-server/ops-platform-module-oa
+$env:UNIFY_COLLECTOR_LIVE = "true"
+# 可选覆盖：$env:OA_UNIFIED_COLLECTOR_BASE_URL = "http://127.0.0.1:8000"
+# 可选覆盖：$env:OA_UNIFIED_COLLECTOR_API_TOKEN = "test-key-2026"
+mvn test "-Dtest=M10ApiCollectorLiveSmokeIT"
+```
+
+**Channel-A 手动 E2E**（M4 凭证 → bind → 采集落库，需 `stub: false` + collector 运行）：
+
+1. 启动 unify-collector-api（见仓库 `unify-collector-api/README.md` §1，`API_TOKEN=test-key-2026` 与 OA 对齐）
+2. OA `application-dev-local.yml` 设 `oa.unified-collector.stub: false`
+3. 启动 OA dev（8080）
+4. M4 保存公众号 cookie + mp_token（账号 9001 或自建）
+5. `POST /admin-api/oa/account/{id}/collector-bind` → `collector-bind/test-connection`
+6. 创建采集任务：`WECHAT_OFFICIAL` + `INTERNAL` + `WECHAT_MP_API`（粉丝）或 `dataType=MP_ARTICLE_LIST`（图文，须填 `externalAccountId` 作 fakeid）
+7. `POST /admin-api/oa/collect/task/{taskId}/run`
+8. 验证：`oa_wechat_mp_follower` 或 `oa_wechat_mp_article` 有新行
+
+HTTP 契约 IT（MockWebServer，CI 默认跑）：`M10ApiCollectorChannelAHttpIT`
+
+**Collector 路径对照**（OA 客户端 ↔ unify-collector-api）：
+
+| 平台 | OA 调用 | collector 实际路由 |
+|------|---------|-------------------|
+| 公众号粉丝 | `GET .../wechat-mp/follower-list?account_id=` | ✓ |
+| 公众号图文 | `GET .../wechat-mp/article-list?account_id=&fakeid=` | ✓ |
+| 抖音/快手/视频号 | `GET .../{platform}/follower-stats?account_id=` | 响应字段 `total_followers` |
+| 小红书 | `GET .../xiaohongshu/user/me` | 无 `follower-stats`；字段 `followers` |
+| B 站 | `GET .../bilibili/user/me` + `X-Account-Id` | 无 `follower-stats`；字段 `follower` |
+
 **dev 诊断接口**（仅 `dev` profile）：
 
 ```powershell

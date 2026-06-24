@@ -126,7 +126,15 @@ export interface WeworkVO {
   agentId: string
   secret?: string
   status: string
+  connStatus?: string
+  lastHealthCheckAt?: string
   createTime?: string
+}
+
+export interface WeworkTestConnectionResult {
+  success: boolean
+  connStatus: string
+  message: string
 }
 
 export interface PageResult<T> {
@@ -289,6 +297,10 @@ export function updateWework(data: {
 
 export function deleteWework(id: number): Promise<boolean> {
   return request.delete({ url: '/oa/internal/wework/delete', params: { id } })
+}
+
+export function testWeworkConnection(id: number): Promise<WeworkTestConnectionResult> {
+  return request.post({ url: `/oa/internal/wework/${id}/test-connection` })
 }
 
 export function getWeworkEmployeePage(params: {

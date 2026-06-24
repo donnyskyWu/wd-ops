@@ -40,6 +40,13 @@ public class AccountCreateReq {
 
     private String cookie;
 
+    /** 采集凭证扩展（ADR-047） */
+    private String mpToken;
+    private String authToken;
+    private String appId;
+    private String appSecret;
+    private String fieldMapping;
+
     @InDict("dict_account_status")
     private String status;
 

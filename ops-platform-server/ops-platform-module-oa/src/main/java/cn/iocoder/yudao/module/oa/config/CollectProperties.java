@@ -13,6 +13,7 @@ public class CollectProperties {
 
     private Stub stub = new Stub();
     private Retry retry = new Retry();
+    private Schedule schedule = new Schedule();
 
     @Data
     public static class Stub {
@@ -26,5 +27,13 @@ public class CollectProperties {
         private int maxAttempts = 3;
         /** 各次重试等待秒数，默认 60/300/900 */
         private List<Integer> backoffSeconds = List.of(60, 300, 900);
+    }
+
+    @Data
+    public static class Schedule {
+        /** 是否启用 cron 调度扫描 */
+        private boolean enabled = true;
+        /** 扫描 due 任务的 cron（默认每分钟整点） */
+        private String scanCron = "0 * * * * ?";
     }
 }

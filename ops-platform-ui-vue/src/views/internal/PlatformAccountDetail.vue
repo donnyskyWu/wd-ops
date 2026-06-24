@@ -36,7 +36,9 @@
         </div>
       </el-card>
 
-      <ContentWrap :title="editMode ? '编辑账号' : '账号信息'" style="margin-top: 16px">
+      <el-tabs v-model="activeTab" style="margin-top: 16px">
+        <el-tab-pane label="账号信息" name="basic">
+      <ContentWrap :title="editMode ? '编辑账号' : '账号信息'">
         <el-form :model="form" label-width="120px" :disabled="!editMode" style="max-width: 900px">
           <el-row :gutter="20">
             <el-col :span="12">
@@ -281,6 +283,18 @@
           </ContentWrap>
         </el-col>
       </el-row>
+        </el-tab-pane>
+
+        <el-tab-pane v-if="supportsCollect" label="采集" name="collect" lazy>
+          <PlatformAccountCollectTab
+            v-if="activeTab === 'collect'"
+            :account-id="detail.id"
+            :platform-type="detail.platformType || detail.platformName"
+            :account-info="collectAccountInfo"
+            @account-updated="loadDetail"
+          />
+        </el-tab-pane>
+      </el-tabs>
     </template>
     <el-empty v-else-if="loadError" :description="loadError">
       <el-button type="primary" @click="loadDetail">重试</el-button>
@@ -327,7 +341,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, nextTick, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as echarts from 'echarts'
@@ -361,9 +375,20 @@ import {
 } from '@/api/platform-account'
 import { PLATFORM_LABEL, type PlatformType } from '@/utils/enum-alias'
 import { isAccountBindingConflict, promptAccountForceReplace } from '@/utils/account-binding-conflict'
+import PlatformAccountCollectTab from './PlatformAccountCollectTab.vue'
+
+const COLLECTOR_PLATFORMS = [
+  'WECHAT_OFFICIAL',
+  'WECHAT_VIDEO',
+  'DOUYIN',
+  'KUAISHOU',
+  'XIAOHONGSHU',
+  'BILIBILI',
+] as const
 
 const route = useRoute()
 const router = useRouter()
+const activeTab = ref((route.query.tab as string) === 'collect' ? 'collect' : 'basic')
 const loading = ref(false)
 const loadError = ref('')
 const editMode = ref(false)
@@ -401,6 +426,20 @@ const showWechatOfficial = computed(() => {
   const platform = detail.value?.platformType || detail.value?.platformName
   return platform === 'WECHAT_OFFICIAL'
 })
+
+const supportsCollect = computed(() => {
+  const platform = detail.value?.platformType || detail.value?.platformName
+  return COLLECTOR_PLATFORMS.includes(platform as (typeof COLLECTOR_PLATFORMS)[number])
+})
+
+const collectAccountInfo = computed(() => ({
+  hasCookie: detail.value?.hasCookie,
+  hasMpToken: detail.value?.hasMpToken,
+  hasAuthToken: detail.value?.hasAuthToken,
+  hasAppSecret: detail.value?.hasAppSecret,
+  appId: detail.value?.appId,
+  fieldMapping: detail.value?.fieldMapping,
+}))
 
 const renewalRecords = ref<WechatCertRenewalVO[]>([])
 const renewalLoading = ref(false)
@@ -599,6 +638,12 @@ const loadDetail = async () => {
       ipGroupName: a.ipGroupName || (a.ipGroupId ? `IP组#${a.ipGroupId}` : '-'),
       followerCount: a.followerCount ?? 0,
       workCount: a.workCount ?? 0,
+      hasCookie: a.hasCookie,
+      hasMpToken: a.hasMpToken,
+      hasAuthToken: a.hasAuthToken,
+      hasAppSecret: a.hasAppSecret,
+      appId: a.appId,
+      fieldMapping: a.fieldMapping,
     }
     Object.assign(form, {
       accountName: a.accountName,

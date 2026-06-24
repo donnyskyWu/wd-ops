@@ -41,9 +41,8 @@ public class CollectConfigServiceImpl implements CollectConfigService {
     );
 
     /** Legacy seed sub_type values grouped under the platform tab. */
-    private static final Set<String> INTERNAL_PLATFORM_LEGACY_SUB_TYPES = Set.of(
-            "ACCOUNT_METRICS", "CONTENT_METRICS", "LIVE_METRICS"
-    );
+    private static final Set<String> INTERNAL_PLATFORM_LEGACY_SUB_TYPES =
+            InternalCollectPlatformSupport.LEGACY_PLATFORM_SUB_TYPES;
 
     private final CollectConfigMapper collectConfigMapper;
     private final AccountMapper accountMapper;
@@ -75,6 +74,7 @@ public class CollectConfigServiceImpl implements CollectConfigService {
     @Transactional
     @AuditLog(module = "M8-collect", action = "create")
     public Long create(String scope, CollectConfigCreateReq req) {
+        assertInternalPlatformWritable(scope, req.getPlatformType(), req.getSubType());
         validatePlatformType(scope, req.getPlatformType());
         if (CollectConfigScope.INTERNAL.equals(scope)) {
             if (req.getAccountId() != null) {
@@ -103,7 +103,9 @@ public class CollectConfigServiceImpl implements CollectConfigService {
     @AuditLog(module = "M8-collect", action = "update")
     public void update(String scope, CollectConfigUpdateReq req) {
         CollectConfigDO existing = getRequiredInScope(scope, req.getId());
+        assertInternalPlatformWritable(scope, existing.getPlatformType(), existing.getSubType());
         if (StrUtil.isNotBlank(req.getPlatformType())) {
+            assertInternalPlatformWritable(scope, req.getPlatformType(), req.getSubType());
             validatePlatformType(scope, req.getPlatformType());
             existing.setPlatformType(req.getPlatformType());
         }
@@ -166,6 +168,7 @@ public class CollectConfigServiceImpl implements CollectConfigService {
     @AuditLog(module = "M8-collect", action = "toggle-status")
     public void toggleStatus(String scope, Long id, String status) {
         CollectConfigDO existing = getRequiredInScope(scope, id);
+        assertInternalPlatformWritable(scope, existing.getPlatformType(), existing.getSubType());
         existing.setStatus(status);
         ConfigTenantSupport.fillUpdate(existing);
         collectConfigMapper.updateById(existing);
@@ -176,6 +179,7 @@ public class CollectConfigServiceImpl implements CollectConfigService {
     @AuditLog(module = "M8-collect", action = "test-connection")
     public boolean testConnection(String scope, Long id) {
         CollectConfigDO existing = getRequiredInScope(scope, id);
+        assertInternalPlatformWritable(scope, existing.getPlatformType(), existing.getSubType());
         if (CollectConfigScope.GENERAL.equals(scope)) {
             if (StrUtil.isBlank(existing.getDbHost()) || StrUtil.isBlank(existing.getDbName())) {
                 return false;
@@ -235,6 +239,7 @@ public class CollectConfigServiceImpl implements CollectConfigService {
     @AuditLog(module = "M8-collect", action = "delete")
     public void delete(String scope, Long id) {
         CollectConfigDO existing = getRequiredInScope(scope, id);
+        assertInternalPlatformWritable(scope, existing.getPlatformType(), existing.getSubType());
         collectConfigMapper.deleteById(existing.getId());
     }
 
@@ -426,5 +431,11 @@ public class CollectConfigServiceImpl implements CollectConfigService {
         vo.setSyncMode(entity.getSyncMode());
         vo.setConnStatus(entity.getConnStatus());
         return vo;
+    }
+
+    private void assertInternalPlatformWritable(String scope, String platformType, String subType) {
+        if (InternalCollectPlatformSupport.isDeprecatedPlatformCollectRow(scope, platformType, subType)) {
+            throw new ServiceException(OaErrorCodes.INTERNAL_COLLECT_PLATFORM_DEPRECATED);
+        }
     }
 }

@@ -73,7 +73,13 @@
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleRun(row)">立即执行</el-button>
+            <el-button
+              link
+              type="primary"
+              :loading="runLoadingTaskId === row.id"
+              :disabled="runLoadingTaskId !== null && runLoadingTaskId !== row.id"
+              @click="handleRun(row)"
+            >立即执行</el-button>
             <el-button link type="primary" @click="handleViewLog(row)">日志</el-button>
             <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
             <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
@@ -111,6 +117,7 @@ import {
 const router = useRouter()
 
 const loading = ref(false)
+const runLoadingTaskId = ref<number | null>(null)
 const tableData = ref<any[]>([])
 const searchForm = reactive({
   name: undefined as string | undefined,
@@ -151,10 +158,23 @@ const handleEdit = (row: any) => router.push(`/collect/task/${row.id}`)
 
 const handleRun = async (row: any) => {
   try {
-    await ElMessageBox.confirm(`确认立即执行【${row.name}】？`, '提示', { type: 'info' })
+    await ElMessageBox.confirm(`确认立即执行【${row.name}】？`, '提示', { type: 'warning' })
+  } catch {
+    return
+  }
+
+  runLoadingTaskId.value = row.id
+  ElMessage.info({ message: '采集中，请稍候…（全量采集可能耗时较长）', duration: 3000 })
+  try {
     await runCollectTask(row.id)
-    ElMessage.success('已触发执行')
-  } catch {}
+    ElMessage.success('执行完成，可在日志中查看详情')
+    await loadData()
+  } catch {
+    // 错误 toast 由 request 拦截器展示；仍刷新列表以反映 RUNNING / 最新日志
+    await loadData()
+  } finally {
+    runLoadingTaskId.value = null
+  }
 }
 const handleViewLog = (row: any) => router.push({ path: '/collect/log', query: { taskId: row.id } })
 const handleDelete = async (row: any) => {

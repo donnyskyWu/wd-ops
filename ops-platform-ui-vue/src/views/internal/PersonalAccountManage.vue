@@ -13,7 +13,7 @@
         <el-input v-model="searchForm.wechatId" placeholder="请输入微信号" clearable />
       </el-form-item>
       <el-form-item label="状态">
-        <DictSelect v-model="searchForm.status" dict-type="dict_status_enabled" placeholder="全部" clearable />
+        <DictSelect v-model="searchForm.status" dict-type="dict_config_status" placeholder="全部" clearable />
       </el-form-item>
       <template #extra>
         <el-button type="success" :loading="exportLoading" @click="handleExport">
@@ -64,7 +64,7 @@
         </el-table-column>
         <el-table-column prop="status" label="状态" width="80" align="center">
           <template #default="{ row }">
-            <DictLabel dict-type="dict_status_enabled" :value="row.status" />
+            <DictLabel dict-type="dict_config_status" :value="row.status" />
           </template>
         </el-table-column>
         <el-table-column label="操作" width="160" fixed="right" align="center">
@@ -106,7 +106,7 @@
       </el-table-column>
       <el-table-column prop="status" label="状态" width="80" align="center">
         <template #default="{ row }">
-          <DictLabel dict-type="dict_status_enabled" :value="row.status" />
+          <DictLabel dict-type="dict_config_status" :value="row.status" />
         </template>
       </el-table-column>
       <el-table-column prop="createTime" label="创建时间" width="170" />
@@ -188,7 +188,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="状态">
-              <DictSelect v-model="employeeForm.status" dict-type="dict_status_enabled" style="width: 100%" />
+              <DictSelect v-model="employeeForm.status" dict-type="dict_config_status" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -249,7 +249,7 @@
           />
         </el-form-item>
         <el-form-item label="状态">
-          <DictSelect v-model="personalForm.status" dict-type="dict_status_enabled" style="width: 100%" />
+          <DictSelect v-model="personalForm.status" dict-type="dict_config_status" style="width: 100%" />
         </el-form-item>
         <el-form-item label="关联企微">
           <el-select
@@ -289,7 +289,7 @@
             : '--' }}
         </el-descriptions-item>
         <el-descriptions-item label="状态">
-          <DictLabel dict-type="dict_status_enabled" :value="detailData.status" />
+          <DictLabel dict-type="dict_config_status" :value="detailData.status" />
         </el-descriptions-item>
         <el-descriptions-item label="奥创设备 ID">{{ detailData.aochuangWechatAccountId || '--' }}</el-descriptions-item>
         <el-descriptions-item label="绑定状态">

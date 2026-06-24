@@ -19,6 +19,8 @@ import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
 import cn.iocoder.yudao.module.oa.dal.dataobject.personal.PersonalWechatAccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.personal.PersonalWechatDailyStatsDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.PersonalWechatAccountMapper;
+import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataMergeSupport;
+import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataQueryService;
 import cn.iocoder.yudao.module.oa.service.personal.PersonalWechatCollectStatusService;
 import cn.iocoder.yudao.module.oa.service.personal.PersonalWechatDailyStatsService;
 import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
@@ -47,6 +49,7 @@ public class AccountAnalysisServiceImpl implements AccountAnalysisService {
     private final ContentMapper contentMapper;
     private final PersonalWechatAccountMapper personalWechatAccountMapper;
     private final PersonalWechatDailyStatsService personalWechatDailyStatsService;
+    private final CollectedDataQueryService collectedDataQueryService;
 
     @Override
     public PageResult<AccountAnalysisVO> list(String platform, Long ipGroupId, String keyword,
@@ -150,7 +153,7 @@ public class AccountAnalysisServiceImpl implements AccountAnalysisService {
                 .le(endDate != null, FollowerDailyDO::getStatDate, endDate)
                 .orderByDesc(FollowerDailyDO::getStatDate);
         DataScopeSupport.applyIpGroupScope(wrapper, FollowerDailyDO::getAccountId);
-        return followerDailyMapper.selectList(wrapper).stream().map(d -> {
+        List<FollowerAnalysisVO> legacy = followerDailyMapper.selectList(wrapper).stream().map(d -> {
             FollowerAnalysisVO vo = new FollowerAnalysisVO();
             vo.setStatDate(d.getStatDate());
             vo.setAccountId(d.getAccountId());
@@ -163,6 +166,11 @@ public class AccountAnalysisServiceImpl implements AccountAnalysisService {
             vo.setGrowthRate(d.getGrowthRate());
             return vo;
         }).collect(Collectors.toList());
+        if (!legacy.isEmpty() || !collectedDataQueryService.supportsPlatform(account.getPlatformType())) {
+            return legacy;
+        }
+        return collectedDataQueryService.listFollowerStats(tenantId, accountId, account.getPlatformType(),
+                account.getAccountName(), finalIpGroupName, startDate, endDate);
     }
 
     @Override
@@ -177,10 +185,14 @@ public class AccountAnalysisServiceImpl implements AccountAnalysisService {
                 .eq(ContentDO::getAccountId, accountId)
                 .orderByDesc(ContentDO::getPublishTime);
         DataScopeSupport.applyIpGroupScope(wrapper, ContentDO::getAccountId);
-        Page<ContentDO> page = contentMapper.selectPage(
-                new Page<>(pageNo == null ? 1 : pageNo, pageSize == null ? 20 : pageSize), wrapper);
-        List<ContentAnalysisVO> list = page.getRecords().stream().map(this::toContentVO).collect(Collectors.toList());
-        return new PageResult<>(list, page.getTotal());
+        List<ContentAnalysisVO> legacy = contentMapper.selectList(wrapper).stream()
+                .map(this::toContentVO).collect(Collectors.toList());
+        if (!collectedDataQueryService.supportsPlatform(account.getPlatformType())) {
+            return CollectedDataMergeSupport.page(legacy, pageNo, pageSize);
+        }
+        PageResult<ContentAnalysisVO> collected = collectedDataQueryService.pageCollectedContents(
+                tenantId, List.of(accountId), account.getPlatformType(), null, null, null, null, 1, Integer.MAX_VALUE);
+        return CollectedDataMergeSupport.mergeAndPage(legacy, collected.getList(), pageNo, pageSize);
     }
 
     @Override
@@ -213,7 +225,7 @@ public class AccountAnalysisServiceImpl implements AccountAnalysisService {
                 .eq(ContentDO::getAccountId, accountId)
                 .ge(ContentDO::getPublishTime, start.atStartOfDay())
                 .le(ContentDO::getPublishTime, end.plusDays(1).atStartOfDay());
-        return contentMapper.selectList(wrapper).stream()
+        List<Map<String, Object>> legacy = contentMapper.selectList(wrapper).stream()
                 .filter(c -> c.getPublishTime() != null)
                 .collect(Collectors.groupingBy(c -> c.getPublishTime().toLocalDate()))
                 .entrySet().stream()
@@ -226,6 +238,10 @@ public class AccountAnalysisServiceImpl implements AccountAnalysisService {
                     return point;
                 })
                 .collect(Collectors.toList());
+        if (!legacy.isEmpty() || !collectedDataQueryService.supportsPlatform(account.getPlatformType())) {
+            return legacy;
+        }
+        return collectedDataQueryService.contentTrendByDay(tenantId, accountId, account.getPlatformType(), start, end);
     }
 
     private ContentAnalysisVO toContentVO(ContentDO c) {
@@ -266,11 +282,22 @@ public class AccountAnalysisServiceImpl implements AccountAnalysisService {
                 .eq(FollowerDailyDO::getAccountId, account.getId())
                 .orderByDesc(FollowerDailyDO::getStatDate)
                 .last("LIMIT 1"));
-        vo.setFollowerCount(latest != null ? latest.getFollowerCount() : 0L);
+        long followerCount = latest != null && latest.getFollowerCount() != null ? latest.getFollowerCount() : 0L;
+        if (followerCount == 0L && collectedDataQueryService.supportsPlatform(account.getPlatformType())) {
+            Long collectedFollowers = collectedDataQueryService.latestFollowerCount(account.getTenantId(), account.getId());
+            if (collectedFollowers != null) {
+                followerCount = collectedFollowers;
+            }
+        }
+        vo.setFollowerCount(followerCount);
 
         long contentCount = contentMapper.selectCount(new LambdaQueryWrapper<ContentDO>()
                 .eq(ContentDO::getTenantId, account.getTenantId())
                 .eq(ContentDO::getAccountId, account.getId()));
+        if (collectedDataQueryService.supportsPlatform(account.getPlatformType())) {
+            contentCount += collectedDataQueryService.workCount(account.getTenantId(), account.getId(),
+                    account.getPlatformType());
+        }
         vo.setContentCount(Math.toIntExact(contentCount));
         return vo;
     }

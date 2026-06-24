@@ -10,8 +10,10 @@ import cn.iocoder.yudao.module.oa.api.dto.collect.CollectTaskUpdateReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.CollectTaskDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.personal.PersonalWechatAccountDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.personal.WeworkAccountDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.PersonalWechatAccountMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.personal.WeworkAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.CollectTaskMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.service.config.ConfigTenantSupport;
@@ -23,6 +25,7 @@ import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -37,11 +40,15 @@ public class CollectTaskServiceImpl implements CollectTaskService {
     private static final String DEFAULT_STATUS = "PENDING";
 
     private static final String PLATFORM_PERSONAL_WECHAT = "WECHAT_PERSONAL";
+    private static final String PLATFORM_WEWORK = "WEWORK";
     private static final String SOURCE_AOCHUANG = "AOCHUANG_API";
+    private static final String SOURCE_WECOM_API = "WECOM_API";
+    private static final String DATA_TYPE_WECOM_DAILY_STATS = "WECOM_DAILY_STATS";
 
     private final CollectTaskMapper collectTaskMapper;
     private final AccountMapper accountMapper;
     private final PersonalWechatAccountMapper personalWechatAccountMapper;
+    private final WeworkAccountMapper weworkAccountMapper;
     private final AesUtil aesUtil;
     private final CollectRunService collectRunService;
 
@@ -61,8 +68,9 @@ public class CollectTaskServiceImpl implements CollectTaskService {
         Page<CollectTaskDO> page = collectTaskMapper.selectPage(
                 new Page<>(pageNo == null ? 1 : pageNo, pageSize == null ? 20 : pageSize), wrapper);
         Map<Long, AccountDO> accountById = loadAccountsById(page.getRecords());
+        Map<Long, WeworkAccountDO> weworkById = loadWeworkAccountsById(page.getRecords());
         List<CollectTaskRespVO> list = page.getRecords().stream()
-                .map(entity -> toResp(entity, resolveAccountName(entity, accountById)))
+                .map(entity -> toResp(entity, resolveAccountName(entity, accountById, weworkById)))
                 .collect(Collectors.toList());
         return new PageResult<>(list, page.getTotal());
     }
@@ -78,6 +86,7 @@ public class CollectTaskServiceImpl implements CollectTaskService {
     @AuditLog(module = "M10-collect-task", action = "create")
     public Long create(CollectTaskCreateReq req) {
         validateCron(req.getCron());
+        normalizeCollectConfig(req);
         assertCollectTargetInTenant(req.getPlatformType(), req.getSource(), req.getAccountId());
         CollectTaskDO entity = new CollectTaskDO();
         applyCreate(entity, req);
@@ -91,6 +100,7 @@ public class CollectTaskServiceImpl implements CollectTaskService {
     @AuditLog(module = "M10-collect-task", action = "update")
     public void update(CollectTaskUpdateReq req) {
         validateCron(req.getCron());
+        normalizeCollectConfig(req);
         CollectTaskDO existing = getRequiredInTenant(req.getId());
         assertCollectTargetInTenant(req.getPlatformType(), req.getSource(), req.getAccountId());
         applyUpdate(existing, req);
@@ -132,11 +142,13 @@ public class CollectTaskServiceImpl implements CollectTaskService {
         entity.setAccountId(req.getAccountId());
         entity.setMethod(req.getMethod());
         entity.setSource(req.getSource());
+        entity.setDataType(resolveDataType(req.getSource(), req.getDataType()));
         entity.setFrequency(req.getFrequency());
         entity.setCron(req.getCron());
         entity.setStatus(StrUtil.blankToDefault(req.getStatus(), DEFAULT_STATUS));
         entity.setRunCount(0);
         entity.setFailCount(0);
+        entity.setNextRunAt(CollectNextRunHelper.computeNextRun(req.getCron(), LocalDateTime.now()));
         if (StrUtil.isNotBlank(req.getApiConfig())) {
             entity.setApiConfigEncrypted(aesUtil.encrypt(req.getApiConfig()));
         }
@@ -148,9 +160,11 @@ public class CollectTaskServiceImpl implements CollectTaskService {
         entity.setAccountId(req.getAccountId());
         entity.setMethod(req.getMethod());
         entity.setSource(req.getSource());
+        entity.setDataType(resolveDataType(req.getSource(), req.getDataType()));
         entity.setFrequency(req.getFrequency());
         entity.setCron(req.getCron());
         entity.setStatus(req.getStatus());
+        entity.setNextRunAt(CollectNextRunHelper.computeNextRun(req.getCron(), LocalDateTime.now()));
         if (StrUtil.isNotBlank(req.getApiConfig())) {
             entity.setApiConfigEncrypted(aesUtil.encrypt(req.getApiConfig()));
         }
@@ -184,6 +198,11 @@ public class CollectTaskServiceImpl implements CollectTaskService {
     }
 
     private void assertCollectTargetInTenant(String platformType, String source, Long accountId) {
+        if (isWeworkCollectTask(platformType, source)) {
+            WeworkAccountDO wework = weworkAccountMapper.selectById(accountId);
+            ConfigTenantSupport.getRequiredInTenant(wework);
+            return;
+        }
         if (PLATFORM_PERSONAL_WECHAT.equals(platformType) && SOURCE_AOCHUANG.equals(source)) {
             PersonalWechatAccountDO personal = personalWechatAccountMapper.selectById(accountId);
             ConfigTenantSupport.getRequiredInTenant(personal);
@@ -192,7 +211,68 @@ public class CollectTaskServiceImpl implements CollectTaskService {
         ConfigTenantSupport.assertAccountInTenant(accountMapper, accountId);
     }
 
+    private boolean isWeworkCollectTask(String platformType, String source) {
+        return PLATFORM_WEWORK.equals(platformType) && SOURCE_WECOM_API.equals(source);
+    }
+
+    private void normalizeCollectConfig(CollectTaskCreateReq req) {
+        req.setMethod(CollectPlatformDefaults.resolveMethod(req.getPlatformType(), req.getMethod()));
+        req.setSource(CollectPlatformDefaults.resolveSource(req.getPlatformType(), req.getSource()));
+        req.setDataType(CollectPlatformDefaults.normalizeStoredDataType(req.getDataType()));
+        assertCollectConfigReady(req.getPlatformType(), req.getMethod(), req.getSource());
+    }
+
+    private void normalizeCollectConfig(CollectTaskUpdateReq req) {
+        req.setMethod(CollectPlatformDefaults.resolveMethod(req.getPlatformType(), req.getMethod()));
+        req.setSource(CollectPlatformDefaults.resolveSource(req.getPlatformType(), req.getSource()));
+        req.setDataType(CollectPlatformDefaults.normalizeStoredDataType(req.getDataType()));
+        assertCollectConfigReady(req.getPlatformType(), req.getMethod(), req.getSource());
+    }
+
+    private void assertCollectConfigReady(String platformType, String method, String source) {
+        if (StrUtil.isBlank(method)) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "采集方式不能为空");
+        }
+        if (StrUtil.isBlank(source)) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "数据来源不能为空");
+        }
+        if (CollectPlatformDefaults.find(platformType).isEmpty() && StrUtil.isBlank(source)) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "当前平台未配置默认采集来源");
+        }
+    }
+
+    private String resolveDataType(String source, String dataType) {
+        if (StrUtil.isNotBlank(dataType)) {
+            return dataType;
+        }
+        if (SOURCE_WECOM_API.equals(source)) {
+            return DATA_TYPE_WECOM_DAILY_STATS;
+        }
+        return null;
+    }
+
+    private Map<Long, WeworkAccountDO> loadWeworkAccountsById(List<CollectTaskDO> records) {
+        List<Long> weworkAccountIds = records.stream()
+                .filter(entity -> isWeworkCollectTask(entity.getPlatformType(), entity.getSource()))
+                .map(CollectTaskDO::getAccountId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (weworkAccountIds.isEmpty()) {
+            return Map.of();
+        }
+        return weworkAccountMapper.selectBatchIds(weworkAccountIds).stream()
+                .collect(Collectors.toMap(WeworkAccountDO::getId, Function.identity(), (a, b) -> a));
+    }
+
     private String resolveAccountName(CollectTaskDO entity) {
+        if (isWeworkCollectTask(entity.getPlatformType(), entity.getSource())) {
+            WeworkAccountDO wework = weworkAccountMapper.selectById(entity.getAccountId());
+            if (wework != null && ConfigTenantSupport.requireTenantId().equals(wework.getTenantId())) {
+                return wework.getAccountName();
+            }
+            return null;
+        }
         if (PLATFORM_PERSONAL_WECHAT.equals(entity.getPlatformType())
                 && SOURCE_AOCHUANG.equals(entity.getSource())) {
             PersonalWechatAccountDO personal = personalWechatAccountMapper.selectById(entity.getAccountId());
@@ -205,7 +285,12 @@ public class CollectTaskServiceImpl implements CollectTaskService {
         return account != null ? account.getAccountName() : null;
     }
 
-    private String resolveAccountName(CollectTaskDO entity, Map<Long, AccountDO> accountById) {
+    private String resolveAccountName(CollectTaskDO entity, Map<Long, AccountDO> accountById,
+                                      Map<Long, WeworkAccountDO> weworkById) {
+        if (isWeworkCollectTask(entity.getPlatformType(), entity.getSource())) {
+            WeworkAccountDO wework = weworkById.get(entity.getAccountId());
+            return wework != null ? wework.getAccountName() : resolveAccountName(entity);
+        }
         if (PLATFORM_PERSONAL_WECHAT.equals(entity.getPlatformType())
                 && SOURCE_AOCHUANG.equals(entity.getSource())) {
             return resolveAccountName(entity);
@@ -223,6 +308,7 @@ public class CollectTaskServiceImpl implements CollectTaskService {
         vo.setAccountName(accountName);
         vo.setMethod(entity.getMethod());
         vo.setSource(entity.getSource());
+        vo.setDataType(entity.getDataType());
         vo.setFrequency(entity.getFrequency());
         vo.setCron(entity.getCron());
         vo.setApiConfig(maskIfPresent(entity.getApiConfigEncrypted()));

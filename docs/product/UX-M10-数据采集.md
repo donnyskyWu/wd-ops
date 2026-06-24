@@ -1,6 +1,6 @@
 # UX-M10-数据采集
 
-> **版本**：v1.0 | 2026-06-07
+> **版本**：v1.1 | 2026-06-24
 > **关联 PRD**：[`PRD-M10-数据采集.md`](./PRD-M10-数据采集.md)
 > **全局规范**：[`GLOBAL-CONVENTIONS.md`](../engineering/GLOBAL-CONVENTIONS.md)
 
@@ -46,9 +46,11 @@
 |------|------|------|------|
 | F-NAME | `<Input />` | - | ✅ |
 | F-PLATFORM | `<DictSelect dict-type="dict_platform_type" />` | 字典 | ✅ |
-| **F-ACCOUNT** | **`<AccountSelect />`** | `oa_account` | ✅ |
-| F-METHOD | `<DictSelect dict-type="dict_collect_method" />` | 字典 | ✅ |
-| F-SOURCE | `<DictSelect dict-type="dict_collect_source" />` | 字典 | ✅ |
+| **F-ACCOUNT** | **`<AccountSelect />`** 或企微 **`<WeworkAccountSelect />`** | `oa_account` / `oa_wework_account` | ✅ |
+| F-COLLECT-SCOPE | 只读 `<el-tag>` 列表（采集范围） | 平台默认 dataTypes | - |
+| ~~F-METHOD~~ | ~~隐藏~~ — 后端默认 `INTERNAL` | — | — |
+| ~~F-SOURCE~~ | ~~隐藏~~ — 后端按平台默认 | — | — |
+| ~~F-DATA-TYPE~~ | ~~隐藏~~ — 存库 null = 全量 | — | — |
 | F-FREQUENCY | `<DictSelect dict-type="dict_collect_frequency" />` | 字典 | ✅ |
 | F-CRON | `<Input />`（cron 表达式） | - | ✅ |
 | F-API-CONFIG | `<TextArea />`（API 配置 JSON） | - | - |
@@ -70,9 +72,13 @@
 | 控件 | 类型 |
 |------|------|
 | F-TASK | `<Select />`（所有任务） |
-| F-STATUS | `<DictSelect dict-type="dict_collect_status" />` |
+| F-STATUS | `<DictSelect dict-type="dict_collect_status" />`（含 `PARTIAL` 部分成功） |
 | F-DATE-RANGE | `<DateRangePicker />` |
-| TBL-LOG | 表格（含耗时、错误信息） |
+| TBL-LOG | 表格（含耗时、错误信息、状态） |
+| BTN-DETAIL | 打开详情抽屉 |
+| DETAIL-TYPE-RESULTS | 多类型时折叠面板展示 `typeResults`（每类型 recordCount / 错误 / 样本） |
+
+**日志详情 API**：`GET /admin-api/oa/collect/log/{id}` → `result.typeResults[]`（ADR-049）。
 
 ---
 

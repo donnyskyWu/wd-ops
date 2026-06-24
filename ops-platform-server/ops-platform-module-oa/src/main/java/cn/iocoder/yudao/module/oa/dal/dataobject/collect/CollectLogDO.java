@@ -20,4 +20,6 @@ public class CollectLogDO extends TenantBaseDO {
     private Integer recordCount;
     private String errorMessage;
     private Integer retryCount;
+    /** 采集结果摘要 JSON（不含凭证） */
+    private String resultJson;
 }

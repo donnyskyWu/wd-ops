@@ -17,14 +17,24 @@
         <el-form-item label="平台" prop="platformType">
           <DictSelect v-model="form.platformType" dict-type="dict_platform_type" placeholder="请选择平台" />
         </el-form-item>
-        <el-form-item label="账号" prop="accountId">
+        <el-form-item label="企微应用" prop="accountId" v-if="isWeworkCollect">
+          <WeworkAccountSelect v-model="form.accountId" placeholder="请选择企微应用" />
+          <div style="color: #909399; font-size: 12px; margin-top: 4px">
+            一任务对应一个企业微信应用，同步应用下全部员工日统计
+          </div>
+        </el-form-item>
+        <el-form-item label="账号" prop="accountId" v-else>
           <AccountSelect v-model="form.accountId" :platform-type="form.platformType" placeholder="请选择账号" />
         </el-form-item>
-        <el-form-item label="采集方式" prop="method">
-          <DictSelect v-model="form.method" dict-type="dict_collect_method" placeholder="请选择方式" />
-        </el-form-item>
-        <el-form-item label="数据来源" prop="source">
-          <DictSelect v-model="form.source" dict-type="dict_collect_source" placeholder="请选择来源" />
+        <el-form-item label="采集范围" v-if="collectScopeLabels.length">
+          <div class="collect-scope">
+            <el-tag v-for="label in collectScopeLabels" :key="label" size="small" type="info" style="margin: 2px 4px 2px 0">
+              {{ label }}
+            </el-tag>
+          </div>
+          <div style="color: #909399; font-size: 12px; margin-top: 4px">
+            保存后每次执行将按顺序采集以上全部数据类型，无需分别建任务
+          </div>
         </el-form-item>
         <el-form-item label="频率" prop="frequency">
           <DictSelect v-model="form.frequency" dict-type="dict_collect_frequency" placeholder="请选择频率" />
@@ -86,12 +96,62 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import DictSelect from '@/components/DictSelect.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
+import WeworkAccountSelect from '@/components/selectors/WeworkAccountSelect.vue'
 import { getCollectTaskDetail, createCollectTask, updateCollectTask } from '@/api/collect'
+
+type PlatformDefaults = {
+  source: string
+  method: string
+  scopeLabels: string[]
+}
+
+const PLATFORM_DEFAULTS: Record<string, PlatformDefaults> = {
+  WECHAT_OFFICIAL: {
+    source: 'WECHAT_MP_API',
+    method: 'INTERNAL',
+    scopeLabels: ['粉丝统计', '粉丝列表', '图文列表', '图文明细', '图文内容'],
+  },
+  WECHAT_VIDEO: {
+    source: 'WECHAT_CHANNELS_API',
+    method: 'INTERNAL',
+    scopeLabels: ['粉丝统计', '作品列表', '作品明细'],
+  },
+  DOUYIN: {
+    source: 'DOUYIN_OPEN_API',
+    method: 'INTERNAL',
+    scopeLabels: ['粉丝统计', '粉丝列表', '作品列表', '作品明细'],
+  },
+  KUAISHOU: {
+    source: 'KUAISHOU_OPEN_API',
+    method: 'INTERNAL',
+    scopeLabels: ['粉丝统计', '作品列表', '作品明细'],
+  },
+  XIAOHONGSHU: {
+    source: 'XIAOHONGSHU_OPEN_API',
+    method: 'INTERNAL',
+    scopeLabels: ['粉丝统计', '笔记列表', '笔记明细'],
+  },
+  BILIBILI: {
+    source: 'BILIBILI_OPEN_API',
+    method: 'INTERNAL',
+    scopeLabels: ['粉丝统计'],
+  },
+  WEWORK: {
+    source: 'WECOM_API',
+    method: 'INTERNAL',
+    scopeLabels: ['企微日统计'],
+  },
+  WECHAT_PERSONAL: {
+    source: 'AOCHUANG_API',
+    method: 'INTERNAL',
+    scopeLabels: ['好友同步', '消息同步'],
+  },
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -109,17 +169,43 @@ const form = reactive({
   accountId: undefined as number | undefined,
   method: undefined as string | undefined,
   source: undefined as string | undefined,
+  dataType: undefined as string | undefined,
   frequency: undefined as string | undefined,
   cron: '',
   apiConfig: '',
   status: 'PENDING',
 })
+
+const isWeworkCollect = computed(() => form.platformType === 'WEWORK')
+
+const collectScopeLabels = computed(() => {
+  if (!form.platformType) return []
+  return PLATFORM_DEFAULTS[form.platformType]?.scopeLabels ?? []
+})
+
+const applyPlatformDefaults = (platformType?: string) => {
+  if (!platformType) return
+  const defaults = PLATFORM_DEFAULTS[platformType]
+  if (!defaults) return
+  form.source = defaults.source
+  form.method = defaults.method
+  form.dataType = undefined
+}
+
+watch(
+  () => form.platformType,
+  (val, oldVal) => {
+    applyPlatformDefaults(val)
+    if (!isEdit.value && oldVal !== undefined && val !== oldVal) {
+      form.accountId = undefined
+    }
+  }
+)
+
 const rules: FormRules = {
   name: [{ required: true, message: '请输入任务名', trigger: 'blur' }],
   platformType: [{ required: true, message: '请选择平台', trigger: 'change' }],
   accountId: [{ required: true, message: '请选择账号', trigger: 'change' }],
-  method: [{ required: true, message: '请选择采集方式', trigger: 'change' }],
-  source: [{ required: true, message: '请选择数据来源', trigger: 'change' }],
   frequency: [{ required: true, message: '请选择频率', trigger: 'change' }],
   cron: [
     { required: true, message: '请输入 Cron 表达式', trigger: 'blur' },
@@ -154,6 +240,12 @@ const loadDetail = async () => {
     const data = await getCollectTaskDetail(id)
     Object.assign(form, data)
     Object.assign(monitor, data)
+    applyPlatformDefaults(form.platformType)
+    // AccountSelect clears v-model when platformType prop first binds; restore after child sync
+    if (data.accountId != null) {
+      await nextTick()
+      form.accountId = data.accountId
+    }
   } catch {
     ElMessage.error('加载任务详情失败')
   } finally {
@@ -171,11 +263,15 @@ const handleSubmit = async () => {
   }
   submitting.value = true
   try {
+    const payload = {
+      ...form,
+      dataType: form.dataType || undefined,
+    }
     if (isEdit.value) {
-      await updateCollectTask(form as any)
+      await updateCollectTask(payload as any)
       ElMessage.success('保存成功')
     } else {
-      await createCollectTask(form as any)
+      await createCollectTask(payload as any)
       ElMessage.success('创建成功')
     }
     router.push('/collect/task')
@@ -191,4 +287,5 @@ onMounted(loadDetail)
 
 <style scoped>
 .task-edit-page { padding: 20px; }
+.collect-scope { line-height: 28px; }
 </style>

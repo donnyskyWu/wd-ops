@@ -24,6 +24,16 @@ public class AccountDO extends TenantBaseDO {
     private Long simCardId;
     private Long ipGroupId;
     private String cookieEncrypted;
+    /** 公众号后台 Token（ADR-047） */
+    private String mpTokenEncrypted;
+    /** 平台专用 Token，如快手 cp API（ADR-047） */
+    private String authTokenEncrypted;
+    /** 账号级字段映射 JSON（ADR-047） */
+    private String fieldMapping;
+    /** AppId 档案可选（ADR-047） */
+    private String appId;
+    /** AppSecret AES-256 档案可选（ADR-047） */
+    private String appSecretEncrypted;
     /** 是否配置发布权限（ADR-022） */
     private Integer publishEnabled;
     private String status;

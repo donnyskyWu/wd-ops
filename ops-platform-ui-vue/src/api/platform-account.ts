@@ -22,6 +22,11 @@ export interface PlatformAccountVO {
   ipGroupName?: string
   status: string
   hasCookie?: boolean
+  hasMpToken?: boolean
+  hasAuthToken?: boolean
+  hasAppSecret?: boolean
+  appId?: string
+  fieldMapping?: string
   createTime?: string
   linkedAt?: string
   followerCount?: number
@@ -62,6 +67,11 @@ export interface PlatformAccountCreateReq {
   intermediaryId?: number
   ipGroupId?: number
   cookie?: string
+  mpToken?: string
+  authToken?: string
+  appId?: string
+  appSecret?: string
+  fieldMapping?: string
   status?: string
   forceReplace?: boolean
   reason?: string

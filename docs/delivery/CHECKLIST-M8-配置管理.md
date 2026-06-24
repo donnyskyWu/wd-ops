@@ -26,11 +26,11 @@
 
 
 
-- [x] 7 平台 Tab 切换
+- [x] 7 平台 Tab 切换（企微 / 个微奥创；平台类 Tab 已硬切至 M4 采集 Tab · ADR-047 V113）
 
-- [x] 平台类 Tab：AccountSelect 关联 `oa_account` + CRUD + 启用/禁用
+- [x] ~~平台类 Tab：AccountSelect 关联 `oa_account` + CRUD~~ → **已退役**（凭证 SSOT：`oa_account` + M4 采集 Tab）
 
-- [x] 快手特殊字段（cookie/authToken/fieldMapping/isLive）
+- [x] ~~快手特殊字段~~ → 迁至 `oa_account`（bind 携带）
 
 - [x] 企业微信 Tab：`WeworkAppConfigPanel`（`/oa/internal/wework/*`）
 
