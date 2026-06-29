@@ -33,4 +33,18 @@ class WechatMpArticleStatsSyncServiceTest {
         assertNull(WechatMpArticleStatsSyncService.resolveMsgid(null));
         assertNull(WechatMpArticleStatsSyncService.resolveMsgid(""));
     }
+
+    @Test
+    @DisplayName("resolvePublishArticleId: 多图文 composite ID 还原 publish article_id")
+    void resolvePublishArticleIdStripsItemIdx() {
+        assertEquals("ARTICLE_HASH", WechatMpArticleStatsSyncService.resolvePublishArticleId("ARTICLE_HASH_2"));
+        assertEquals("fp_pub_001", WechatMpArticleStatsSyncService.resolvePublishArticleId("fp_pub_001"));
+    }
+
+    @Test
+    @DisplayName("resolveNewsItemIndex: composite ID 解析 0-based 下标")
+    void resolveNewsItemIndexFromCompositeId() {
+        assertEquals(0, WechatMpArticleStatsSyncService.resolveNewsItemIndex("ARTICLE_HASH"));
+        assertEquals(1, WechatMpArticleStatsSyncService.resolveNewsItemIndex("ARTICLE_HASH_2"));
+    }
 }

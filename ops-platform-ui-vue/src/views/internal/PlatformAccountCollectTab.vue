@@ -95,21 +95,30 @@
         </template>
 
         <template v-if="platformType === 'WECHAT_OFFICIAL'">
-          <el-divider content-position="left">档案/开放平台（不参与采集）</el-divider>
+          <el-divider content-position="left">开放平台（已认证号采集）</el-divider>
           <el-form-item label="AppId">
-            <el-input v-model="credentialForm.appId" placeholder="可选，仅档案/续费/OpenAPI Phase 2" />
+            <el-input v-model="credentialForm.appId" placeholder="已认证公众号必填，用于 Open API 粉丝/统计" />
           </el-form-item>
           <el-form-item label="AppSecret">
             <el-input
               v-model="credentialForm.appSecret"
               type="password"
               show-password
-              :placeholder="accountInfo.hasAppSecret ? '已配置，留空则不修改' : '可选，不参与 MVP 采集'"
+              :placeholder="accountInfo.hasAppSecret ? '已配置，留空则不修改' : '已认证公众号必填（AES 加密存储）'"
             />
           </el-form-item>
         </template>
 
         <el-form-item>
+          <el-button
+            v-if="supportsQrLogin"
+            type="success"
+            plain
+            :loading="qrStarting"
+            @click="openQrLogin"
+          >
+            扫码登录
+          </el-button>
           <el-button type="primary" :loading="savingCredentials" @click="saveCredentials">
             保存凭证
           </el-button>
@@ -121,11 +130,41 @@
         </el-form-item>
       </el-form>
     </ContentWrap>
+
+    <el-dialog
+      v-model="qrDialogVisible"
+      title="扫码登录"
+      width="420px"
+      :close-on-click-modal="false"
+      @closed="handleQrDialogClosed"
+    >
+      <div v-loading="qrStarting" class="qr-dialog-body">
+        <p class="qr-status">{{ qrStatusText }}</p>
+        <div v-if="qrImageSrc" class="qr-image-wrap">
+          <img :src="qrImageSrc" alt="登录二维码" class="qr-image" />
+        </div>
+        <el-alert
+          v-if="qrServerWarning"
+          type="warning"
+          :closable="false"
+          show-icon
+          style="margin-top: 12px"
+          :title="qrServerWarning"
+        />
+        <p v-if="qrExpiresHint" class="qr-expires">{{ qrExpiresHint }}</p>
+      </div>
+      <template #footer>
+        <el-button @click="qrDialogVisible = false">关闭</el-button>
+        <el-button type="primary" plain :loading="qrStarting" @click="restartQrLogin">
+          刷新二维码
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ContentWrap from '@/components/ContentWrap.vue'
 import DictLabel from '@/components/DictLabel.vue'
@@ -136,6 +175,10 @@ import {
   syncCollectorCredentials,
   testCollectorConnection,
   batchImportCollectorAccounts,
+  startCollectorQrLogin,
+  pollCollectorQrLogin,
+  cancelCollectorQrLogin,
+  QR_LOGIN_PLATFORMS,
   type CollectorAccountBindVO,
 } from '@/api/collector-bind'
 
@@ -166,11 +209,34 @@ const syncing = ref(false)
 const batchImporting = ref(false)
 const bindInfo = ref<CollectorAccountBindVO | null>(null)
 
-const PLATFORM_HINTS: Record<string, string> = {
+const supportsQrLogin = computed(() => QR_LOGIN_PLATFORMS.has(props.platformType))
+
+const qrDialogVisible = ref(false)
+const qrStarting = ref(false)
+const qrSessionId = ref('')
+const qrImageSrc = ref('')
+const qrStatusText = ref('正在获取二维码…')
+const qrExpiresHint = ref('')
+let qrPollTimer: ReturnType<typeof setInterval> | null = null
+
+const QR_SERVER_WARNINGS: Partial<Record<string, string>> = {
   DOUYIN:
-    '抖音需 Cookie（含 sessionid）。采集粉丝/作品需 sec_uid：绑定后 Collector 会尝试从 Cookie 自动获取；若采集报「无法获取 sec_uid」，请在账号档案「平台账号 ID」填入 sec_uid（MS4wLjAB 开头长串，非短数字抖音号）后重新「同步凭证」。',
-  WECHAT_VIDEO: '视频号需 Cookie（扫码或导入）；绑定后使用 WECHAT_CHANNELS_API 采集源建任务。',
-  XIAOHONGSHU: '小红书需 Cookie（web_session + a1 必填）。F12 → Application → Cookies → xiaohongshu.com 复制全部后保存并「同步凭证」。Cookie 通常 2–7 天失效。',
+    '抖音/快手在 Docker 或云服务器上可能因 CDN 风控无法显示二维码；若失败请改用 Cookie 粘贴或本地 tools/local_qr_login.py。',
+  KUAISHOU:
+    '快手需创作者后台(cp.kuaishou.com)登录态；服务端 QR 可能受 CDN 限制，失败时请手动粘贴 Cookie。',
+}
+
+const qrServerWarning = computed(() => QR_SERVER_WARNINGS[props.platformType] ?? '')
+
+const PLATFORM_HINTS: Record<string, string> = {
+  WECHAT_OFFICIAL:
+    '公众号可「扫码登录」或手动粘贴 Cookie + MP Token。使用状态为「认证/续费」且配置 AppId+AppSecret 时，粉丝与统计走官方 Open API；图文列表/互动仍依赖 Cookie。扫码需使用已绑定该公众号管理员的微信。',
+  DOUYIN:
+    '抖音可「扫码登录」或粘贴 Cookie（含 sessionid）。采集粉丝/作品需 sec_uid：绑定后 Collector 会尝试从 Cookie 自动获取；若采集报「无法获取 sec_uid」，请在账号档案「平台账号 ID」填入 sec_uid（MS4wLjAB 开头长串，非短数字抖音号）后重新「同步凭证」。',
+  WECHAT_VIDEO: '视频号可「扫码登录」或粘贴 Cookie；绑定后使用 WECHAT_CHANNELS_API 采集源建任务。',
+  XIAOHONGSHU: '小红书可「扫码登录」或粘贴 Cookie（web_session + a1 必填）。Cookie 通常 2–7 天失效。',
+  KUAISHOU:
+    '快手可「扫码登录」或粘贴创作者后台 Cookie + Auth Token。Cookie 须含 cp 域 kuaishou.web.cp.api_st。',
   BILIBILI: 'Bilibili 需 Cookie（官方 QR 登录）；失效后请重新导入 Cookie 并同步至采集服务。',
 }
 
@@ -283,6 +349,103 @@ const handleSync = async () => {
   }
 }
 
+const stopQrPolling = () => {
+  if (qrPollTimer) {
+    clearInterval(qrPollTimer)
+    qrPollTimer = null
+  }
+}
+
+const toQrImageSrc = (base64: string) => {
+  const trimmed = base64.trim()
+  if (trimmed.startsWith('data:image')) return trimmed
+  return `data:image/png;base64,${trimmed}`
+}
+
+const pollQrOnce = async () => {
+  if (!qrSessionId.value) return
+  try {
+    const result = await pollCollectorQrLogin(props.accountId, qrSessionId.value)
+    qrStatusText.value = result.message || result.status
+    if (result.status === 'scanned') {
+      qrStatusText.value = '已扫码，请在手机上确认登录'
+    }
+    if (result.status === 'confirmed') {
+      stopQrPolling()
+      ElMessage.success(result.message || '扫码登录成功')
+      qrDialogVisible.value = false
+      resetCredentialInputs()
+      emit('accountUpdated')
+      await loadBind()
+      return
+    }
+    if (result.status === 'expired' || result.status === 'error') {
+      stopQrPolling()
+      qrStatusText.value = result.message || '二维码已失效，请刷新重试'
+    }
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : '轮询失败'
+    qrStatusText.value = msg
+  }
+}
+
+const startQrPolling = () => {
+  stopQrPolling()
+  qrPollTimer = setInterval(() => {
+    void pollQrOnce()
+  }, 2000)
+}
+
+const beginQrSession = async () => {
+  qrStarting.value = true
+  qrImageSrc.value = ''
+  qrStatusText.value = '正在获取二维码…'
+  try {
+    const result = await startCollectorQrLogin(props.accountId)
+    qrSessionId.value = result.sessionId
+    qrImageSrc.value = toQrImageSrc(result.qrcodeBase64)
+    qrStatusText.value = result.message || '请使用手机扫码登录'
+    if (result.expiresInSeconds) {
+      qrExpiresHint.value = `二维码约 ${Math.floor(result.expiresInSeconds / 60)} 分钟内有效`
+    }
+    startQrPolling()
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : '获取二维码失败'
+    qrStatusText.value = msg
+    ElMessage.error(msg)
+  } finally {
+    qrStarting.value = false
+  }
+}
+
+const openQrLogin = async () => {
+  qrDialogVisible.value = true
+  await beginQrSession()
+}
+
+const restartQrLogin = async () => {
+  if (qrSessionId.value) {
+    try {
+      await cancelCollectorQrLogin(props.accountId, qrSessionId.value)
+    } catch {
+      // ignore cancel errors
+    }
+  }
+  stopQrPolling()
+  qrSessionId.value = ''
+  await beginQrSession()
+}
+
+const handleQrDialogClosed = () => {
+  stopQrPolling()
+  if (qrSessionId.value) {
+    void cancelCollectorQrLogin(props.accountId, qrSessionId.value).catch(() => undefined)
+  }
+  qrSessionId.value = ''
+  qrImageSrc.value = ''
+  qrExpiresHint.value = ''
+}
+
 const handleBatchImport = async () => {
   try {
     await ElMessageBox.confirm(
@@ -315,6 +478,7 @@ watch(
 )
 
 onMounted(loadBind)
+onBeforeUnmount(stopQrPolling)
 </script>
 
 <style scoped>
@@ -322,6 +486,29 @@ onMounted(loadBind)
   padding-bottom: 8px;
 }
 .text-muted {
+  color: #909399;
+}
+.qr-dialog-body {
+  text-align: center;
+}
+.qr-status {
+  margin: 0 0 12px;
+  color: #606266;
+}
+.qr-image-wrap {
+  display: flex;
+  justify-content: center;
+}
+.qr-image {
+  width: 240px;
+  height: 240px;
+  object-fit: contain;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+}
+.qr-expires {
+  margin-top: 12px;
+  font-size: 12px;
   color: #909399;
 }
 </style>

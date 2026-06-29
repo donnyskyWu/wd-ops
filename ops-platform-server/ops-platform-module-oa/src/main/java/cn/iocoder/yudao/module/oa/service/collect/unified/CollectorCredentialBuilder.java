@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 从 oa_account 组装 unify-collector credential JSON（ADR-047 · 不读 AppSecret）。
+ * 从 oa_account 组装 unify-collector credential JSON（ADR-047 · Phase 2 已认证号含 AppSecret）。
  */
 @Component
 @RequiredArgsConstructor
@@ -53,12 +53,22 @@ public class CollectorCredentialBuilder {
         Map<String, Object> credential = new LinkedHashMap<>();
         switch (platform) {
             case "WECHAT_OFFICIAL" -> {
+                boolean official = WechatMpOfficialCredentialSupport.supportsOfficialApi(account);
+                if (official) {
+                    String appSecret = decrypt(account.getAppSecretEncrypted());
+                    if (StrUtil.isBlank(appSecret)) {
+                        throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "已认证公众号 AppSecret 无效或解密失败");
+                    }
+                    credential.put("appid", account.getAppId().trim());
+                    credential.put("secret", appSecret);
+                }
                 String token = decrypt(account.getMpTokenEncrypted());
-                if (StrUtil.isBlank(cookie) || StrUtil.isBlank(token)) {
+                if (StrUtil.isNotBlank(cookie) && StrUtil.isNotBlank(token)) {
+                    credential.put("cookie", cookie);
+                    credential.put("token", token);
+                } else if (!official) {
                     throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "公众号凭证不完整，需 cookie 与 mp_token");
                 }
-                credential.put("cookie", cookie);
-                credential.put("token", token);
             }
             case "WECHAT_VIDEO", "DOUYIN", "XIAOHONGSHU", "BILIBILI" -> {
                 if (StrUtil.isBlank(cookie)) {

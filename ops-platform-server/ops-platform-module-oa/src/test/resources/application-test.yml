@@ -26,6 +26,8 @@ oa:
     stub: true
   wework:
     stub: true
+  wechat-official:
+    stub: true
 
 logging:
   level:

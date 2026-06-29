@@ -83,6 +83,7 @@ declare module 'vue' {
     ElTree: typeof import('element-plus/es')['ElTree']
     ElTreeSelect: typeof import('element-plus/es')['ElTreeSelect']
     ElUpload: typeof import('element-plus/es')['ElUpload']
+    FollowerAvatar: typeof import('./components/FollowerAvatar.vue')['default']
     ImageResizeNodeView: typeof import('./components/editor/ImageResizeNodeView.vue')['default']
     ImageUploadField: typeof import('./components/ImageUploadField.vue')['default']
     IpGroupTreeSelect: typeof import('./components/selectors/IpGroupTreeSelect.vue')['default']
@@ -115,6 +116,7 @@ declare module 'vue' {
     TypesetCompareDialog: typeof import('./components/layout/TypesetCompareDialog.vue')['default']
     TypesettingPanel: typeof import('./components/layout/TypesettingPanel.vue')['default']
     UserSelect: typeof import('./components/selectors/UserSelect.vue')['default']
+    WechatQuickTypesetDialog: typeof import('./components/layout/WechatQuickTypesetDialog.vue')['default']
     WeworkAccountSelect: typeof import('./components/selectors/WeworkAccountSelect.vue')['default']
     WeworkAppConfigPanel: typeof import('./components/WeworkAppConfigPanel.vue')['default']
   }

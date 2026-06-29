@@ -59,7 +59,7 @@
       @size-change="handleSearch"
     />
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="960px" destroy-on-close @close="resetForm">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="1200px" destroy-on-close @close="resetForm">
       <el-form :model="formData" ref="formRef" :rules="formRules" label-width="120px">
         <el-divider content-position="left">基本信息</el-divider>
         <el-row :gutter="16">
@@ -112,82 +112,164 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="关联赛事" prop="selectedCompetitions">
-          <div class="competition-picker">
-            <el-tag
-              v-for="item in formData.selectedCompetitions"
-              :key="item.competitionId"
-              closable
-              class="competition-tag"
-              @close="removeCompetition(item.competitionId)"
-            >
-              {{ item.competitionName }}
-            </el-tag>
-            <el-button type="primary" link @click="matchDialogVisible = true">+ 选择赛事</el-button>
-          </div>
-        </el-form-item>
         <el-form-item label="计划描述">
           <el-input v-model="formData.description" type="textarea" :rows="2" maxlength="500" show-word-limit />
         </el-form-item>
 
-        <el-divider content-position="left">SOP 步骤分配</el-divider>
-        <el-table :data="formData.steps" border size="small" empty-text="请先选择 SOP 模板">
-          <el-table-column prop="nodeOrder" label="#" width="50" align="center" />
-          <el-table-column prop="nodeName" label="步骤名称" min-width="120" />
-          <el-table-column label="赛事" min-width="260">
-            <template #default="{ row }">
-              <el-select
-                v-model="row.competitionIds"
-                multiple
-                collapse-tags
-                collapse-tags-tooltip
-                placeholder="选择赛事（可多选）"
-                style="width: 100%"
-                :disabled="!formData.selectedCompetitions.length"
-              >
-                <el-option
-                  v-for="item in formData.selectedCompetitions"
-                  :key="item.competitionId"
-                  :label="item.competitionName"
-                  :value="item.competitionId"
+        <!-- 新增：按日选赛事矩阵 -->
+        <template v-if="!editingPlanId">
+          <el-divider content-position="left">每日赛事安排</el-divider>
+          <p v-if="!planDays.length" class="section-tip">请先选择日期范围</p>
+          <div v-else class="day-matrix-wrap">
+            <div class="day-matrix">
+              <div v-for="day in planDays" :key="day" class="day-column">
+                <div class="day-header">{{ day }}</div>
+                <div class="day-matches">
+                  <el-tag
+                    v-for="item in dayMatches[day] || []"
+                    :key="item.scheduleId"
+                    closable
+                    size="small"
+                    class="day-match-tag"
+                    @close="removeDayMatch(day, item.scheduleId)"
+                  >
+                    {{ item.displayName }}
+                  </el-tag>
+                </div>
+                <el-button type="primary" link size="small" @click="openMatchDialog(day)">+ 选择赛事</el-button>
+              </div>
+            </div>
+          </div>
+
+          <el-divider content-position="left">任务预览（赛事 × 流程节点）</el-divider>
+          <p v-if="!taskPreviewRows.length" class="section-tip">
+            选择 SOP 模板、IP 组并为至少一天安排赛事后，将自动生成任务预览
+          </p>
+          <el-table v-else :data="taskPreviewRows" border size="small" max-height="360">
+            <el-table-column prop="planDate" label="日期" width="110" />
+            <el-table-column prop="competitionName" label="赛事" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="nodeName" label="步骤" width="120" show-overflow-tooltip />
+            <el-table-column label="执行岗位" width="110">
+              <template #default="{ row }">
+                <DictLabel dict-type="dict_position" :value="row.executorRole" :fallback="row.executorRole" />
+              </template>
+            </el-table-column>
+            <el-table-column label="执行人" min-width="160">
+              <template #default="{ row }">
+                <UserSelect
+                  v-model="row.assigneeId"
+                  :ip-group-id="formData.ipGroupId"
+                  :disabled="!formData.ipGroupId"
+                  placeholder="选择执行人"
+                  @change="() => { row.assigneeFallback = false }"
                 />
-              </el-select>
-            </template>
-          </el-table-column>
-          <el-table-column prop="executorRole" label="执行岗位" width="110" />
-          <el-table-column label="执行人" min-width="180">
-            <template #default="{ row }">
-              <UserSelect
-                v-model="row.assigneeId"
-                :ip-group-id="formData.ipGroupId"
-                :disabled="!formData.ipGroupId"
-                placeholder="选择 IP 组成员"
-              />
-            </template>
-          </el-table-column>
-          <el-table-column label="开始时间" width="190">
-            <template #default="{ row }">
-              <el-date-picker
-                v-model="row.scheduledStart"
-                type="datetime"
-                value-format="YYYY-MM-DD HH:mm:ss"
-                placeholder="默认计划开始"
-                style="width: 100%"
-              />
-            </template>
-          </el-table-column>
-          <el-table-column label="结束时间" width="190">
-            <template #default="{ row }">
-              <el-date-picker
-                v-model="row.scheduledEnd"
-                type="datetime"
-                value-format="YYYY-MM-DD HH:mm:ss"
-                placeholder="默认计划结束"
-                style="width: 100%"
-              />
-            </template>
-          </el-table-column>
-        </el-table>
+                <el-tag v-if="row.assigneeFallback" type="warning" size="small" class="fallback-tag">组长默认</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="开始时间" width="190">
+              <template #default="{ row }">
+                <el-date-picker
+                  v-model="row.scheduledStart"
+                  type="datetime"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                  style="width: 100%"
+                  size="small"
+                />
+              </template>
+            </el-table-column>
+            <el-table-column label="结束时间" width="190">
+              <template #default="{ row }">
+                <el-date-picker
+                  v-model="row.scheduledEnd"
+                  type="datetime"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                  style="width: 100%"
+                  size="small"
+                />
+              </template>
+            </el-table-column>
+          </el-table>
+        </template>
+
+        <!-- 编辑草稿：沿用步骤分配 -->
+        <template v-else>
+          <el-form-item label="关联赛事" prop="selectedCompetitions">
+            <div class="competition-picker">
+              <el-tag
+                v-for="item in formData.selectedCompetitions"
+                :key="item.competitionId"
+                closable
+                class="competition-tag"
+                @close="removeCompetition(item.competitionId)"
+              >
+                {{ item.competitionName }}
+              </el-tag>
+              <el-button type="primary" link @click="matchDialogVisible = true">+ 选择赛事</el-button>
+            </div>
+          </el-form-item>
+          <el-divider content-position="left">SOP 步骤分配</el-divider>
+          <el-table :data="formData.steps" border size="small" empty-text="请先选择 SOP 模板">
+            <el-table-column prop="nodeOrder" label="#" width="50" align="center" />
+            <el-table-column prop="nodeName" label="步骤名称" min-width="120" />
+            <el-table-column label="赛事" min-width="260">
+              <template #default="{ row }">
+                <el-select
+                  v-model="row.competitionIds"
+                  multiple
+                  collapse-tags
+                  collapse-tags-tooltip
+                  placeholder="选择赛事（可多选）"
+                  style="width: 100%"
+                  :disabled="!formData.selectedCompetitions.length"
+                >
+                  <el-option
+                    v-for="item in formData.selectedCompetitions"
+                    :key="item.competitionId"
+                    :label="item.competitionName"
+                    :value="item.competitionId"
+                  />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="执行岗位" width="110">
+              <template #default="{ row }">
+                <DictLabel dict-type="dict_position" :value="row.executorRole" :fallback="row.executorRole" />
+              </template>
+            </el-table-column>
+            <el-table-column label="执行人" min-width="180">
+              <template #default="{ row }">
+                <UserSelect
+                  v-model="row.assigneeId"
+                  :ip-group-id="formData.ipGroupId"
+                  :disabled="!formData.ipGroupId"
+                  placeholder="选择 IP 组成员"
+                />
+              </template>
+            </el-table-column>
+            <el-table-column label="开始时间" width="190">
+              <template #default="{ row }">
+                <el-date-picker
+                  v-model="row.scheduledStart"
+                  type="datetime"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                  placeholder="默认计划开始"
+                  style="width: 100%"
+                />
+              </template>
+            </el-table-column>
+            <el-table-column label="结束时间" width="190">
+              <template #default="{ row }">
+                <el-date-picker
+                  v-model="row.scheduledEnd"
+                  type="datetime"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                  placeholder="默认计划结束"
+                  style="width: 100%"
+                />
+              </template>
+            </el-table-column>
+          </el-table>
+        </template>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -250,14 +332,15 @@
     <MatchSelectDialog
       v-model:visible="matchDialogVisible"
       multiple
-      :exclude-ids="formData.selectedCompetitions.map((item) => item.competitionId)"
+      :initial-date="matchDialogDate"
+      :exclude-ids="allSelectedMatchIds"
       @confirm="handleMatchConfirm"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
@@ -268,7 +351,18 @@ import UserSelect from '@/components/selectors/UserSelect.vue'
 import MatchSelectDialog from '@/components/selectors/MatchSelectDialog.vue'
 import { getSopTemplateList, getSopNodeList } from '@/api/sop'
 import { toCompetitionId, toCompetitionName, type MatchVO } from '@/api/match'
+import { getIpGroupDetail, getIpGroupMembers } from '@/api/ip-group'
 import { formatDateTime } from '@/utils/index'
+import {
+  buildIpGroupContext,
+  buildStepsFromTasks,
+  collectAllMatches,
+  defaultPlanDateRange,
+  enumeratePlanDays,
+  generatePlanTasks,
+  type PlanTaskPreviewRow,
+} from '@/utils/planTaskGeneration'
+import type { SopNodeVO } from '@/types/sop'
 import {
   getContentPlanPage,
   getContentPlan,
@@ -301,6 +395,13 @@ const planList = ref<ContentPlanVO[]>([])
 const total = ref(0)
 const templateOptions = ref<Array<{ id: number; templateName: string }>>([])
 const matchDialogVisible = ref(false)
+const matchDialogDate = ref<string>()
+const matchDialogDay = ref<string>()
+const sopNodes = ref<SopNodeVO[]>([])
+const dayMatches = reactive<Record<string, MatchVO[]>>({})
+const taskPreviewRows = ref<PlanTaskPreviewRow[]>([])
+const ipGroupLeaderId = ref<number | null>(null)
+const ipGroupMembers = ref<Awaited<ReturnType<typeof getIpGroupMembers>>>([])
 const searchForm = reactive({ pageNo: 1, pageSize: 20, planName: undefined as string | undefined, status: undefined as string | undefined })
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增计划')
@@ -318,13 +419,20 @@ const formData = reactive({
   steps: [] as StepFormRow[],
 })
 
-const validateCompetitions = (_rule: unknown, value: ContentPlanCompetitionVO[], callback: (err?: Error) => void) => {
-  if (!value?.length) {
+const validateCompetitions = (_rule: unknown, _value: ContentPlanCompetitionVO[], callback: (err?: Error) => void) => {
+  if (editingPlanId.value && !formData.selectedCompetitions?.length) {
     callback(new Error('请至少选择一个赛事'))
     return
   }
   callback()
 }
+
+const planDays = computed(() => {
+  if (formData.dateRange?.length !== 2) return []
+  return enumeratePlanDays(formData.dateRange[0], formData.dateRange[1])
+})
+
+const allSelectedMatchIds = computed(() => collectAllMatches(dayMatches).map((m) => m.scheduleId))
 
 const formRules = {
   planName: [
@@ -336,6 +444,55 @@ const formRules = {
   ipGroupId: [{ required: true, message: '请选择 IP 组', trigger: 'change' }],
   selectedCompetitions: [{ validator: validateCompetitions, trigger: 'change' }],
 }
+
+const clearDayMatches = () => {
+  Object.keys(dayMatches).forEach((k) => delete dayMatches[k])
+  taskPreviewRows.value = []
+}
+
+const syncDayMatchKeys = () => {
+  const days = new Set(planDays.value)
+  Object.keys(dayMatches).forEach((day) => {
+    if (!days.has(day)) delete dayMatches[day]
+  })
+  planDays.value.forEach((day) => {
+    if (!dayMatches[day]) dayMatches[day] = []
+  })
+}
+
+const loadIpGroupContext = async (ipGroupId?: number) => {
+  if (!ipGroupId) {
+    ipGroupLeaderId.value = null
+    ipGroupMembers.value = []
+    return
+  }
+  const [detail, members] = await Promise.all([
+    getIpGroupDetail(ipGroupId),
+    getIpGroupMembers(ipGroupId),
+  ])
+  ipGroupLeaderId.value = detail.leaderId ?? null
+  ipGroupMembers.value = members
+}
+
+const regenerateTaskPreview = () => {
+  if (!sopNodes.value.length || !formData.ipGroupId) {
+    taskPreviewRows.value = []
+    return
+  }
+  const ctx = buildIpGroupContext(ipGroupMembers.value, ipGroupLeaderId.value)
+  taskPreviewRows.value = generatePlanTasks(
+    sopNodes.value,
+    dayMatches,
+    ctx,
+    taskPreviewRows.value,
+  )
+}
+
+watch(
+  () => [formData.templateId, formData.ipGroupId, dayMatches, sopNodes.value.length] as const,
+  () => regenerateTaskPreview(),
+  { deep: true },
+)
 
 const loadList = async () => {
   loading.value = true
@@ -363,6 +520,9 @@ const handleReset = () => { searchForm.planName = undefined; searchForm.status =
 
 const resetForm = () => {
   editingPlanId.value = null
+  sopNodes.value = []
+  clearDayMatches()
+  matchDialogDay.value = undefined
   Object.assign(formData, {
     planName: '',
     dateRange: [],
@@ -374,24 +534,49 @@ const resetForm = () => {
   })
 }
 
+const openMatchDialog = (day: string) => {
+  matchDialogDay.value = day
+  matchDialogDate.value = day
+  matchDialogVisible.value = true
+}
+
+const removeDayMatch = (day: string, scheduleId: string) => {
+  dayMatches[day] = (dayMatches[day] || []).filter((m) => m.scheduleId !== scheduleId)
+  regenerateTaskPreview()
+}
+
 const handleMatchConfirm = (matches: MatchVO[]) => {
-  const existingIds = new Set(formData.selectedCompetitions.map((item) => item.competitionId))
-  matches.forEach((match) => {
-    const competitionId = toCompetitionId(match)
-    if (existingIds.has(competitionId)) return
-    formData.selectedCompetitions.push({
-      competitionId,
-      competitionName: toCompetitionName(match),
+  if (editingPlanId.value) {
+    const existingIds = new Set(formData.selectedCompetitions.map((item) => item.competitionId))
+    matches.forEach((match) => {
+      const competitionId = toCompetitionId(match)
+      if (existingIds.has(competitionId)) return
+      formData.selectedCompetitions.push({
+        competitionId,
+        competitionName: toCompetitionName(match),
+      })
+      existingIds.add(competitionId)
     })
-    existingIds.add(competitionId)
-  })
-  if (formData.selectedCompetitions.length === 1) {
-    const onlyId = formData.selectedCompetitions[0].competitionId
-    formData.steps.forEach((step) => {
-      if (!step.competitionIds?.length) step.competitionIds = [onlyId]
-    })
+    if (formData.selectedCompetitions.length === 1) {
+      const onlyId = formData.selectedCompetitions[0].competitionId
+      formData.steps.forEach((step) => {
+        if (!step.competitionIds?.length) step.competitionIds = [onlyId]
+      })
+    }
+    formRef.value?.validateField('selectedCompetitions')
+    return
   }
-  formRef.value?.validateField('selectedCompetitions')
+  const day = matchDialogDay.value
+  if (!day) return
+  if (!dayMatches[day]) dayMatches[day] = []
+  const existing = new Set(dayMatches[day].map((m) => m.scheduleId))
+  matches.forEach((match) => {
+    if (!existing.has(match.scheduleId)) {
+      dayMatches[day].push(match)
+      existing.add(match.scheduleId)
+    }
+  })
+  regenerateTaskPreview()
 }
 
 const removeCompetition = (competitionId: string) => {
@@ -402,16 +587,22 @@ const removeCompetition = (competitionId: string) => {
   formRef.value?.validateField('selectedCompetitions')
 }
 
-const handleIpGroupChange = () => {
-  if (editingPlanId.value) return
-  formData.steps.forEach((step) => {
-    step.assigneeId = undefined
-  })
+const handleIpGroupChange = async (ipGroupId?: number) => {
+  await loadIpGroupContext(ipGroupId ?? formData.ipGroupId)
+  if (editingPlanId.value) {
+    formData.steps.forEach((step) => {
+      step.assigneeId = undefined
+    })
+    return
+  }
+  regenerateTaskPreview()
 }
 
 const handleAdd = () => {
   dialogTitle.value = '新增计划'
   resetForm()
+  formData.dateRange = [...defaultPlanDateRange()]
+  syncDayMatchKeys()
   dialogVisible.value = true
 }
 
@@ -446,13 +637,15 @@ const handleEdit = async (row: ContentPlanVO) => {
 
 const handleTemplateChange = async (templateId: number) => {
   if (!templateId) {
+    sopNodes.value = []
     formData.steps = []
+    taskPreviewRows.value = []
     return
   }
   const nodes = await getSopNodeList(templateId)
-  formData.steps = nodes
-    .sort((a, b) => a.nodeOrder - b.nodeOrder)
-    .map((node) => ({
+  sopNodes.value = nodes.sort((a, b) => a.nodeOrder - b.nodeOrder)
+  if (editingPlanId.value) {
+    formData.steps = sopNodes.value.map((node) => ({
       nodeId: node.id,
       nodeName: node.nodeName,
       nodeOrder: node.nodeOrder,
@@ -464,59 +657,101 @@ const handleTemplateChange = async (templateId: number) => {
       scheduledStart: undefined,
       scheduledEnd: undefined,
     }))
+  } else {
+    regenerateTaskPreview()
+  }
 }
 
 const handleDateRangeChange = () => {
-  if (formData.dateRange?.length === 2) {
+  if (editingPlanId.value && formData.dateRange?.length === 2) {
     formData.steps.forEach((step) => {
       if (!step.scheduledStart) step.scheduledStart = `${formData.dateRange[0]} 00:00:00`
       if (!step.scheduledEnd) step.scheduledEnd = `${formData.dateRange[1]} 23:59:59`
     })
+    return
   }
+  syncDayMatchKeys()
+  regenerateTaskPreview()
 }
 
 const handleSubmit = async () => {
   if (!formRef.value) return
-  await formRef.value.validate()
-  if (formData.steps.length === 0) {
-    ElMessage.warning('请先选择包含节点的 SOP 模板')
+  try {
+    await formRef.value.validate()
+  } catch {
     return
   }
-  if (formData.steps.some((step) => !step.assigneeId)) {
-    ElMessage.warning('请为每个 SOP 步骤分配执行人')
-    return
+
+  if (editingPlanId.value) {
+    if (formData.steps.length === 0) {
+      ElMessage.warning('请先选择包含节点的 SOP 模板')
+      return
+    }
+    if (formData.steps.some((step) => !step.assigneeId)) {
+      ElMessage.warning('请为每个 SOP 步骤分配执行人')
+      return
+    }
+    if (formData.steps.some((step) => !step.competitionIds?.length)) {
+      ElMessage.warning('请为每个 SOP 步骤分配赛事')
+      return
+    }
+  } else {
+    if (!taskPreviewRows.value.length) {
+      ElMessage.warning('请为计划日期安排赛事并生成任务')
+      return
+    }
+    if (taskPreviewRows.value.some((row) => !row.assigneeId)) {
+      ElMessage.warning('请为每条任务分配执行人')
+      return
+    }
   }
-  if (formData.steps.some((step) => !step.competitionIds?.length)) {
-    ElMessage.warning('请为每个 SOP 步骤分配赛事')
-    return
-  }
+
   submitting.value = true
   try {
-    const payload = {
-      planName: formData.planName,
-      startDate: formData.dateRange[0],
-      endDate: formData.dateRange[1],
-      description: formData.description || undefined,
-      competitions: formData.selectedCompetitions.map((item) => ({
-        competitionId: item.competitionId,
-        competitionName: item.competitionName,
-      })),
-      steps: formData.steps.map((step) => ({
-        nodeId: step.nodeId,
-        competitionIds: step.competitionIds,
-        assigneeIds: step.assigneeId ? [step.assigneeId] : [],
-        scheduledStart: step.scheduledStart,
-        scheduledEnd: step.scheduledEnd,
-      })),
-    }
     if (editingPlanId.value) {
+      const payload = {
+        planName: formData.planName,
+        startDate: formData.dateRange[0],
+        endDate: formData.dateRange[1],
+        description: formData.description || undefined,
+        competitions: formData.selectedCompetitions.map((item) => ({
+          competitionId: item.competitionId,
+          competitionName: item.competitionName,
+        })),
+        steps: formData.steps.map((step) => ({
+          nodeId: step.nodeId,
+          competitionIds: step.competitionIds,
+          assigneeIds: step.assigneeId ? [step.assigneeId] : [],
+          scheduledStart: step.scheduledStart,
+          scheduledEnd: step.scheduledEnd,
+        })),
+      }
       await updateContentPlan({ id: editingPlanId.value, ...payload })
       ElMessage.success('草稿计划已更新')
     } else {
+      const allMatches = collectAllMatches(dayMatches)
+      const competitions = allMatches.map((m) => ({
+        competitionId: toCompetitionId(m),
+        competitionName: toCompetitionName(m),
+      }))
+      const steps = buildStepsFromTasks(taskPreviewRows.value)
+      const tasks = taskPreviewRows.value.map((row) => ({
+        nodeId: row.nodeId,
+        competitionId: row.competitionId,
+        assigneeId: row.assigneeId!,
+        scheduledStart: row.scheduledStart,
+        scheduledEnd: row.scheduledEnd,
+      }))
       await createContentPlan({
-        ...payload,
+        planName: formData.planName,
+        startDate: formData.dateRange[0],
+        endDate: formData.dateRange[1],
+        description: formData.description || undefined,
         templateId: formData.templateId!,
         ipGroupId: formData.ipGroupId!,
+        competitions,
+        steps,
+        tasks,
       })
       ElMessage.success('计划已保存为草稿')
     }
@@ -595,6 +830,20 @@ onMounted(async () => {
     width: 100%;
   }
   .competition-tag { max-width: 360px; }
+  .section-tip { color: #909399; font-size: 13px; margin: 0 0 12px; }
+  .day-matrix-wrap { overflow-x: auto; margin-bottom: 16px; }
+  .day-matrix { display: flex; gap: 12px; min-width: min-content; }
+  .day-column {
+    flex: 0 0 200px;
+    border: 1px solid #ebeef5;
+    border-radius: 6px;
+    padding: 10px;
+    background: #fafafa;
+  }
+  .day-header { font-weight: 600; font-size: 13px; margin-bottom: 8px; color: #303133; }
+  .day-matches { display: flex; flex-direction: column; gap: 6px; min-height: 40px; margin-bottom: 8px; }
+  .day-match-tag { max-width: 100%; }
+  .fallback-tag { margin-top: 4px; }
   .pagination { margin-top: 16px; display: flex; justify-content: flex-end; }
   :deep(.el-divider__text) { font-weight: 600; color: #303133; }
 }

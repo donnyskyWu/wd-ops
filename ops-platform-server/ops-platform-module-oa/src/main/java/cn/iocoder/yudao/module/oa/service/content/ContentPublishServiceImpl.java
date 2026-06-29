@@ -18,6 +18,7 @@ import cn.iocoder.yudao.module.oa.service.content.publish.PlatformPublishAdapter
 import cn.iocoder.yudao.module.oa.service.content.publish.PlatformPublishResult;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -85,12 +86,73 @@ public class ContentPublishServiceImpl implements ContentPublishService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-content", action = "publish")
-    public ContentPublishResultVO publish(Long contentId, ContentPublishReq req) {
+    @AuditLog(module = "M2-content", action = "publish-draft")
+    public ContentPublishResultVO publishToDraft(Long contentId, ContentPublishReq req) {
         ProductionContentDO content = requireContent(contentId);
         if (!"PENDING_PUBLISH".equals(content.getStatus())) {
             throw new ServiceException(OaErrorCodes.CONTENT_STATUS_INVALID);
         }
+        return executeDraftPublish(content, req);
+    }
+
+    @Override
+    @Transactional
+    @AuditLog(module = "M2-content", action = "formal-publish")
+    public ContentPublishResultVO formalPublish(Long contentId) {
+        ProductionContentDO content = requireContent(contentId);
+        if (!"PUBLISHED_DRAFT".equals(content.getStatus())) {
+            throw new ServiceException(OaErrorCodes.CONTENT_STATUS_INVALID);
+        }
+        if (!"WECHAT_OFFICIAL".equals(content.getPlatformType())) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "当前平台不支持正式发布");
+        }
+
+        ContentPublishRecordDO draftRecord = findPendingFormalPublishRecord(content);
+        if (draftRecord == null || StrUtil.isBlank(draftRecord.getExternalId())) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "未找到可正式发布的草稿记录");
+        }
+
+        AccountDO account = requirePublishableAccount(content.getTenantId(), draftRecord.getAccountId(),
+                draftRecord.getPlatformType());
+        PlatformPublishAdapter adapter = resolveAdapter(draftRecord.getPlatformType());
+        if (!adapter.supportsFormalPublish()) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "当前平台不支持正式发布");
+        }
+
+        PlatformPublishResult adapterResult = adapter.formalPublish(content, account, draftRecord.getExternalId());
+        if (!adapterResult.isSuccess()) {
+            throw new ServiceException(OaErrorCodes.CONTENT_PUBLISH_FAILED.getCode(),
+                    StrUtil.blankToDefault(adapterResult.getErrorMessage(), "正式发布失败"));
+        }
+
+        draftRecord.setPublishId(adapterResult.getPublishId());
+        draftRecord.setPublishedAt(LocalDateTime.now());
+        draftRecord.setUpdater(TenantContextHolder.getUsername());
+        draftRecord.setUpdateTime(LocalDateTime.now());
+        publishRecordMapper.updateById(draftRecord);
+
+        content.setStatus("FORMALLY_PUBLISHED");
+        content.setUpdater(TenantContextHolder.getUsername());
+        content.setUpdateTime(LocalDateTime.now());
+        productionContentMapper.updateById(content);
+
+        ContentPublishResultVO vo = new ContentPublishResultVO();
+        vo.setContentId(contentId);
+        vo.setStatus("FORMALLY_PUBLISHED");
+        vo.setMock(adapterResult.isMock());
+        vo.setRecords(List.of(toRecordItem(account, draftRecord)));
+        vo.setMessage(buildFormalSuccessMessage(adapterResult));
+        return vo;
+    }
+
+    @Override
+    @Transactional
+    @AuditLog(module = "M2-content", action = "publish")
+    public ContentPublishResultVO publish(Long contentId, ContentPublishReq req) {
+        return publishToDraft(contentId, req);
+    }
+
+    private ContentPublishResultVO executeDraftPublish(ProductionContentDO content, ContentPublishReq req) {
         Long tenantId = content.getTenantId();
         String platformType = req.getPlatformType();
         List<Long> accountIds = normalizeAccountIds(req.getAccountIds());
@@ -121,7 +183,8 @@ public class ContentPublishServiceImpl implements ContentPublishService {
                     "部分账号发布失败，请查看发布记录");
         }
 
-        content.setStatus("PUBLISHED");
+        String nextStatus = resolveDraftPublishStatus(platformType);
+        content.setStatus(nextStatus);
         content.setPlatformType(platformType);
         content.setPlatformTypesJson(ContentJsonHelper.toPlatformTypesJson(List.of(platformType)));
         content.setAccountId(accountIds.get(0));
@@ -131,15 +194,34 @@ public class ContentPublishServiceImpl implements ContentPublishService {
         productionContentMapper.updateById(content);
 
         ContentPublishResultVO vo = new ContentPublishResultVO();
-        vo.setContentId(contentId);
-        vo.setStatus("PUBLISHED");
+        vo.setContentId(content.getId());
+        vo.setStatus(nextStatus);
         vo.setMock(anyMock);
         vo.setRecords(recordItems);
+        vo.setMessage(buildDraftSuccessMessage(platformType, anyMock, recordItems));
         return vo;
     }
 
+    private String resolveDraftPublishStatus(String platformType) {
+        return "WECHAT_OFFICIAL".equals(platformType) ? "PUBLISHED_DRAFT" : "PUBLISHED";
+    }
+
+    private ContentPublishRecordDO findPendingFormalPublishRecord(ProductionContentDO content) {
+        return publishRecordMapper.selectOne(
+                new LambdaQueryWrapper<ContentPublishRecordDO>()
+                        .eq(ContentPublishRecordDO::getTenantId, content.getTenantId())
+                        .eq(ContentPublishRecordDO::getContentId, content.getId())
+                        .eq(ContentPublishRecordDO::getPlatformType, content.getPlatformType())
+                        .eq(ContentPublishRecordDO::getStatus, "SUCCESS")
+                        .isNull(ContentPublishRecordDO::getPublishId)
+                        .orderByDesc(ContentPublishRecordDO::getId)
+                        .last("LIMIT 1"));
+    }
+
     private PlatformPublishAdapter resolveAdapter(String platformType) {
-        for (PlatformPublishAdapter adapter : publishAdapters) {
+        List<PlatformPublishAdapter> ordered = new ArrayList<>(publishAdapters);
+        AnnotationAwareOrderComparator.sort(ordered);
+        for (PlatformPublishAdapter adapter : ordered) {
             if (adapter.supports(platformType)) {
                 return adapter;
             }
@@ -191,6 +273,7 @@ public class ContentPublishServiceImpl implements ContentPublishService {
         item.setPlatformType(record.getPlatformType());
         item.setStatus(record.getStatus());
         item.setExternalId(record.getExternalId());
+        item.setPublishId(record.getPublishId());
         item.setErrorMessage(record.getErrorMessage());
         item.setPublishedAt(record.getPublishedAt());
         return item;
@@ -226,5 +309,30 @@ public class ContentPublishServiceImpl implements ContentPublishService {
 
     private String platformLabel(String platformType) {
         return PLATFORM_LABELS.getOrDefault(platformType, platformType);
+    }
+
+    private String buildDraftSuccessMessage(String platformType, boolean mock,
+                                            List<ContentPublishResultVO.RecordItem> records) {
+        if (mock) {
+            return "发布成功（dev mock）";
+        }
+        if ("WECHAT_OFFICIAL".equals(platformType) && !records.isEmpty()) {
+            String mediaId = records.get(0).getExternalId();
+            if (StrUtil.isNotBlank(mediaId)) {
+                return "已推送到公众号草稿箱，media_id=" + mediaId;
+            }
+            return "已推送到公众号草稿箱";
+        }
+        return "发布成功";
+    }
+
+    private String buildFormalSuccessMessage(PlatformPublishResult result) {
+        if (result.isMock()) {
+            return "正式发布成功（dev mock）";
+        }
+        if (StrUtil.isNotBlank(result.getPublishId())) {
+            return "已正式发布到公众号，publish_id=" + result.getPublishId();
+        }
+        return "已正式发布到公众号";
     }
 }

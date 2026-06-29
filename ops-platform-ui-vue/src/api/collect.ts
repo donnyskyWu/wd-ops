@@ -46,6 +46,12 @@ const RUN_TASK_TIMEOUT_MS = 180_000
 export function runCollectTask(id: number): Promise<boolean> {
   return request.post({ url: `/oa/collect/task/${id}/run`, timeout: RUN_TASK_TIMEOUT_MS })
 }
+export function startCollectTask(id: number): Promise<boolean> {
+  return request.post({ url: `/oa/collect/task/${id}/start` })
+}
+export function stopCollectTask(id: number): Promise<boolean> {
+  return request.post({ url: `/oa/collect/task/${id}/stop` })
+}
 export function toggleCollectTaskStatus(id: number, status: string): Promise<boolean> {
   return request.put({ url: `/oa/collect/task/${id}/status`, params: { status } })
 }

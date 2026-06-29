@@ -5,13 +5,16 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.CollectorAccountBindDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.WechatMpArticleDO;
+import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.CollectorAccountBindMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.WechatMpArticleMapper;
 import cn.iocoder.yudao.module.oa.service.config.ConfigTenantSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,12 +22,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WechatMpArticleContentSyncService {
 
     private static final String BIND_STATUS_BOUND = "BOUND";
 
+    private final AccountMapper accountMapper;
     private final CollectorAccountBindMapper collectorAccountBindMapper;
     private final WechatMpArticleMapper wechatMpArticleMapper;
     private final WechatMpArticleSyncService wechatMpArticleSyncService;
@@ -34,6 +39,9 @@ public class WechatMpArticleContentSyncService {
     public int syncArticleContent(Long oaAccountId) {
         Long tenantId = ConfigTenantSupport.requireTenantId();
         CollectorAccountBindDO bind = requireBoundCollector(oaAccountId, tenantId);
+        AccountDO account = accountMapper.selectById(oaAccountId);
+        account = ConfigTenantSupport.getRequiredInTenant(account);
+        boolean officialOnly = WechatMpOfficialCredentialSupport.supportsOfficialApi(account);
 
         List<WechatMpArticleDO> articles = wechatMpArticleMapper.selectList(
                 new LambdaQueryWrapper<WechatMpArticleDO>()
@@ -54,6 +62,14 @@ public class WechatMpArticleContentSyncService {
         LocalDateTime now = LocalDateTime.now();
         int synced = 0;
         for (WechatMpArticleDO article : articles) {
+            if (officialOnly) {
+                if (syncOfficialContent(bind.getCollectorAccountId(), article, now)) {
+                    ConfigTenantSupport.fillUpdate(article);
+                    wechatMpArticleMapper.updateById(article);
+                    synced++;
+                }
+                continue;
+            }
             if (StrUtil.isBlank(article.getUrl())) {
                 continue;
             }
@@ -67,6 +83,64 @@ public class WechatMpArticleContentSyncService {
             }
         }
         return synced;
+    }
+
+    private boolean syncOfficialContent(String collectorAccountId, WechatMpArticleDO article, LocalDateTime now) {
+        String publishArticleId = WechatMpArticleStatsSyncService.resolvePublishArticleId(article.getArticleId());
+        if (StrUtil.isBlank(publishArticleId)) {
+            return false;
+        }
+        try {
+            Map<String, Object> payload = unifiedCollectorApiClient.getWechatMpOfficialFreepublishArticle(
+                    collectorAccountId, publishArticleId);
+            JSONObject content = extractOfficialNewsItem(payload, article.getArticleId());
+            if (content == null) {
+                log.warn("freepublish/getarticle 无正文 articleId={} publishArticleId={}",
+                        article.getArticleId(), publishArticleId);
+                return false;
+            }
+            return applyOfficialContent(article, content, now);
+        } catch (UnifiedCollectorApiException ex) {
+            log.warn("freepublish/getarticle 失败 articleId={}: {}", article.getArticleId(), ex.getMessage());
+            return false;
+        }
+    }
+
+    private JSONObject extractOfficialNewsItem(Map<String, Object> payload, String articleId) {
+        if (payload == null || payload.isEmpty()) {
+            return null;
+        }
+        Object raw = payload.get("news_items");
+        if (!(raw instanceof List<?> list) || list.isEmpty()) {
+            return null;
+        }
+        int index = WechatMpArticleStatsSyncService.resolveNewsItemIndex(articleId);
+        if (index >= list.size()) {
+            index = 0;
+        }
+        return JSONUtil.parseObj(JSONUtil.toJsonStr(list.get(index)));
+    }
+
+    private boolean applyOfficialContent(WechatMpArticleDO entity, JSONObject content, LocalDateTime now) {
+        String text = firstNonBlank(content, "content", "content_text", "digest");
+        if (StrUtil.isBlank(text)) {
+            return false;
+        }
+        entity.setContentText(text);
+        String title = firstNonBlank(content, "title");
+        if (StrUtil.isNotBlank(title)) {
+            entity.setTitle(title);
+        }
+        String url = firstNonBlank(content, "url");
+        if (StrUtil.isNotBlank(url)) {
+            entity.setUrl(url);
+        }
+        String thumb = firstNonBlank(content, "thumb_url", "cover_url");
+        if (StrUtil.isNotBlank(thumb)) {
+            entity.setCoverUrl(thumb);
+        }
+        entity.setContentSyncedAt(now);
+        return true;
     }
 
     private boolean applyContent(WechatMpArticleDO entity, JSONObject content, LocalDateTime now) {

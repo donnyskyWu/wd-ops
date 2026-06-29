@@ -61,12 +61,18 @@
               style="width: 100%"
               @change="emitFormula"
             >
-              <el-option
-                v-for="f in schemaFields"
-                :key="f.name"
-                :label="`${f.label} (${f.name})`"
-                :value="f.name"
-              />
+              <el-option-group
+                v-for="group in groupByFieldGroups"
+                :key="group.tableKey"
+                :label="group.tableLabel"
+              >
+                <el-option
+                  v-for="f in group.fields"
+                  :key="f.name"
+                  :label="formatFieldOptionLabel(f)"
+                  :value="f.name"
+                />
+              </el-option-group>
             </el-select>
           </el-form-item>
 
@@ -210,6 +216,8 @@ import {
   unpackMetricBuilderParams,
   extractMetricParameters,
   resolveParamKey,
+  getAvailableFieldGroups,
+  formatFieldOptionLabel,
   type MetricBuilderConfig,
   type MetricFieldMeta,
   type MetricFilterCondition,
@@ -249,6 +257,8 @@ const formula = computed({
 
 const schema = computed(() => getMetricTableSchemas()[config.dataSource])
 const schemaFields = computed(() => schema.value?.fields ?? [])
+const groupByFieldGroups = computed(() => getAvailableFieldGroups(config.dataSource, config.joinTables))
+const availableFieldNames = computed(() => new Set(groupByFieldGroups.value.flatMap((g) => g.fields.map((f) => f.name))))
 const availableJoins = computed(() => schema.value?.joins ?? [])
 const calcNeedsField = computed(() =>
   METRIC_CALC_METHODS.find((m) => m.value === config.calcMethod)?.needsField ?? false,
@@ -304,6 +314,18 @@ watch(
     }
   },
   { immediate: true },
+)
+
+watch(
+  () => [...config.joinTables],
+  () => {
+    const valid = availableFieldNames.value
+    const pruned = config.groupByFields.filter((f) => valid.has(f))
+    if (pruned.length !== config.groupByFields.length) {
+      config.groupByFields = pruned
+      emitFormula()
+    }
+  },
 )
 
 onMounted(async () => {

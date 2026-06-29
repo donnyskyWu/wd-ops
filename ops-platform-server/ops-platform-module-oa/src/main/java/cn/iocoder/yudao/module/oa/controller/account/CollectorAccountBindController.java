@@ -3,14 +3,19 @@ package cn.iocoder.yudao.module.oa.controller.account;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.oa.api.dto.collect.CollectorAccountBindRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.collect.CollectorAccountBindTestConnectionRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.collect.CollectorQrLoginPollRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.collect.CollectorQrLoginStartRespVO;
+import cn.iocoder.yudao.module.oa.service.collect.unified.CollectorQrLoginService;
 import cn.iocoder.yudao.module.oa.service.collect.unified.UnifiedCollectorAdapter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -20,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class CollectorAccountBindController {
 
     private final UnifiedCollectorAdapter unifiedCollectorAdapter;
+    private final CollectorQrLoginService collectorQrLoginService;
 
     @GetMapping("/{oaAccountId}/collector-bind")
     @PreAuthorize("hasAuthority('oa:account:list')")
@@ -43,5 +49,28 @@ public class CollectorAccountBindController {
     @PreAuthorize("hasAuthority('oa:account:list')")
     public CommonResult<CollectorAccountBindTestConnectionRespVO> testConnection(@PathVariable Long oaAccountId) {
         return CommonResult.success(unifiedCollectorAdapter.testConnection(oaAccountId));
+    }
+
+    @PostMapping("/{oaAccountId}/collector-bind/qr-login/start")
+    @PreAuthorize("hasAuthority('oa:account:list')")
+    public CommonResult<CollectorQrLoginStartRespVO> startQrLogin(@PathVariable Long oaAccountId) {
+        return CommonResult.success(collectorQrLoginService.startQrLogin(oaAccountId));
+    }
+
+    @GetMapping("/{oaAccountId}/collector-bind/qr-login/poll")
+    @PreAuthorize("hasAuthority('oa:account:list')")
+    public CommonResult<CollectorQrLoginPollRespVO> pollQrLogin(
+            @PathVariable Long oaAccountId,
+            @RequestParam("sessionId") String sessionId) {
+        return CommonResult.success(collectorQrLoginService.pollQrLogin(oaAccountId, sessionId));
+    }
+
+    @DeleteMapping("/{oaAccountId}/collector-bind/qr-login/cancel")
+    @PreAuthorize("hasAuthority('oa:account:list')")
+    public CommonResult<Boolean> cancelQrLogin(
+            @PathVariable Long oaAccountId,
+            @RequestParam("sessionId") String sessionId) {
+        collectorQrLoginService.cancelQrLogin(oaAccountId, sessionId);
+        return CommonResult.success(true);
     }
 }

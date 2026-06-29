@@ -19,6 +19,8 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class CollectRunService {
 
+    private static final String STATUS_RUNNING = "RUNNING";
+
     private final CollectTaskMapper collectTaskMapper;
     private final CollectLogMapper collectLogMapper;
     private final CollectExecutionService collectExecutionService;
@@ -34,10 +36,7 @@ public class CollectRunService {
     public void executeAttempt(Long taskId, int retryCount) {
         Long tenantId = ConfigTenantSupport.requireTenantId();
         CollectTaskDO task = getRequiredInTenant(taskId);
-
-        task.setStatus("RUNNING");
-        ConfigTenantSupport.fillUpdate(task);
-        collectTaskMapper.updateById(task);
+        String operationalStatus = task.getStatus();
 
         LocalDateTime start = LocalDateTime.now();
         CollectExecutionResult result = collectExecutionService.execute(task);
@@ -62,12 +61,7 @@ public class CollectRunService {
             }
             collectLogMapper.insert(log);
 
-            task.setStatus("PENDING");
-            task.setLastRunAt(start);
-            if (result.isSuccess()) {
-                task.setNextRunAt(CollectNextRunHelper.computeNextRun(task.getCron(), end));
-                task.setRunCount(Objects.requireNonNullElse(task.getRunCount(), 0) + 1);
-            }
+            applyPostRunTaskState(task, operationalStatus, start, end, result.isSuccess());
             ConfigTenantSupport.fillUpdate(task);
             collectTaskMapper.updateById(task);
             if (result.isSuccess()) {
@@ -82,12 +76,28 @@ public class CollectRunService {
         log.setErrorMessage(result.getErrorMessage());
         collectLogMapper.insert(log);
 
-        task.setStatus("PENDING");
-        task.setLastRunAt(start);
+        applyPostRunTaskState(task, operationalStatus, start, end, false);
         ConfigTenantSupport.fillUpdate(task);
         collectTaskMapper.updateById(task);
 
         scheduleRetryAfterCommit(taskId, tenantId, retryCount, result.getErrorMessage());
+    }
+
+    private void applyPostRunTaskState(CollectTaskDO task, String operationalStatus,
+                                       LocalDateTime start, LocalDateTime end, boolean success) {
+        task.setLastRunAt(start);
+        if (STATUS_RUNNING.equals(operationalStatus)) {
+            task.setStatus(STATUS_RUNNING);
+            if (success) {
+                task.setNextRunAt(CollectNextRunHelper.computeNextRun(task.getCron(), end));
+                task.setRunCount(Objects.requireNonNullElse(task.getRunCount(), 0) + 1);
+            }
+            return;
+        }
+        task.setStatus(operationalStatus);
+        if (success) {
+            task.setRunCount(Objects.requireNonNullElse(task.getRunCount(), 0) + 1);
+        }
     }
 
     private void scheduleRetryAfterCommit(Long taskId, Long tenantId, int retryCount, String errorMessage) {

@@ -75,6 +75,48 @@ export function deletePlatformAccountFanGroup(id: number): Promise<boolean> {
   return request.delete({ url: '/oa/account/fan-group/delete', params: { id } })
 }
 
+// ==================== 公众号粉丝列表（WECHAT_OFFICIAL） ====================
+
+export interface MpFollowerVO {
+  id: number
+  openid: string
+  nickname?: string
+  avatar?: string
+  subscribedAt?: string
+  syncedAt?: string
+}
+
+export function getWechatMpFollowers(
+  accountId: number,
+  params: { pageNo?: number; pageSize?: number } = {},
+): Promise<PageResult<MpFollowerVO>> {
+  return request.get({
+    url: `/oa/account/${accountId}/mp-followers`,
+    params,
+  }) as unknown as Promise<PageResult<MpFollowerVO>>
+}
+
+// ==================== 抖音粉丝列表（DOUYIN） ====================
+
+export interface DouyinFollowerVO {
+  id: number
+  followerId: string
+  nickname?: string
+  avatar?: string
+  followedAt?: string
+  syncedAt?: string
+}
+
+export function getDouyinFollowers(
+  accountId: number,
+  params: { pageNo?: number; pageSize?: number } = {},
+): Promise<PageResult<DouyinFollowerVO>> {
+  return request.get({
+    url: `/oa/account/${accountId}/douyin-followers`,
+    params,
+  }) as unknown as Promise<PageResult<DouyinFollowerVO>>
+}
+
 // ==================== 趋势数据 ====================
 
 /**

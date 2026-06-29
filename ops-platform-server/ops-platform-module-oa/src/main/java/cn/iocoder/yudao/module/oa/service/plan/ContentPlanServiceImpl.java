@@ -12,6 +12,9 @@ import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanStepReq;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanStepVO;
+import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanPreviewTasksReq;
+import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanTaskPreviewVO;
+import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanTaskReq;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanTerminateReq;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.sop.TaskVO;
@@ -79,6 +82,7 @@ public class ContentPlanServiceImpl implements ContentPlanService {
     private final SysUserMapper sysUserMapper;
     private final TaskService taskService;
     private final NotificationService notificationService;
+    private final PlanTaskGeneratorService planTaskGeneratorService;
 
     @Override
     public PageResult<ContentPlanRespVO> list(String planName, String status, Integer pageNo, Integer pageSize) {
@@ -115,10 +119,14 @@ public class ContentPlanServiceImpl implements ContentPlanService {
 
         Map<Long, SopNodeDO> nodeMap = loadTemplateNodes(req.getTemplateId());
         Map<String, String> competitionNameMap = buildCompetitionNameMap(req.getCompetitions());
-        validateSteps(req.getSteps(), nodeMap);
-        validateStepCompetitions(req.getSteps(), competitionNameMap.keySet());
-        validateAssignees(req.getSteps(), tenantId);
-        validateAssigneesInIpGroup(req.getSteps(), req.getIpGroupId(), tenantId);
+        List<ContentPlanStepReq> effectiveSteps = resolveEffectiveSteps(req.getSteps(), req.getTasks(), nodeMap);
+        validateSteps(effectiveSteps, nodeMap);
+        validateStepCompetitions(effectiveSteps, competitionNameMap.keySet());
+        validateAssignees(effectiveSteps, tenantId);
+        validateAssigneesInIpGroup(effectiveSteps, req.getIpGroupId(), tenantId);
+        if (req.getTasks() != null && !req.getTasks().isEmpty()) {
+            validateTasks(req.getTasks(), nodeMap, competitionNameMap.keySet(), tenantId, req.getIpGroupId());
+        }
 
         ContentPlanDO plan = new ContentPlanDO();
         plan.setTenantId(tenantId);
@@ -136,7 +144,7 @@ public class ContentPlanServiceImpl implements ContentPlanService {
         contentPlanMapper.insert(plan);
 
         saveCompetitions(plan.getId(), tenantId, req.getCompetitions());
-        saveStepsAndTasks(plan, req.getSteps(), nodeMap, competitionNameMap, tenantId);
+        saveStepsAndTasks(plan, effectiveSteps, req.getTasks(), nodeMap, competitionNameMap, tenantId);
         return plan.getId();
     }
 
@@ -155,10 +163,14 @@ public class ContentPlanServiceImpl implements ContentPlanService {
 
         Map<Long, SopNodeDO> nodeMap = loadTemplateNodes(plan.getTemplateId());
         Map<String, String> competitionNameMap = buildCompetitionNameMap(req.getCompetitions());
-        validateSteps(req.getSteps(), nodeMap);
-        validateStepCompetitions(req.getSteps(), competitionNameMap.keySet());
-        validateAssignees(req.getSteps(), tenantId);
-        validateAssigneesInIpGroup(req.getSteps(), plan.getIpGroupId(), tenantId);
+        List<ContentPlanStepReq> effectiveSteps = resolveEffectiveSteps(req.getSteps(), req.getTasks(), nodeMap);
+        validateSteps(effectiveSteps, nodeMap);
+        validateStepCompetitions(effectiveSteps, competitionNameMap.keySet());
+        validateAssignees(effectiveSteps, tenantId);
+        validateAssigneesInIpGroup(effectiveSteps, plan.getIpGroupId(), tenantId);
+        if (req.getTasks() != null && !req.getTasks().isEmpty()) {
+            validateTasks(req.getTasks(), nodeMap, competitionNameMap.keySet(), tenantId, plan.getIpGroupId());
+        }
 
         plan.setPlanName(req.getPlanName());
         plan.setStartDate(req.getStartDate());
@@ -168,7 +180,7 @@ public class ContentPlanServiceImpl implements ContentPlanService {
         plan.setUpdateTime(LocalDateTime.now());
         contentPlanMapper.updateById(plan);
 
-        replacePlanChildren(plan, req.getCompetitions(), req.getSteps(), nodeMap, competitionNameMap, tenantId);
+        replacePlanChildren(plan, req.getCompetitions(), effectiveSteps, req.getTasks(), nodeMap, competitionNameMap, tenantId);
     }
 
     @Override
@@ -272,8 +284,14 @@ public class ContentPlanServiceImpl implements ContentPlanService {
         contentPlanMapper.deleteById(plan.getId());
     }
 
+    @Override
+    public List<ContentPlanTaskPreviewVO> previewTasks(ContentPlanPreviewTasksReq req) {
+        return planTaskGeneratorService.preview(req, requireTenantId());
+    }
+
     private void replacePlanChildren(ContentPlanDO plan, List<ContentPlanCompetitionReq> competitions,
-                                     List<ContentPlanStepReq> steps, Map<Long, SopNodeDO> nodeMap,
+                                     List<ContentPlanStepReq> steps, List<ContentPlanTaskReq> tasks,
+                                     Map<Long, SopNodeDO> nodeMap,
                                      Map<String, String> competitionNameMap, Long tenantId) {
         taskMapper.delete(new LambdaQueryWrapper<TaskDO>()
                 .eq(TaskDO::getTenantId, tenantId)
@@ -285,7 +303,7 @@ public class ContentPlanServiceImpl implements ContentPlanService {
                 .eq(ContentPlanCompetitionDO::getTenantId, tenantId)
                 .eq(ContentPlanCompetitionDO::getPlanId, plan.getId()));
         saveCompetitions(plan.getId(), tenantId, competitions);
-        saveStepsAndTasks(plan, steps, nodeMap, competitionNameMap, tenantId);
+        saveStepsAndTasks(plan, steps, tasks, nodeMap, competitionNameMap, tenantId);
     }
 
     private void saveCompetitions(Long planId, Long tenantId, List<ContentPlanCompetitionReq> competitions) {
@@ -312,10 +330,19 @@ public class ContentPlanServiceImpl implements ContentPlanService {
     }
 
     private void saveStepsAndTasks(ContentPlanDO plan, List<ContentPlanStepReq> steps,
+                                   List<ContentPlanTaskReq> taskReqs,
                                    Map<Long, SopNodeDO> nodeMap, Map<String, String> competitionNameMap,
                                    Long tenantId) {
         LocalDateTime defaultStart = plan.getStartDate().atStartOfDay();
         LocalDateTime defaultEnd = plan.getEndDate().atTime(23, 59, 59);
+
+        Map<Long, List<ContentPlanTaskReq>> tasksByNode = new HashMap<>();
+        if (taskReqs != null && !taskReqs.isEmpty()) {
+            for (ContentPlanTaskReq taskReq : taskReqs) {
+                tasksByNode.computeIfAbsent(taskReq.getNodeId(), k -> new ArrayList<>()).add(taskReq);
+            }
+        }
+
         for (ContentPlanStepReq stepReq : steps) {
             SopNodeDO node = nodeMap.get(stepReq.getNodeId());
             List<String> competitionIds = resolveCompetitionIds(stepReq);
@@ -338,30 +365,45 @@ public class ContentPlanServiceImpl implements ContentPlanService {
             step.setUpdateTime(LocalDateTime.now());
             contentPlanStepMapper.insert(step);
 
-            for (Long assigneeId : stepReq.getAssigneeIds()) {
-                for (String competitionId : competitionIds) {
-                    TaskDO task = new TaskDO();
-                    task.setTenantId(tenantId);
-                    task.setPlanId(plan.getId());
-                    task.setCompetitionId(competitionId);
-                    task.setTemplateId(plan.getTemplateId());
-                    task.setNodeId(node.getId());
-                    task.setPlanName(plan.getPlanName());
-                    task.setAssigneeId(assigneeId);
-                    task.setIpGroupId(plan.getIpGroupId());
-                    task.setStatus(TASK_STATUS_PLAN_DRAFT);
-                    task.setVisibleInList(0);
-                    task.setScheduledStart(stepStart);
-                    task.setScheduledEnd(stepEnd);
-                    task.setNeedReview(node.getNeedReview());
-                    task.setCreator(TenantContextHolder.getUsername());
-                    task.setUpdater(TenantContextHolder.getUsername());
-                    task.setCreateTime(LocalDateTime.now());
-                    task.setUpdateTime(LocalDateTime.now());
-                    taskMapper.insert(task);
+            List<ContentPlanTaskReq> nodeTasks = tasksByNode.get(stepReq.getNodeId());
+            if (nodeTasks != null && !nodeTasks.isEmpty()) {
+                for (ContentPlanTaskReq taskReq : nodeTasks) {
+                    insertTask(plan, node, taskReq.getCompetitionId(), taskReq.getAssigneeId(),
+                            taskReq.getScheduledStart() != null ? taskReq.getScheduledStart() : stepStart,
+                            taskReq.getScheduledEnd() != null ? taskReq.getScheduledEnd() : stepEnd,
+                            tenantId);
+                }
+            } else {
+                for (Long assigneeId : stepReq.getAssigneeIds()) {
+                    for (String competitionId : competitionIds) {
+                        insertTask(plan, node, competitionId, assigneeId, stepStart, stepEnd, tenantId);
+                    }
                 }
             }
         }
+    }
+
+    private void insertTask(ContentPlanDO plan, SopNodeDO node, String competitionId, Long assigneeId,
+                            LocalDateTime scheduledStart, LocalDateTime scheduledEnd, Long tenantId) {
+        TaskDO task = new TaskDO();
+        task.setTenantId(tenantId);
+        task.setPlanId(plan.getId());
+        task.setCompetitionId(competitionId);
+        task.setTemplateId(plan.getTemplateId());
+        task.setNodeId(node.getId());
+        task.setPlanName(plan.getPlanName());
+        task.setAssigneeId(assigneeId);
+        task.setIpGroupId(plan.getIpGroupId());
+        task.setStatus(TASK_STATUS_PLAN_DRAFT);
+        task.setVisibleInList(0);
+        task.setScheduledStart(scheduledStart);
+        task.setScheduledEnd(scheduledEnd);
+        task.setNeedReview(node.getNeedReview());
+        task.setCreator(TenantContextHolder.getUsername());
+        task.setUpdater(TenantContextHolder.getUsername());
+        task.setCreateTime(LocalDateTime.now());
+        task.setUpdateTime(LocalDateTime.now());
+        taskMapper.insert(task);
     }
 
     private ContentPlanRespVO toSummary(ContentPlanDO plan) {
@@ -616,5 +658,81 @@ public class ContentPlanServiceImpl implements ContentPlanService {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED);
         }
         return tenantId;
+    }
+
+    private List<ContentPlanStepReq> resolveEffectiveSteps(List<ContentPlanStepReq> steps,
+                                                           List<ContentPlanTaskReq> tasks,
+                                                           Map<Long, SopNodeDO> nodeMap) {
+        if (tasks != null && !tasks.isEmpty()) {
+            Map<Long, ContentPlanStepReq> aggregated = new HashMap<>();
+            for (ContentPlanTaskReq task : tasks) {
+                ContentPlanStepReq step = aggregated.computeIfAbsent(task.getNodeId(), nodeId -> {
+                    ContentPlanStepReq s = new ContentPlanStepReq();
+                    s.setNodeId(nodeId);
+                    s.setCompetitionIds(new ArrayList<>());
+                    s.setAssigneeIds(new ArrayList<>());
+                    return s;
+                });
+                if (!step.getCompetitionIds().contains(task.getCompetitionId())) {
+                    step.getCompetitionIds().add(task.getCompetitionId());
+                }
+                if (step.getAssigneeIds().isEmpty()) {
+                    step.getAssigneeIds().add(task.getAssigneeId());
+                }
+                if (step.getScheduledStart() == null && task.getScheduledStart() != null) {
+                    step.setScheduledStart(task.getScheduledStart());
+                }
+                if (task.getScheduledEnd() != null) {
+                    step.setScheduledEnd(task.getScheduledEnd());
+                }
+            }
+            for (Long nodeId : nodeMap.keySet()) {
+                aggregated.computeIfAbsent(nodeId, id -> {
+                    throw new ServiceException(OaErrorCodes.DICT_VALUE_INVALID.getCode(), "须为每个 SOP 节点生成任务");
+                });
+            }
+            return new ArrayList<>(aggregated.values());
+        }
+        if (steps == null || steps.isEmpty()) {
+            throw new ServiceException(OaErrorCodes.DICT_VALUE_INVALID.getCode(), "请配置计划步骤或任务");
+        }
+        return steps;
+    }
+
+    private void validateTasks(List<ContentPlanTaskReq> tasks, Map<Long, SopNodeDO> nodeMap,
+                               Set<String> planCompetitionIds, Long tenantId, Long ipGroupId) {
+        Set<Long> memberUserIds = ipGroupMemberMapper.selectList(new LambdaQueryWrapper<IpGroupMemberDO>()
+                        .eq(IpGroupMemberDO::getTenantId, tenantId)
+                        .eq(IpGroupMemberDO::getIpGroupId, ipGroupId))
+                .stream()
+                .map(IpGroupMemberDO::getUserId)
+                .collect(Collectors.toSet());
+        IpGroupDO ipGroup = ipGroupMapper.selectById(ipGroupId);
+        if (ipGroup != null && ipGroup.getLeaderUserId() != null) {
+            memberUserIds.add(ipGroup.getLeaderUserId());
+        }
+        Set<Long> coveredNodes = new HashSet<>();
+        for (ContentPlanTaskReq task : tasks) {
+            if (!nodeMap.containsKey(task.getNodeId())) {
+                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "SOP 节点不存在");
+            }
+            coveredNodes.add(task.getNodeId());
+            if (!planCompetitionIds.contains(task.getCompetitionId())) {
+                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "任务赛事不在计划赛事池内");
+            }
+            if (task.getAssigneeId() == null) {
+                throw new ServiceException(OaErrorCodes.DICT_VALUE_INVALID.getCode(), "任务执行人不能为空");
+            }
+            if (!memberUserIds.contains(task.getAssigneeId())) {
+                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "执行人须为所选 IP 组成员或组长");
+            }
+            SysUserDO user = sysUserMapper.selectById(task.getAssigneeId());
+            if (user == null || !tenantId.equals(user.getTenantId())) {
+                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "执行人不存在");
+            }
+        }
+        if (coveredNodes.size() != nodeMap.size()) {
+            throw new ServiceException(OaErrorCodes.DICT_VALUE_INVALID.getCode(), "须为每个 SOP 节点生成任务");
+        }
     }
 }

@@ -415,6 +415,32 @@
 }
 ```
 
+### 5.7.3 公众号粉丝列表 API（M10 采集快照 · M4 展示）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/admin-api/oa/account/{accountId}/mp-followers?pageNo=&pageSize=` | 分页查询 `oa_wechat_mp_follower`；**仅** `platformType=WECHAT_OFFICIAL` |
+
+**响应**（`PageResult`）：
+
+```json
+{
+  "list": [
+    {
+      "id": 1,
+      "openid": "oStubFollower001",
+      "nickname": "Stub粉丝A",
+      "avatar": "https://example.com/avatar.png",
+      "subscribedAt": "2026-06-01 10:00:00",
+      "syncedAt": "2026-06-24 08:00:00"
+    }
+  ],
+  "total": 1
+}
+```
+
+**错误**：非公众号账号 → `1500`「仅公众号账号支持粉丝列表查询」；跨租户 → `1504`。
+
 ---
 
 ## 6. 个人账号 API

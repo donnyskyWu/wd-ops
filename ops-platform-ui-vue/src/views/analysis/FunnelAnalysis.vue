@@ -66,18 +66,48 @@
 
       <el-card class="chart-card" shadow="never">
         <template #header><div class="card-header"><span>漏斗转化图</span></div></template>
-        <div ref="funnelChartRef" style="height: 450px" v-loading="loadingData" />
+        <div v-if="funnelMetrics.length" class="funnel-summary">
+          <div class="summary-item">
+            <span class="summary-label">首步总量</span>
+            <span class="summary-value">{{ formatFullCount(funnelSummary.firstCount) }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">末步留存</span>
+            <span class="summary-value">{{ formatFullCount(funnelSummary.lastCount) }}</span>
+          </div>
+          <div class="summary-item highlight">
+            <span class="summary-label">总转化率</span>
+            <span class="summary-value">{{ funnelSummary.overallRate }}%</span>
+          </div>
+          <div v-if="funnelSummary.maxDropStep" class="summary-item warn">
+            <span class="summary-label">最大流失环节</span>
+            <span class="summary-value">{{ funnelSummary.maxDropStep.name }} · -{{ funnelSummary.maxDropStep.dropOffRate }}%</span>
+          </div>
+        </div>
+        <div ref="funnelChartRef" class="funnel-chart" v-loading="loadingData" />
       </el-card>
 
       <el-card class="table-card" shadow="never">
         <template #header><div class="card-header"><span>转化率明细</span></div></template>
-        <el-table :data="funnelSteps" border stripe>
+        <el-table :data="funnelMetrics" border stripe>
           <el-table-column prop="stepOrder" label="顺序" width="80" align="center" />
-          <el-table-column prop="name" label="步骤" min-width="200" />
+          <el-table-column prop="name" label="步骤" min-width="160" />
           <el-table-column prop="count" label="数量" width="120" align="right">
-            <template #default="{ row }">{{ formatCount(row.count) }}</template>
+            <template #default="{ row }">{{ formatFullCount(row.count) }}</template>
           </el-table-column>
-          <el-table-column prop="conversionRate" label="转化率(%)" width="140" align="right">
+          <el-table-column label="较上步(%)" width="120" align="right">
+            <template #default="{ row }">
+              <span v-if="row.stepRate == null">-</span>
+              <span v-else :class="{ 'rate-low': row.stepRate < 50 }">{{ row.stepRate }}%</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="流失数" width="120" align="right">
+            <template #default="{ row }">
+              <span v-if="row.dropOff == null">-</span>
+              <span v-else class="drop-off">-{{ formatFullCount(row.dropOff) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="conversionRate" label="总转化(%)" width="120" align="right">
             <template #default="{ row }">{{ row.conversionRate ?? '-' }}</template>
           </el-table-column>
         </el-table>
@@ -148,7 +178,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as echarts from 'echarts'
 import { getFunnelList, getFunnelData, createFunnel } from '@/api/funnel'
@@ -169,6 +199,15 @@ interface FunnelStepVO {
   count: number
   conversionRate: number | null
 }
+
+interface FunnelStepMetrics extends FunnelStepVO {
+  stepRate: number | null
+  dropOff: number | null
+  dropOffRate: number | null
+}
+
+const FUNNEL_COLORS = ['#1890ff', '#13c2c2', '#52c41a', '#faad14', '#fa8c16', '#f5222d']
+const FUNNEL_COLORS_DARK = ['#096dd9', '#08979c', '#389e0d', '#d48806', '#d46b08', '#cf1322']
 
 const activeTab = ref('preset')
 const showCreateDialog = ref(false)
@@ -208,12 +247,51 @@ const funnelForm = reactive({
 
 const funnelChartRef = ref<HTMLElement>()
 
-const formatCount = (count: any) => {
+const formatCount = (count: number) => {
   const v = typeof count === 'number' && !isNaN(count) ? count : 0
   if (v >= 10000) return (v / 10000).toFixed(1) + 'W'
   if (v >= 1000) return (v / 1000).toFixed(1) + 'K'
   return v.toString()
 }
+
+const formatFullCount = (count: number | null | undefined) => {
+  const v = typeof count === 'number' && !isNaN(count) ? count : 0
+  return v.toLocaleString('zh-CN')
+}
+
+const enrichFunnelSteps = (steps: FunnelStepVO[]): FunnelStepMetrics[] =>
+  steps.map((step, index) => {
+    const count = step.count ?? 0
+    const prevCount = index > 0 ? (steps[index - 1].count ?? 0) : 0
+    return {
+      ...step,
+      stepRate: index === 0 ? null : prevCount > 0 ? Math.round((count * 10000) / prevCount) / 100 : 0,
+      dropOff: index === 0 ? null : Math.max(0, prevCount - count),
+      dropOffRate:
+        index === 0 ? null : prevCount > 0 ? Math.round(((prevCount - count) * 10000) / prevCount) / 100 : 0,
+    }
+  })
+
+const funnelMetrics = computed(() => enrichFunnelSteps(funnelSteps.value))
+
+const funnelSummary = computed(() => {
+  const metrics = funnelMetrics.value
+  if (metrics.length === 0) {
+    return { firstCount: 0, lastCount: 0, overallRate: 0, maxDropStep: null as FunnelStepMetrics | null }
+  }
+  const first = metrics[0]
+  const last = metrics[metrics.length - 1]
+  const firstCount = first.count ?? 0
+  const lastCount = last.count ?? 0
+  const overallRate = firstCount > 0 ? Math.round((lastCount * 10000) / firstCount) / 100 : 0
+  const maxDropStep = metrics
+    .filter((m) => m.dropOffRate != null)
+    .reduce<FunnelStepMetrics | null>((max, cur) => {
+      if (!max || (cur.dropOffRate ?? 0) > (max.dropOffRate ?? 0)) return cur
+      return max
+    }, null)
+  return { firstCount, lastCount, overallRate, maxDropStep }
+})
 
 const getFunnelTypeLabel = (type: string) => {
   const map: Record<string, string> = {
@@ -306,9 +384,19 @@ const handleExport = () => {
     { key: 'stepOrder', label: '顺序' },
     { key: 'name', label: '步骤' },
     { key: 'count', label: '数量' },
-    { key: 'conversionRate', label: '转化率(%)' },
+    { key: 'stepRate', label: '较上步(%)' },
+    { key: 'dropOff', label: '流失数' },
+    { key: 'conversionRate', label: '总转化(%)' },
   ]
-  exportToExcel(funnelSteps.value, columns, '漏斗分析报告')
+  exportToExcel(
+    funnelMetrics.value.map((row) => ({
+      ...row,
+      stepRate: row.stepRate == null ? '-' : row.stepRate,
+      dropOff: row.dropOff == null ? '-' : row.dropOff,
+    })),
+    columns,
+    '漏斗分析报告',
+  )
 }
 
 const addStep = () => {
@@ -379,6 +467,221 @@ const handleDelete = async (row: FunnelVO) => {
 }
 
 let funnelChart: echarts.ECharts | null = null
+
+const toFunnelCount = (count: number | null | undefined) => {
+  const n = Number(count)
+  return Number.isFinite(n) && n >= 0 ? n : 0
+}
+
+/** 各层宽度按自身 count / 首步 count 比例绘制，避免 ECharts 内置 funnel 中间层视觉等宽 */
+const buildFunnelChartOption = (metrics: FunnelStepMetrics[]): echarts.EChartsOption => {
+  if (metrics.length === 0) {
+    return {
+      title: {
+        text: '暂无漏斗数据',
+        left: 'center',
+        top: 'middle',
+        textStyle: { color: '#909399', fontSize: 14, fontWeight: 400 },
+      },
+    }
+  }
+
+  const counts = metrics.map((step) => toFunnelCount(step.count))
+  const maxValue = Math.max(counts[0] ?? 0, 1)
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+  const chartTop = isMobile ? 72 : 64
+  const chartBottom = 24
+  const chartLeftRatio = isMobile ? 0.08 : 0.12
+  const chartWidthRatio = isMobile ? 0.84 : 0.76
+  const layerGap = 4
+
+  const funnelGradient = (index: number) =>
+    new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+      { offset: 0, color: FUNNEL_COLORS[index % FUNNEL_COLORS.length] },
+      { offset: 1, color: FUNNEL_COLORS_DARK[index % FUNNEL_COLORS_DARK.length] },
+    ])
+
+  return {
+    title: {
+      text: `整体转化 ${funnelSummary.value.overallRate}%`,
+      subtext: `首步 ${formatFullCount(funnelSummary.value.firstCount)} → 末步 ${formatFullCount(funnelSummary.value.lastCount)}`,
+      left: 'center',
+      top: 8,
+      textStyle: { fontSize: isMobile ? 14 : 16, fontWeight: 600, color: '#303133' },
+      subtextStyle: { fontSize: isMobile ? 11 : 12, color: '#909399' },
+    },
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: 'rgba(255, 255, 255, 0.96)',
+      borderColor: '#e4e7ed',
+      borderWidth: 1,
+      padding: [10, 14],
+      textStyle: { color: '#303133', fontSize: 13 },
+      formatter: (params) => {
+        const item = params as { dataIndex: number; name: string; value: number }
+        const m = metrics[item.dataIndex]
+        if (!m) return ''
+        const lines = [
+          `<strong>${item.name}</strong>`,
+          `数量：${formatFullCount(item.value)}`,
+          `总转化率：${m.conversionRate ?? '-'}%`,
+        ]
+        if (item.dataIndex > 0 && m.stepRate != null) {
+          lines.push(`较上步：${m.stepRate}%`)
+          lines.push(`流失：-${formatFullCount(m.dropOff)} (${m.dropOffRate}%)`)
+        }
+        return lines.join('<br/>')
+      },
+    },
+    series: [
+      {
+        name: '漏斗分析',
+        type: 'custom',
+        coordinateSystem: 'none',
+        data: metrics.map((step, index) => ({
+          name: step.name,
+          value: counts[index],
+          index,
+        })),
+        renderItem: (params, api) => {
+          const dataIndex = params.dataIndex ?? 0
+          const count = counts[dataIndex] ?? 0
+          const chartWidth = api.getWidth()
+          const chartHeight = api.getHeight()
+          const funnelLeft = chartWidth * chartLeftRatio
+          const funnelWidth = chartWidth * chartWidthRatio
+          const funnelTop = chartTop
+          const funnelHeight = chartHeight - chartTop - chartBottom
+          const stepCount = metrics.length
+          const layerHeight = funnelHeight / stepCount
+          const y = funnelTop + dataIndex * layerHeight + layerGap / 2
+          const h = Math.max(layerHeight - layerGap, 8)
+          const centerX = funnelLeft + funnelWidth / 2
+
+          const widthRatio = (value: number) => Math.max(value / maxValue, 0.02)
+          const topW = funnelWidth * widthRatio(count)
+          const nextCount = dataIndex < stepCount - 1 ? counts[dataIndex + 1] ?? 0 : count
+          const bottomW = funnelWidth * widthRatio(nextCount)
+
+          const topLeft = centerX - topW / 2
+          const topRight = centerX + topW / 2
+          const bottomLeft = centerX - bottomW / 2
+          const bottomRight = centerX + bottomW / 2
+
+          const colorIndex = dataIndex
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const children: any[] = [
+            {
+              type: 'polygon',
+              shape: {
+                points: [
+                  [topLeft, y],
+                  [topRight, y],
+                  [bottomRight, y + h],
+                  [bottomLeft, y + h],
+                ],
+              },
+              style: {
+                fill: funnelGradient(colorIndex),
+                stroke: '#fff',
+                lineWidth: 2,
+                shadowBlur: 8,
+                shadowColor: 'rgba(24, 144, 255, 0.15)',
+              },
+              emphasis: {
+                style: {
+                  shadowBlur: 14,
+                  shadowColor: 'rgba(24, 144, 255, 0.28)',
+                },
+              },
+            },
+          ]
+
+          const showInside = isMobile || topW > funnelWidth * 0.15
+          if (showInside) {
+            const m = metrics[dataIndex]
+            const insideLines = isMobile
+              ? dataIndex === 0
+                ? `${metrics[dataIndex].name}\n${formatCount(count)}`
+                : `${metrics[dataIndex].name}\n${formatCount(count)}\n↓${m?.dropOffRate ?? 0}%`
+              : `${metrics[dataIndex].name}\n${formatCount(count)}`
+            children.push({
+              type: 'text',
+              style: {
+                text: insideLines,
+                x: centerX,
+                y: y + h / 2,
+                fill: '#fff',
+                fontSize: isMobile ? 12 : 13,
+                fontWeight: 600,
+                align: 'center',
+                verticalAlign: 'middle',
+                lineHeight: isMobile ? 18 : 20,
+              },
+            })
+          }
+
+          if (!isMobile) {
+            const m = metrics[dataIndex]
+            const labelX = funnelLeft + funnelWidth + 16
+            const labelY = y + h / 2
+            const labelLines =
+              dataIndex === 0
+                ? [`{title|${metrics[dataIndex].name}}`, `{count|${formatFullCount(count)}}`, '{rate|基准 100%}']
+                : [
+                    `{title|${metrics[dataIndex].name}}`,
+                    `{count|${formatFullCount(count)}}`,
+                    `{rate|较上步 ${m?.stepRate ?? 0}%}`,
+                    `{loss|流失 -${formatFullCount(m?.dropOff ?? 0)} (-${m?.dropOffRate ?? 0}%)}`,
+                  ]
+            children.push({
+              type: 'text',
+              style: {
+                text: labelLines.join('\n'),
+                x: labelX,
+                y: labelY,
+                fill: '#303133',
+                fontSize: 13,
+                align: 'left',
+                verticalAlign: 'middle',
+                rich: {
+                  title: { fontSize: 13, fill: '#303133', fontWeight: 600, lineHeight: 20 },
+                  count: { fontSize: 14, fill: '#1890ff', fontWeight: 700, lineHeight: 22 },
+                  rate: { fontSize: 12, fill: '#52c41a', lineHeight: 18 },
+                  loss: { fontSize: 12, fill: '#f5222d', lineHeight: 18 },
+                },
+              },
+            })
+            children.push({
+              type: 'line',
+              shape: {
+                x1: topRight,
+                y1: labelY,
+                x2: labelX - 4,
+                y2: labelY,
+              },
+              style: {
+                stroke: '#dcdfe6',
+                lineWidth: 1,
+                lineDash: [4, 4],
+              },
+            })
+          }
+
+          return {
+            type: 'group',
+            children,
+          } as echarts.CustomSeriesRenderItemReturn
+        },
+      } as echarts.SeriesOption,
+    ],
+  }
+}
+
+const handleChartResize = () => {
+  funnelChart?.resize()
+}
+
 const initFunnelChart = () => {
   if (!funnelChartRef.value) return
   const el = funnelChartRef.value
@@ -390,35 +693,21 @@ const initFunnelChart = () => {
     funnelChart.dispose()
     funnelChart = null
   }
-  const chart = echarts.init(el)
-  funnelChart = chart
-  chart.setOption({
-    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-    series: [
-      {
-        name: '漏斗分析',
-        type: 'funnel',
-        left: '10%',
-        top: 40,
-        bottom: 40,
-        width: '80%',
-        min: 0,
-        max: 100000,
-        minSize: '0%',
-        maxSize: '100%',
-        sort: 'descending',
-        gap: 2,
-        label: { show: true, position: 'inside', formatter: '{b}: {c}' },
-        itemStyle: { borderColor: '#fff', borderWidth: 1 },
-        data: funnelSteps.value.map(s => ({ name: s.name, value: s.count })),
-      },
-    ],
-  })
+  funnelChart = echarts.init(el)
+  funnelChart.setOption(buildFunnelChartOption(funnelMetrics.value), true)
+  funnelChart.resize()
 }
 
 onMounted(() => {
   loadFunnelList()
   loadMetricOptions()
+  window.addEventListener('resize', handleChartResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleChartResize)
+  funnelChart?.dispose()
+  funnelChart = null
 })
 </script>
 
@@ -528,6 +817,68 @@ onMounted(() => {
       justify-content: space-between;
       align-items: center;
     }
+  }
+
+  .funnel-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 0 4px 8px;
+  }
+
+  .summary-item {
+    background: linear-gradient(135deg, #f5f9ff 0%, #eef6ff 100%);
+    border: 1px solid #d6e8ff;
+    border-radius: 10px;
+    padding: 12px 14px;
+
+    &.highlight {
+      background: linear-gradient(135deg, #e6fffb 0%, #f0fffc 100%);
+      border-color: #87e8de;
+    }
+
+    &.warn {
+      background: linear-gradient(135deg, #fff7e6 0%, #fff1f0 100%);
+      border-color: #ffd591;
+    }
+  }
+
+  .summary-label {
+    display: block;
+    font-size: 12px;
+    color: #909399;
+    margin-bottom: 4px;
+  }
+
+  .summary-value {
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
+    color: #303133;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+
+  .funnel-chart {
+    height: 480px;
+    width: 100%;
+    min-height: 360px;
+
+    @media (max-width: 768px) {
+      height: 420px;
+      min-height: 320px;
+    }
+  }
+
+  .rate-low {
+    color: #f5222d;
+    font-weight: 600;
+  }
+
+  .drop-off {
+    color: #f5222d;
+    font-weight: 500;
   }
   .step-item {
     display: flex;

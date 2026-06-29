@@ -202,7 +202,21 @@
 | `SKIPPED` | 已有 bind 或凭证不完整 |
 | `FAILED` | collector 或校验失败 |
 
----
+### 3.6 扫码登录代理（ADR-050）
+
+> OA 代理 unify-collector-api `POST/GET/DELETE /api/v1/auth/qrcode|poll`；凭证落 M4 SSOT。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/admin-api/oa/account/{oaAccountId}/collector-bind/qr-login/start` | 返回 `sessionId`、`qrcodeBase64` |
+| GET | `/admin-api/oa/account/{oaAccountId}/collector-bind/qr-login/poll?sessionId=` | `status`: pending/scanned/confirmed/expired/error |
+| DELETE | `/admin-api/oa/account/{oaAccountId}/collector-bind/qr-login/cancel?sessionId=` | 取消会话 |
+
+**支持平台**：`WECHAT_OFFICIAL`、`WECHAT_VIDEO`、`DOUYIN`、`KUAISHOU`、`XIAOHONGSHU`。
+
+**poll confirmed**：写入 `oa_account` 凭证；若 poll 含 `account_id` 则直接 bind，否则尝试 `collector-bind` import。
+
+**权限**：`oa:account:list`
 
 ## 4. Channel-A 采集源（`dict_collect_source`）
 

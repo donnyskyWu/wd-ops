@@ -35,20 +35,13 @@
         <el-table-column prop="name" label="任务名" min-width="200" show-overflow-tooltip />
         <el-table-column label="平台/账号" width="200" show-overflow-tooltip>
           <template #default="{ row }">
-            <div>
-              <DictSelect
-                :model-value="row.platformType"
-                dict-type="dict_platform_type"
-                disabled
-                style="display: inline-block; width: auto; margin-right: 6px"
-              />
-              <span>{{ row.accountName }}</span>
-            </div>
+            <DictLabel dict-type="dict_platform_type" :value="row.platformType" />
+            <span v-if="row.accountName"> / {{ row.accountName }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="method" label="方式" width="90" align="center">
           <template #default="{ row }">
-            <el-tag>{{ row.method }}</el-tag>
+            <DictLabel dict-type="dict_collect_method" :value="row.method" />
           </template>
         </el-table-column>
         <el-table-column prop="frequency" label="频率" width="100" align="center" />
@@ -63,21 +56,34 @@
         </el-table-column>
         <el-table-column prop="status" label="状态" width="110" align="center">
           <template #default="{ row }">
-            <DictSelect
-              :model-value="row.status"
-              dict-type="dict_collect_status"
-              disabled
-              style="display: inline-block; width: auto"
-            />
+            <el-tag size="small" :type="statusTagType(row.status)">
+              <DictLabel dict-type="dict_collect_status" :value="row.status" />
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right" align="center">
+        <el-table-column label="操作" width="300" fixed="right" align="center">
           <template #default="{ row }">
+            <el-button
+              v-if="canStart(row.status)"
+              link
+              type="success"
+              :loading="actionLoadingTaskId === row.id && actionType === 'start'"
+              :disabled="actionLoadingTaskId !== null && actionLoadingTaskId !== row.id"
+              @click="handleStart(row)"
+            >启动</el-button>
+            <el-button
+              v-if="canStop(row.status)"
+              link
+              type="warning"
+              :loading="actionLoadingTaskId === row.id && actionType === 'stop'"
+              :disabled="actionLoadingTaskId !== null && actionLoadingTaskId !== row.id"
+              @click="handleStop(row)"
+            >停止</el-button>
             <el-button
               link
               type="primary"
-              :loading="runLoadingTaskId === row.id"
-              :disabled="runLoadingTaskId !== null && runLoadingTaskId !== row.id"
+              :loading="actionLoadingTaskId === row.id && actionType === 'run'"
+              :disabled="actionLoadingTaskId !== null && actionLoadingTaskId !== row.id"
               @click="handleRun(row)"
             >立即执行</el-button>
             <el-button link type="primary" @click="handleViewLog(row)">日志</el-button>
@@ -108,16 +114,38 @@ import TableSearch from '@/components/TableSearch.vue'
 import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import {
   getCollectTaskPage,
   runCollectTask,
+  startCollectTask,
+  stopCollectTask,
   deleteCollectTask,
 } from '@/api/collect'
+
+const STARTABLE_STATUSES = new Set(['PENDING', 'STOPPED', 'FAILED'])
+const STOPPABLE_STATUSES = new Set(['RUNNING'])
+
+const canStart = (status: string) => STARTABLE_STATUSES.has(status)
+const canStop = (status: string) => STOPPABLE_STATUSES.has(status)
+
+const statusTagType = (status: string) => {
+  const map: Record<string, string> = {
+    PENDING: 'info',
+    RUNNING: 'success',
+    STOPPED: 'warning',
+    FAILED: 'danger',
+    SUCCESS: 'success',
+    PARTIAL: 'warning',
+  }
+  return map[status] || 'info'
+}
 
 const router = useRouter()
 
 const loading = ref(false)
-const runLoadingTaskId = ref<number | null>(null)
+const actionLoadingTaskId = ref<number | null>(null)
+const actionType = ref<'run' | 'start' | 'stop' | null>(null)
 const tableData = ref<any[]>([])
 const searchForm = reactive({
   name: undefined as string | undefined,
@@ -163,17 +191,58 @@ const handleRun = async (row: any) => {
     return
   }
 
-  runLoadingTaskId.value = row.id
+  actionLoadingTaskId.value = row.id
+  actionType.value = 'run'
   ElMessage.info({ message: '采集中，请稍候…（全量采集可能耗时较长）', duration: 3000 })
   try {
     await runCollectTask(row.id)
     ElMessage.success('执行完成，可在日志中查看详情')
     await loadData()
   } catch {
-    // 错误 toast 由 request 拦截器展示；仍刷新列表以反映 RUNNING / 最新日志
     await loadData()
   } finally {
-    runLoadingTaskId.value = null
+    actionLoadingTaskId.value = null
+    actionType.value = null
+  }
+}
+
+const handleStart = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(`确认启动【${row.name}】？启动后将按 Cron 自动调度执行。`, '提示', { type: 'warning' })
+  } catch {
+    return
+  }
+  actionLoadingTaskId.value = row.id
+  actionType.value = 'start'
+  try {
+    await startCollectTask(row.id)
+    ElMessage.success('任务已启动')
+    await loadData()
+  } catch {
+    await loadData()
+  } finally {
+    actionLoadingTaskId.value = null
+    actionType.value = null
+  }
+}
+
+const handleStop = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(`确认停止【${row.name}】？停止后将不再自动调度，仍可手动立即执行。`, '提示', { type: 'warning' })
+  } catch {
+    return
+  }
+  actionLoadingTaskId.value = row.id
+  actionType.value = 'stop'
+  try {
+    await stopCollectTask(row.id)
+    ElMessage.success('任务已停止')
+    await loadData()
+  } catch {
+    await loadData()
+  } finally {
+    actionLoadingTaskId.value = null
+    actionType.value = null
   }
 }
 const handleViewLog = (row: any) => router.push({ path: '/collect/log', query: { taskId: row.id } })

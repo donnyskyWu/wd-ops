@@ -51,6 +51,27 @@ class M2TypesettingIT extends OaITBase {
                 .andExpect(jsonPath("$.data.plainTextBefore").value("大标题正文内容"))
                 .andExpect(jsonPath("$.data.plainTextAfter").value("大标题正文内容"))
                 .andExpect(jsonPath("$.data.rulesApplied", greaterThanOrEqualTo(1)))
-                .andExpect(jsonPath("$.data.html").exists());
+                .andExpect(jsonPath("$.data.html").exists())
+                .andExpect(jsonPath("$.data.html").value(org.hamcrest.Matchers.containsString("<img")));
+    }
+
+    @Test
+    @DisplayName("S-17 P0: typeset AUTO preserves img in result html")
+    void typesetAutoPreservesImageTag() throws Exception {
+        mockMvc.perform(post(CONTENT_BASE + "/typeset")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "html": "<p>正文</p><p><img src=\\"https://example.com/pic.jpg\\"/></p>",
+                                  "body": "正文",
+                                  "mode": "AUTO",
+                                  "ruleCodes": ["SMART_OPTIMIZE"]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.html").value(org.hamcrest.Matchers.containsString("pic.jpg")));
     }
 }

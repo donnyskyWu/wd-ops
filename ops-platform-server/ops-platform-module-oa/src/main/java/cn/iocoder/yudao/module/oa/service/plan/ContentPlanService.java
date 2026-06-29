@@ -3,8 +3,12 @@ package cn.iocoder.yudao.module.oa.service.plan;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanPreviewTasksReq;
+import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanTaskPreviewVO;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanTerminateReq;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanUpdateReq;
+
+import java.util.List;
 
 public interface ContentPlanService {
 
@@ -25,4 +29,6 @@ public interface ContentPlanService {
     void rejectTerminate(Long id);
 
     void delete(Long id);
+
+    List<ContentPlanTaskPreviewVO> previewTasks(ContentPlanPreviewTasksReq req);
 }

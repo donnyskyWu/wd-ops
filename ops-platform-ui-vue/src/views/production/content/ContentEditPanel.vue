@@ -161,6 +161,15 @@
               <el-button
                 v-if="!editorMaximized"
                 size="small"
+                type="primary"
+                plain
+                @click="openQuickTypesetDialog"
+              >
+                一键排版
+              </el-button>
+              <el-button
+                v-if="!editorMaximized"
+                size="small"
                 :icon="layoutPanelCollapsed ? Expand : Fold"
                 @click="layoutPanelCollapsed = !layoutPanelCollapsed"
               >
@@ -294,6 +303,13 @@
       :document-type="formData.documentType"
       @select="handleApplyTemplate"
     />
+    <WechatQuickTypesetDialog
+      v-model="quickTypesetVisible"
+      :title="formData.title"
+      :author="authorLabel"
+      :body-html="richBodyHtml"
+      @apply="handleQuickTypesetApply"
+    />
   </div>
 </template>
 
@@ -309,6 +325,7 @@ import LayoutEditor from '@/components/layout/LayoutEditor.vue'
 import LayoutViewer from '@/components/layout/LayoutViewer.vue'
 import LayoutTemplateSelectDialog from '@/components/layout/LayoutTemplateSelectDialog.vue'
 import LayoutResourceSidebar from '@/components/layout/LayoutResourceSidebar.vue'
+import WechatQuickTypesetDialog from '@/components/layout/WechatQuickTypesetDialog.vue'
 import {
   extractPlainText,
   parseHtmlToLayoutDocument,
@@ -488,6 +505,7 @@ const formData = reactive({
 const showDocumentType = computed(() => formData.contentType === 'ARTICLE')
 const showArticleLayout = computed(() => formData.contentType === 'ARTICLE')
 const templateDialogVisible = ref(false)
+const quickTypesetVisible = ref(false)
 const richBodyHtml = ref('<p></p>')
 const richSyncing = ref(false)
 const layoutJsonFromRichEditor = ref(false)
@@ -520,6 +538,28 @@ function handleSidebarTemplateApplied(payload: {
   try {
     richBodyHtml.value = payload.layoutHtml || ''
     formData.body = extractPlainText(richBodyHtml.value)
+  } finally {
+    richSyncing.value = false
+  }
+}
+
+function openQuickTypesetDialog() {
+  const bodyText = extractPlainText(richBodyHtml.value) || formData.body?.trim()
+  if (!formData.title?.trim() && !bodyText) {
+    ElMessage.warning('请先填写标题或正文，再使用一键排版')
+    return
+  }
+  quickTypesetVisible.value = true
+}
+
+function handleQuickTypesetApply(html: string) {
+  richSyncing.value = true
+  try {
+    formData.bodyFormat = 'LAYOUT'
+    formData.layoutHtml = ensureLayoutArticleHtml(html)
+    richBodyHtml.value = formData.layoutHtml
+    syncRichToForm(formData.layoutHtml)
+    ElMessage.success('排版已应用到正文')
   } finally {
     richSyncing.value = false
   }

@@ -108,6 +108,7 @@ class M10ApiCollectorExecS05IT extends OaITBase {
         WechatMpFollowerDO first = wechatMpFollowerMapper.selectOne(new LambdaQueryWrapper<WechatMpFollowerDO>()
                 .eq(WechatMpFollowerDO::getOpenid, "oStubFollower001"));
         assertEquals("Stub粉丝A", first.getNickname());
+        assertEquals("https://example.com/a.png", first.getAvatar());
         assertEquals("uStub001", first.getUnionid());
     }
 
@@ -152,7 +153,7 @@ class M10ApiCollectorExecS05IT extends OaITBase {
                         .header("X-Tenant-Id", TENANT)
                         .param("taskId", String.valueOf(taskId)))
                 .andExpect(jsonPath("$.data.list[0].status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.list[0].recordCount").value(9));
+                .andExpect(jsonPath("$.data.list[0].recordCount").value(10));
 
         Long stored = wechatMpFollowerMapper.selectCount(new LambdaQueryWrapper<WechatMpFollowerDO>()
                 .eq(WechatMpFollowerDO::getAccountId, SEED_ACCOUNT_ID));
@@ -172,6 +173,35 @@ class M10ApiCollectorExecS05IT extends OaITBase {
         CollectExecutionResult result = collectExecutionService.execute(task);
         assertTrue(!result.isSuccess());
         assertTrue(result.getErrorMessage().contains("绑定"));
+    }
+
+    @Test
+    @DisplayName("M10-API-S-05: 已认证官方 API 凭证自动绑定并执行")
+    void executionAutoBindsOfficialApiCredentials() {
+        AccountDO account = accountMapper.selectById(SEED_ACCOUNT_ID);
+        account.setCookieEncrypted(null);
+        account.setMpTokenEncrypted(null);
+        account.setUsageStatus("CERTIFIED");
+        account.setAppId("wxStubOfficial");
+        account.setAppSecretEncrypted(aesUtil.encrypt("stub-secret"));
+        accountMapper.updateById(account);
+        jdbcTemplate.update("DELETE FROM oa_collector_account_bind WHERE oa_account_id = ?", SEED_ACCOUNT_ID);
+
+        CollectTaskDO task = new CollectTaskDO();
+        task.setTenantId(TENANT_1);
+        task.setPlatformType("WECHAT_OFFICIAL");
+        task.setAccountId(SEED_ACCOUNT_ID);
+        task.setMethod("INTERNAL");
+        task.setSource("WECHAT_MP_API");
+
+        CollectExecutionResult result = collectExecutionService.execute(task);
+        assertTrue(result.isSuccess());
+        assertTrue(result.isMultiType());
+
+        Long bindCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM oa_collector_account_bind WHERE oa_account_id = ? AND bind_status = 'BOUND'",
+                Long.class, SEED_ACCOUNT_ID);
+        assertEquals(1L, bindCount);
     }
 
     private Long createTask(String name) throws Exception {

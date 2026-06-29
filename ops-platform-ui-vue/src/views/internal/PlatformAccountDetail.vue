@@ -285,6 +285,92 @@
       </el-row>
         </el-tab-pane>
 
+        <el-tab-pane v-if="showWechatOfficial" label="粉丝列表" name="mp-followers" lazy>
+          <ContentWrap title="粉丝列表">
+            <el-table
+              :data="mpFollowers"
+              v-loading="mpFollowerLoading"
+              border
+              stripe
+              empty-text="暂无粉丝数据，请先在「采集」Tab 执行 MP_FOLLOWER_LIST 采集任务"
+            >
+              <el-table-column label="头像" width="72" align="center">
+                <template #default="{ row }">
+                  <FollowerAvatar :src="row.avatar" :nickname="row.nickname" :size="36" />
+                </template>
+              </el-table-column>
+              <el-table-column prop="nickname" label="昵称" min-width="140" show-overflow-tooltip>
+                <template #default="{ row }">{{ row.nickname || '-' }}</template>
+              </el-table-column>
+              <el-table-column prop="openid" label="OpenID" min-width="180" show-overflow-tooltip>
+                <template #default="{ row }">
+                  <span :title="row.openid">{{ truncateOpenid(row.openid) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="subscribedAt" label="关注时间" width="170" />
+              <el-table-column prop="syncedAt" label="同步时间" width="170" />
+            </el-table>
+            <div v-if="!mpFollowerLoading && mpFollowers.length === 0" class="mp-follower-empty-hint">
+              <span>暂无粉丝数据。</span>
+              <el-button link type="primary" @click="activeTab = 'collect'">前往采集 Tab 执行粉丝列表采集</el-button>
+            </div>
+            <el-pagination
+              v-if="mpFollowerPagination.total > 0"
+              style="margin-top: 16px; justify-content: flex-end"
+              :current-page="mpFollowerPagination.pageNo"
+              :page-size="mpFollowerPagination.pageSize"
+              :total="mpFollowerPagination.total"
+              :page-sizes="[10, 20, 50]"
+              layout="total, sizes, prev, pager, next"
+              @update:current-page="(val) => { mpFollowerPagination.pageNo = val; loadMpFollowers() }"
+              @update:page-size="(val) => { mpFollowerPagination.pageSize = val; mpFollowerPagination.pageNo = 1; loadMpFollowers() }"
+            />
+          </ContentWrap>
+        </el-tab-pane>
+
+        <el-tab-pane v-if="showDouyin" label="粉丝列表" name="douyin-followers" lazy>
+          <ContentWrap title="粉丝列表">
+            <el-table
+              :data="douyinFollowers"
+              v-loading="douyinFollowerLoading"
+              border
+              stripe
+              empty-text="暂无粉丝数据，请先在「采集」Tab 执行 DOUYIN_FOLLOWER_LIST 采集任务"
+            >
+              <el-table-column label="头像" width="72" align="center">
+                <template #default="{ row }">
+                  <FollowerAvatar :src="row.avatar" :nickname="row.nickname" :size="36" />
+                </template>
+              </el-table-column>
+              <el-table-column prop="nickname" label="昵称" min-width="140" show-overflow-tooltip>
+                <template #default="{ row }">{{ row.nickname || '-' }}</template>
+              </el-table-column>
+              <el-table-column prop="followerId" label="粉丝 ID" min-width="180" show-overflow-tooltip>
+                <template #default="{ row }">
+                  <span :title="row.followerId">{{ truncateOpenid(row.followerId) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="followedAt" label="关注时间" width="170" />
+              <el-table-column prop="syncedAt" label="同步时间" width="170" />
+            </el-table>
+            <div v-if="!douyinFollowerLoading && douyinFollowers.length === 0" class="mp-follower-empty-hint">
+              <span>暂无粉丝数据。</span>
+              <el-button link type="primary" @click="activeTab = 'collect'">前往采集 Tab 执行粉丝列表采集</el-button>
+            </div>
+            <el-pagination
+              v-if="douyinFollowerPagination.total > 0"
+              style="margin-top: 16px; justify-content: flex-end"
+              :current-page="douyinFollowerPagination.pageNo"
+              :page-size="douyinFollowerPagination.pageSize"
+              :total="douyinFollowerPagination.total"
+              :page-sizes="[10, 20, 50]"
+              layout="total, sizes, prev, pager, next"
+              @update:current-page="(val) => { douyinFollowerPagination.pageNo = val; loadDouyinFollowers() }"
+              @update:page-size="(val) => { douyinFollowerPagination.pageSize = val; douyinFollowerPagination.pageNo = 1; loadDouyinFollowers() }"
+            />
+          </ContentWrap>
+        </el-tab-pane>
+
         <el-tab-pane v-if="supportsCollect" label="采集" name="collect" lazy>
           <PlatformAccountCollectTab
             v-if="activeTab === 'collect'"
@@ -341,7 +427,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as echarts from 'echarts'
@@ -363,7 +449,11 @@ import {
   createPlatformAccountFanGroup,
   updatePlatformAccountFanGroup,
   deletePlatformAccountFanGroup,
+  getWechatMpFollowers,
+  getDouyinFollowers,
   type FanGroupVO,
+  type MpFollowerVO,
+  type DouyinFollowerVO,
 } from '@/api/account'
 import {
   getWechatCertRenewals,
@@ -376,6 +466,7 @@ import {
 import { PLATFORM_LABEL, type PlatformType } from '@/utils/enum-alias'
 import { isAccountBindingConflict, promptAccountForceReplace } from '@/utils/account-binding-conflict'
 import PlatformAccountCollectTab from './PlatformAccountCollectTab.vue'
+import FollowerAvatar from '@/components/FollowerAvatar.vue'
 
 const COLLECTOR_PLATFORMS = [
   'WECHAT_OFFICIAL',
@@ -388,7 +479,13 @@ const COLLECTOR_PLATFORMS = [
 
 const route = useRoute()
 const router = useRouter()
-const activeTab = ref((route.query.tab as string) === 'collect' ? 'collect' : 'basic')
+const TAB_QUERY_MAP: Record<string, string> = {
+  collect: 'collect',
+  followers: 'mp-followers',
+  'mp-followers': 'mp-followers',
+  'douyin-followers': 'douyin-followers',
+}
+const activeTab = ref(TAB_QUERY_MAP[route.query.tab as string] || 'basic')
 const loading = ref(false)
 const loadError = ref('')
 const editMode = ref(false)
@@ -427,6 +524,11 @@ const showWechatOfficial = computed(() => {
   return platform === 'WECHAT_OFFICIAL'
 })
 
+const showDouyin = computed(() => {
+  const platform = detail.value?.platformType || detail.value?.platformName
+  return platform === 'DOUYIN'
+})
+
 const supportsCollect = computed(() => {
   const platform = detail.value?.platformType || detail.value?.platformName
   return COLLECTOR_PLATFORMS.includes(platform as (typeof COLLECTOR_PLATFORMS)[number])
@@ -455,6 +557,84 @@ const renewalRules = {
   renewalTime: [{ required: true, message: '请选择续费时间', trigger: 'change' }],
   renewalAmount: [{ required: true, message: '请输入续费金额', trigger: 'change' }],
 }
+
+const mpFollowers = ref<MpFollowerVO[]>([])
+const mpFollowerLoading = ref(false)
+const mpFollowerPagination = reactive({ pageNo: 1, pageSize: 20, total: 0 })
+
+const douyinFollowers = ref<DouyinFollowerVO[]>([])
+const douyinFollowerLoading = ref(false)
+const douyinFollowerPagination = reactive({ pageNo: 1, pageSize: 20, total: 0 })
+
+const truncateOpenid = (openid?: string) => {
+  if (!openid) return '-'
+  if (openid.length <= 16) return openid
+  return `${openid.slice(0, 8)}…${openid.slice(-6)}`
+}
+
+const loadMpFollowers = async () => {
+  if (!detail.value?.id || !showWechatOfficial.value) {
+    mpFollowers.value = []
+    mpFollowerPagination.total = 0
+    return
+  }
+  mpFollowerLoading.value = true
+  try {
+    const res = await getWechatMpFollowers(detail.value.id, {
+      pageNo: mpFollowerPagination.pageNo,
+      pageSize: mpFollowerPagination.pageSize,
+    })
+    mpFollowers.value = res.list || []
+    mpFollowerPagination.total = res.total ?? 0
+  } catch (e: any) {
+    mpFollowers.value = []
+    mpFollowerPagination.total = 0
+    const msg = e?.message || ''
+    if (msg.includes('403') || msg.includes('无权限')) {
+      ElMessage.warning('无权限查看粉丝列表，请联系管理员')
+    } else if (msg) {
+      ElMessage.error(msg)
+    }
+  } finally {
+    mpFollowerLoading.value = false
+  }
+}
+
+const loadDouyinFollowers = async () => {
+  if (!detail.value?.id || !showDouyin.value) {
+    douyinFollowers.value = []
+    douyinFollowerPagination.total = 0
+    return
+  }
+  douyinFollowerLoading.value = true
+  try {
+    const res = await getDouyinFollowers(detail.value.id, {
+      pageNo: douyinFollowerPagination.pageNo,
+      pageSize: douyinFollowerPagination.pageSize,
+    })
+    douyinFollowers.value = res.list || []
+    douyinFollowerPagination.total = res.total ?? 0
+  } catch (e: any) {
+    douyinFollowers.value = []
+    douyinFollowerPagination.total = 0
+    const msg = e?.message || ''
+    if (msg.includes('403') || msg.includes('无权限')) {
+      ElMessage.warning('无权限查看粉丝列表，请联系管理员')
+    } else if (msg) {
+      ElMessage.error(msg)
+    }
+  } finally {
+    douyinFollowerLoading.value = false
+  }
+}
+
+watch(activeTab, (tab) => {
+  if (tab === 'mp-followers') {
+    loadMpFollowers()
+  } else if (tab === 'douyin-followers') {
+    loadDouyinFollowers()
+  }
+})
 
 const initFollowerChart = (dates: string[] = [], vals: number[] = []) => {
   if (!followerChartRef.value) return
@@ -759,4 +939,5 @@ onMounted(loadDetail)
 .header { display: flex; justify-content: space-between; align-items: flex-start; }
 .meta { color: #909399; font-size: 13px; margin: 8px 0 0 0; }
 .fan-group-toolbar { margin-bottom: 12px; }
+.mp-follower-empty-hint { margin-top: 12px; color: #909399; font-size: 13px; }
 </style>

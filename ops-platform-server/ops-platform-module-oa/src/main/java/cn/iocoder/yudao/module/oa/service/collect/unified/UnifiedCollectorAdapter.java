@@ -117,30 +117,35 @@ public class UnifiedCollectorAdapter {
      */
     public int executeWechatMpFollowerCollect(Long oaAccountId) {
         requireAccount(oaAccountId);
+        ensureBoundForOfficialCollect(oaAccountId);
         return wechatMpFollowerSyncService.syncFollowers(oaAccountId);
     }
 
     /** M10 P2: oa_account_id → bind → collector article-list → 落库。 */
     public int executeWechatMpArticleCollect(Long oaAccountId) {
         requireAccount(oaAccountId);
+        ensureBoundForOfficialCollect(oaAccountId);
         return wechatMpArticleSyncService.syncArticles(oaAccountId);
     }
 
     /** M10 P2: MP follower-stats → oa_account_status_log */
     public int executeWechatMpFollowerStatsCollect(Long oaAccountId) {
         requireAccount(oaAccountId);
+        ensureBoundForOfficialCollect(oaAccountId);
         return channelFollowerStatsSyncService.syncWechatMpFollowerStats(oaAccountId);
     }
 
     /** M10 P2: MP article-data → oa_wechat_mp_article 互动字段 */
     public int executeWechatMpArticleStatsCollect(Long oaAccountId) {
         requireAccount(oaAccountId);
+        ensureBoundForOfficialCollect(oaAccountId);
         return wechatMpArticleStatsSyncService.syncArticleStats(oaAccountId);
     }
 
     /** M10 P2: MP article-download → oa_wechat_mp_article 正文字段 */
     public int executeWechatMpArticleContentCollect(Long oaAccountId) {
         requireAccount(oaAccountId);
+        ensureBoundForOfficialCollect(oaAccountId);
         return wechatMpArticleContentSyncService.syncArticleContent(oaAccountId);
     }
 
@@ -306,6 +311,20 @@ public class UnifiedCollectorAdapter {
     private AccountDO requireAccount(Long oaAccountId) {
         AccountDO account = accountMapper.selectById(oaAccountId);
         return ConfigTenantSupport.getRequiredInTenant(account);
+    }
+
+    /** 已认证公众号 + AppID/AppSecret 采集前自动绑定 Collector（无需手动 Cookie 绑定）。 */
+    private void ensureBoundForOfficialCollect(Long oaAccountId) {
+        CollectorAccountBindDO bind = findBind(oaAccountId);
+        if (bind != null && BIND_STATUS_BOUND.equals(bind.getBindStatus())
+                && StrUtil.isNotBlank(bind.getCollectorAccountId())) {
+            return;
+        }
+        AccountDO account = requireAccount(oaAccountId);
+        if (!WechatMpOfficialCredentialSupport.supportsOfficialApi(account)) {
+            return;
+        }
+        importAndSaveBind(account, null, false);
     }
 
     private CollectorAccountBindDO findBind(Long oaAccountId) {

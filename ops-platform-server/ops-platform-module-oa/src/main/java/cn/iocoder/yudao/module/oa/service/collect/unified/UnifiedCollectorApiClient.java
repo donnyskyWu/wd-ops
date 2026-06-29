@@ -106,11 +106,109 @@ public class UnifiedCollectorApiClient {
         return data == null ? Collections.emptyMap() : data;
     }
 
+    /** 官方 API：分页粉丝 openid（已认证号 · user/get） */
+    public Map<String, Object> getWechatMpOfficialFollowerListPage(String collectorAccountId, int page) {
+        if (properties.isStub()) {
+            return stubWechatMpOfficialFollowerPage(collectorAccountId, page);
+        }
+        JSONObject data = getJson("/api/v1/internal/wechat-mp/official/follower-list?account_id="
+                + collectorAccountId + "&page=" + page);
+        return data == null ? Collections.emptyMap() : data;
+    }
+
+    /** 官方 API：批量粉丝详情（batchget，最多 100 openid） */
+    public Map<String, Object> getWechatMpOfficialFollowerBatch(String collectorAccountId, List<String> openids) {
+        if (properties.isStub()) {
+            return stubWechatMpOfficialFollowerBatch(collectorAccountId, openids);
+        }
+        StringBuilder path = new StringBuilder("/api/v1/internal/wechat-mp/official/follower-batch?account_id=")
+                .append(collectorAccountId);
+        for (String openid : openids) {
+            path.append("&openids=").append(openid);
+        }
+        JSONObject data = postJson(path.toString(), JSONUtil.createObj());
+        return data == null ? Collections.emptyMap() : data;
+    }
+
+    /** 官方 API：累计用户数（getusercumulate） */
+    public Map<String, Object> getWechatMpOfficialUserCumulate(String collectorAccountId,
+                                                                String beginDate, String endDate) {
+        if (properties.isStub()) {
+            return stubWechatMpOfficialUserCumulate(collectorAccountId);
+        }
+        JSONObject data = getJson("/api/v1/internal/wechat-mp/official/user-cumulate?account_id="
+                + collectorAccountId + "&begin_date=" + beginDate + "&end_date=" + endDate);
+        return data == null ? Collections.emptyMap() : data;
+    }
+
+    /** @deprecated 微信已下线 getarticlesummary，请用 {@link #getWechatMpOfficialArticleTotalDetail} */
+    @Deprecated
+    public Map<String, Object> getWechatMpOfficialArticleStats(String collectorAccountId,
+                                                                String beginDate, String endDate) {
+        if (properties.isStub()) {
+            return stubWechatMpOfficialArticleStats(collectorAccountId);
+        }
+        JSONObject data = getJson("/api/v1/internal/wechat-mp/official/article-stats?account_id="
+                + collectorAccountId + "&begin_date=" + beginDate + "&end_date=" + endDate);
+        return data == null ? Collections.emptyMap() : data;
+    }
+
     public Map<String, Object> getWechatMpFollowerStats(String collectorAccountId) {
         if (properties.isStub()) {
             return stubWechatMpFollowerStats(collectorAccountId);
         }
         JSONObject data = getJson("/api/v1/internal/wechat-mp/follower-stats?account_id=" + collectorAccountId);
+        return data == null ? Collections.emptyMap() : data;
+    }
+    /** 官方 API：图文素材列表（batchget_material · news） */
+    public Map<String, Object> getWechatMpOfficialMaterialList(String collectorAccountId, int offset, int count) {
+        if (properties.isStub()) {
+            return stubWechatMpOfficialMaterialList(collectorAccountId);
+        }
+        JSONObject data = getJson("/api/v1/internal/wechat-mp/official/material-list?account_id="
+                + collectorAccountId + "&offset=" + offset + "&count=" + count);
+        return data == null ? Collections.emptyMap() : data;
+    }
+
+    /** 官方 API：已发布消息列表（freepublish/batchget） */
+    public Map<String, Object> getWechatMpOfficialFreepublishList(String collectorAccountId, int offset, int count) {
+        if (properties.isStub()) {
+            return stubWechatMpOfficialFreepublishList(collectorAccountId);
+        }
+        JSONObject data = getJson("/api/v1/internal/wechat-mp/official/freepublish-list?account_id="
+                + collectorAccountId + "&offset=" + offset + "&count=" + count + "&no_content=1");
+        return data == null ? Collections.emptyMap() : data;
+    }
+
+    /** 官方 API：已发布图文详情（freepublish/getarticle） */
+    public Map<String, Object> getWechatMpOfficialFreepublishArticle(String collectorAccountId, String articleId) {
+        if (properties.isStub()) {
+            return stubWechatMpOfficialFreepublishArticle(collectorAccountId, articleId);
+        }
+        JSONObject data = getJson("/api/v1/internal/wechat-mp/official/freepublish-article?account_id="
+                + collectorAccountId + "&article_id=" + articleId);
+        return data == null ? Collections.emptyMap() : data;
+    }
+
+    /** 官方 API：发表内容详细数据（getarticletotaldetail，仅 1 天） */
+    public Map<String, Object> getWechatMpOfficialArticleTotalDetail(String collectorAccountId,
+                                                                      String beginDate, String endDate) {
+        if (properties.isStub()) {
+            return stubWechatMpOfficialArticleTotalDetail(collectorAccountId);
+        }
+        JSONObject data = getJson("/api/v1/internal/wechat-mp/official/article-total-detail?account_id="
+                + collectorAccountId + "&begin_date=" + beginDate + "&end_date=" + endDate);
+        return data == null ? Collections.emptyMap() : data;
+    }
+
+    /** 官方 API：发表内容概况总数据（getbizsummary，最长 30 天） */
+    public Map<String, Object> getWechatMpOfficialBizSummary(String collectorAccountId,
+                                                              String beginDate, String endDate) {
+        if (properties.isStub()) {
+            return stubWechatMpOfficialBizSummary(collectorAccountId);
+        }
+        JSONObject data = getJson("/api/v1/internal/wechat-mp/official/biz-summary?account_id="
+                + collectorAccountId + "&begin_date=" + beginDate + "&end_date=" + endDate);
         return data == null ? Collections.emptyMap() : data;
     }
 
@@ -311,6 +409,33 @@ public class UnifiedCollectorApiClient {
         return data == null ? Collections.emptyMap() : data;
     }
 
+    /** POST /api/v1/auth/qrcode — 启动统一扫码登录 */
+    public Map<String, Object> startQrLogin(String collectorPlatform) {
+        if (properties.isStub()) {
+            return stubQrStart(collectorPlatform);
+        }
+        JSONObject body = JSONUtil.createObj().set("platform", collectorPlatform);
+        JSONObject data = postJsonWithTimeout("/api/v1/auth/qrcode", body, qrStartTimeoutMs());
+        return data == null ? Collections.emptyMap() : data;
+    }
+
+    /** GET /api/v1/auth/poll — 轮询扫码状态 */
+    public Map<String, Object> pollQrLogin(String sessionId) {
+        if (properties.isStub()) {
+            return stubQrPoll(sessionId);
+        }
+        JSONObject data = getJson("/api/v1/auth/poll?session_id=" + sessionId);
+        return data == null ? Collections.emptyMap() : data;
+    }
+
+    /** DELETE /api/v1/auth/qrcode — 取消扫码 */
+    public void cancelQrLogin(String sessionId) {
+        if (properties.isStub()) {
+            return;
+        }
+        delete("/api/v1/auth/qrcode?session_id=" + sessionId);
+    }
+
     /** GET /livez — 用于 Live Smoke IT 与运维探活（不经 JSON envelope） */
     public boolean checkLive() {
         if (properties.isStub()) {
@@ -481,6 +606,138 @@ public class UnifiedCollectorApiClient {
         return map;
     }
 
+    private Map<String, Object> stubWechatMpOfficialFollowerPage(String collectorAccountId, int page) {
+        if (page > 1) {
+            Map<String, Object> empty = new LinkedHashMap<>();
+            empty.put("total", 2);
+            empty.put("count", 0);
+            empty.put("openids", List.of());
+            empty.put("next_openid", "");
+            return empty;
+        }
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("total", 2);
+        map.put("count", 2);
+        map.put("openids", List.of("oStubFollower001", "oStubFollower002"));
+        map.put("next_openid", "");
+        return map;
+    }
+
+    private Map<String, Object> stubWechatMpOfficialFollowerBatch(String collectorAccountId, List<String> openids) {
+        List<Map<String, Object>> users = new ArrayList<>();
+        for (String openid : openids) {
+            Map<String, Object> user = new LinkedHashMap<>();
+            user.put("openid", openid);
+            user.put("nickname", "Stub粉丝-" + openid.substring(Math.max(0, openid.length() - 4)));
+            user.put("subscribe_time", 1_700_000_000);
+            user.put("headimgurl", "https://example.com/a.png");
+            users.add(user);
+        }
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("count", users.size());
+        map.put("users", users);
+        return map;
+    }
+
+    private Map<String, Object> stubWechatMpOfficialUserCumulate(String collectorAccountId) {
+        Map<String, Object> stat = new LinkedHashMap<>();
+        stat.put("ref_date", "2026-06-24");
+        stat.put("cumulate_user", 50_000);
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("stats", List.of(stat));
+        return map;
+    }
+
+    private Map<String, Object> stubWechatMpOfficialArticleStats(String collectorAccountId) {
+        Map<String, Object> article = new LinkedHashMap<>();
+        article.put("title", "Stub图文A");
+        article.put("int_page_read_user", 12_500);
+        article.put("share_user", 45);
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("articles", List.of(article));
+        return map;
+    }
+
+    private Map<String, Object> stubWechatMpOfficialMaterialList(String collectorAccountId) {
+        Map<String, Object> newsItem = new LinkedHashMap<>();
+        newsItem.put("title", "Stub官方素材A");
+        newsItem.put("url", "https://mp.weixin.qq.com/s/stub_official_001");
+        newsItem.put("thumb_url", "https://example.com/cover-official.png");
+        newsItem.put("digest", "Stub官方素材摘要");
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("media_id", "stub_media_001");
+        item.put("update_time", 1_700_100_000);
+        item.put("news_items", List.of(newsItem));
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("total_count", 1);
+        map.put("item_count", 1);
+        map.put("items", List.of(item));
+        return map;
+    }
+
+    private Map<String, Object> stubWechatMpOfficialFreepublishList(String collectorAccountId) {
+        Map<String, Object> newsItem = new LinkedHashMap<>();
+        newsItem.put("title", "Stub已发布图文A");
+        newsItem.put("url", "https://mp.weixin.qq.com/s/stub_freepublish_001");
+        newsItem.put("thumb_url", "https://example.com/cover-fp.png");
+        newsItem.put("digest", "Stub已发布摘要");
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("article_id", "stub_fp_article_001");
+        item.put("update_time", 1_700_100_000);
+        item.put("news_items", List.of(newsItem));
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("total_count", 1);
+        map.put("item_count", 1);
+        map.put("items", List.of(item));
+        return map;
+    }
+
+    private Map<String, Object> stubWechatMpOfficialFreepublishArticle(String collectorAccountId, String articleId) {
+        Map<String, Object> newsItem = new LinkedHashMap<>();
+        newsItem.put("title", "Stub已发布图文A");
+        newsItem.put("content", "<p>Stub公众号正文HTML</p>");
+        newsItem.put("digest", "Stub已发布摘要");
+        newsItem.put("url", "https://mp.weixin.qq.com/s/stub_freepublish_001");
+        newsItem.put("thumb_url", "https://example.com/cover-fp.png");
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("article_id", StrUtil.blankToDefault(articleId, "stub_fp_article_001"));
+        map.put("news_items", List.of(newsItem));
+        return map;
+    }
+
+    private Map<String, Object> stubWechatMpOfficialArticleTotalDetail(String collectorAccountId) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("stat_date", "2026-06-24");
+        detail.put("read_user", 12_500);
+        detail.put("share_user", 45);
+        detail.put("like_user", 320);
+        detail.put("zaikan_user", 88);
+        detail.put("comment_count", 12);
+        Map<String, Object> article = new LinkedHashMap<>();
+        article.put("ref_date", "2026-06-24");
+        article.put("msgid", "2651883347_1");
+        article.put("title", "Stub已发布图文A");
+        article.put("content_url", "https://mp.weixin.qq.com/s/stub_freepublish_001");
+        article.put("detail_list", List.of(detail));
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("count", 1);
+        map.put("articles", List.of(article));
+        return map;
+    }
+
+    private Map<String, Object> stubWechatMpOfficialBizSummary(String collectorAccountId) {
+        Map<String, Object> stat = new LinkedHashMap<>();
+        stat.put("ref_date", "2026-06-24");
+        stat.put("read_user", 50_000);
+        stat.put("share_user", 200);
+        stat.put("like_user", 1_200);
+        stat.put("send_page_count", 5);
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("count", 1);
+        map.put("stats", List.of(stat));
+        return map;
+    }
+
     private Map<String, Object> stubWechatMpArticleList(String collectorAccountId) {
         Map<String, Object> articleA = new LinkedHashMap<>();
         articleA.put("article_id", "stub_article_001");
@@ -615,12 +872,56 @@ public class UnifiedCollectorApiClient {
     }
 
     private JSONObject postJson(String path, JSONObject body) {
+        return postJsonWithTimeout(path, body, properties.getTimeoutMs());
+    }
+
+    private JSONObject postJsonWithTimeout(String path, JSONObject body, int timeoutMs) {
         HttpResponse response = authorized(HttpRequest.post(normalizeBaseUrl() + path)
-                .timeout(properties.getTimeoutMs())
+                .timeout(timeoutMs)
                 .header("Content-Type", "application/json")
                 .body(body.toString()))
                 .execute();
         return parseEnvelope(response);
+    }
+
+    private int qrStartTimeoutMs() {
+        return Math.max(properties.getTimeoutMs(), 120_000);
+    }
+
+    /** 1x1 透明 PNG */
+    private static final String STUB_QR_PNG_BASE64 =
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+    private final java.util.concurrent.ConcurrentHashMap<String, Integer> stubQrPollCounts =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    private Map<String, Object> stubQrStart(String collectorPlatform) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("session_id", "stub_qr_" + collectorPlatform + "_001");
+        map.put("status", "pending");
+        map.put("qrcode_base64", STUB_QR_PNG_BASE64);
+        map.put("expires_in_seconds", 300);
+        map.put("message", "stub 扫码会话");
+        return map;
+    }
+
+    private Map<String, Object> stubQrPoll(String sessionId) {
+        int count = stubQrPollCounts.merge(sessionId, 1, Integer::sum);
+        Map<String, Object> map = new LinkedHashMap<>();
+        if (count < 2) {
+            map.put("status", "pending");
+            map.put("message", "等待扫码");
+            return map;
+        }
+        map.put("status", "confirmed");
+        map.put("message", "登录成功");
+        map.put("account_id", "acc_stub_qr_confirmed");
+        Map<String, Object> credential = new LinkedHashMap<>();
+        credential.put("cookie", "stub_cookie=1; sessionid=stub_session");
+        credential.put("token", "stub_mp_token");
+        map.put("credential", credential);
+        stubQrPollCounts.remove(sessionId);
+        return map;
     }
 
     private JSONObject getJson(String path) {
@@ -654,13 +955,18 @@ public class UnifiedCollectorApiClient {
     private JSONObject parseEnvelope(HttpResponse response) {
         int status = response.getStatus();
         String body = response.body();
-        if (status == 401 || status == 403) {
-            throw new UnifiedCollectorApiException("TOKEN_FAIL", "Collector API 鉴权失败 HTTP " + status);
-        }
         if (StrUtil.isBlank(body)) {
+            if (status == 401 || status == 403) {
+                throw new UnifiedCollectorApiException("TOKEN_FAIL", "Collector API 鉴权失败 HTTP " + status);
+            }
             throw new UnifiedCollectorApiException("DISCONNECTED", "Collector API 空响应 HTTP " + status);
         }
         JSONObject root = JSONUtil.parseObj(body);
+        if (status == 401 || status == 403) {
+            String message = root.getStr("message", "Collector API 鉴权失败 HTTP " + status);
+            int code = root.getInt("code", -1);
+            throw new UnifiedCollectorApiException("TOKEN_FAIL", message, code);
+        }
         if (status == 422) {
             throw new UnifiedCollectorApiException("DISCONNECTED", "Collector API 参数错误 HTTP 422");
         }

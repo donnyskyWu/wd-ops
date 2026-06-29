@@ -67,6 +67,18 @@ public class CollectTaskController {
         return CommonResult.success(true);
     }
 
+    @PostMapping("/{id}/start")
+    public CommonResult<Boolean> start(@PathVariable Long id) {
+        collectTaskService.start(id);
+        return CommonResult.success(true);
+    }
+
+    @PostMapping("/{id}/stop")
+    public CommonResult<Boolean> stop(@PathVariable Long id) {
+        collectTaskService.stop(id);
+        return CommonResult.success(true);
+    }
+
     @PutMapping("/{id}/status")
     public CommonResult<Boolean> updateStatus(@PathVariable Long id, @RequestParam String status) {
         collectTaskService.updateStatus(id, status);

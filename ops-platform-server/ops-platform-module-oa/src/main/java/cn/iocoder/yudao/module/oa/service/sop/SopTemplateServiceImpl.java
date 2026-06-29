@@ -112,10 +112,7 @@ public class SopTemplateServiceImpl implements SopTemplateService {
         if (taskCount > 0) {
             throw new ServiceException(OaErrorCodes.ENTITY_ALREADY_BOUND);
         }
-        existing.setStatus(0);
-        existing.setUpdater(TenantContextHolder.getUsername());
-        existing.setUpdateTime(LocalDateTime.now());
-        sopTemplateMapper.updateById(existing);
+        sopTemplateMapper.deleteById(id);
     }
 
     private SopTemplateVO toVO(SopTemplateDO entity) {

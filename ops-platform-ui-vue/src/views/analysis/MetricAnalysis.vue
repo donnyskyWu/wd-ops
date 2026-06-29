@@ -68,78 +68,6 @@
 
     </el-card>
 
-
-
-    <el-row :gutter="16" class="stats-row" v-if="metricResults.length">
-
-      <el-col :span="6">
-
-        <el-card shadow="hover">
-
-          <div class="stat-item">
-
-            <div class="stat-label">已选指标</div>
-
-            <div class="stat-value">{{ stats.totalMetrics }}</div>
-
-          </div>
-
-        </el-card>
-
-      </el-col>
-
-      <el-col :span="6">
-
-        <el-card shadow="hover">
-
-          <div class="stat-item">
-
-            <div class="stat-label">有数据指标</div>
-
-            <div class="stat-value success">{{ stats.qualifiedMetrics }}</div>
-
-          </div>
-
-        </el-card>
-
-      </el-col>
-
-      <el-col :span="6">
-
-        <el-card shadow="hover">
-
-          <div class="stat-item">
-
-            <div class="stat-label">无数据指标</div>
-
-            <div class="stat-value danger">{{ stats.unqualifiedMetrics }}</div>
-
-          </div>
-
-        </el-card>
-
-      </el-col>
-
-      <el-col :span="6">
-
-        <el-card shadow="hover">
-
-          <div class="stat-item">
-
-            <div class="stat-label">数据覆盖率</div>
-
-            <div class="stat-value">{{ stats.qualificationRate }}%</div>
-
-          </div>
-
-        </el-card>
-
-      </el-col>
-
-    </el-row>
-
-
-
     <el-tabs v-model="activeViewTab" class="metric-view-tabs" @tab-change="handleViewTabChange">
 
       <el-tab-pane label="指标明细" name="detail">
@@ -438,8 +366,6 @@ interface MetricAnalysisResult {
 
   builderConfig: MetricBuilderConfig | null
 
-  status: 'qualified' | 'unqualified'
-
   trendPoints: number[]
 
   currentValue: number | string
@@ -570,20 +496,6 @@ watch(metricParams, (params) => {
 
 
 
-const stats = reactive({
-
-  totalMetrics: 0,
-
-  qualifiedMetrics: 0,
-
-  unqualifiedMetrics: 0,
-
-  qualificationRate: 0,
-
-})
-
-
-
 const metricResults = ref<MetricAnalysisResult[]>([])
 
 const trendChartRef = ref<HTMLElement>()
@@ -706,8 +618,6 @@ const handleQuery = async () => {
 
           builderConfig,
 
-          status: 'unqualified',
-
           trendPoints: [],
 
           currentValue: '-',
@@ -748,8 +658,6 @@ const handleQuery = async () => {
 
         builderConfig,
 
-        status: rows.length > 0 ? 'qualified' : 'unqualified',
-
         trendPoints: rows.slice(0, 7).map((row) => extractScalar([row])),
 
         currentValue: scalar,
@@ -763,14 +671,6 @@ const handleQuery = async () => {
     chartConfigs.value = {}
 
     activeMetricTab.value = results.length ? String(results[0].metricId) : ''
-
-    stats.totalMetrics = results.length
-
-    stats.qualifiedMetrics = results.filter(r => r.status === 'qualified').length
-
-    stats.unqualifiedMetrics = results.length - stats.qualifiedMetrics
-
-    stats.qualificationRate = results.length ? Math.round((stats.qualifiedMetrics / results.length) * 100) : 0
 
     await nextTick()
 
@@ -851,14 +751,6 @@ const handleReset = () => {
   activeMetricTab.value = ''
 
   disposeTrendChart()
-
-  stats.totalMetrics = 0
-
-  stats.qualifiedMetrics = 0
-
-  stats.unqualifiedMetrics = 0
-
-  stats.qualificationRate = 0
 
 }
 
@@ -1109,28 +1001,6 @@ onBeforeUnmount(() => disposeTrendChart())
 .metric-analysis {
 
   .search-card { margin-bottom: 16px; }
-
-  .stats-row { margin-bottom: 16px; }
-
-  .stat-item {
-
-    text-align: center;
-
-    padding: 10px 0;
-
-    .stat-label { font-size: 14px; color: #909399; margin-bottom: 8px; }
-
-    .stat-value {
-
-      font-size: 28px; font-weight: bold; color: #303133;
-
-      &.success { color: #67c23a; }
-
-      &.danger { color: #f56c6c; }
-
-    }
-
-  }
 
   .metric-view-tabs {
 

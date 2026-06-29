@@ -4,6 +4,8 @@ import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanPreviewTasksReq;
+import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanTaskPreviewVO;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanTerminateReq;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanUpdateReq;
 import cn.iocoder.yudao.module.oa.service.plan.ContentPlanService;
@@ -19,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/admin-api/oa/plan")
@@ -40,6 +44,12 @@ public class ContentPlanController {
     @GetMapping("/get")
     public CommonResult<ContentPlanRespVO> get(@RequestParam Long id) {
         return CommonResult.success(contentPlanService.get(id));
+    }
+
+    @PostMapping("/preview-tasks")
+    public CommonResult<List<ContentPlanTaskPreviewVO>> previewTasks(
+            @Valid @RequestBody ContentPlanPreviewTasksReq req) {
+        return CommonResult.success(contentPlanService.previewTasks(req));
     }
 
     @PostMapping("/create")

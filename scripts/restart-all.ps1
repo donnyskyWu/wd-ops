@@ -102,7 +102,7 @@ $collectorCmd = "& '$pythonExe' run.py"
 Start-DevWindow -Title "unify-collector-api :8000" -WorkingDirectory $collectorDir -Command $collectorCmd -LogFile $CollectorLog
 
 $backendDir = Join-Path $Root "ops-platform-server\ops-platform-module-oa"
-$backendCmd = "mvn spring-boot:run `"-Dspring-boot.run.profiles=dev`""
+$backendCmd = "mvn spring-boot:run '-Dspring-boot.run.profiles=dev'"
 Start-DevWindow -Title "ops-platform-server :8080" -WorkingDirectory $backendDir -Command $backendCmd -LogFile $BackendLog
 
 if (-not $NoFrontend) {

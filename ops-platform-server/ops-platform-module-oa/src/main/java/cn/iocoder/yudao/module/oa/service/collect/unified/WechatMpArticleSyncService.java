@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -55,6 +56,10 @@ public class WechatMpArticleSyncService {
             throw new ServiceException(2022, "Collector 账号未绑定成功，请先完成绑定");
         }
 
+        if (WechatMpOfficialCredentialSupport.supportsOfficialApi(account)) {
+            return syncOfficialArticles(tenantId, oaAccountId, bind.getCollectorAccountId(), account);
+        }
+
         Map<String, Object> payload = unifiedCollectorApiClient.getWechatMpPublishList(bind.getCollectorAccountId());
         List<JSONObject> articles = extractArticles(payload);
         if (articles.isEmpty() && StrUtil.isNotBlank(account.getExternalAccountId())) {
@@ -70,6 +75,166 @@ public class WechatMpArticleSyncService {
             }
         }
         return synced;
+    }
+
+    /** 已认证号：official/freepublish-list 同步已发布图文 */
+    private int syncOfficialArticles(Long tenantId, Long oaAccountId, String collectorAccountId, AccountDO account) {
+        List<JSONObject> articles = new ArrayList<>();
+        int offset = 0;
+        int pageSize = 20;
+        int totalCount = Integer.MAX_VALUE;
+        while (offset < totalCount && offset < 500) {
+            Map<String, Object> payload = unifiedCollectorApiClient.getWechatMpOfficialFreepublishList(
+                    collectorAccountId, offset, pageSize);
+            List<JSONObject> pageArticles = extractFreepublishArticles(payload);
+            if (pageArticles.isEmpty()) {
+                break;
+            }
+            articles.addAll(pageArticles);
+            totalCount = toInt(firstPresent(payload, "total_count"));
+            int itemCount = toInt(firstPresent(payload, "item_count"));
+            if (itemCount < pageSize) {
+                break;
+            }
+            offset += pageSize;
+        }
+        if (articles.isEmpty()) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
+                    "官方 API 暂无已发布图文（freepublish/batchget 返回空）。"
+                            + "请确认账号已通过 freepublish 正式发布内容；"
+                            + "注意 batchget 可能不含开启群发通知的发表记录；"
+                            + "统计类数据仅自 2025-11-01 起有效");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        int synced = 0;
+        for (JSONObject article : articles) {
+            if (upsertArticle(tenantId, oaAccountId, article, now)) {
+                synced++;
+            }
+        }
+        return synced;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<JSONObject> extractFreepublishArticles(Map<String, Object> payload) {
+        if (payload == null || payload.isEmpty()) {
+            return List.of();
+        }
+        Object rawItems = firstPresent(payload, "items", "item");
+        if (!(rawItems instanceof List<?> items)) {
+            return List.of();
+        }
+        List<JSONObject> articles = new ArrayList<>();
+        for (Object itemObj : items) {
+            JSONObject item = toJSONObject(itemObj);
+            if (item == null) {
+                continue;
+            }
+            String publishArticleId = item.getStr("article_id");
+            long updateTime = item.getLong("update_time", 0L);
+            List<?> newsItems = resolveNewsItems(item);
+            if (newsItems.isEmpty()) {
+                continue;
+            }
+            int idx = 0;
+            for (Object newsObj : newsItems) {
+                JSONObject news = toJSONObject(newsObj);
+                if (news == null) {
+                    continue;
+                }
+                idx++;
+                JSONObject article = new JSONObject(news);
+                if (StrUtil.isNotBlank(publishArticleId)) {
+                    article.set("article_id", newsItems.size() > 1
+                            ? publishArticleId + "_" + idx
+                            : publishArticleId);
+                    article.set("publish_article_id", publishArticleId);
+                }
+                if (updateTime > 0) {
+                    article.set("publish_time", updateTime);
+                }
+                String digest = news.getStr("digest");
+                if (StrUtil.isNotBlank(digest)) {
+                    article.set("content_text", digest);
+                }
+                articles.add(article);
+            }
+        }
+        return articles;
+    }
+
+    private List<?> resolveNewsItems(JSONObject item) {
+        Object newsRaw = item.get("news_items");
+        if (newsRaw instanceof List<?> list && !list.isEmpty()) {
+            return list;
+        }
+        Object contentObj = item.get("content");
+        if (contentObj instanceof Map<?, ?> contentMap) {
+            Object nested = contentMap.get("news_item");
+            if (nested instanceof List<?> list && !list.isEmpty()) {
+                return list;
+            }
+        }
+        return List.of();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<JSONObject> extractOfficialMaterialArticles(Map<String, Object> payload) {
+        if (payload == null || payload.isEmpty()) {
+            return List.of();
+        }
+        Object rawItems = firstPresent(payload, "items");
+        if (!(rawItems instanceof List<?> items)) {
+            return List.of();
+        }
+        List<JSONObject> articles = new ArrayList<>();
+        for (Object itemObj : items) {
+            JSONObject item = toJSONObject(itemObj);
+            if (item == null) {
+                continue;
+            }
+            Object newsRaw = item.get("news_items");
+            if (!(newsRaw instanceof List<?> newsItems)) {
+                continue;
+            }
+            long updateTime = item.getLong("update_time", 0L);
+            String mediaId = item.getStr("media_id");
+            int idx = 0;
+            for (Object newsObj : newsItems) {
+                JSONObject news = toJSONObject(newsObj);
+                if (news == null) {
+                    continue;
+                }
+                idx++;
+                JSONObject article = new JSONObject(news);
+                if (StrUtil.isNotBlank(mediaId)) {
+                    article.set("article_id", mediaId + "_" + idx);
+                }
+                if (updateTime > 0) {
+                    article.set("publish_time", updateTime);
+                }
+                String digest = news.getStr("digest");
+                if (StrUtil.isNotBlank(digest)) {
+                    article.set("content_text", digest);
+                }
+                articles.add(article);
+            }
+        }
+        return articles;
+    }
+
+    private int toInt(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value == null) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
     }
 
     private boolean upsertArticle(Long tenantId, Long accountId, JSONObject article, LocalDateTime now) {
@@ -106,6 +271,11 @@ public class WechatMpArticleSyncService {
         entity.setLikeCount(firstInt(article, "like_count", "like_num", "old_like_count"));
         entity.setShareCount(firstInt(article, "share_count", "share_num", "share_page"));
         entity.setSyncedAt(now);
+        String contentText = firstNonBlank(article, "content_text");
+        if (StrUtil.isNotBlank(contentText)) {
+            entity.setContentText(contentText);
+            entity.setContentSyncedAt(now);
+        }
     }
 
     private List<JSONObject> extractArticles(Map<String, Object> payload) {

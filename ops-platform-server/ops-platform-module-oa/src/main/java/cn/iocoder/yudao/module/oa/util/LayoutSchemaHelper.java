@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.oa.util;
 
+import cn.hutool.core.util.ReUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
@@ -28,6 +29,10 @@ public final class LayoutSchemaHelper {
     private static final String PLACEHOLDER_LIST = "列表样式";
     private static final String PLACEHOLDER_IMAGE = "图片框";
     private static final String PLACEHOLDER_FIXED = "装饰区块";
+    private static final java.util.regex.Pattern MEDIA_TAG_PATTERN =
+            java.util.regex.Pattern.compile("(?i)<(img|video|figure|iframe|audio)\\b");
+    private static final java.util.regex.Pattern HTML_BLOCK_PATTERN = java.util.regex.Pattern.compile(
+            "(?is)(<(h[1-6]|p|blockquote|hr|img|ul|ol|figure|video)[^>]*>.*?</\\2>|</?(hr|img|video)[^>]*/?>)");
 
     private LayoutSchemaHelper() {
     }
@@ -445,6 +450,132 @@ public final class LayoutSchemaHelper {
             }
         }
         return segments;
+    }
+
+    /** Split plain text or editor HTML into merge segments (text + image markers). */
+    public static List<String> splitMergeSegments(String bodyOrHtml) {
+        if (StrUtil.isBlank(bodyOrHtml)) {
+            return List.of();
+        }
+        String normalized = bodyOrHtml.replace("\r\n", "\n").trim();
+        if (!containsHtmlBlock(normalized)) {
+            return splitBody(normalized);
+        }
+        return splitHtmlToMergeSegments(LayoutJsonHelper.sanitizeHtml(normalized));
+    }
+
+    public static boolean isImageSegment(String segment) {
+        return StrUtil.isNotBlank(segment) && ReUtil.contains("(?i)<img\\b", segment);
+    }
+
+    public static String extractImageSrc(String segment) {
+        return StrUtil.blankToDefault(ReUtil.getGroup1("(?is)src=[\"']([^\"']+)[\"']", segment), "");
+    }
+
+    public static JSONObject imageInstance(String src, JSONObject styles) {
+        JSONObject block = new JSONObject();
+        block.set("type", "image");
+        block.set("src", StrUtil.blankToDefault(src, ""));
+        block.set("width", "100%");
+        block.set("styles", styles != null ? styles : new JSONObject());
+        return block;
+    }
+
+    private static boolean containsHtmlBlock(String text) {
+        return text.contains("<")
+                && (MEDIA_TAG_PATTERN.matcher(text).find()
+                || ReUtil.contains("(?i)<(?:p|h[1-6]|blockquote|ul|ol|div|section|figure)\\b", text));
+    }
+
+    private static boolean segmentHasContent(String seg) {
+        if (StrUtil.isBlank(seg)) {
+            return false;
+        }
+        if (StrUtil.isNotBlank(stripMergeTags(seg))) {
+            return true;
+        }
+        return MEDIA_TAG_PATTERN.matcher(seg).find();
+    }
+
+    private static List<String> splitHtmlToMergeSegments(String html) {
+        List<String> segments = new ArrayList<>();
+        String remaining = html;
+        while (StrUtil.isNotBlank(remaining)) {
+            java.util.regex.Matcher matcher = HTML_BLOCK_PATTERN.matcher(remaining);
+            if (matcher.find()) {
+                if (matcher.start() > 0) {
+                    addPlainMergeSegments(segments, remaining.substring(0, matcher.start()).trim());
+                }
+                addHtmlMergeSegment(segments, matcher.group().trim());
+                remaining = remaining.substring(matcher.end());
+            } else {
+                addPlainMergeSegments(segments, remaining.trim());
+                break;
+            }
+        }
+        return segments;
+    }
+
+    private static void addPlainMergeSegments(List<String> segments, String raw) {
+        if (!segmentHasContent(raw)) {
+            return;
+        }
+        for (String part : splitBody(raw)) {
+            if (StrUtil.isNotBlank(part)) {
+                segments.add(part);
+            }
+        }
+    }
+
+    private static void addHtmlMergeSegment(List<String> segments, String seg) {
+        if (!segmentHasContent(seg)) {
+            return;
+        }
+        String lower = seg.toLowerCase();
+        if (MEDIA_TAG_PATTERN.matcher(seg).find()) {
+            String unwrapped = unwrapMediaWrapper(seg);
+            if (StrUtil.isNotBlank(unwrapped)) {
+                segments.add(unwrapped.trim());
+                return;
+            }
+            if (lower.startsWith("<img") || lower.startsWith("<video")) {
+                segments.add(seg);
+                return;
+            }
+        }
+        if (ReUtil.isMatch("(?is)<h([1-6])[^>]*>.*</h\\1>", seg)) {
+            segments.add(stripMergeTags(seg));
+            return;
+        }
+        if (lower.contains("<blockquote")) {
+            segments.add(stripMergeTags(seg));
+            return;
+        }
+        String text = stripMergeTags(seg);
+        if (StrUtil.isNotBlank(text)) {
+            segments.add(text);
+        }
+        for (String imgTag : ReUtil.findAllGroup0("(?is)<img[^>]*>", seg)) {
+            segments.add(imgTag);
+        }
+    }
+
+    private static String unwrapMediaWrapper(String seg) {
+        java.util.regex.Matcher wrapped = java.util.regex.Pattern
+                .compile("(?is)^<(p|section|div)[^>]*>([\\s\\S]*)</\\1>$")
+                .matcher(seg.trim());
+        if (!wrapped.matches()) {
+            return null;
+        }
+        String inner = wrapped.group(2).trim();
+        if (MEDIA_TAG_PATTERN.matcher(inner).find() && StrUtil.isBlank(stripMergeTags(inner))) {
+            return inner;
+        }
+        return null;
+    }
+
+    private static String stripMergeTags(String html) {
+        return StrUtil.trim(ReUtil.replaceAll(html, "<[^>]+>", " ").replaceAll("\\s+", " "));
     }
 
     public static String extractTextFromLayout(Object layoutJson) {

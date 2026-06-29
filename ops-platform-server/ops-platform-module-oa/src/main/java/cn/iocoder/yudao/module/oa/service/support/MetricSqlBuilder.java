@@ -81,15 +81,76 @@ public final class MetricSqlBuilder {
         }
     }
 
+    /**
+     * 运行时 SQL：优先执行已保存的 {@code metricFormula}（保留 left() 等定制表达式）；
+     * 若公式与构建器 SAVE 输出不一致，则从 {@code paramsJson} 注入参数化 WHERE 条件；
+     * 若公式已含 {@code :p_xxx} 占位符则不再重复注入。
+     */
     public static String buildRuntimeMetricSql(String savedFormula, String paramsJson, Map<String, String> bindParams) {
+        String trimmed = StrUtil.trim(savedFormula);
         BuilderConfig config = unpackBuilder(paramsJson);
+
+        if (StrUtil.isNotBlank(trimmed) && shouldUseStoredFormula(trimmed, config)) {
+            return injectRuntimeParameterConditions(trimmed, config, bindParams);
+        }
+
         if (config != null && StrUtil.isNotBlank(config.getDataSource())) {
             String runtimeSql = buildMetricSqlFromConfig(config, BuildMode.RUNTIME, bindParams);
             if (StrUtil.isNotBlank(runtimeSql)) {
                 return runtimeSql;
             }
         }
-        return savedFormula;
+        return StrUtil.blankToDefault(trimmed, "");
+    }
+
+    /** 已保存公式含自定义占位符，或与构建器生成 SQL 不一致时，视为用户定制 SQL。 */
+    static boolean shouldUseStoredFormula(String savedFormula, BuilderConfig config) {
+        if (metricFormulaHasCustomParams(savedFormula)) {
+            return true;
+        }
+        if (config == null || StrUtil.isBlank(config.getDataSource())) {
+            return true;
+        }
+        String saveSql = buildMetricSqlFromConfig(config, BuildMode.SAVE, Map.of());
+        return !savedFormula.trim().equals(StrUtil.trim(saveSql));
+    }
+
+    /** 与前端 metricFormulaHasCustomParams 对齐 */
+    static boolean metricFormulaHasCustomParams(String formula) {
+        return formula != null && formula.matches("(?s).*:[pP]_[a-zA-Z0-9_]+.*");
+    }
+
+    /**
+     * 已保存的定制 SQL 不含参数化 WHERE 时，从 {@code paramsJson} 注入运行时查询条件占位符。
+     */
+    static String injectRuntimeParameterConditions(String storedFormula, BuilderConfig config,
+                                                   Map<String, String> bindParams) {
+        if (metricFormulaHasCustomParams(storedFormula) || config == null) {
+            return storedFormula;
+        }
+        String paramWhere = buildRuntimeParameterWhereClause(config, bindParams);
+        if (StrUtil.isBlank(paramWhere)) {
+            return storedFormula;
+        }
+        return DashboardSqlParamBinder.injectAndConditions(storedFormula, paramWhere);
+    }
+
+    /** 仅提取 asParameter 条件，生成 AND 连接的 WHERE 片段（含 :p_xxx 占位符）。 */
+    static String buildRuntimeParameterWhereClause(BuilderConfig config, Map<String, String> bindParams) {
+        if (config == null || config.getConditions() == null || config.getConditions().isEmpty()) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>();
+        for (FilterCondition c : config.getConditions()) {
+            if (!Boolean.TRUE.equals(c.getAsParameter()) || !conditionIsActive(c)) {
+                continue;
+            }
+            if (bindParams != null && !paramHasBindValue(c, bindParams)) {
+                continue;
+            }
+            parts.add(buildConditionSql(c, bindParams));
+        }
+        return String.join(" AND ", parts);
     }
 
     public static String buildMetricSqlFromConfig(BuilderConfig config, BuildMode mode, Map<String, String> bindParams) {
@@ -100,7 +161,7 @@ public final class MetricSqlBuilder {
         List<String> selectCols = new ArrayList<>();
         selectCols.add(selectExpr + " AS metric_value");
         if (config.getGroupByFields() != null) {
-            config.getGroupByFields().forEach(f -> selectCols.add(0, MAIN_ALIAS + "." + f));
+            config.getGroupByFields().forEach(f -> selectCols.add(0, resolveSqlColumn(f)));
         }
 
         FromWhere fromWhere = buildFromWhereClause(
@@ -120,7 +181,7 @@ public final class MetricSqlBuilder {
         if (config.getGroupByFields() != null && !config.getGroupByFields().isEmpty()) {
             sql.append(" GROUP BY ")
                     .append(String.join(", ", config.getGroupByFields().stream()
-                            .map(f -> MAIN_ALIAS + "." + f)
+                            .map(MetricSqlBuilder::resolveSqlColumn)
                             .toList()));
         }
         return sql.toString();
@@ -340,6 +401,16 @@ public final class MetricSqlBuilder {
             return trimmed;
         }
         return "'" + trimmed.replace("'", "''") + "'";
+    }
+
+    private static String resolveSqlColumn(String fieldName) {
+        if (StrUtil.isBlank(fieldName)) {
+            return "";
+        }
+        if (fieldName.contains(".")) {
+            return fieldName;
+        }
+        return MAIN_ALIAS + "." + fieldName;
     }
 
     private static String getJoinAlias(String table) {

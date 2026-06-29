@@ -59,6 +59,10 @@ oa:
     base-url: https://qyapi.weixin.qq.com
     stub: false
     timeout-ms: 15000
+  wechat-official:
+    base-url: https://api.weixin.qq.com
+    stub: false
+    timeout-ms: 30000
 
 logging:
   level:

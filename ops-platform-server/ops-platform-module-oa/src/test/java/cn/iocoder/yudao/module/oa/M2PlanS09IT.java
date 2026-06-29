@@ -27,6 +27,75 @@ class M2PlanS09IT extends OaITBase {
     private MockMvc mockMvc;
 
     @Test
+    @DisplayName("M2-S-09b: 新增计划 tasks[] 含 yyyy-MM-dd HH:mm:ss 时间")
+    void createPlanWithTaskMatrix() throws Exception {
+        mockMvc.perform(post(BASE + "/create")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "planName": "IT-任务矩阵计划",
+                                  "templateId": 9401,
+                                  "ipGroupId": 9001,
+                                  "startDate": "2026-06-01",
+                                  "endDate": "2026-06-30",
+                                  "description": "tasks 时间格式与前端一致",
+                                  "competitions": [
+                                    {"competitionId": "cmp-matrix-001", "competitionName": "SEED-矩阵赛事A"}
+                                  ],
+                                  "steps": [
+                                    {
+                                      "nodeId": 9401,
+                                      "competitionIds": ["cmp-matrix-001"],
+                                      "assigneeIds": [1003],
+                                      "scheduledStart": "2026-06-26 05:30:00",
+                                      "scheduledEnd": "2026-06-27 05:30:00"
+                                    },
+                                    {
+                                      "nodeId": 9402,
+                                      "competitionIds": ["cmp-matrix-001"],
+                                      "assigneeIds": [1003],
+                                      "scheduledStart": "2026-06-26 05:30:00",
+                                      "scheduledEnd": "2026-06-27 05:30:00"
+                                    },
+                                    {
+                                      "nodeId": 9403,
+                                      "competitionIds": ["cmp-matrix-001"],
+                                      "assigneeIds": [1003],
+                                      "scheduledStart": "2026-06-26 05:30:00",
+                                      "scheduledEnd": "2026-06-27 05:30:00"
+                                    }
+                                  ],
+                                  "tasks": [
+                                    {
+                                      "nodeId": 9401,
+                                      "competitionId": "cmp-matrix-001",
+                                      "assigneeId": 1003,
+                                      "scheduledStart": "2026-06-26 05:30:00",
+                                      "scheduledEnd": "2026-06-27 05:30:00"
+                                    },
+                                    {
+                                      "nodeId": 9402,
+                                      "competitionId": "cmp-matrix-001",
+                                      "assigneeId": 1003,
+                                      "scheduledStart": "2026-06-26 05:30:00",
+                                      "scheduledEnd": "2026-06-27 05:30:00"
+                                    },
+                                    {
+                                      "nodeId": 9403,
+                                      "competitionId": "cmp-matrix-001",
+                                      "assigneeId": 1003,
+                                      "scheduledStart": "2026-06-26 05:30:00",
+                                      "scheduledEnd": "2026-06-27 05:30:00"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(jsonPath("$.code").value(0));
+    }
+
+    @Test
     @DisplayName("M2-S-09: 计划创建→启动→终止审批")
     void planLifecycle() throws Exception {
         MvcResult createResult = mockMvc.perform(post(BASE + "/create")

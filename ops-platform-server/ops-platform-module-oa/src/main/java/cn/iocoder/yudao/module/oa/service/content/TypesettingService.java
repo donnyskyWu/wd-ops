@@ -126,6 +126,13 @@ public class TypesettingService {
     }
 
     private String resolveMergeBody(ContentTypesetReq req) {
+        if (StrUtil.isNotBlank(req.getHtml())) {
+            List<String> segments = LayoutSchemaHelper.splitMergeSegments(
+                    LayoutJsonHelper.sanitizeHtml(req.getHtml()));
+            if (!segments.isEmpty()) {
+                return String.join("\n\n", segments);
+            }
+        }
         if (StrUtil.isNotBlank(req.getBody())) {
             return req.getBody().trim();
         }

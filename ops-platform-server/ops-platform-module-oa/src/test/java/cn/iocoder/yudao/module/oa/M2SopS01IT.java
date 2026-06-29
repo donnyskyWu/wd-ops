@@ -69,6 +69,13 @@ class M2SopS01IT extends OaITBase {
                         .header("Authorization", ADMIN)
                         .header("X-Tenant-Id", TENANT))
                 .andExpect(jsonPath("$.code").value(0));
+
+        mockMvc.perform(get("/admin-api/oa/sop/template/list")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT)
+                        .param("templateName", "IT-SOP模板"))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.list.length()").value(0));
     }
 
     @Test

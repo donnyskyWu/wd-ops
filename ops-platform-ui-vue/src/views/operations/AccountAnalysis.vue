@@ -289,7 +289,10 @@ const handleExport = () => {
 const handleViewDetail = (row: any, tab: string) => {
   const tabName = tab === 'follower' ? 'followers' : 'contents'
   const accountId = row.accountId ?? row.id
-  router.push({ path: `/analysis/account/${accountId}/detail`, query: { tab: tabName } })
+  router.push({
+    path: `/analysis/account/${accountId}/detail`,
+    query: { tab: tabName, platform: row.platformType },
+  })
 }
 
 // S-R3：获取平台标签类型（用后端真实 enum 值）

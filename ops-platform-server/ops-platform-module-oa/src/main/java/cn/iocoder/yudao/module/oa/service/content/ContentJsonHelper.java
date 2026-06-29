@@ -41,13 +41,21 @@ final class ContentJsonHelper {
         if (StrUtil.isBlank(json)) {
             return Collections.emptyList();
         }
-        List<Long> ids = new ArrayList<>();
-        for (Object item : JSONUtil.parseArray(json)) {
-            if (item == null) {
-                continue;
+        String trimmed = json.trim();
+        try {
+            if (trimmed.startsWith("[")) {
+                List<Long> ids = new ArrayList<>();
+                for (Object item : JSONUtil.parseArray(trimmed)) {
+                    if (item == null) {
+                        continue;
+                    }
+                    ids.add(Long.valueOf(String.valueOf(item)));
+                }
+                return ids;
             }
-            ids.add(Long.valueOf(String.valueOf(item)));
+            return List.of(Long.valueOf(trimmed));
+        } catch (Exception ignored) {
+            return Collections.emptyList();
         }
-        return ids;
     }
 }

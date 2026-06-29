@@ -23,7 +23,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CollectCronScheduler {
 
-    private static final String STATUS_PENDING = "PENDING";
+    /** 仅 RUNNING（已启动）任务参与 cron 自动调度 */
+    private static final String STATUS_RUNNING = "RUNNING";
 
     private final CollectProperties collectProperties;
     private final SysTenantMapper sysTenantMapper;
@@ -53,7 +54,7 @@ public class CollectCronScheduler {
             LocalDateTime now = LocalDateTime.now();
             List<CollectTaskDO> dueTasks = collectTaskMapper.selectList(new LambdaQueryWrapper<CollectTaskDO>()
                     .eq(CollectTaskDO::getTenantId, tenantId)
-                    .eq(CollectTaskDO::getStatus, STATUS_PENDING)
+                    .eq(CollectTaskDO::getStatus, STATUS_RUNNING)
                     .and(wrapper -> wrapper.isNull(CollectTaskDO::getNextRunAt)
                             .or()
                             .le(CollectTaskDO::getNextRunAt, now)));

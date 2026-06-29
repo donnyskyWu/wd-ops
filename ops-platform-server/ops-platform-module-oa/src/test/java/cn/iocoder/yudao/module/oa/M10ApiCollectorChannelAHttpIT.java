@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.oa;
 
 import cn.iocoder.yudao.module.oa.service.collect.unified.UnifiedCollectorApiClient;
+import cn.iocoder.yudao.module.oa.service.collect.unified.UnifiedCollectorApiException;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -20,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -173,6 +175,58 @@ class M10ApiCollectorChannelAHttpIT extends OaITBase {
         assertNotNull(req);
         assertEquals("/api/v1/internal/bilibili/user/me", req.getPath());
         assertEquals(COLLECTOR_ACCOUNT_ID, req.getHeader("X-Account-Id"));
+    }
+
+    @Test
+    @DisplayName("Channel-A: HTTP 401 透传 Collector 账号凭证错误（非 Bearer Token）")
+    void http401SurfacesCollectorAccountMessage() {
+        server.enqueue(new MockResponse()
+                .setResponseCode(401)
+                .setBody("""
+                        {"code":40002,"message":"未登录, 请先通过 Cookie 导入登录","data":null}
+                        """)
+                .addHeader("Content-Type", "application/json"));
+
+        UnifiedCollectorApiException ex = assertThrows(UnifiedCollectorApiException.class,
+                () -> unifiedCollectorApiClient.getWechatMpArticleList(COLLECTOR_ACCOUNT_ID, FAKEID));
+        assertEquals("未登录, 请先通过 Cookie 导入登录", ex.getMessage());
+        assertEquals("TOKEN_FAIL", ex.getConnStatus());
+    }
+
+    @Test
+    @DisplayName("Channel-A: official freepublish-list 路径")
+    void wechatMpOfficialFreepublishListPath() throws Exception {
+        server.enqueue(envelope("""
+                {"total_count":1,"item_count":1,"items":[{"article_id":"fp001","update_time":1700100000,
+                "news_items":[{"title":"已发布A","url":"https://mp.weixin.qq.com/s/fp001"}]}]}
+                """));
+
+        Map<String, Object> data = unifiedCollectorApiClient.getWechatMpOfficialFreepublishList(
+                COLLECTOR_ACCOUNT_ID, 0, 20);
+        assertEquals(1, data.get("total_count"));
+
+        RecordedRequest req = server.takeRequest(5, TimeUnit.SECONDS);
+        assertNotNull(req);
+        assertTrue(req.getPath().contains("/api/v1/internal/wechat-mp/official/freepublish-list"));
+        assertTrue(req.getPath().contains("no_content=1"));
+    }
+
+    @Test
+    @DisplayName("Channel-A: official article-total-detail 路径")
+    void wechatMpOfficialArticleTotalDetailPath() throws Exception {
+        server.enqueue(envelope("""
+                {"count":1,"articles":[{"msgid":"2247490098_1","title":"标题","content_url":"https://x",
+                "detail_list":[{"stat_date":"2026-06-24","read_user":100,"share_user":5,"like_user":3}]}]}
+                """));
+
+        Map<String, Object> data = unifiedCollectorApiClient.getWechatMpOfficialArticleTotalDetail(
+                COLLECTOR_ACCOUNT_ID, "2026-06-24", "2026-06-24");
+        assertEquals(1, data.get("count"));
+
+        RecordedRequest req = server.takeRequest(5, TimeUnit.SECONDS);
+        assertNotNull(req);
+        assertTrue(req.getPath().contains("/api/v1/internal/wechat-mp/official/article-total-detail"));
+        assertTrue(req.getPath().contains("begin_date=2026-06-24"));
     }
 
     private static MockResponse envelope(String dataJson) {

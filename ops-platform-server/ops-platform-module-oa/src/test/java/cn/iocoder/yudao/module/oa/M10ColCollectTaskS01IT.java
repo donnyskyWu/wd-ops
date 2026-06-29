@@ -109,6 +109,53 @@ class M10ColCollectTaskS01IT extends OaITBase {
     }
 
     @Test
+    @DisplayName("M10-COL-S-01: 启动/停止任务")
+    void startStopTask() throws Exception {
+        MvcResult createResult = mockMvc.perform(post("/admin-api/oa/collect/task/create")
+                        .header("Authorization", AUTH)
+                        .header("X-Tenant-Id", TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "启停测试任务",
+                                  "platformType": "WECHAT_OFFICIAL",
+                                  "accountId": 9001,
+                                  "method": "INTERNAL",
+                                  "source": "WECHAT_MP_API",
+                                  "frequency": "DAILY",
+                                  "cron": "0 0 2 * * ?",
+                                  "status": "PENDING"
+                                }
+                                """))
+                .andExpect(jsonPath("$.code").value(0))
+                .andReturn();
+        Long id = JsonPath.parse(createResult.getResponse().getContentAsString()).read("$.data", Long.class);
+
+        mockMvc.perform(post("/admin-api/oa/collect/task/" + id + "/start")
+                        .header("Authorization", AUTH)
+                        .header("X-Tenant-Id", TENANT))
+                .andExpect(jsonPath("$.code").value(0));
+
+        mockMvc.perform(get("/admin-api/oa/collect/task/" + id)
+                        .header("Authorization", AUTH)
+                        .header("X-Tenant-Id", TENANT))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.status").value("RUNNING"))
+                .andExpect(jsonPath("$.data.nextRunAt").exists());
+
+        mockMvc.perform(post("/admin-api/oa/collect/task/" + id + "/stop")
+                        .header("Authorization", AUTH)
+                        .header("X-Tenant-Id", TENANT))
+                .andExpect(jsonPath("$.code").value(0));
+
+        mockMvc.perform(get("/admin-api/oa/collect/task/" + id)
+                        .header("Authorization", AUTH)
+                        .header("X-Tenant-Id", TENANT))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.status").value("STOPPED"));
+    }
+
+    @Test
     @DisplayName("M10-COL-S-01: cron 非法 → 1400")
     void invalidCronFails() throws Exception {
         mockMvc.perform(post("/admin-api/oa/collect/task/create")

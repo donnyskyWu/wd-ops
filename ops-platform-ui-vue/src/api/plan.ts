@@ -37,9 +37,40 @@ export interface ContentPlanStepVO {
   scheduledEnd?: string
 }
 
+export interface ContentPlanTaskVO {
+  nodeId: number
+  competitionId: string
+  assigneeId: number
+  scheduledStart?: string
+  scheduledEnd?: string
+}
+
+export interface ContentPlanTaskPreviewVO {
+  nodeId: number
+  nodeName?: string
+  nodeOrder?: number
+  executorRole?: string
+  competitionId: string
+  competitionName?: string
+  assigneeId?: number
+  assigneeName?: string
+  assigneeFallback?: boolean
+  positionWarning?: string
+  scheduledStart?: string
+  scheduledEnd?: string
+}
+
 export interface PageResult<T> {
   list: T[]
   total: number
+}
+
+export function previewContentPlanTasks(data: {
+  templateId: number
+  ipGroupId: number
+  matches: Array<{ competitionId: string; competitionName: string; matchTimeRaw?: number }>
+}): Promise<ContentPlanTaskPreviewVO[]> {
+  return request.post({ url: '/oa/plan/preview-tasks', data })
 }
 
 export function getContentPlanPage(params: {
@@ -71,6 +102,7 @@ export function createContentPlan(data: {
     scheduledStart?: string
     scheduledEnd?: string
   }>
+  tasks?: ContentPlanTaskVO[]
 }): Promise<number> {
   return request.post({ url: '/oa/plan/create', data })
 }
@@ -90,6 +122,7 @@ export function updateContentPlan(data: {
     scheduledStart?: string
     scheduledEnd?: string
   }>
+  tasks?: ContentPlanTaskVO[]
 }): Promise<boolean> {
   return request.put({ url: '/oa/plan/update', data })
 }

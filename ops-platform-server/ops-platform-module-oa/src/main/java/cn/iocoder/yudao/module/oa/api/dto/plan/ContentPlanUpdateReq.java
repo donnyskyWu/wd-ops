@@ -25,6 +25,6 @@ public class ContentPlanUpdateReq {
     private String description;
     @NotEmpty
     private List<ContentPlanCompetitionReq> competitions;
-    @NotEmpty
     private List<ContentPlanStepReq> steps;
+    private List<ContentPlanTaskReq> tasks;
 }

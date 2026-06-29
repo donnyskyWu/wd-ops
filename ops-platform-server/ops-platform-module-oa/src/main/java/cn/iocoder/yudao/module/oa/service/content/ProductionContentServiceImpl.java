@@ -559,11 +559,13 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         steps.add(pendingPublish);
 
         ContentReviewStepVO published = newStep("PUBLISHED",
-                "REJECTED".equals(contentStatus) ? "已驳回" : "已发布",
+                resolvePublishedStepLabel(contentStatus),
                 resolvePublishedStepStatus(contentStatus));
-        if ("PUBLISHED".equals(contentStatus)) {
+        if ("PUBLISHED".equals(contentStatus) || "FORMALLY_PUBLISHED".equals(contentStatus)) {
             ReviewRecordDO lastApprove = findLastAction(records, "APPROVE");
             fillFromRecord(published, lastApprove);
+        } else if ("PUBLISHED_DRAFT".equals(contentStatus)) {
+            published.setStepStatus("IN_PROGRESS");
         } else if ("REJECTED".equals(contentStatus)) {
             ReviewRecordDO reject = findLastAction(records, "REJECT");
             fillFromRecord(published, reject);
@@ -620,7 +622,8 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         if ("PENDING_PUBLISH".equals(contentStatus)) {
             return "IN_PROGRESS";
         }
-        if ("PUBLISHED".equals(contentStatus)) {
+        if ("PUBLISHED".equals(contentStatus) || "PUBLISHED_DRAFT".equals(contentStatus)
+                || "FORMALLY_PUBLISHED".equals(contentStatus)) {
             return "COMPLETED";
         }
         if ("REJECTED".equals(contentStatus)) {
@@ -633,13 +636,29 @@ public class ProductionContentServiceImpl implements ProductionContentService {
     }
 
     private String resolvePublishedStepStatus(String contentStatus) {
-        if ("PUBLISHED".equals(contentStatus)) {
+        if ("FORMALLY_PUBLISHED".equals(contentStatus) || "PUBLISHED".equals(contentStatus)) {
             return "COMPLETED";
+        }
+        if ("PUBLISHED_DRAFT".equals(contentStatus)) {
+            return "IN_PROGRESS";
         }
         if ("REJECTED".equals(contentStatus)) {
             return "REJECTED";
         }
         return "WAITING";
+    }
+
+    private String resolvePublishedStepLabel(String contentStatus) {
+        if ("REJECTED".equals(contentStatus)) {
+            return "已驳回";
+        }
+        if ("PUBLISHED_DRAFT".equals(contentStatus)) {
+            return "已发布草稿";
+        }
+        if ("FORMALLY_PUBLISHED".equals(contentStatus)) {
+            return "已正式发布";
+        }
+        return "已发布";
     }
 
     private int reviewStatusOrder(String status) {
@@ -649,7 +668,8 @@ public class ProductionContentServiceImpl implements ProductionContentService {
             case "PENDING_SECOND_REVIEW" -> 2;
             case "PENDING_FINAL_REVIEW" -> 3;
             case "PENDING_PUBLISH" -> 4;
-            case "PUBLISHED", "COMPLETED", "REJECTED" -> 5;
+            case "PUBLISHED_DRAFT" -> 5;
+            case "FORMALLY_PUBLISHED", "PUBLISHED", "COMPLETED", "REJECTED" -> 6;
             default -> 0;
         };
     }
@@ -815,6 +835,13 @@ public class ProductionContentServiceImpl implements ProductionContentService {
     private static String truncateKnowledgeTitle(String title) {
         String normalized = StrUtil.blankToDefault(title, "未命名内容").trim();
         return normalized.length() <= 100 ? normalized : normalized.substring(0, 100);
+    }
+
+    private static boolean isTransferableToKnowledge(String status) {
+        return "PENDING_PUBLISH".equals(status)
+                || "PUBLISHED_DRAFT".equals(status)
+                || "FORMALLY_PUBLISHED".equals(status)
+                || "PUBLISHED".equals(status);
     }
 
     private static String truncateKnowledgeTags(String tags) {
@@ -1067,7 +1094,7 @@ public class ProductionContentServiceImpl implements ProductionContentService {
     @AuditLog(module = "M2-content", action = "transfer-knowledge")
     public ContentTransferKnowledgeResultVO transferToKnowledge(Long id) {
         ProductionContentDO content = requireContent(id);
-        if (!"PUBLISHED".equals(content.getStatus())) {
+        if (!isTransferableToKnowledge(content.getStatus())) {
             throw new ServiceException(OaErrorCodes.CONTENT_STATUS_INVALID);
         }
         if (Integer.valueOf(1).equals(content.getTransferredToKnowledge())) {

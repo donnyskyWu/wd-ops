@@ -6,8 +6,10 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.CollectorAccountBindDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.WechatMpFollowerDO;
+import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.CollectorAccountBindMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.WechatMpFollowerMapper;
 import cn.iocoder.yudao.module.oa.service.config.ConfigTenantSupport;
@@ -19,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +34,14 @@ import java.util.Map;
 public class WechatMpFollowerSyncService {
 
     private static final String BIND_STATUS_BOUND = "BOUND";
+    private static final String[] NICKNAME_KEYS = {"nickname", "nick_name", "user_name"};
+    private static final String[] AVATAR_KEYS = {
+            "headimgurl", "avatar", "head_img", "headImgUrl", "head_img_url",
+            "user_headimg", "headimg", "headImg", "profile_photo", "icon_url"
+    };
+    private static final String[] NESTED_PROFILE_KEYS = {"user_info", "user_attr", "profile"};
 
+    private final AccountMapper accountMapper;
     private final CollectorAccountBindMapper collectorAccountBindMapper;
     private final WechatMpFollowerMapper wechatMpFollowerMapper;
     private final UnifiedCollectorApiClient unifiedCollectorApiClient;
@@ -49,6 +60,14 @@ public class WechatMpFollowerSyncService {
             throw new ServiceException(2022, "Collector 账号未绑定成功，请先完成绑定");
         }
 
+        AccountDO account = accountMapper.selectById(oaAccountId);
+        account = ConfigTenantSupport.getRequiredInTenant(account);
+        if (WechatMpOfficialCredentialSupport.supportsOfficialApi(account)) {
+            int synced = syncOfficialFollowers(tenantId, oaAccountId, bind.getCollectorAccountId());
+            enrichFromCookieFollowerList(tenantId, oaAccountId, bind.getCollectorAccountId(), account);
+            return synced;
+        }
+
         Map<String, Object> payload = unifiedCollectorApiClient.getWechatMpFollowerList(bind.getCollectorAccountId());
         List<JSONObject> followers = extractFollowers(payload);
         LocalDateTime now = LocalDateTime.now();
@@ -59,6 +78,129 @@ public class WechatMpFollowerSyncService {
             }
         }
         return synced;
+    }
+
+    /** 已认证号：official/follower-list + follower-batch 全量同步 */
+    private int syncOfficialFollowers(Long tenantId, Long oaAccountId, String collectorAccountId) {
+        List<String> allOpenids = new ArrayList<>();
+        int page = 1;
+        while (page <= 100) {
+            Map<String, Object> pageData = unifiedCollectorApiClient
+                    .getWechatMpOfficialFollowerListPage(collectorAccountId, page);
+            allOpenids.addAll(extractOpenids(pageData));
+            Object next = pageData.get("next_openid");
+            int count = toInt(pageData.get("count"));
+            if (count <= 0 || next == null || StrUtil.isBlank(String.valueOf(next))) {
+                break;
+            }
+            page++;
+        }
+        if (allOpenids.isEmpty()) {
+            return 0;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        int synced = 0;
+        for (int i = 0; i < allOpenids.size(); i += 100) {
+            List<String> batch = allOpenids.subList(i, Math.min(i + 100, allOpenids.size()));
+            Map<String, Object> batchData = unifiedCollectorApiClient
+                    .getWechatMpOfficialFollowerBatch(collectorAccountId, batch);
+            List<JSONObject> users = extractFollowers(batchData);
+            for (JSONObject follower : users) {
+                if (upsertFollower(tenantId, oaAccountId, follower, now)) {
+                    synced++;
+                }
+            }
+        }
+        return synced;
+    }
+
+    /**
+     * 官方 batchget 自 2021-12 起不再返回 nickname/headimgurl；若账号仍配置了 Cookie+Token，
+     * 用 mp.weixin.qq.com 粉丝列表补全头像与昵称（best-effort，失败不影响主流程）。
+     */
+    private void enrichFromCookieFollowerList(Long tenantId, Long oaAccountId, String collectorAccountId,
+                                              AccountDO account) {
+        if (!hasCookieCredentials(account)) {
+            return;
+        }
+        try {
+            Map<String, Object> payload = unifiedCollectorApiClient.getWechatMpFollowerList(collectorAccountId);
+            List<JSONObject> followers = extractFollowers(payload);
+            if (followers.isEmpty()) {
+                return;
+            }
+            LocalDateTime now = LocalDateTime.now();
+            Map<String, JSONObject> profileByOpenid = indexProfilesByOpenid(followers);
+            for (Map.Entry<String, JSONObject> entry : profileByOpenid.entrySet()) {
+                mergeProfileIntoExisting(tenantId, oaAccountId, entry.getKey(), entry.getValue(), now);
+            }
+        } catch (RuntimeException ignored) {
+            // cookie 未登录或 collector 不可用时跳过 enrichment
+        }
+    }
+
+    private boolean hasCookieCredentials(AccountDO account) {
+        return account != null
+                && StrUtil.isNotBlank(account.getCookieEncrypted())
+                && StrUtil.isNotBlank(account.getMpTokenEncrypted());
+    }
+
+    private Map<String, JSONObject> indexProfilesByOpenid(List<JSONObject> followers) {
+        Map<String, JSONObject> profiles = new LinkedHashMap<>();
+        for (JSONObject follower : followers) {
+            String openid = firstNonBlank(follower, "openid", "user_openid", "user_name");
+            if (StrUtil.isBlank(openid)) {
+                continue;
+            }
+            if (StrUtil.isNotBlank(resolveProfileField(follower, NICKNAME_KEYS))
+                    || StrUtil.isNotBlank(resolveProfileField(follower, AVATAR_KEYS))) {
+                profiles.put(openid, follower);
+            }
+        }
+        return profiles;
+    }
+
+    private void mergeProfileIntoExisting(Long tenantId, Long accountId, String openid, JSONObject profile,
+                                          LocalDateTime now) {
+        WechatMpFollowerDO existing = wechatMpFollowerMapper.selectOne(
+                new LambdaQueryWrapper<WechatMpFollowerDO>()
+                        .eq(WechatMpFollowerDO::getTenantId, tenantId)
+                        .eq(WechatMpFollowerDO::getAccountId, accountId)
+                        .eq(WechatMpFollowerDO::getOpenid, openid));
+        if (existing == null) {
+            upsertFollower(tenantId, accountId, profile, now);
+            return;
+        }
+        applyFollowerFields(existing, profile, now);
+        ConfigTenantSupport.fillUpdate(existing);
+        wechatMpFollowerMapper.updateById(existing);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> extractOpenids(Map<String, Object> payload) {
+        if (payload == null || payload.isEmpty()) {
+            return List.of();
+        }
+        Object raw = firstPresent(payload, "openids", "data");
+        if (raw instanceof List<?> list) {
+            return list.stream().map(String::valueOf).filter(StrUtil::isNotBlank).toList();
+        }
+        return List.of();
+    }
+
+    private int toInt(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value == null) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
     }
 
     private boolean upsertFollower(Long tenantId, Long accountId, JSONObject follower, LocalDateTime now) {
@@ -87,18 +229,48 @@ public class WechatMpFollowerSyncService {
     }
 
     private void applyFollowerFields(WechatMpFollowerDO entity, JSONObject follower, LocalDateTime now) {
-        entity.setNickname(firstNonBlank(follower, "nickname", "nick_name"));
-        entity.setAvatar(firstNonBlank(follower, "headimgurl", "avatar", "head_img"));
-        entity.setUnionid(firstNonBlank(follower, "unionid"));
-        entity.setSubscribedAt(parseSubscribeTime(follower));
+        String nickname = resolveProfileField(follower, NICKNAME_KEYS);
+        if (StrUtil.isNotBlank(nickname)) {
+            entity.setNickname(nickname);
+        }
+        String avatar = resolveProfileField(follower, AVATAR_KEYS);
+        if (StrUtil.isNotBlank(avatar)) {
+            entity.setAvatar(avatar);
+        }
+        String unionid = resolveProfileField(follower, "unionid");
+        if (StrUtil.isNotBlank(unionid)) {
+            entity.setUnionid(unionid);
+        }
+        LocalDateTime subscribedAt = parseSubscribeTime(follower);
+        if (subscribedAt != null) {
+            entity.setSubscribedAt(subscribedAt);
+        }
         entity.setSyncedAt(now);
+    }
+
+    private String resolveProfileField(JSONObject follower, String... keys) {
+        String direct = firstNonBlank(follower, keys);
+        if (StrUtil.isNotBlank(direct)) {
+            return direct;
+        }
+        for (String nestedKey : NESTED_PROFILE_KEYS) {
+            JSONObject nested = follower.getJSONObject(nestedKey);
+            if (nested == null) {
+                continue;
+            }
+            String nestedValue = firstNonBlank(nested, keys);
+            if (StrUtil.isNotBlank(nestedValue)) {
+                return nestedValue;
+            }
+        }
+        return null;
     }
 
     private List<JSONObject> extractFollowers(Map<String, Object> payload) {
         if (payload == null || payload.isEmpty()) {
             return List.of();
         }
-        Object raw = firstPresent(payload, "followers", "list", "items", "user_list", "user_info_list");
+        Object raw = firstPresent(payload, "followers", "list", "items", "user_list", "user_info_list", "users");
         if (raw instanceof JSONArray array) {
             return array.toList(JSONObject.class);
         }

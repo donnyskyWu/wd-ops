@@ -6,6 +6,16 @@ export interface MetricFieldMeta {
   name: string
   label: string
   type: 'number' | 'string' | 'date' | 'datetime'
+  /** 所在表展示名，如「主表」「账号表」 */
+  tableLabel?: string
+  /** main 或关联表物理表名 */
+  tableKey?: string
+}
+
+export interface MetricFieldGroup {
+  tableKey: string
+  tableLabel: string
+  fields: MetricFieldMeta[]
 }
 
 export interface MetricFilterFieldMeta {
@@ -350,15 +360,15 @@ export function resolveFieldLabel(fieldName: string, dataSource: string, joinTab
 
   const schema = getMetricTableSchemas()[dataSource]
   const mainField = schema?.fields.find((f) => f.name === fieldName)
-  if (mainField) return mainField.label
+  if (mainField) return formatFieldOptionLabel({ ...mainField, tableLabel: '主表', tableKey: 'main' })
 
   const available = getAvailableFields(dataSource, joinTables)
   const exact = available.find((f) => f.name === fieldName)
-  if (exact) return exact.label
+  if (exact) return formatFieldOptionLabel(exact)
 
   const suffix = fieldName.includes('.') ? fieldName.split('.').pop()! : fieldName
   const bySuffix = available.find((f) => f.name === suffix || f.name.endsWith(`.${suffix}`))
-  if (bySuffix) return bySuffix.label
+  if (bySuffix) return formatFieldOptionLabel(bySuffix)
 
   return fieldName
 }
@@ -442,7 +452,7 @@ export function buildQuerySqlFromConfig(config: QueryBuilderConfig): string {
   const hasCalc = !!config.calcMethod
 
   config.displayFields.forEach((f) => {
-    const col = `${mainAlias}.${f}`
+    const col = resolveFieldSqlColumn(f, config.dataSource, mainAlias)
     if (!selectCols.includes(col)) selectCols.push(col)
   })
 
@@ -469,7 +479,7 @@ export function buildQuerySqlFromConfig(config: QueryBuilderConfig): string {
     : (hasCalc ? config.displayFields : [])
 
   if (hasCalc && groupFields.length > 0) {
-    sql += ` GROUP BY ${groupFields.map((f) => `${mainAlias}.${f}`).join(', ')}`
+    sql += ` GROUP BY ${groupFields.map((f) => resolveFieldSqlColumn(f, config.dataSource, mainAlias)).join(', ')}`
   }
 
   return sql
@@ -500,7 +510,7 @@ export function buildMetricSqlFromConfig(
 
   const selectCols = [selectExpr + ' AS metric_value']
   if (config.groupByFields.length > 0) {
-    config.groupByFields.forEach((f) => selectCols.unshift(`${mainAlias}.${f}`))
+    config.groupByFields.forEach((f) => selectCols.unshift(resolveFieldSqlColumn(f, config.dataSource, mainAlias)))
   }
 
   const { fromClause, whereClause } = buildFromWhereClause(
@@ -514,23 +524,83 @@ export function buildMetricSqlFromConfig(
 
   let sql = `SELECT ${selectCols.join(', ')} FROM ${fromClause} WHERE ${whereClause}`
   if (config.groupByFields.length > 0) {
-    sql += ` GROUP BY ${config.groupByFields.map((f) => `${mainAlias}.${f}`).join(', ')}`
+    sql += ` GROUP BY ${config.groupByFields.map((f) => resolveFieldSqlColumn(f, config.dataSource, mainAlias)).join(', ')}`
   }
   return sql
 }
 
-/** 分析/预览时生成含参数占位符的完整 SQL；优先从 params_json 重建，兼容旧数据直接带 :p_ 的公式 */
+/** 在 GROUP BY / ORDER BY / HAVING 之前追加 AND 条件（或新建 WHERE） */
+function injectAndConditions(sql: string, fragment: string): string {
+  const upper = sql.toUpperCase()
+  const limitIdx = upper.lastIndexOf(' LIMIT ')
+  const core = limitIdx >= 0 ? sql.substring(0, limitIdx).trim() : sql.trim()
+  const limitSuffix = limitIdx >= 0 ? sql.substring(limitIdx) : ''
+
+  const coreUpper = core.toUpperCase()
+  let insertAt = core.length
+  for (const clause of [' GROUP BY ', ' ORDER BY ', ' HAVING ']) {
+    const idx = coreUpper.indexOf(clause)
+    if (idx >= 0) insertAt = Math.min(insertAt, idx)
+  }
+
+  const merged = coreUpper.includes(' WHERE ')
+    ? core.substring(0, insertAt) + ' AND ' + fragment + core.substring(insertAt)
+    : core.substring(0, insertAt) + ' WHERE ' + fragment + core.substring(insertAt)
+  return merged + limitSuffix
+}
+
+function buildRuntimeParameterWhereClause(
+  config: MetricBuilderConfig,
+  bindParams?: Record<string, string>,
+): string {
+  const parts: string[] = []
+  const schema = getMetricTableSchemas()[config.dataSource]
+  if (!schema) return ''
+  const mainAlias = schema.alias
+  for (const c of config.conditions) {
+    if (!c.asParameter || !conditionIsActive(c)) continue
+    if (bindParams && !paramHasBindValue(c, bindParams)) continue
+    parts.push(buildConditionSql(mainAlias, c, schema.fields, bindParams))
+  }
+  return parts.join(' AND ')
+}
+
+function injectRuntimeParameterConditions(
+  storedFormula: string,
+  builder: MetricBuilderConfig,
+  bindParams?: Record<string, string>,
+): string {
+  if (metricFormulaHasCustomParams(storedFormula)) return storedFormula
+  const paramWhere = buildRuntimeParameterWhereClause(builder, bindParams)
+  if (!paramWhere) return storedFormula
+  return injectAndConditions(storedFormula, paramWhere)
+}
+
+/** 分析/预览时 SQL：优先执行已保存 metricFormula；定制 SQL 注入运行时参数化 WHERE */
 export function buildRuntimeMetricSql(
   savedFormula: string,
   paramsJson?: string | null,
   bindParams?: Record<string, string>,
 ): string {
+  const trimmed = savedFormula?.trim() || ''
   const builder = unpackMetricBuilderParams(paramsJson)
+
+  if (trimmed && shouldUseStoredMetricFormula(trimmed, builder)) {
+    return builder ? injectRuntimeParameterConditions(trimmed, builder, bindParams) : trimmed
+  }
+
   if (builder?.dataSource) {
     const runtimeSql = buildMetricSqlFromConfig(builder, { mode: 'runtime', bindParams })
     if (runtimeSql) return runtimeSql
   }
-  return savedFormula
+  return trimmed
+}
+
+function shouldUseStoredMetricFormula(savedFormula: string, builder: MetricBuilderConfig | null): boolean {
+  if (metricFormulaHasCustomParams(savedFormula)) return true
+  if (!builder?.dataSource) return true
+  const saveSql = buildMetricSqlFromConfig(builder, { mode: 'save' })
+  return savedFormula.trim() !== saveSql.trim()
 }
 
 /** 解析指标查询结果列的中文表头 */
@@ -553,19 +623,47 @@ export function metricFormulaHasCustomParams(formula: string): boolean {
 }
 
 export function getAvailableFields(dataSource: string, joinTables: string[]): MetricFieldMeta[] {
+  return getAvailableFieldGroups(dataSource, joinTables).flatMap((g) => g.fields)
+}
+
+export function getAvailableFieldGroups(dataSource: string, joinTables: string[]): MetricFieldGroup[] {
   const schemas = getMetricTableSchemas()
   const schema = schemas[dataSource]
   if (!schema) return []
-  const fields = [...schema.fields]
+
+  const groups: MetricFieldGroup[] = [{
+    tableKey: 'main',
+    tableLabel: '主表',
+    fields: schema.fields.map((f) => ({
+      ...f,
+      tableLabel: '主表',
+      tableKey: 'main',
+    })),
+  }]
+
   joinTables.forEach((jt) => {
     const joinSchema = schemas[jt]
-    if (joinSchema) {
-      joinSchema.fields.forEach((f) => {
-        fields.push({ ...f, name: `${getJoinAlias(jt)}.${f.name}`, label: `[${joinSchema.label}] ${f.label}` })
-      })
-    }
+    if (!joinSchema) return
+    groups.push({
+      tableKey: jt,
+      tableLabel: joinSchema.label,
+      fields: joinSchema.fields.map((f) => ({
+        ...f,
+        name: `${getJoinAlias(jt)}.${f.name}`,
+        tableLabel: joinSchema.label,
+        tableKey: jt,
+      })),
+    })
   })
-  return fields
+
+  return groups
+}
+
+/** 下拉/已选标签： [所在表] 字段中文名 (column) */
+export function formatFieldOptionLabel(field: MetricFieldMeta): string {
+  const tablePart = field.tableLabel ? `[${field.tableLabel}]` : ''
+  const columnName = field.name.includes('.') ? field.name.split('.').pop()! : field.name
+  return `${tablePart} ${field.label} (${columnName})`.trim()
 }
 
 /** 大屏全局日期筛选可选字段（date / datetime） */
@@ -580,13 +678,13 @@ export function getFilterableIpGroupFields(dataSource: string, joinTables: strin
   )
 }
 
-/** 业务字段名 → SQL 列表达式（含主表 alias） */
-export function resolveFieldSqlColumn(fieldName: string, dataSource: string): string {
+/** 业务字段名 → SQL 列表达式（主表 alias 或 join alias.field） */
+export function resolveFieldSqlColumn(fieldName: string, dataSource: string, mainAlias?: string): string {
   if (!fieldName) return ''
   if (fieldName.includes('.')) return fieldName
   const schema = getMetricTableSchemas()[dataSource]
-  if (!schema) return fieldName
-  return `${schema.alias}.${fieldName}`
+  const alias = mainAlias ?? schema?.alias ?? 't'
+  return `${alias}.${fieldName}`
 }
 
 export function unpackQueryBuilderParams(paramsJson?: string | null): QueryBuilderConfig | null {

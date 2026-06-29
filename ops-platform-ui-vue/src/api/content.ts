@@ -123,10 +123,39 @@ export function getContentPublishOptions(id: number): Promise<{ platforms: Conte
   return request.get({ url: `/oa/content/${id}/publish-options` })
 }
 
+export interface ContentPublishRecordItem {
+  accountId: number
+  accountName: string
+  platformType: string
+  status: string
+  externalId?: string
+  publishId?: string
+  errorMessage?: string
+  publishedAt?: string
+}
+
+export interface ContentPublishResult {
+  contentId: number
+  status: string
+  mock?: boolean
+  message?: string
+  records?: ContentPublishRecordItem[]
+}
+
 export function publishContent(id: number, data: { platformType: string; accountIds: number[] }) {
-  return request.post<{ contentId: number; status: string; mock?: boolean; records?: unknown[] }>({
-    url: `/oa/content/${id}/publish`,
+  return publishContentDraft(id, data)
+}
+
+export function publishContentDraft(id: number, data: { platformType: string; accountIds: number[] }) {
+  return request.post<ContentPublishResult>({
+    url: `/oa/content/${id}/publish-draft`,
     data,
+  })
+}
+
+export function formalPublishContent(id: number) {
+  return request.post<ContentPublishResult>({
+    url: `/oa/content/${id}/formal-publish`,
   })
 }
 
@@ -154,5 +183,7 @@ export default {
   getContentReviewConfig,
   getContentPublishOptions,
   publishContent,
+  publishContentDraft,
+  formalPublishContent,
   transferContentToKnowledge,
 }

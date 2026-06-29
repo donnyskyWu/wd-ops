@@ -18,6 +18,8 @@ public class ContentPublishRecordDO extends TenantBaseDO {
     /** SUCCESS / FAILED */
     private String status;
     private String externalId;
+    /** freepublish/submit 返回的 publish_id */
+    private String publishId;
     private String errorMessage;
     private LocalDateTime publishedAt;
 }

@@ -288,7 +288,8 @@ public final class DashboardSqlParamBinder {
         return quoteString(trimmed);
     }
 
-    private static String injectAndConditions(String sql, String fragment) {
+    /** 在 GROUP BY / ORDER BY / HAVING 之前追加 AND 条件（或新建 WHERE）。 */
+    public static String injectAndConditions(String sql, String fragment) {
         String upper = sql.toUpperCase(Locale.ROOT);
         int limitIdx = upper.lastIndexOf(" LIMIT ");
         String core = limitIdx >= 0 ? sql.substring(0, limitIdx).trim() : sql.trim();

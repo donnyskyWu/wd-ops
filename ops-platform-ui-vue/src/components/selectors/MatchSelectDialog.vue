@@ -126,6 +126,8 @@ interface Props {
   multiple?: boolean
   /** 计划层已选 scheduleId，弹窗内不可重复选 */
   excludeIds?: string[]
+  /** 打开弹窗时默认筛选日期（按天选赛事） */
+  initialDate?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -245,6 +247,9 @@ watch(
   () => props.visible,
   (val) => {
     if (val) {
+      if (props.initialDate) {
+        filters.date = props.initialDate
+      }
       loadLeagues()
       handleSearch()
     }

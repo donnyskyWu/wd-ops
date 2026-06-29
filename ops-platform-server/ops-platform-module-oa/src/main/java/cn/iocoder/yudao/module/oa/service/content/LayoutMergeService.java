@@ -42,7 +42,7 @@ public class LayoutMergeService {
         if (existingLayout != null && (effectiveBody == null || effectiveBody.isBlank())) {
             effectiveBody = LayoutSchemaHelper.extractTextFromLayout(existingLayout);
         }
-        List<String> segments = new ArrayList<>(LayoutSchemaHelper.splitBody(effectiveBody));
+        List<String> segments = new ArrayList<>(LayoutSchemaHelper.splitMergeSegments(effectiveBody));
         JSONObject schema = JSONUtil.parseObj(JSONUtil.toJsonStr(layoutSchema));
         applyParamOverrides(schema, paramOverrides);
 
@@ -69,7 +69,11 @@ public class LayoutMergeService {
                     case "divider" -> out.add(LayoutSchemaHelper.dividerInstance(styles));
                     case "fixed" -> out.add(LayoutSchemaHelper.fixedInstance(block.getStr("fixedType", "decor"), styles));
                     case "frame" -> {
-                        // optional image frame skipped in v2.0 unless content has URL (P1)
+                        if (segIdx < segments.size() && LayoutSchemaHelper.isImageSegment(segments.get(segIdx))) {
+                            out.add(LayoutSchemaHelper.imageInstance(
+                                    LayoutSchemaHelper.extractImageSrc(segments.get(segIdx)), styles));
+                            segIdx++;
+                        }
                     }
                     case "heading" -> {
                         if (segIdx < segments.size()) {
@@ -107,7 +111,12 @@ public class LayoutMergeService {
         int overflow = 0;
         JSONObject defaultParaStyles = LayoutSchemaHelper.resolveStyles(globalStyles, "paragraph");
         while (segIdx < segments.size()) {
-            out.add(LayoutSchemaHelper.paragraphInstance(segments.get(segIdx), defaultParaStyles, "left"));
+            String seg = segments.get(segIdx);
+            if (LayoutSchemaHelper.isImageSegment(seg)) {
+                out.add(LayoutSchemaHelper.imageInstance(LayoutSchemaHelper.extractImageSrc(seg), defaultParaStyles));
+            } else {
+                out.add(LayoutSchemaHelper.paragraphInstance(seg, defaultParaStyles, "left"));
+            }
             segIdx++;
             overflow++;
         }
@@ -230,6 +239,13 @@ public class LayoutMergeService {
                 list.set("styles", styles);
                 out.add(list);
                 segIdx++;
+            }
+            case "image" -> {
+                if (LayoutSchemaHelper.isImageSegment(segments.get(segIdx))) {
+                    out.add(LayoutSchemaHelper.imageInstance(
+                            LayoutSchemaHelper.extractImageSrc(segments.get(segIdx)), styles));
+                    segIdx++;
+                }
             }
             default -> {
             }

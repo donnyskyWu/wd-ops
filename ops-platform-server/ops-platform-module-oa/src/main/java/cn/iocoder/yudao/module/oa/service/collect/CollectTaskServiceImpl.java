@@ -38,6 +38,10 @@ public class CollectTaskServiceImpl implements CollectTaskService {
 
     private static final String MASK = "******";
     private static final String DEFAULT_STATUS = "PENDING";
+    private static final String STATUS_RUNNING = "RUNNING";
+    private static final String STATUS_STOPPED = "STOPPED";
+    private static final java.util.Set<String> STARTABLE_STATUSES = java.util.Set.of(
+            "PENDING", STATUS_STOPPED, "FAILED");
 
     private static final String PLATFORM_PERSONAL_WECHAT = "WECHAT_PERSONAL";
     private static final String PLATFORM_WEWORK = "WEWORK";
@@ -121,6 +125,39 @@ public class CollectTaskServiceImpl implements CollectTaskService {
     public void run(Long id) {
         getRequiredInTenant(id);
         collectRunService.run(id);
+    }
+
+    @Override
+    @Transactional
+    @AuditLog(module = "M10-collect-task", action = "start")
+    public void start(Long id) {
+        CollectTaskDO existing = getRequiredInTenant(id);
+        if (STATUS_RUNNING.equals(existing.getStatus())) {
+            return;
+        }
+        if (!STARTABLE_STATUSES.contains(existing.getStatus())) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "当前状态不允许启动");
+        }
+        existing.setStatus(STATUS_RUNNING);
+        existing.setNextRunAt(CollectNextRunHelper.computeNextRun(existing.getCron(), LocalDateTime.now()));
+        ConfigTenantSupport.fillUpdate(existing);
+        collectTaskMapper.updateById(existing);
+    }
+
+    @Override
+    @Transactional
+    @AuditLog(module = "M10-collect-task", action = "stop")
+    public void stop(Long id) {
+        CollectTaskDO existing = getRequiredInTenant(id);
+        if (STATUS_STOPPED.equals(existing.getStatus())) {
+            return;
+        }
+        if (!STATUS_RUNNING.equals(existing.getStatus())) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "当前状态不允许停止，仅运行中任务可停止");
+        }
+        existing.setStatus(STATUS_STOPPED);
+        ConfigTenantSupport.fillUpdate(existing);
+        collectTaskMapper.updateById(existing);
     }
 
     @Override

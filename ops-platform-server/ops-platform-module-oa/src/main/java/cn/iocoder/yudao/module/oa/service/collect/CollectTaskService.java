@@ -21,5 +21,9 @@ public interface CollectTaskService {
 
     void run(Long id);
 
+    void start(Long id);
+
+    void stop(Long id);
+
     void updateStatus(Long id, String status);
 }

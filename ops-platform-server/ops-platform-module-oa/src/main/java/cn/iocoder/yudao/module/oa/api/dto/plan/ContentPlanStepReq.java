@@ -23,4 +23,15 @@ public class ContentPlanStepReq {
     private LocalDateTime scheduledStart;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime scheduledEnd;
+
+    /** Jackson 反序列化走 Lombok setter，字段上的 @JsonFormat 不生效 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    public void setScheduledStart(LocalDateTime scheduledStart) {
+        this.scheduledStart = scheduledStart;
+    }
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    public void setScheduledEnd(LocalDateTime scheduledEnd) {
+        this.scheduledEnd = scheduledEnd;
+    }
 }

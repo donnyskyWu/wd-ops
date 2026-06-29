@@ -137,7 +137,13 @@
             </template>
             <div v-show="!collapsibleConditions || conditionsExpanded" class="conditions-wrap">
               <div v-for="(cond, idx) in config.conditions" :key="idx" class="condition-row">
-                <el-select v-model="cond.field" placeholder="字段" filterable style="width: 140px" @change="emitSql">
+                <el-select
+                  v-model="cond.field"
+                  placeholder="字段"
+                  filterable
+                  style="width: 140px"
+                  @change="onConditionFieldChange(cond)"
+                >
                   <el-option
                     v-for="f in schemaFields"
                     :key="f.name"
@@ -148,12 +154,14 @@
                 <el-select v-model="cond.operator" placeholder="运算符" style="width: 110px" @change="emitSql">
                   <el-option v-for="op in METRIC_FILTER_OPERATORS" :key="op.value" :label="op.label" :value="op.value" />
                 </el-select>
-                <el-input
+                <MetricConditionInput
                   v-if="cond.operator !== 'IS NULL' && cond.operator !== 'IS NOT NULL'"
                   v-model="cond.value"
+                  :query-condition-type="cond.queryConditionType || fieldMetaMap[cond.field]?.queryConditionType"
+                  :dict-type="cond.dictType || fieldMetaMap[cond.field]?.dictType"
                   placeholder="值"
                   style="flex: 1"
-                  @input="emitSql"
+                  @update:model-value="emitSql"
                 />
                 <el-button link type="danger" @click="removeCondition(idx)">
                   <el-icon><Delete /></el-icon>
@@ -208,9 +216,13 @@ import {
   buildQuerySqlFromConfig,
   createEmptyQueryConfig,
   type MetricFieldMeta,
+  type MetricFilterCondition,
+  type MetricFilterFieldMeta,
   type QueryBuilderConfig,
 } from '@/constants/metricSchema'
+import { fetchMetadataList, fetchMetadataFieldsByCode, toMetricFilterMeta } from '@/api/metadata'
 import { useMetricSchemas } from '@/composables/useMetricSchemas'
+import MetricConditionInput from '@/components/MetricConditionInput.vue'
 
 const props = withDefaults(defineProps<{
   modelValue: QueryBuilderConfig
@@ -233,6 +245,7 @@ const emit = defineEmits<{
 }>()
 
 const { loading: schemaLoading, error: schemaError, dataSources, ensureMetricSchemasLoaded } = useMetricSchemas()
+const fieldMetaMap = ref<Record<string, MetricFilterFieldMeta>>({})
 
 const config = reactive<QueryBuilderConfig>({ ...createEmptyQueryConfig(), ...props.modelValue })
 
@@ -261,8 +274,37 @@ function resetBuilderState(dataSource: string) {
   syncConfig()
 }
 
-function onDataSourceChange(v: string) {
+async function loadFieldMeta(dataSource: string) {
+  fieldMetaMap.value = {}
+  if (!dataSource) return
+  try {
+    const res = await fetchMetadataList({ status: 'ENABLED', pageNum: 1, pageSize: 200 })
+    const entity = (res?.list ?? []).find((e) => e.physicalTable === dataSource)
+    if (!entity) return
+    const fields = await fetchMetadataFieldsByCode(entity.entityCode)
+    const meta = toMetricFilterMeta(fields)
+    fieldMetaMap.value = Object.fromEntries(meta.map((m) => [m.name, m]))
+  } catch {
+    /* 元数据不可用时仍可用文本输入 */
+  }
+}
+
+async function onDataSourceChange(v: string) {
   resetBuilderState(v)
+  await loadFieldMeta(v)
+  emitSql()
+}
+
+function onConditionFieldChange(cond: MetricFilterCondition) {
+  const meta = fieldMetaMap.value[cond.field]
+  if (meta) {
+    cond.queryConditionType = meta.queryConditionType
+    cond.dictType = meta.dictType
+  } else {
+    cond.queryConditionType = undefined
+    cond.dictType = undefined
+  }
+  cond.value = ''
   emitSql()
 }
 
@@ -288,14 +330,42 @@ function pickField(f: MetricFieldMeta) {
   if (f.type === 'number' && config.calcMethod) {
     config.calcField = f.name
   } else if (f.type !== 'number') {
+    const meta = fieldMetaMap.value[f.name]
     const empty = config.conditions.find((c) => !c.field)
     if (empty) {
       empty.field = f.name
+      if (meta) {
+        empty.queryConditionType = meta.queryConditionType
+        empty.dictType = meta.dictType
+      }
     } else {
-      config.conditions.push({ field: f.name, operator: '=', value: '' })
+      const cond: MetricFilterCondition = { field: f.name, operator: '=', value: '' }
+      if (meta) {
+        cond.queryConditionType = meta.queryConditionType
+        cond.dictType = meta.dictType
+      }
+      config.conditions.push(cond)
     }
   }
   emitSql()
+}
+
+function expandConditionsForSql(conditions: MetricFilterCondition[]): MetricFilterCondition[] {
+  const expanded: MetricFilterCondition[] = []
+  for (const c of conditions) {
+    if (c.queryConditionType === 'DATE_RANGE' && c.value?.trim()) {
+      const [start, end] = c.value.split(',')
+      if (start?.trim()) {
+        expanded.push({ ...c, queryConditionType: undefined, operator: '>=', value: start.trim() })
+      }
+      if (end?.trim()) {
+        expanded.push({ ...c, queryConditionType: undefined, operator: '<=', value: end.trim() })
+      }
+      continue
+    }
+    expanded.push(c)
+  }
+  return expanded
 }
 
 function emitSql() {
@@ -303,7 +373,10 @@ function emitSql() {
   if (!config.dataSource) return
   if (config.displayFields.length === 0 && !config.calcMethod) return
   if (calcNeedsField.value && !config.calcField) return
-  const sql = buildQuerySqlFromConfig(config)
+  const sql = buildQuerySqlFromConfig({
+    ...config,
+    conditions: expandConditionsForSql(config.conditions),
+  })
   if (sql) emit('update:sqlText', sql)
 }
 
@@ -314,6 +387,9 @@ function onSqlInput(v: string) {
 onMounted(async () => {
   try {
     await ensureMetricSchemasLoaded()
+    if (config.dataSource) {
+      await loadFieldMeta(config.dataSource)
+    }
   } catch {
     /* schemaError 已赋值 */
   }

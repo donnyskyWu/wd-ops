@@ -287,6 +287,7 @@ export const mockDictMap: Record<string, Array<{ label: string; value: string; c
     { label: '成功', value: 'SUCCESS', colorType: 'success' },
     { label: '失败', value: 'FAILED', colorType: 'danger' },
     { label: '部分成功', value: 'PARTIAL', colorType: 'warning' },
+    { label: '已停止', value: 'STOPPED', colorType: 'warning' },
   ],
   dict_aochuang_bind_status: [
     { label: '未绑定', value: 'UNBOUND', colorType: 'info' },

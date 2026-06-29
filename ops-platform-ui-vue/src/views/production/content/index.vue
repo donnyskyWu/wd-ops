@@ -69,7 +69,7 @@
         <el-table-column prop="createTime" label="创建时间" width="170" align="center">
           <template #default="{ row }">{{ formatDateTime(row.createTime) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="340" align="center" fixed="right">
+        <el-table-column label="操作" width="400" align="center" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleView(row)">查看</el-button>
             <el-button
@@ -92,12 +92,20 @@
               v-if="row.status === 'PENDING_PUBLISH'"
               link
               type="success"
-              @click="handlePublish(row)"
+              @click="handlePublishDraft(row)"
             >
-              发布
+              发布为草稿
             </el-button>
             <el-button
-              v-if="row.status === 'PUBLISHED' && row.transferredToKnowledge !== 1"
+              v-if="row.status === 'PUBLISHED_DRAFT'"
+              link
+              type="success"
+              @click="handleFormalPublish(row)"
+            >
+              正式发布
+            </el-button>
+            <el-button
+              v-if="canTransferKnowledge(row)"
               link
               type="warning"
               @click="handleTransferKnowledge(row)"
@@ -158,7 +166,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="publishDialogVisible" title="发布内容" width="520px" @open="loadPublishOptions">
+    <el-dialog v-model="publishDialogVisible" title="发布为草稿" width="520px" @open="loadPublishOptions">
       <el-form :model="publishForm" label-width="90px">
         <el-form-item label="平台" required>
           <DictSelect
@@ -200,9 +208,9 @@
           type="primary"
           :loading="publishSubmitting"
           :disabled="!publishForm.platformType || !publishForm.accountIds.length"
-          @click="handlePublishSubmit"
+          @click="handlePublishDraftSubmit"
         >
-          确认发布
+          确认发布为草稿
         </el-button>
       </template>
     </el-dialog>
@@ -220,7 +228,8 @@ import {
   deleteContent,
   getContentReviewConfig,
   getContentPublishOptions,
-  publishContent,
+  publishContentDraft,
+  formalPublishContent,
   transferContentToKnowledge,
   type ContentPublishPlatformOption,
 } from '@/api/content'
@@ -366,7 +375,11 @@ const handleReviewSubmit = async () => {
   }
 }
 
-const handlePublish = (row: { id: number }) => {
+const canTransferKnowledge = (row: { status: string; transferredToKnowledge?: number }) =>
+  ['PENDING_PUBLISH', 'PUBLISHED_DRAFT', 'FORMALLY_PUBLISHED', 'PUBLISHED'].includes(row.status)
+  && row.transferredToKnowledge !== 1
+
+const handlePublishDraft = (row: { id: number }) => {
   publishForm.contentId = row.id
   publishForm.platformType = undefined
   publishForm.accountIds = []
@@ -388,21 +401,40 @@ const onPublishPlatformChange = () => {
   publishForm.accountIds = []
 }
 
-const handlePublishSubmit = async () => {
+const handlePublishDraftSubmit = async () => {
   if (!publishForm.platformType || !publishForm.accountIds.length) return
   publishSubmitting.value = true
   try {
-    const result = await publishContent(publishForm.contentId, {
+    const result = await publishContentDraft(publishForm.contentId, {
       platformType: publishForm.platformType,
       accountIds: publishForm.accountIds,
     })
-    ElMessage.success(result.mock ? '发布成功（dev mock）' : '发布成功')
+    ElMessage.success(result.message || (result.mock ? '发布成功（dev mock）' : '已发布为草稿'))
     publishDialogVisible.value = false
     loadData()
   } catch {
-    ElMessage.error('发布失败，请重试')
+    ElMessage.error('发布为草稿失败，请重试')
   } finally {
     publishSubmitting.value = false
+  }
+}
+
+const handleFormalPublish = async (row: { id: number; title: string }) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定将内容「${row.title}」正式发布到公众号吗？`,
+      '正式发布',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      },
+    )
+    const result = await formalPublishContent(row.id)
+    ElMessage.success(result.message || '已正式发布')
+    loadData()
+  } catch {
+    // 用户取消或请求失败（全局拦截器已提示）
   }
 }
 

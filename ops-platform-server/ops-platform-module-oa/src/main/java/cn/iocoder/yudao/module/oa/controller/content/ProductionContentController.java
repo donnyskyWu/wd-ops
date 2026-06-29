@@ -153,6 +153,20 @@ public class ProductionContentController {
         return CommonResult.success(contentPublishService.publish(id, req));
     }
 
+    @PostMapping("/{id}/publish-draft")
+    @PreAuthorize("hasAuthority('oa:content:publish')")
+    public CommonResult<ContentPublishResultVO> publishDraft(
+            @PathVariable Long id,
+            @Valid @RequestBody ContentPublishReq req) {
+        return CommonResult.success(contentPublishService.publishToDraft(id, req));
+    }
+
+    @PostMapping("/{id}/formal-publish")
+    @PreAuthorize("hasAuthority('oa:content:publish')")
+    public CommonResult<ContentPublishResultVO> formalPublish(@PathVariable Long id) {
+        return CommonResult.success(contentPublishService.formalPublish(id));
+    }
+
     @PostMapping("/{id}/transfer-to-knowledge")
     @PreAuthorize("hasAuthority('oa:content:transfer-knowledge')")
     public CommonResult<ContentTransferKnowledgeResultVO> transferToKnowledge(@PathVariable Long id) {

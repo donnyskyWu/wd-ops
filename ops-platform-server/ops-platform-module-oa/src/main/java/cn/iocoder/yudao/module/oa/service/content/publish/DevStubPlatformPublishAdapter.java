@@ -4,6 +4,8 @@ import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.content.ProductionContentDO;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -15,10 +17,12 @@ import java.util.UUID;
  */
 @Slf4j
 @Component
+@Order(Ordered.LOWEST_PRECEDENCE)
 public class DevStubPlatformPublishAdapter implements PlatformPublishAdapter {
 
+    /** WECHAT_OFFICIAL 由 {@link WechatOfficialPublishAdapter} 处理（draft/add） */
     private static final Set<String> SUPPORTED = Set.of(
-            "WECHAT_OFFICIAL", "WECHAT_VIDEO", "DOUYIN", "KUAISHOU", "XIAOHONGSHU");
+            "WECHAT_VIDEO", "DOUYIN", "KUAISHOU", "XIAOHONGSHU");
 
     @Override
     public boolean supports(String platformType) {

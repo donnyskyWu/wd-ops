@@ -27,6 +27,8 @@ public class ContentPlanCreateReq {
     private String description;
     @NotEmpty
     private List<ContentPlanCompetitionReq> competitions;
-    @NotEmpty
+    /** 传统步骤配置；与 tasks 二选一，tasks 优先 */
     private List<ContentPlanStepReq> steps;
+    /** 赛事×节点级任务（含独立 scheduled 与 assignee） */
+    private List<ContentPlanTaskReq> tasks;
 }
