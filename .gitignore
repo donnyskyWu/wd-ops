@@ -67,3 +67,7 @@ test-results/
 *.out
 *.dumpstream
 hs_err_pid*.log
+
+
+football-front.tar
+*.tar
