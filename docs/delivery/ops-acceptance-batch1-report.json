@@ -1,0 +1,177 @@
+{
+  "summary": {
+    "total": 14,
+    "pass": 14,
+    "fail": 0
+  },
+  "rows": [
+    {
+      "route_path": "",
+      "menu_title": "外部账号分析",
+      "parent_group": "作品监测",
+      "football_path": "/ops/external-account",
+      "football_component": "ops/account/ExternalAccountAnalysis",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "高粉账号分析",
+      "parent_group": "作品监测",
+      "football_path": "/ops/high-fans-account",
+      "football_component": "ops/account/HighFansAccountAnalysis",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "爆款作品分析",
+      "parent_group": "作品监测",
+      "football_path": "/ops/hot-works",
+      "football_component": "ops/content/HotWorksAnalysis",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "IP主题数据",
+      "parent_group": "作品监测",
+      "football_path": "/ops/ip-theme",
+      "football_component": "ops/content/IPThemeData",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "低粉账号分析",
+      "parent_group": "作品监测",
+      "football_path": "/ops/low-fans-account",
+      "football_component": "ops/account/LowFansAccountAnalysis",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "低分作品分析",
+      "parent_group": "作品监测",
+      "football_path": "/ops/low-score",
+      "football_component": "ops/content/LowScoreAnalysis",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "内容管理",
+      "parent_group": "内容生产",
+      "football_path": "/ops/content",
+      "football_component": "ops/production/content/index",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "内容审核",
+      "parent_group": "内容生产",
+      "football_path": "/ops/content/review",
+      "football_component": "ops/production/content/review",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "内容知识库",
+      "parent_group": "内容生产",
+      "football_path": "/ops/knowledge",
+      "football_component": "ops/production/knowledge/index",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "公推模板库",
+      "parent_group": "内容生产",
+      "football_path": "/ops/layout-template",
+      "football_component": "ops/production/layout-template/index",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "计划管理",
+      "parent_group": "内容生产",
+      "football_path": "/ops/plan",
+      "football_component": "ops/production/plan/index",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "SOP管理",
+      "parent_group": "内容生产",
+      "football_path": "/ops/sop",
+      "football_component": "ops/production/sop/index",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "SOP审核",
+      "parent_group": "内容生产",
+      "football_path": "/ops/sop/review",
+      "football_component": "ops/production/sop/review",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "任务管理",
+      "parent_group": "内容生产",
+      "football_path": "/ops/task",
+      "football_component": "ops/production/task/index",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    }
+  ]
+}

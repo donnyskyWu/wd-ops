@@ -44,6 +44,8 @@ export interface UnmappedTableVO {
   tableName: string
   suggestedEntityCode: string
   suggestedEntityName: string
+  /** 数据库表注释 */
+  tableComment?: string
 }
 
 export interface MetadataListResult {

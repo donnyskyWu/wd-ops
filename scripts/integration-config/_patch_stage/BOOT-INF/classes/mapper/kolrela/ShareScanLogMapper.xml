@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.share.ShareScanLogMapper">
+
+    <select id="countScanCountByShareTokens" resultType="java.util.Map">
+        SELECT share_token, 
+               COUNT(*) AS cnt
+        FROM share_scan_log
+        WHERE deleted = 0
+        AND share_token IN
+        <foreach collection="shareTokens" item="token" open="(" separator="," close=")">
+            #{token}
+        </foreach>
+        GROUP BY share_token
+    </select>
+
+    <select id="countScanUserCountByTargetIds" resultType="java.util.Map">
+        SELECT slc.target_id AS article_id,
+               COUNT(DISTINCT sl.user_id) AS user_cnt
+        FROM share_scan_log sl
+                 INNER JOIN share_live_code slc ON sl.share_token = slc.share_token
+        WHERE sl.deleted = 0
+          AND sl.user_id > 0
+          AND sl.share_token IN
+        <foreach collection="shareTokens" item="token" open="(" separator="," close=")">
+            #{token}
+        </foreach>
+        GROUP BY slc.target_id
+    </select>
+
+</mapper>

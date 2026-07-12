@@ -2,7 +2,7 @@
   内容创作/编辑表单（可嵌入页面或弹窗）
 -->
 <template>
-  <div v-loading="loading" class="content-edit-panel">
+  <div v-loading="loading" class="content-edit-panel ops-embedded-panel">
     <el-alert
       v-if="isTaskMode && !effectiveReadonly && contentStatus && !canSubmitReview"
       type="warning"
@@ -55,21 +55,14 @@
 
       <template v-else>
         <el-form-item label="所属IP组" prop="ipGroupId">
-          <el-select
+          <IpGroupTreeSelect
             v-model="formData.ipGroupId"
             placeholder="请选择所属 IP 组"
-            style="width: 100%"
-            filterable
-            clearable
             @change="handleIpGroupChange"
-          >
-            <el-option
-              v-for="item in myIpGroupOptions"
-              :key="item.ipGroupId"
-              :label="item.ipGroupName"
-              :value="item.ipGroupId"
-            />
-          </el-select>
+          />
+        </el-form-item>
+        <el-form-item v-if="formData.ipGroupId" label="作者">
+          <el-input :model-value="authorLabel" readonly placeholder="切换 IP 组后自动带出" />
         </el-form-item>
       </template>
 
@@ -110,27 +103,6 @@
       <el-form-item label="是否 AI 生成">
         <el-switch v-model="formData.isAi" />
       </el-form-item>
-
-      <template v-if="!isTaskMode">
-        <el-form-item label="平台">
-          <DictSelect
-            v-model="formData.platformTypes"
-            dict-type="dict_platform_type"
-            placeholder="请选择平台（可选，可多选）"
-            multiple
-            clearable
-          />
-        </el-form-item>
-        <el-form-item label="发布账号">
-          <AccountSelect
-            v-model="formData.accountIds"
-            :platform-types="formData.platformTypes"
-            :ip-group-id="formData.ipGroupId"
-            placeholder="请选择账号（可选，可多选）"
-            multiple
-          />
-        </el-form-item>
-      </template>
 
       <el-form-item v-if="showArticleLayout && !effectiveReadonly" label="版式模板">
         <el-button type="primary" plain @click="templateDialogVisible = true">选择并应用模板</el-button>
@@ -276,8 +248,8 @@
       <el-button @click="handleCancel">关闭</el-button>
     </div>
 
-    <el-dialog v-model="aiDialogVisible" title="AI 辅助生成" width="680px" append-to-body @open="loadAiDialogOptions">
-      <el-form label-width="100px">
+    <el-dialog v-model="aiDialogVisible" title="AI 辅助生成" width="720px" append-to-body @open="loadAiDialogOptions">
+      <el-form label-width="110px">
         <el-form-item label="AI 模型" required>
           <el-select v-model="aiForm.modelId" placeholder="请选择已启用的 AI 模型" style="width: 100%" filterable>
             <el-option v-for="item in aiModelOptions" :key="item.id" :label="item.modelName" :value="item.id" />
@@ -290,6 +262,38 @@
         </el-form-item>
         <el-form-item label="赛事信息">
           <el-input :model-value="aiEventInfoLabel" type="textarea" :rows="2" readonly placeholder="来自内容表单所选赛事" />
+        </el-form-item>
+        <el-form-item label="作者/主播">
+          <el-select
+            v-model="aiForm.authorId"
+            placeholder="按 IP 组关联选择作者"
+            style="width: 100%"
+            filterable
+            clearable
+            :disabled="!formData.ipGroupId"
+          >
+            <el-option v-for="item in aiAuthorOptions" :key="item.id" :label="item.authorName" :value="item.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="历史战绩">
+          <el-input v-model="aiForm.historicalRecord" type="textarea" :rows="2" placeholder="可选" maxlength="500" show-word-limit />
+        </el-form-item>
+        <el-form-item label="赛事方向">
+          <el-input v-model="aiForm.matchDirection" placeholder="可选" maxlength="200" show-word-limit />
+        </el-form-item>
+        <el-form-item label="主播人设">
+          <el-input v-model="aiForm.streamerPersona" type="textarea" :rows="2" placeholder="可选" maxlength="500" show-word-limit />
+        </el-form-item>
+        <el-form-item label="修改意见">
+          <el-input v-model="aiForm.revisionFeedback" type="textarea" :rows="2" placeholder="可选" maxlength="500" show-word-limit />
+        </el-form-item>
+        <el-form-item label="长度类型">
+          <DictSelect
+            v-model="aiForm.lengthType"
+            dict-type="dict_content_length_type"
+            placeholder="可选：短篇/中篇/长篇"
+            clearable
+          />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="aiGenerating" @click="handleAiGenerate">生成</el-button>
@@ -318,7 +322,7 @@ import { ref, reactive, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { CloseBold, Expand, Fold, FullScreen } from '@element-plus/icons-vue'
 import DictSelect from '@/components/DictSelect.vue'
-import AccountSelect from '@/components/selectors/AccountSelect.vue'
+import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import MatchSelectDialog from '@/components/selectors/MatchSelectDialog.vue'
 import RichTextEditor from '@/components/editor/RichTextEditor.vue'
 import LayoutEditor from '@/components/layout/LayoutEditor.vue'
@@ -476,7 +480,8 @@ const matchDialogVisible = ref(false)
 const scriptRef = ref<ScriptRef | null>(null)
 const taskIpGroupName = ref('')
 const authorLabel = ref('')
-const myIpGroupOptions = ref<Array<{ ipGroupId: number; ipGroupName: string; authorId?: number; authorName?: string }>>([])
+/** 作者缓存（来自 GET /oa/user/ip-groups，供切换 IP 组时快速带出作者） */
+const myIpGroupAuthorCache = ref<Array<{ ipGroupId: number; ipGroupName: string; authorId?: number; authorName?: string }>>([])
 
 const taskIpGroupDisplay = computed(() => taskIpGroupName.value || '')
 
@@ -744,9 +749,21 @@ const formRules = computed<FormRules>(() => {
 })
 
 const aiDialogVisible = ref(false)
-const aiForm = reactive({ modelId: undefined as number | undefined, promptId: undefined as number | undefined })
+const aiForm = reactive({
+  modelId: undefined as number | undefined,
+  promptId: undefined as number | undefined,
+  authorId: undefined as number | undefined,
+  historicalRecord: '',
+  matchDirection: '',
+  streamerPersona: '',
+  revisionFeedback: '',
+  lengthType: undefined as string | undefined,
+})
 const aiModelOptions = ref<{ id: number; modelName: string }[]>([])
 const aiPromptOptions = ref<{ id: number; templateName: string }[]>([])
+const aiAuthorOptions = ref<Array<{ id: number; authorName: string }>>([])
+/** 已加载作者选项对应的 IP 组，避免弹窗 @open 重复清空选项 */
+const aiAuthorIpGroupId = ref<number | undefined>(undefined)
 const aiGenerating = ref(false)
 const aiEventInfoLabel = computed(() => competitionLabel.value || '—')
 
@@ -780,7 +797,9 @@ const resetForm = () => {
   competitionName.value = ''
   authorLabel.value = ''
   taskIpGroupName.value = ''
-  myIpGroupOptions.value = []
+  myIpGroupAuthorCache.value = []
+  aiAuthorOptions.value = []
+  aiAuthorIpGroupId.value = undefined
   scriptRef.value = null
   contentStatus.value = undefined
   reviewProgress.value = []
@@ -801,21 +820,132 @@ const clearCompetition = () => {
   scriptRef.value = null
 }
 
-const loadAuthorForGroup = async (ipGroupId?: number) => {
+const normalizeAuthorId = (id?: number | string | null): number | undefined => {
+  if (id == null || id === '') return undefined
+  const num = Number(id)
+  return Number.isFinite(num) && num > 0 ? num : undefined
+}
+
+const mapAuthorListItem = (item: {
+  id?: number | string
+  authorUserId?: number | string
+  authorName?: string
+  nickname?: string
+  anchorUserName?: string
+}) => {
+  const id = normalizeAuthorId(item.id) ?? normalizeAuthorId(item.authorUserId)
+  const authorName = String(item.authorName || item.nickname || item.anchorUserName || '').trim()
+  return id ? { id, authorName } : null
+}
+
+const ensureAiAuthorOption = (authorId?: number | string | null, authorName?: string) => {
+  const id = normalizeAuthorId(authorId)
+  if (!id) return
+  const name = authorName?.trim() || `作者 #${id}`
+  const idx = aiAuthorOptions.value.findIndex((item) => normalizeAuthorId(item.id) === id)
+  if (idx >= 0) {
+    if (!aiAuthorOptions.value[idx].authorName && name) {
+      aiAuthorOptions.value[idx].authorName = name
+    }
+    return
+  }
+  aiAuthorOptions.value.unshift({ id, authorName: name })
+}
+
+const fetchAiAuthorOptions = async (ipGroupId: number) => {
+  const page = await getAuthorPage({ ipGroupId, status: 1, page: 1, size: 100 })
+  return (page?.list || [])
+    .map((item) => mapAuthorListItem(item))
+    .filter((item): item is { id: number; authorName: string } => item != null)
+}
+
+/** Element Plus el-select：选项必须先于 v-model 存在，否则显示空白 */
+const applyAiAuthorSelection = async (authorId?: number | string | null, authorName?: string) => {
+  const id = normalizeAuthorId(authorId ?? formData.authorId)
+  const name = authorName?.trim() || authorLabel.value?.trim()
+  if (id) {
+    ensureAiAuthorOption(id, name)
+    formData.authorId = id
+    if (name) {
+      authorLabel.value = name
+    }
+  }
+  aiForm.authorId = undefined
+  await nextTick()
+  aiForm.authorId = id
+}
+
+const prepareAiAuthorForDialog = async () => {
+  if (!formData.ipGroupId) return
+
+  let authorId = normalizeAuthorId(formData.authorId)
+  let authorName = authorLabel.value?.trim()
+
+  if (!authorId) {
+    await loadAuthorForGroup(formData.ipGroupId)
+    authorId = normalizeAuthorId(formData.authorId)
+    authorName = authorLabel.value?.trim()
+  }
+
+  if (!authorId && authorName) {
+    const options = await fetchAiAuthorOptions(formData.ipGroupId).catch(() => [])
+    const matched = options.find((item) => item.authorName === authorName)
+    if (matched) {
+      authorId = matched.id
+      formData.authorId = authorId
+    }
+  }
+
+  if (aiAuthorIpGroupId.value !== formData.ipGroupId || !aiAuthorOptions.value.length) {
+    const options = await fetchAiAuthorOptions(formData.ipGroupId).catch(() => [])
+    aiAuthorOptions.value = options
+    aiAuthorIpGroupId.value = formData.ipGroupId
+  }
+
+  await applyAiAuthorSelection(authorId, authorName)
+  if (!aiForm.authorId && aiAuthorOptions.value.length === 1) {
+    const only = aiAuthorOptions.value[0]
+    await applyAiAuthorSelection(only.id, only.authorName)
+  }
+}
+
+const loadAuthorForGroup = async (ipGroupId?: number, preferAuthorId?: number) => {
   if (!ipGroupId) {
     authorLabel.value = ''
     formData.authorId = undefined
     return
   }
-  const cached = myIpGroupOptions.value.find((item) => item.ipGroupId === ipGroupId)
+  const preferredId = normalizeAuthorId(preferAuthorId)
+  if (preferredId) {
+    formData.authorId = preferredId
+    if (authorLabel.value) {
+      return
+    }
+    const cached = myIpGroupAuthorCache.value.find((item) => item.ipGroupId === ipGroupId)
+    if (normalizeAuthorId(cached?.authorId) === preferredId && cached?.authorName) {
+      authorLabel.value = cached.authorName
+      return
+    }
+    try {
+      const page = await getAuthorPage({ ipGroupId, status: 1, page: 1, size: 100 })
+      const author = page?.list
+        ?.map((item) => mapAuthorListItem(item))
+        .find((item) => item && item.id === preferredId)
+      authorLabel.value = author?.authorName || '—'
+    } catch {
+      authorLabel.value = '—'
+    }
+    return
+  }
+  const cached = myIpGroupAuthorCache.value.find((item) => item.ipGroupId === ipGroupId)
   if (cached?.authorId) {
-    formData.authorId = cached.authorId
+    formData.authorId = normalizeAuthorId(cached.authorId)
     authorLabel.value = cached.authorName || ''
     return
   }
   try {
     const page = await getAuthorPage({ ipGroupId, status: 1, page: 1, size: 1 })
-    const author = page?.list?.[0]
+    const author = page?.list?.[0] ? mapAuthorListItem(page.list[0]) : null
     if (author) {
       formData.authorId = author.id
       authorLabel.value = author.authorName
@@ -829,7 +959,6 @@ const loadAuthorForGroup = async (ipGroupId?: number) => {
 }
 
 const handleIpGroupChange = async (ipGroupId?: number) => {
-  formData.accountIds = []
   await loadAuthorForGroup(ipGroupId)
 }
 
@@ -930,10 +1059,6 @@ const buildPayload = () => {
   return {
     title: formData.title,
     contentType: formData.contentType!,
-    platformTypes: formData.platformTypes?.length ? formData.platformTypes : undefined,
-    platformType: formData.platformTypes?.[0],
-    accountIds: formData.accountIds?.length ? formData.accountIds : undefined,
-    accountId: formData.accountIds?.[0],
     body: formData.body || '',
     bodyFormat: formData.bodyFormat,
     layoutJson: formData.bodyFormat === 'LAYOUT' ? formData.layoutJson : undefined,
@@ -1054,10 +1179,25 @@ const openAiDialog = async () => {
     ElMessage.warning('请先选择内容类型')
     return
   }
+  if (!formData.ipGroupId) {
+    ElMessage.warning('请先选择所属 IP 组')
+    return
+  }
+  try {
+    await prepareAiAuthorForDialog()
+  } catch {
+    ensureAiAuthorOption(formData.authorId, authorLabel.value)
+    await applyAiAuthorSelection(formData.authorId, authorLabel.value)
+  }
   aiDialogVisible.value = true
 }
 
 const loadAiDialogOptions = async () => {
+  aiForm.historicalRecord = ''
+  aiForm.matchDirection = ''
+  aiForm.streamerPersona = ''
+  aiForm.revisionFeedback = ''
+  aiForm.lengthType = undefined
   try {
     const [models, prompts] = await Promise.all([
       fetchAiModelList({ status: 'ENABLED', pageNo: 1, pageSize: 100 }),
@@ -1065,9 +1205,21 @@ const loadAiDialogOptions = async () => {
     ])
     aiModelOptions.value = (models?.list || []).map((m) => ({ id: m.id, modelName: m.modelName }))
     aiPromptOptions.value = prompts || []
+    if (formData.ipGroupId) {
+      const options = await fetchAiAuthorOptions(formData.ipGroupId).catch(() => [])
+      aiAuthorOptions.value = options
+      aiAuthorIpGroupId.value = formData.ipGroupId
+    }
+    await applyAiAuthorSelection(formData.authorId, authorLabel.value)
+    if (!aiForm.authorId && aiAuthorOptions.value.length === 1) {
+      const only = aiAuthorOptions.value[0]
+      await applyAiAuthorSelection(only.id, only.authorName)
+    }
     if (!aiForm.modelId && aiModelOptions.value.length) aiForm.modelId = aiModelOptions.value[0].id
     if (!aiForm.promptId && aiPromptOptions.value.length) aiForm.promptId = aiPromptOptions.value[0].id
   } catch {
+    ensureAiAuthorOption(formData.authorId, authorLabel.value)
+    await applyAiAuthorSelection(formData.authorId, authorLabel.value)
     ElMessage.error('加载 AI 配置失败')
   }
 }
@@ -1083,6 +1235,9 @@ const handleAiGenerate = async () => {
   }
   aiGenerating.value = true
   try {
+    const selectedAuthor = aiAuthorOptions.value.find(
+      (item) => normalizeAuthorId(item.id) === normalizeAuthorId(aiForm.authorId),
+    )
     const res = await aiGenerateContent({
       modelId: aiForm.modelId,
       promptId: aiForm.promptId,
@@ -1091,6 +1246,14 @@ const handleAiGenerate = async () => {
       competitionId: competitionId.value,
       competitionName: competitionName.value || undefined,
       taskId: props.taskId,
+      ipGroupId: formData.ipGroupId,
+      authorId: aiForm.authorId,
+      authorName: selectedAuthor?.authorName,
+      historicalRecord: aiForm.historicalRecord.trim() || undefined,
+      matchDirection: aiForm.matchDirection.trim() || undefined,
+      streamerPersona: aiForm.streamerPersona.trim() || undefined,
+      revisionFeedback: aiForm.revisionFeedback.trim() || undefined,
+      lengthType: aiForm.lengthType,
     })
     const generated = res?.content || ''
     formData.body = generated
@@ -1103,6 +1266,12 @@ const handleAiGenerate = async () => {
       }
     }
     formData.isAi = true
+    if (aiForm.authorId) {
+      formData.authorId = aiForm.authorId
+      if (selectedAuthor?.authorName) {
+        authorLabel.value = selectedAuthor.authorName
+      }
+    }
     aiDialogVisible.value = false
     if (res?.mock) {
       ElMessage.info(res.message || '占位生成完成，已写入正文')
@@ -1213,20 +1382,13 @@ const initNormalMode = async () => {
       fetchUserProfile(),
       getMyIpGroups().catch(() => []),
     ])
-    myIpGroupOptions.value = groups || []
+    myIpGroupAuthorCache.value = groups || []
     formData.creatorUserId = profile?.id
     if (props.contentId) {
       const existing = await getContent(props.contentId)
       applyContentRecord(existing)
       if (existing.ipGroupId) {
-        const inOptions = myIpGroupOptions.value.some((item) => item.ipGroupId === existing.ipGroupId)
-        if (!inOptions) {
-          myIpGroupOptions.value.push({
-            ipGroupId: existing.ipGroupId,
-            ipGroupName: existing.ipGroupName || `IP#${existing.ipGroupId}`,
-          })
-        }
-        await loadAuthorForGroup(existing.ipGroupId)
+        await loadAuthorForGroup(existing.ipGroupId, existing.authorId || undefined)
       }
     } else if (props.competitionId) {
       competitionId.value = props.competitionId

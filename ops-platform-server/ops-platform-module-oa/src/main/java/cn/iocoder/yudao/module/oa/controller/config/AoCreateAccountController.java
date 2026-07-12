@@ -2,7 +2,10 @@ package cn.iocoder.yudao.module.oa.controller.config;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.module.oa.api.dto.config.AochuangRemoteAccountRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.config.AochuangWechatDeviceRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.config.AoCreateAccountSyncRemoteReq;
+import cn.iocoder.yudao.module.oa.api.dto.config.AoCreateAccountSyncResultVO;
 import cn.iocoder.yudao.module.oa.api.dto.config.AoCreateAccountCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.config.AoCreateAccountRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.config.AoCreateAccountTestConnectionRespVO;
@@ -77,5 +80,20 @@ public class AoCreateAccountController {
             return vo;
         }).toList();
         return CommonResult.success(list);
+    }
+
+    @GetMapping("/list-remote")
+    public CommonResult<java.util.List<AochuangRemoteAccountRespVO>> listRemoteSubAccounts(
+            @RequestParam(required = false) String lastUpdateTime) {
+        return CommonResult.success(aoCreateAccountService.listRemoteSubAccounts(lastUpdateTime));
+    }
+
+    @PostMapping("/sync-remote")
+    public CommonResult<AoCreateAccountSyncResultVO> syncRemoteSubAccounts(
+            @RequestBody(required = false) AoCreateAccountSyncRemoteReq req) {
+        if (req == null) {
+            req = new AoCreateAccountSyncRemoteReq();
+        }
+        return CommonResult.success(aoCreateAccountService.syncRemoteSubAccounts(req));
     }
 }

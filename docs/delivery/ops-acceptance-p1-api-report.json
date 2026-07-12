@@ -1,0 +1,149 @@
+{
+  "auth": "gateway-login",
+  "summary": {
+    "total": 17,
+    "pass": 17,
+    "fail": 0,
+    "api_pass": 16,
+    "api_fail": 0,
+    "api_skip": 1
+  },
+  "rows": [
+    {
+      "module": "数据分析",
+      "title": "自定义查询",
+      "route": "custom-query",
+      "api": "/admin-api/oa/query/list?pageNo=1&pageSize=10",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "数据分析",
+      "title": "数据报表",
+      "route": "data-report",
+      "api": "N/A",
+      "detail": "navigation-only",
+      "pass": true
+    },
+    {
+      "module": "数据分析",
+      "title": "总体财务分析",
+      "route": "financial-analysis",
+      "api": "/admin-api/oa/finance/roi/analysis?startDate=2026-01-01&endDate=2026-06-30",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "数据分析",
+      "title": "漏斗分析",
+      "route": "funnel-analysis",
+      "api": "/admin-api/oa/funnel/list?pageNo=1&pageSize=10",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "数据分析",
+      "title": "指标管理",
+      "route": "metric",
+      "api": "/admin-api/oa/metric/list?pageNo=1&pageSize=10",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "数据分析",
+      "title": "指标分析",
+      "route": "metric-analysis",
+      "api": "/admin-api/oa/metric/list?pageNo=1&pageSize=10",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "数据分析",
+      "title": "数据大屏",
+      "route": "screen",
+      "api": "/admin-api/oa/dashboard/98601/data?startDate=2026-06-26&endDate=2026-07-03",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "数据分析",
+      "title": "大屏配置",
+      "route": "screen-config",
+      "api": "/admin-api/oa/dashboard-config/list?pageNum=1&pageSize=10",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "数据采集",
+      "title": "采集日志",
+      "route": "collect/log",
+      "api": "/admin-api/oa/collect/log/page?pageNo=1&pageSize=10",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "数据采集",
+      "title": "私域桥接",
+      "route": "collect/private-domain-bridge",
+      "api": "/admin-api/oa/collect/private-domain-bridge/page?pageNo=1&pageSize=10",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "数据采集",
+      "title": "数据质量",
+      "route": "collect/quality",
+      "api": "/admin-api/oa/collect/quality/list?pageNo=1&pageSize=10",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "数据采集",
+      "title": "采集任务",
+      "route": "collect/task",
+      "api": "/admin-api/oa/collect/task/page?pageNo=1&pageSize=10",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "系统管理(OA)",
+      "title": "字典配置",
+      "route": "system-dict",
+      "api": "/admin-api/oa/system/dict/list?pageNo=1&pageSize=10",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "系统管理(OA)",
+      "title": "登录日志",
+      "route": "system-log/login",
+      "api": "/admin-api/oa/system/log/login?pageNo=1&pageSize=10",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "系统管理(OA)",
+      "title": "操作日志",
+      "route": "system-log/operation",
+      "api": "/admin-api/oa/system/log/operation?pageNo=1&pageSize=10",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "系统管理(OA)",
+      "title": "消息管理",
+      "route": "system-message",
+      "api": "/admin-api/oa/system/message/list?pageNo=1&pageSize=10",
+      "detail": "code=0",
+      "pass": true
+    },
+    {
+      "module": "系统管理(OA)",
+      "title": "系统参数",
+      "route": "system-param",
+      "api": "/admin-api/oa/system/param/list?pageNo=1&pageSize=10",
+      "detail": "code=0",
+      "pass": true
+    }
+  ]
+}

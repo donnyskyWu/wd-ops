@@ -73,7 +73,7 @@
       </el-tab-pane>
     </el-tabs>
 
-    <el-drawer v-model="detailVisible" title="外部账号详情" size="480px">
+    <el-drawer direction="rtl" append-to-body v-model="detailVisible" title="外部账号详情" size="480px">
       <el-descriptions v-if="currentRow" :column="1" border>
         <el-descriptions-item label="账号名称">{{ currentRow.accountName }}</el-descriptions-item>
         <el-descriptions-item label="账号ID">{{ currentRow.accountId }}</el-descriptions-item>

@@ -51,8 +51,8 @@
             class="quick-item"
             role="link"
             tabindex="0"
-            @click="navigateTo(resolveOpsUrl(item.url))"
-            @keydown.enter="navigateTo(resolveOpsUrl(item.url))"
+            @click="navigateTo(resolveOpsNavUrl(item.url))"
+            @keydown.enter="navigateTo(resolveOpsNavUrl(item.url))"
           >
             <div class="quick-icon">
               <el-icon :size="28"><component :is="resolveQuickIcon(item.icon)" /></el-icon>
@@ -140,7 +140,7 @@
         </el-table-column>
         <el-table-column label="操作" width="100" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" @click.stop="navigateTo(resolveOpsUrl(row.actionUrl))">处理</el-button>
+            <el-button link type="primary" @click.stop="navigateTo(resolveOpsNavUrl(row.actionUrl))">处理</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -175,6 +175,7 @@ import {
   type QuickActionVO,
   type HomeQueryParams,
 } from '@/api/dashboard'
+import { resolveOpsNavUrl } from '@/utils/ops-route'
 
 const router = useRouter()
 
@@ -224,7 +225,7 @@ const dateShortcuts = [
 ]
 
 const kpiCards = [
-  { label: '总作者数', key: 'totalAuthors' as const, icon: User, color: '#1890ff', bgColor: '#e6f7ff', isPercent: false },
+  { label: '总作者数', key: 'totalAuthors' as const, icon: User, color: 'var(--el-color-primary)', bgColor: 'var(--el-color-primary-light-9)', isPercent: false },
   { label: '内容总数', key: 'totalContent' as const, icon: DocumentCopy, color: '#8b5cf6', bgColor: '#ede9fe', isPercent: false },
   { label: 'SOP 完成率', key: 'sopCompletionRate' as const, icon: TrendCharts, color: '#52c41a', bgColor: '#f6ffed', isPercent: true },
   { label: '平均绩效', key: 'avgPerfGrade' as const, icon: Star, color: '#fa8c16', bgColor: '#fff7e6', isPercent: false, isGrade: true },
@@ -266,43 +267,12 @@ function buildQueryParams(): HomeQueryParams {
   return params
 }
 
-function resolveOpsUrl(url: string): string {
-  if (!url) return '/dashboard'
-  const map: Record<string, string> = {
-    '/ops/ip-group': '/ip-group',
-    '/ops/author': '/author',
-    '/ops/account': '/internal-account',
-    '/ops/internal-content': '/internal-content',
-    '/ops/sop': '/sop',
-    '/ops/perf': '/perf-template',
-    '/ops/report': '/data-report',
-    '/ops/system/user': '/system-user',
-    '/ops/system/tenant': '/system-tenant',
-    '/ops/workbench/todos': '/workbench-todos',
-  }
-  const [pathOnly, query = ''] = url.split('?')
-  let resolved = pathOnly
-  for (const [from, to] of Object.entries(map)) {
-    if (resolved === from || resolved.startsWith(from + '/')) {
-      resolved = resolved.replace(from, to)
-      break
-    }
-  }
-  if (resolved.startsWith('/ops/')) {
-    resolved = resolved.replace('/ops/', '/')
-  }
-  // 列表页路由不存在带 ID 的子路径时，回退到列表页
-  const listFallback: Record<string, string> = {
-    '/sop/review': '/sop/review',
-    '/content/review': '/content/review',
-  }
-  for (const [prefix, target] of Object.entries(listFallback)) {
-    if (resolved.startsWith(prefix + '/')) {
-      resolved = target
-      break
-    }
-  }
-  return query ? `${resolved}?${query}` : resolved
+async function navigateTo(route: string) {
+  if (route) await router.push(route)
+}
+
+function handleTodoClick(row: HomeTodoVO) {
+  navigateTo(resolveOpsNavUrl(row.actionUrl))
 }
 
 function resolveQuickIcon(icon: string) {
@@ -492,14 +462,6 @@ function handleResize() {
   pieChart?.resize()
 }
 
-async function navigateTo(route: string) {
-  if (route) await router.push(route)
-}
-
-function handleTodoClick(row: HomeTodoVO) {
-  navigateTo(resolveOpsUrl(row.actionUrl))
-}
-
 watch(
   () => [filters.ipGroupId, filters.dateRange?.[0], filters.dateRange?.[1]],
   () => {
@@ -601,7 +563,7 @@ onBeforeUnmount(() => {
         transform: translateY(-2px);
 
         .quick-icon {
-          background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+          background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
           color: #fff;
         }
       }
@@ -610,8 +572,8 @@ onBeforeUnmount(() => {
         width: 48px;
         height: 48px;
         border-radius: 12px;
-        background: #e6f7ff;
-        color: #1890ff;
+        background: var(--el-color-primary-light-9);
+        color: var(--el-color-primary);
         display: flex;
         align-items: center;
         justify-content: center;

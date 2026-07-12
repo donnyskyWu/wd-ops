@@ -8,13 +8,12 @@ import cn.iocoder.yudao.module.oa.api.dto.operations.OpsAnchorCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.operations.OpsAnchorRelVO;
 import cn.iocoder.yudao.module.oa.api.dto.operations.OpsAnchorStatsVO;
 import cn.iocoder.yudao.module.oa.api.dto.operations.OpsAnchorUpdateReq;
-import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.operations.OpsAnchorRelDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.OpsAnchorRelMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +33,7 @@ import java.util.stream.Collectors;
 public class OpsAnchorServiceImpl implements OpsAnchorService {
 
     private final OpsAnchorRelMapper opsAnchorRelMapper;
-    private final SysUserMapper sysUserMapper;
+    private final FootballSystemUserValidator footballSystemUserValidator;
     private final IpGroupMapper ipGroupMapper;
 
     @Override
@@ -115,13 +114,10 @@ public class OpsAnchorServiceImpl implements OpsAnchorService {
     @Override
     public OpsAnchorStatsVO anchorStats(Long userId) {
         Long tenantId = requireTenantId();
-        SysUserDO user = sysUserMapper.selectById(userId);
-        if (user == null || !Objects.equals(user.getTenantId(), tenantId)) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
-        }
+        footballSystemUserValidator.assertInTenant(userId, tenantId, "用户不存在");
         OpsAnchorStatsVO vo = new OpsAnchorStatsVO();
         vo.setOpsUserId(userId);
-        vo.setOpsUserName(user.getNickname() != null ? user.getNickname() : user.getUsername());
+        vo.setOpsUserName(footballSystemUserValidator.resolveDisplayName(userId));
         long anchorCount = opsAnchorRelMapper.selectCount(new LambdaQueryWrapper<OpsAnchorRelDO>()
                 .eq(OpsAnchorRelDO::getTenantId, tenantId)
                 .eq(OpsAnchorRelDO::getOpsUserId, userId));
@@ -140,18 +136,9 @@ public class OpsAnchorServiceImpl implements OpsAnchorService {
         vo.setCreateTime(entity.getCreateTime());
 
         Set<Long> userIds = Set.of(entity.getOpsUserId(), entity.getAnchorUserId());
-        Map<Long, SysUserDO> userMap = sysUserMapper.selectList(new LambdaQueryWrapper<SysUserDO>()
-                        .in(SysUserDO::getId, userIds))
-                .stream()
-                .collect(Collectors.toMap(SysUserDO::getId, u -> u, (a, b) -> a));
-        SysUserDO ops = userMap.get(entity.getOpsUserId());
-        if (ops != null) {
-            vo.setOpsUserName(ops.getNickname() != null ? ops.getNickname() : ops.getUsername());
-        }
-        SysUserDO anchor = userMap.get(entity.getAnchorUserId());
-        if (anchor != null) {
-            vo.setAnchorUserName(anchor.getNickname() != null ? anchor.getNickname() : anchor.getUsername());
-        }
+        Map<Long, String> userNames = footballSystemUserValidator.loadNicknames(userIds);
+        vo.setOpsUserName(userNames.get(entity.getOpsUserId()));
+        vo.setAnchorUserName(userNames.get(entity.getAnchorUserId()));
         if (entity.getIpGroupId() != null) {
             IpGroupDO group = ipGroupMapper.selectById(entity.getIpGroupId());
             if (group != null) {
@@ -162,12 +149,8 @@ public class OpsAnchorServiceImpl implements OpsAnchorService {
     }
 
     private void assertUsersExist(Long tenantId, Long opsUserId, Long anchorUserId) {
-        for (Long userId : List.of(opsUserId, anchorUserId)) {
-            SysUserDO user = sysUserMapper.selectById(userId);
-            if (user == null || !Objects.equals(user.getTenantId(), tenantId)) {
-                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
-            }
-        }
+        footballSystemUserValidator.assertInTenant(opsUserId, tenantId, "用户不存在");
+        footballSystemUserValidator.assertInTenant(anchorUserId, tenantId, "用户不存在");
     }
 
     private void assertNoOverlap(Long tenantId, Long opsUserId, Long anchorUserId,

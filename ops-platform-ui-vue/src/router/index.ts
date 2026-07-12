@@ -570,27 +570,29 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '元数据维护' }
       },
 
-      // ===== 10. 系统管理（7个独立子页面）=====
-      // 系统管理 - 用户管理
+      // ===== 10. 系统管理 =====
+      // ADR-049 D4/D7: M9 身份页（user/role/tenant）已废弃 — Football system_* 为 SSOT。
+      // 路由保留供历史链接/E2E 兼容，侧栏已隐藏（meta.hideInMenu）。
+      // 系统管理 - 用户管理 [deprecated · ADR-049]
       {
         path: '/system-user',
         name: 'SystemUser',
         component: () => import('@/views/system/UserManage.vue'),
-        meta: { title: '用户管理' }
+        meta: { title: '用户管理', deprecated: true, hideInMenu: true }
       },
-      // 系统管理 - 角色权限
+      // 系统管理 - 角色权限 [deprecated · ADR-049]
       {
         path: '/system-role',
         name: 'SystemRole',
         component: () => import('@/views/system/RoleManage.vue'),
-        meta: { title: '角色权限' }
+        meta: { title: '角色权限', deprecated: true, hideInMenu: true }
       },
-      // 系统管理 - 租户管理
+      // 系统管理 - 租户管理 [deprecated · ADR-049]
       {
         path: '/system-tenant',
         name: 'SystemTenant',
         component: () => import('@/views/system/TenantManage.vue'),
-        meta: { title: '租户管理' }
+        meta: { title: '租户管理', deprecated: true, hideInMenu: true }
       },
       // 系统管理 - 系统参数
       {

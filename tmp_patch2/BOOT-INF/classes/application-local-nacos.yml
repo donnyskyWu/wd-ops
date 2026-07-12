@@ -1,0 +1,39 @@
+# Local Football integration: register member-server in Nacos namespace "local".
+# Use ONLY profile "local-nacos" (includes local base config).
+
+spring:
+
+  autoconfigure:
+    exclude:
+      - org.apache.rocketmq.spring.boot.autoconfigure.RocketMQAutoConfiguration
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+      discovery:
+        enabled: true
+        register-enabled: true
+        namespace: local
+        group: DEFAULT_GROUP
+        fail-fast: false
+        failure-tolerance-enabled: true
+      config:
+        enabled: false
+
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://101.37.161.136:3306/wd?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: shenyu
+          password: "Zhangwu+123456"
+        slave:
+          url: jdbc:mysql://101.37.161.136:3306/wd?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: shenyu
+          password: "Zhangwu+123456"
+
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      password:

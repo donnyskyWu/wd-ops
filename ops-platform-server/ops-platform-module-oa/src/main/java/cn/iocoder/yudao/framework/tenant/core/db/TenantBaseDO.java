@@ -7,6 +7,16 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * 租户基础数据对象抽象类
+ * <p>
+ * 所有需要支持多租户的实体类都应继承此类，提供租户ID、创建人、
+ * 创建时间、更新人、更新时间和逻辑删除标志等通用字段。
+ * </p>
+ *
+ * @author system
+ */
+
 @Data
 public abstract class TenantBaseDO {
 

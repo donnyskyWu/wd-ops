@@ -7,8 +7,12 @@ import java.time.LocalDateTime;
 @Data
 public class AuthorVO {
 
+    /** API 兼容：等于 author_user.id */
     private Long id;
+    private Long authorUserId;
     private String authorName;
+    /** member author_user.nickname */
+    private String nickname;
     private Long ipGroupId;
     private String ipGroupName;
     private String authorType;

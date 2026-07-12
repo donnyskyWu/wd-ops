@@ -239,6 +239,7 @@ import {
   type PlatformAccountVO,
 } from '@/api/platform-account'
 import { isAccountBindingConflict, promptAccountForceReplace } from '@/utils/account-binding-conflict'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const PLATFORM_LABEL_MAP: Record<string, string> = {
   WECHAT_OFFICIAL: '公众号',
@@ -504,13 +505,17 @@ const handleEdit = async (row: PlatformAccountVO) => {
 }
 
 const handleView = (row: PlatformAccountVO) => {
-  router.push(`/platform-account/${row.id}`)
+  router.push(opsRouteTo({ path: `/platform-account/${row.id}` }))
 }
 
 const goToCollectConfig = () => {
   if (!formData.id) return
   dialogVisible.value = false
-  router.push({ path: `/platform-account/${formData.id}`, query: { tab: 'collect' } })
+  router.push(
+    opsRouteTo({ path: `/platform-account/${formData.id}`, query: { tab: 'collect' } }),
+  ).catch(() => {
+    ElMessage.error('跳转详情页失败，请从列表点击「查看」重试')
+  })
 }
 
 const buildPayload = (forceReplace: boolean, reason?: string) => {

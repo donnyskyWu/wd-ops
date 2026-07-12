@@ -1,0 +1,69 @@
+spring:
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+      discovery:
+        namespace: local
+        group: DEFAULT_GROUP
+        register-enabled: true
+        enabled: false
+        fail-fast: false
+        failure-tolerance-enabled: true
+      config:
+        enabled: false
+    gateway:
+      # AI 生成等长耗时接口需与前端 AI_GENERATE_TIMEOUT_MS（300s）对齐；默认 ~60s 会误报 500
+      server:
+        webflux:
+          httpclient:
+            response-timeout: 300s
+          # Nacos 不可用时直连本地实例（UAT / 离线联调 fallback）
+          routes:
+            - id: system-admin-api-direct
+              uri: http://127.0.0.1:48081
+              predicates:
+                - Path=/admin-api/system/**
+              order: -100
+            - id: oa-admin-api-direct
+              uri: http://127.0.0.1:48094
+              predicates:
+                - Path=/admin-api/oa/**
+              metadata:
+                response-timeout: 300000
+                connect-timeout: 10000
+              order: -100
+            - id: member-admin-api-direct
+              uri: http://127.0.0.1:48087
+              predicates:
+                - Path=/admin-api/member/**
+              order: -100
+    discovery:
+      client:
+        simple:
+          instances:
+            system-server:
+              - uri: http://127.0.0.1:48081
+            oa-server:
+              - uri: http://127.0.0.1:48094
+            mp-server:
+              - uri: http://127.0.0.1:48086
+            member-server:
+              - uri: http://127.0.0.1:48087
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      password: 123456
+
+logging:
+  level:
+    org.springframework.context.support.PostProcessorRegistrationDelegate: ERROR
+
+football:
+  signature:
+    app-id: 20260408160327_DEV
+    app-secret: 8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c
+  encrypt:
+    data-key: K9m2P5v8x1B4n7Q0
+    data-iv: L3j6R9w2Z5c8F1b4

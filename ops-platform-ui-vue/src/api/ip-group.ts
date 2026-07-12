@@ -139,17 +139,17 @@ export function unbindIpGroupAccount(groupId: number, accountId: number): Promis
   return request.delete<boolean>({ url: `/oa/ip-group/${groupId}/accounts/${accountId}` })
 }
 
-// ==================== 关联主播 ====================
+// ==================== 关联作者 ====================
 
 /**
- * 获取关联主播列表
+ * 获取关联作者列表
  */
 export function getIpGroupAnchors(groupId: number): Promise<IpGroupAnchorVO[]> {
   return request.get<IpGroupAnchorVO[]>({ url: `/oa/ip-group/${groupId}/anchors` })
 }
 
 /**
- * 关联主播
+ * 关联作者
  */
 export function bindIpGroupAnchors(
   groupId: number,
@@ -159,10 +159,10 @@ export function bindIpGroupAnchors(
 }
 
 /**
- * 移除关联主播
+ * 移除关联作者
  */
-export function unbindIpGroupAnchor(groupId: number, anchorUserId: number): Promise<boolean> {
-  return request.delete<boolean>({ url: `/oa/ip-group/${groupId}/anchors/${anchorUserId}` })
+export function unbindIpGroupAnchor(groupId: number, authorId: number): Promise<boolean> {
+  return request.delete<boolean>({ url: `/oa/ip-group/${groupId}/anchors/${authorId}` })
 }
 
 export default {
@@ -184,7 +184,7 @@ export default {
   getIpGroupAccounts,
   bindIpGroupAccounts,
   unbindIpGroupAccount,
-  // 关联主播
+  // 关联作者
   getIpGroupAnchors,
   bindIpGroupAnchors,
   unbindIpGroupAnchor,

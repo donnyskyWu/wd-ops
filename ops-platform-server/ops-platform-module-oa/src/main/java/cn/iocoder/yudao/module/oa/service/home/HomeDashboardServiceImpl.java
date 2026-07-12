@@ -16,7 +16,6 @@ import cn.iocoder.yudao.module.oa.api.dto.home.TodoVO;
 import cn.iocoder.yudao.module.oa.api.dto.home.TrendPointVO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.analytics.AccountStatusLogDO;
-import cn.iocoder.yudao.module.oa.dal.dataobject.author.AuthorDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.content.ProductionContentDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.home.HomeAlertDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
@@ -28,7 +27,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.sop.SopReviewDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.sop.TaskDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.analytics.AccountStatusLogMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.author.AuthorMapper;
+import cn.iocoder.yudao.module.oa.service.author.AuthorResolveSupport;
 import cn.iocoder.yudao.module.oa.dal.mysql.content.ProductionContentMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.home.HomeAlertMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
@@ -78,7 +77,7 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
     private static final String GROUP_BY_IP_GROUP = "IP_GROUP";
 
     private final IpGroupMapper ipGroupMapper;
-    private final AuthorMapper authorMapper;
+    private final AuthorResolveSupport authorResolveSupport;
     private final ContentMapper contentMapper;
     private final ContentDataImportMapper contentDataImportMapper;
     private final TaskMapper taskMapper;
@@ -276,10 +275,7 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
         return cached("metrics", ipGroupId, startDate, endDate, null, null, null, () -> {
             DateRange range = resolveDateRange(startDate, endDate, 0);
             QueryContext ctx = buildContext(ipGroupId, range);
-            long authorCount = authorMapper.selectCount(new LambdaQueryWrapper<AuthorDO>()
-                    .eq(AuthorDO::getTenantId, ctx.tenantId())
-                    .eq(AuthorDO::getStatus, 1)
-                    .in(!ctx.ipGroupIds().isEmpty(), AuthorDO::getIpGroupId, ctx.ipGroupIds()));
+            long authorCount = authorResolveSupport.countActiveAuthors(ctx.tenantId(), ctx.ipGroupIds());
             long contentCount = countContents(ctx.tenantId(), ctx.accountIds(), range.start(), range.end());
             List<TaskDO> tasks = taskMapper.selectList(new LambdaQueryWrapper<TaskDO>()
                     .eq(TaskDO::getTenantId, ctx.tenantId())

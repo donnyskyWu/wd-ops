@@ -148,6 +148,7 @@ import {
   updateCompany,
   type CompanyVO,
 } from '@/api/company'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const loading = ref(false)
 const exportLoading = ref(false)
@@ -390,7 +391,7 @@ const handleSubmit = async () => {
 }
 
 const handleView = (row: any) => {
-  router.push(`/company/${row.id}`)
+  router.push(opsRouteTo({ name: 'CompanyDetail', params: { id: String(row.id) } }))
 }
 
 // 扩容

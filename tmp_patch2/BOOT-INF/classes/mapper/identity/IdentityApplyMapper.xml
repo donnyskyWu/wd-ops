@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.author.IdentityApplyMapper">
+
+    <select id="selectAppPartnerTeamMemberApplyPage"
+            resultType="football.module.member.controller.app.partner.vo.AppPartnerTeamMemberRespVO">
+        SELECT
+            mu.id AS userId,
+            mu.avatar_url AS avatarUrl,
+            mu.nickname AS nickname,
+            ia.id AS id,
+            ia.create_time AS applyTime,
+            ia.approver_remark AS approverRemark
+        FROM member_user mu
+        INNER JOIN identity_apply ia ON ia.user_id = mu.id
+        <where>
+            AND ia.doc -> '$.inviteCode' = #{inviteCode}
+            AND ia.doc -> '$.level' = 2
+            AND ia.source = 2
+            AND ia.status = #{applyStatus}
+            <if test="nickname != null and nickname != ''">
+                AND mu.nickname LIKE CONCAT('%', #{nickname}, '%')
+            </if>
+        </where>
+        ORDER BY ia.id DESC
+    </select>
+
+</mapper>
+

@@ -13,9 +13,9 @@ import java.util.Map;
 public class OaMatchProperties {
 
     /**
-     * 外部赛事 API 基址，如 http://110.42.49.224:48088/app-api/match
+     * 外部赛事 API 基址，如 https://h5.shenyu.com/app-api/match
      */
-    private String apiBaseUrl = "http://110.42.49.224:48088/app-api/match";
+    private String apiBaseUrl = "https://h5.shenyu.com/app-api/match";
 
     /**
      * 转发外部 API 时附加的请求头（如鉴权 Token）

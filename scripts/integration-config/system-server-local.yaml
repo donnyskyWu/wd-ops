@@ -1,0 +1,63 @@
+﻿spring:
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://101.37.161.136:3306/wd?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: shenyu
+          password: Zhangwu+123456
+        slave:
+          url: jdbc:mysql://101.37.161.136:3306/wd?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: shenyu
+          password: Zhangwu+123456
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      password: 123456 # align with local Redis requirepass
+  cloud:
+    openfeign:
+      client:
+        config:
+          system-server:
+            url: http://127.0.0.1:48081
+          member-server:
+            url: http://127.0.0.1:48087
+          infra-server:
+            url: http://127.0.0.1:48082
+          mp-server:
+            url: http://127.0.0.1:48086
+
+rocketmq:
+  name-server: 192.168.10.51:9876
+
+wx:
+  mp:
+    app-id: wx5b23ba7a5589ecbb
+    secret: 2a7b3b20c537e52e74afd395eb85f61f
+    config-storage:
+      type: RedisTemplate
+      key-prefix: wx
+      http-client-type: HttpClient
+  miniapp:
+    appid: wxc4598c446f8a9cb3
+    secret: 4a1a04e07f6a4a0751b39c3064a92c8b
+    config-storage:
+      type: RedisTemplate
+      key-prefix: wa
+      http-client-type: HttpClient
+
+football:
+  captcha:
+    enable: false
+  security:
+    mock-enable: true
+  websocket:
+    sender-type: local
+  signature:
+    app-id: 20260408160327_DEV
+    app-secret: 8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c
+  encrypt:
+    data-key: K9m2P5v8x1B4n7Q0
+    data-iv: L3j6R9w2Z5c8F1b4

@@ -278,7 +278,7 @@
     </el-dialog>
 
     <!-- 个微详情 -->
-    <el-drawer v-model="detailVisible" title="个微详情" size="480px">
+    <el-drawer direction="rtl" append-to-body v-model="detailVisible" title="个微详情" size="480px">
       <el-descriptions v-if="detailData" :column="1" border>
         <el-descriptions-item label="微信名">{{ detailData.accountName }}</el-descriptions-item>
         <el-descriptions-item label="微信号">{{ detailData.wechatId }}</el-descriptions-item>

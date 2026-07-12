@@ -1,0 +1,157 @@
+{
+  "login": "ok",
+  "login_via": "system-server",
+  "module": "绩效核算+财务管理",
+  "pages": [
+    {
+      "page": "订单归因",
+      "hash": "#/ops/order-attribution",
+      "football_path": "/ops/order-attribution",
+      "component": "ops/performance/OrderAttribution",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "football-order/list",
+          "path": "/admin-api/oa/football-order/list?startDate=2026-01-01&endDate=2026-06-30&pageNum=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=2",
+          "api_ok": true,
+          "sensible": true,
+          "via": "oa-server"
+        }
+      ],
+      "search_note": "TableSearch: 日期范围 / IP组；列表 P2b → football-order/list（pay_all_order 只读）",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "考核执行",
+      "hash": "#/ops/perf-execution",
+      "football_path": "/ops/perf-execution",
+      "component": "ops/performance/PerfExecution",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "perf/record/list",
+          "path": "/admin-api/oa/perf/record/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=6",
+          "api_ok": true,
+          "sensible": true,
+          "via": "oa-server"
+        }
+      ],
+      "search_note": "TableSearch: 考核周期 / 状态 / 模板",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "考核模板",
+      "hash": "#/ops/perf-template",
+      "football_path": "/ops/perf-template",
+      "component": "ops/performance/PerfTemplate",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "perf/template/list",
+          "path": "/admin-api/oa/perf/template/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=3",
+          "api_ok": true,
+          "sensible": true,
+          "via": "oa-server"
+        }
+      ],
+      "search_note": "TableSearch: 模板名称 / 岗位 / 状态",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "绩效结果",
+      "hash": "#/ops/perf-result",
+      "football_path": "/ops/perf-result",
+      "component": "ops/performance/PerfResult",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "perf/result/list",
+          "path": "/admin-api/oa/perf/result/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=0 total=0",
+          "api_ok": true,
+          "sensible": true,
+          "via": "oa-server"
+        }
+      ],
+      "search_note": "TableSearch: 考核周期 / 等级 / 经办人",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "账号成本",
+      "hash": "#/ops/account-cost",
+      "football_path": "/ops/account-cost",
+      "component": "ops/finance/AccountCostManage",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "finance/cost/list",
+          "path": "/admin-api/oa/finance/cost/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=18",
+          "api_ok": true,
+          "sensible": true,
+          "via": "oa-server"
+        }
+      ],
+      "search_note": "平台 Tab + TableSearch: 账号 / 成本周期",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "ROI分析",
+      "hash": "#/ops/roi-analysis",
+      "football_path": "/ops/roi-analysis",
+      "component": "ops/finance/RoiAnalysis",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "finance/roi/analysis",
+          "path": "/admin-api/oa/finance/roi/analysis?startDate=2026-01-01&endDate=2026-06-30",
+          "ok": true,
+          "code": 0,
+          "data": "object keys=['totalRevenue', 'totalCost', 'roi', 'details']",
+          "api_ok": true,
+          "sensible": true,
+          "via": "oa-server"
+        }
+      ],
+      "search_note": "日期范围筛选 + KPI 卡 / 趋势 / 维度分解",
+      "issues": [],
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,329 @@
+{
+  "groups": [
+    {
+      "name": "rocketmq",
+      "type": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties"
+    },
+    {
+      "name": "rocketmq.consumer",
+      "type": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties",
+      "sourceMethod": "getConsumer()"
+    },
+    {
+      "name": "rocketmq.producer",
+      "type": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties",
+      "sourceMethod": "getProducer()"
+    },
+    {
+      "name": "rocketmq.pull-consumer",
+      "type": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties",
+      "sourceMethod": "getPullConsumer()"
+    }
+  ],
+  "properties": [
+    {
+      "name": "rocketmq.access-channel",
+      "type": "java.lang.String",
+      "description": "Enum type for accessChannel, values: LOCAL, CLOUD",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties"
+    },
+    {
+      "name": "rocketmq.consumer.access-key",
+      "type": "java.lang.String",
+      "description": "The property of \"access-key\".",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer"
+    },
+    {
+      "name": "rocketmq.consumer.customized-trace-topic",
+      "type": "java.lang.String",
+      "description": "The name value of message trace topic.If you don't config,you can use the default trace topic name.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer"
+    },
+    {
+      "name": "rocketmq.consumer.enable-msg-trace",
+      "type": "java.lang.Boolean",
+      "description": "Switch flag instance for message trace.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer",
+      "defaultValue": false
+    },
+    {
+      "name": "rocketmq.consumer.group",
+      "type": "java.lang.String",
+      "description": "Group name of consumer.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer"
+    },
+    {
+      "name": "rocketmq.consumer.instance-name",
+      "type": "java.lang.String",
+      "description": "The property of \"instanceName\".",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer",
+      "defaultValue": "DEFAULT"
+    },
+    {
+      "name": "rocketmq.consumer.listeners",
+      "type": "java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.Boolean>>",
+      "description": "listener configuration container the pattern is like this: group1.topic1 = false group2.topic2 = true group3.topic3 = false",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer"
+    },
+    {
+      "name": "rocketmq.consumer.message-model",
+      "type": "java.lang.String",
+      "description": "Control message mode, if you want all subscribers receive message all message, broadcasting is a good choice.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer",
+      "defaultValue": "CLUSTERING"
+    },
+    {
+      "name": "rocketmq.consumer.namespace",
+      "type": "java.lang.String",
+      "description": "Namespace for this MQ Consumer instance.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer"
+    },
+    {
+      "name": "rocketmq.consumer.namespace-v2",
+      "type": "java.lang.String",
+      "description": "The namespace v2 version of consumer, it can not be used in combination with namespace.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer"
+    },
+    {
+      "name": "rocketmq.consumer.pull-batch-size",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of messages pulled each time.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer",
+      "defaultValue": 10
+    },
+    {
+      "name": "rocketmq.consumer.secret-key",
+      "type": "java.lang.String",
+      "description": "The property of \"secret-key\".",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer"
+    },
+    {
+      "name": "rocketmq.consumer.selector-expression",
+      "type": "java.lang.String",
+      "description": "Control which message can be select.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer",
+      "defaultValue": "*"
+    },
+    {
+      "name": "rocketmq.consumer.selector-type",
+      "type": "java.lang.String",
+      "description": "Control how to selector message.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer",
+      "defaultValue": "TAG"
+    },
+    {
+      "name": "rocketmq.consumer.tls-enable",
+      "type": "java.lang.Boolean",
+      "description": "The property of \"tlsEnable\".",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer",
+      "defaultValue": false
+    },
+    {
+      "name": "rocketmq.consumer.topic",
+      "type": "java.lang.String",
+      "description": "Topic name of consumer.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PushConsumer"
+    },
+    {
+      "name": "rocketmq.name-server",
+      "type": "java.lang.String",
+      "description": "The name server for rocketMQ, formats: `host:port;host:port`.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties"
+    },
+    {
+      "name": "rocketmq.producer.access-key",
+      "type": "java.lang.String",
+      "description": "The property of \"access-key\".",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer"
+    },
+    {
+      "name": "rocketmq.producer.compress-message-body-threshold",
+      "type": "java.lang.Integer",
+      "description": "Compress message body threshold, namely, message body larger than 4k will be compressed on default.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer",
+      "defaultValue": 0
+    },
+    {
+      "name": "rocketmq.producer.customized-trace-topic",
+      "type": "java.lang.String",
+      "description": "The name value of message trace topic.If you don't config,you can use the default trace topic name.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer"
+    },
+    {
+      "name": "rocketmq.producer.enable-msg-trace",
+      "type": "java.lang.Boolean",
+      "description": "Switch flag instance for message trace.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer",
+      "defaultValue": false
+    },
+    {
+      "name": "rocketmq.producer.group",
+      "type": "java.lang.String",
+      "description": "Group name of producer.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer"
+    },
+    {
+      "name": "rocketmq.producer.instance-name",
+      "type": "java.lang.String",
+      "description": "The property of \"instanceName\".",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer",
+      "defaultValue": "DEFAULT"
+    },
+    {
+      "name": "rocketmq.producer.max-message-size",
+      "type": "java.lang.Integer",
+      "description": "Maximum allowed message size in bytes.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer",
+      "defaultValue": 0
+    },
+    {
+      "name": "rocketmq.producer.namespace",
+      "type": "java.lang.String",
+      "description": "Namespace for this MQ Producer instance.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer"
+    },
+    {
+      "name": "rocketmq.producer.namespace-v2",
+      "type": "java.lang.String",
+      "description": "The namespace v2 version of producer, it can not be used in combination with namespace.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer"
+    },
+    {
+      "name": "rocketmq.producer.retry-next-server",
+      "type": "java.lang.Boolean",
+      "description": "Indicate whether to retry another broker on sending failure internally.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer",
+      "defaultValue": false
+    },
+    {
+      "name": "rocketmq.producer.retry-times-when-send-async-failed",
+      "type": "java.lang.Integer",
+      "description": "<p> Maximum number of retry to perform internally before claiming sending failure in asynchronous mode. <\/p> This may potentially cause message duplication which is up to application developers to resolve.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer",
+      "defaultValue": 2
+    },
+    {
+      "name": "rocketmq.producer.retry-times-when-send-failed",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of retry to perform internally before claiming sending failure in synchronous mode. This may potentially cause message duplication which is up to application developers to resolve.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer",
+      "defaultValue": 2
+    },
+    {
+      "name": "rocketmq.producer.secret-key",
+      "type": "java.lang.String",
+      "description": "The property of \"secret-key\".",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer"
+    },
+    {
+      "name": "rocketmq.producer.send-message-timeout",
+      "type": "java.lang.Integer",
+      "description": "Millis of send message timeout.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer",
+      "defaultValue": 3000
+    },
+    {
+      "name": "rocketmq.producer.tls-enable",
+      "type": "java.lang.Boolean",
+      "description": "The property of \"tlsEnable\".",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$Producer",
+      "defaultValue": false
+    },
+    {
+      "name": "rocketmq.pull-consumer.access-key",
+      "type": "java.lang.String",
+      "description": "The property of \"access-key\".",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer"
+    },
+    {
+      "name": "rocketmq.pull-consumer.customized-trace-topic",
+      "type": "java.lang.String",
+      "description": "The name value of message trace topic.If you don't config,you can use the default trace topic name.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer"
+    },
+    {
+      "name": "rocketmq.pull-consumer.enable-msg-trace",
+      "type": "java.lang.Boolean",
+      "description": "Switch flag instance for message trace.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer",
+      "defaultValue": false
+    },
+    {
+      "name": "rocketmq.pull-consumer.group",
+      "type": "java.lang.String",
+      "description": "Group name of consumer.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer"
+    },
+    {
+      "name": "rocketmq.pull-consumer.instance-name",
+      "type": "java.lang.String",
+      "description": "The property of \"instanceName\".",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer",
+      "defaultValue": "DEFAULT"
+    },
+    {
+      "name": "rocketmq.pull-consumer.message-model",
+      "type": "java.lang.String",
+      "description": "Control message mode, if you want all subscribers receive message all message, broadcasting is a good choice.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer",
+      "defaultValue": "CLUSTERING"
+    },
+    {
+      "name": "rocketmq.pull-consumer.namespace",
+      "type": "java.lang.String",
+      "description": "Namespace for this MQ Consumer instance.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer"
+    },
+    {
+      "name": "rocketmq.pull-consumer.namespace-v2",
+      "type": "java.lang.String",
+      "description": "The namespace v2 version of consumer, it can not be used in combination with namespace.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer"
+    },
+    {
+      "name": "rocketmq.pull-consumer.pull-batch-size",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of messages pulled each time.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer",
+      "defaultValue": 10
+    },
+    {
+      "name": "rocketmq.pull-consumer.secret-key",
+      "type": "java.lang.String",
+      "description": "The property of \"secret-key\".",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer"
+    },
+    {
+      "name": "rocketmq.pull-consumer.selector-expression",
+      "type": "java.lang.String",
+      "description": "Control which message can be select.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer",
+      "defaultValue": "*"
+    },
+    {
+      "name": "rocketmq.pull-consumer.selector-type",
+      "type": "java.lang.String",
+      "description": "Control how to selector message.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer",
+      "defaultValue": "TAG"
+    },
+    {
+      "name": "rocketmq.pull-consumer.tls-enable",
+      "type": "java.lang.Boolean",
+      "description": "The property of \"tlsEnable\".",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer",
+      "defaultValue": false
+    },
+    {
+      "name": "rocketmq.pull-consumer.topic",
+      "type": "java.lang.String",
+      "description": "Topic name of consumer.",
+      "sourceType": "org.apache.rocketmq.spring.autoconfigure.RocketMQProperties$PullConsumer"
+    }
+  ],
+  "hints": []
+}

@@ -64,10 +64,12 @@ const handleReset = () => {
 <style scoped lang="scss">
 .table-search {
   margin-bottom: 16px;
-  background-color: #fff;
+  background-color: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 12px;
   padding: 16px 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--el-box-shadow-light);
+  color: var(--el-text-color-primary);
 
   .search-form {
     display: flex;
@@ -81,7 +83,7 @@ const handleReset = () => {
     align-items: center;
     width: 100%;
     padding-bottom: 4px;
-    border-bottom: 1px solid #f0f2f5;
+    border-bottom: 1px solid var(--el-border-color-lighter);
   }
 
   .search-body {
@@ -143,24 +145,13 @@ const handleReset = () => {
 
   :deep(.el-form-item__label) {
     font-size: 14px;
-    color: #606266;
+    color: var(--el-text-color-regular);
   }
 
   :deep(.el-input__wrapper),
   :deep(.el-select__wrapper) {
     border-radius: 6px;
     transition: all 0.3s;
-  }
-
-  :deep(.el-button--primary) {
-    background-color: #1890ff;
-    border-color: #1890ff;
-    border-radius: 6px;
-
-    &:hover {
-      background-color: #40a9ff;
-      border-color: #40a9ff;
-    }
   }
 
   :deep(.el-button:not(.is-text-button)) {

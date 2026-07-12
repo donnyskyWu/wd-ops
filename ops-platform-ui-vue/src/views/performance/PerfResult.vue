@@ -147,6 +147,7 @@ import {
   getPerfUserTrend,
   exportPerfResult,
 } from '@/api/perfResult'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const loading = ref(false)
 const resultList = ref<any[]>([])
@@ -260,7 +261,7 @@ const trendChartRef = ref<HTMLElement>()
 const historyList = ref<any[]>([])
 
 const handleTrend = async (row: any) => {
-  router.push(`/perf/result/${row.userId || row.evaluateeId || row.id}/trend`)
+  router.push(opsRouteTo({ name: 'PerfUserTrend', params: { userId: String(row.userId || row.evaluateeId || row.id) } }))
   trendPosition.value = row.position
   trendUserName.value = row.evaluateeName
   trendVisible.value = true

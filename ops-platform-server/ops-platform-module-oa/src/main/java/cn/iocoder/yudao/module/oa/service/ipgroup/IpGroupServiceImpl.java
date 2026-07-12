@@ -19,12 +19,10 @@ import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupStatsVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupTreeVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupUpdateReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
-import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupAnchorRelDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupMemberDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupAnchorRelMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMemberMapper;
@@ -32,6 +30,9 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.dict.SysDictDataDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.dict.SysDictDataMapper;
 import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.author.AuthorResolveSupport;
+import cn.iocoder.yudao.module.oa.service.author.MemberAuthorReadService;
+import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.RequiredArgsConstructor;
@@ -56,7 +57,9 @@ public class IpGroupServiceImpl implements IpGroupService {
     private final SysDictDataMapper sysDictDataMapper;
     private final IpGroupAnchorRelMapper ipGroupAnchorRelMapper;
     private final AccountMapper accountMapper;
-    private final SysUserMapper sysUserMapper;
+    private final FootballSystemUserValidator footballSystemUserValidator;
+    private final AuthorResolveSupport authorResolveSupport;
+    private final MemberAuthorReadService memberAuthorReadService;
 
     @Override
     public List<IpGroupTreeVO> getTree() {
@@ -122,6 +125,7 @@ public class IpGroupServiceImpl implements IpGroupService {
             vo.setParentName(d.getParentId() == null ? null : parentNameMap.get(d.getParentId()));
             vo.setLeaderName(d.getLeaderUserId() == null ? null : leaderNameMap.get(d.getLeaderUserId()));
             vo.setStatus(d.getStatus());
+            vo.setLevel(d.getLevel());
             vo.setCreateTime(d.getCreateTime());
             vo.setMemberCount(0);
             vo.setAccountCount(0);
@@ -153,6 +157,7 @@ public class IpGroupServiceImpl implements IpGroupService {
         vo.setLeaderName(entity.getLeaderUserId() == null ? null : leaderNameMap.get(entity.getLeaderUserId()));
         vo.setSortOrder(entity.getSortOrder());
         vo.setStatus(entity.getStatus());
+        vo.setLevel(entity.getLevel());
         vo.setRemark(entity.getRemark());
         vo.setCreateTime(entity.getCreateTime());
         vo.setUpdateTime(entity.getUpdateTime());
@@ -230,6 +235,7 @@ public class IpGroupServiceImpl implements IpGroupService {
         entity.setLeaderUserId(leaderUserId);
         entity.setSortOrder(req.getSortOrder() == null ? 0 : req.getSortOrder());
         entity.setStatus(req.getStatus() == null ? 1 : req.getStatus());
+        entity.setLevel(req.getLevel());
         entity.setRemark(req.getRemark());
         entity.setCreator(TenantContextHolder.getUsername());
         entity.setUpdater(TenantContextHolder.getUsername());
@@ -284,6 +290,9 @@ public class IpGroupServiceImpl implements IpGroupService {
         if (req.getStatus() != null) {
             existing.setStatus(req.getStatus());
         }
+        if (req.getLevel() != null) {
+            existing.setLevel(StrUtil.blankToDefault(req.getLevel(), null));
+        }
         if (req.getRemark() != null) {
             existing.setRemark(req.getRemark());
         }
@@ -323,11 +332,8 @@ public class IpGroupServiceImpl implements IpGroupService {
             return Collections.emptyList();
         }
         Set<Long> userIds = members.stream().map(IpGroupMemberDO::getUserId).collect(Collectors.toSet());
-        Map<Long, SysUserDO> userMap = sysUserMapper.selectList(new LambdaQueryWrapper<SysUserDO>()
-                        .in(SysUserDO::getId, userIds))
-                .stream()
-                .collect(Collectors.toMap(SysUserDO::getId, u -> u, (a, b) -> a));
-        return members.stream().map(m -> toMemberVO(m, userMap.get(m.getUserId()))).collect(Collectors.toList());
+        Map<Long, String> userNames = footballSystemUserValidator.loadNicknames(userIds);
+        return members.stream().map(m -> toMemberVO(m, userNames.get(m.getUserId()))).collect(Collectors.toList());
     }
 
     @Override
@@ -336,14 +342,15 @@ public class IpGroupServiceImpl implements IpGroupService {
     public void addMember(Long groupId, IpGroupMemberCreateReq req) {
         IpGroupDO entity = requireGroup(groupId);
         assertMemberGroupType(entity);
-        SysUserDO user = requireUser(entity.getTenantId(), req.getUserId());
+        assertUserExists(entity.getTenantId(), req.getUserId());
         assertMemberNotExists(entity.getTenantId(), groupId, req.getUserId());
 
         IpGroupMemberDO member = new IpGroupMemberDO();
         member.setTenantId(entity.getTenantId());
         member.setIpGroupId(groupId);
         member.setUserId(req.getUserId());
-        member.setPosition(StrUtil.blankToDefault(req.getPosition(), user.getPosition()));
+        member.setPosition(StrUtil.blankToDefault(req.getPosition(),
+                footballSystemUserValidator.resolveLegacyPosition(req.getUserId())));
         member.setIsLeader(Boolean.TRUE.equals(req.getIsLeader()) ? 1 : 0);
         member.setCreator(TenantContextHolder.getUsername());
         member.setUpdater(TenantContextHolder.getUsername());
@@ -430,19 +437,16 @@ public class IpGroupServiceImpl implements IpGroupService {
         if (rels.isEmpty()) {
             return Collections.emptyList();
         }
-        Set<Long> userIds = rels.stream().map(IpGroupAnchorRelDO::getAnchorUserId).collect(Collectors.toSet());
-        Map<Long, SysUserDO> userMap = sysUserMapper.selectList(new LambdaQueryWrapper<SysUserDO>()
-                        .in(SysUserDO::getId, userIds))
-                .stream()
-                .collect(Collectors.toMap(SysUserDO::getId, u -> u, (a, b) -> a));
+        Set<Long> authorUserIds = rels.stream().map(IpGroupAnchorRelDO::getAnchorUserId).collect(Collectors.toSet());
+        Map<Long, String> authorNames = memberAuthorReadService.loadNicknames(authorUserIds);
         return rels.stream().map(rel -> {
             IpGroupAnchorVO vo = new IpGroupAnchorVO();
             vo.setRelId(rel.getId());
             vo.setAnchorUserId(rel.getAnchorUserId());
-            SysUserDO user = userMap.get(rel.getAnchorUserId());
-            if (user != null) {
-                vo.setAnchorUserName(user.getNickname() != null ? user.getNickname() : user.getUsername());
-            }
+            vo.setAuthorId(rel.getAnchorUserId());
+            String name = authorNames.get(rel.getAnchorUserId());
+            vo.setAnchorUserName(name);
+            vo.setAuthorName(name);
             vo.setAnchorType(rel.getAnchorType());
             vo.setBoundAt(rel.getCreateTime());
             return vo;
@@ -457,7 +461,7 @@ public class IpGroupServiceImpl implements IpGroupService {
         Long tenantId = entity.getTenantId();
         String anchorType = StrUtil.blankToDefault(req.getAnchorType(), "VIDEO");
         for (Long anchorUserId : req.getAnchorUserIds()) {
-            requireUser(tenantId, anchorUserId);
+            assertAuthorExists(tenantId, anchorUserId);
             long exists = ipGroupAnchorRelMapper.selectCount(new LambdaQueryWrapper<IpGroupAnchorRelDO>()
                     .eq(IpGroupAnchorRelDO::getTenantId, tenantId)
                     .eq(IpGroupAnchorRelDO::getIpGroupId, groupId)
@@ -499,13 +503,11 @@ public class IpGroupServiceImpl implements IpGroupService {
         }
     }
 
-    private IpGroupMemberVO toMemberVO(IpGroupMemberDO member, SysUserDO user) {
+    private IpGroupMemberVO toMemberVO(IpGroupMemberDO member, String userName) {
         IpGroupMemberVO vo = new IpGroupMemberVO();
         vo.setMemberId(member.getId());
         vo.setUserId(member.getUserId());
-        if (user != null) {
-            vo.setUserName(user.getNickname() != null ? user.getNickname() : user.getUsername());
-        }
+        vo.setUserName(userName);
         vo.setPosition(member.getPosition());
         vo.setPositionText(resolvePositionLabel(member.getPosition()));
         vo.setIsLeader(member.getIsLeader() != null && member.getIsLeader() == 1);
@@ -572,15 +574,15 @@ public class IpGroupServiceImpl implements IpGroupService {
     }
 
     private void assertLeaderExists(Long tenantId, Long leaderUserId) {
-        requireUser(tenantId, leaderUserId);
+        assertUserExists(tenantId, leaderUserId);
     }
 
-    private SysUserDO requireUser(Long tenantId, Long userId) {
-        SysUserDO user = sysUserMapper.selectById(userId);
-        if (user == null || !Objects.equals(user.getTenantId(), tenantId)) {
-            throw new ServiceException(OaErrorCodes.IP_GROUP_LEADER_NOT_FOUND);
-        }
-        return user;
+    private void assertUserExists(Long tenantId, Long userId) {
+        footballSystemUserValidator.assertInTenant(userId, tenantId, OaErrorCodes.IP_GROUP_LEADER_NOT_FOUND.getMsg());
+    }
+
+    private void assertAuthorExists(Long tenantId, Long authorUserId) {
+        authorResolveSupport.requireAuthorUser(authorUserId, tenantId);
     }
 
     private void assertDeletable(IpGroupDO entity) {
@@ -658,6 +660,7 @@ public class IpGroupServiceImpl implements IpGroupService {
         vo.setLeaderId(entity.getLeaderUserId());
         vo.setLeaderName(entity.getLeaderUserId() == null ? null : leaderNameMap.get(entity.getLeaderUserId()));
         vo.setStatus(entity.getStatus());
+        vo.setLevel(entity.getLevel());
         vo.setCreateTime(entity.getCreateTime());
 
         Set<Long> scopeIds = collectScopeIds(entity, childrenMap);
@@ -798,8 +801,7 @@ public class IpGroupServiceImpl implements IpGroupService {
         if (leaderIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        return sysUserMapper.selectList(new LambdaQueryWrapper<SysUserDO>().in(SysUserDO::getId, leaderIds)).stream()
-                .collect(Collectors.toMap(SysUserDO::getId, u -> u.getNickname() != null ? u.getNickname() : u.getUsername(), (a, b) -> a));
+        return footballSystemUserValidator.loadNicknames(leaderIds);
     }
 
     private IpGroupDO requireGroup(Long id) {

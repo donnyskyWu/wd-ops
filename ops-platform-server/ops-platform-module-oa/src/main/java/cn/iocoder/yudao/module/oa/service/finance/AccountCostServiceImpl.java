@@ -20,8 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,9 +48,11 @@ public class AccountCostServiceImpl implements AccountCostService {
                 .orderByDesc(AccountCostDO::getPayDate);
         Page<AccountCostDO> page = accountCostMapper.selectPage(
                 new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize), wrapper);
-        Map<Long, String> accountNames = accountMapper.selectBatchIds(
-                page.getRecords().stream().map(AccountCostDO::getAccountId).collect(Collectors.toSet()))
-                .stream().collect(Collectors.toMap(AccountDO::getId, AccountDO::getAccountName, (a, b) -> a));
+        Map<Long, String> accountNames = loadAccountNames(
+                page.getRecords().stream()
+                        .map(AccountCostDO::getAccountId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet()));
         return new PageResult<>(page.getRecords().stream()
                 .map(row -> toVO(row, accountNames.get(row.getAccountId())))
                 .collect(Collectors.toList()), page.getTotal());
@@ -129,6 +133,14 @@ public class AccountCostServiceImpl implements AccountCostService {
         if (amount == null || amount.compareTo(MIN_AMOUNT) < 0) {
             throw new ServiceException(OaErrorCodes.FINANCE_AMOUNT_INVALID);
         }
+    }
+
+    private Map<Long, String> loadAccountNames(Set<Long> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return accountMapper.selectBatchIds(accountIds).stream()
+                .collect(Collectors.toMap(AccountDO::getId, AccountDO::getAccountName, (a, b) -> a));
     }
 
     private AccountCostVO toVO(AccountCostDO row, String accountName) {

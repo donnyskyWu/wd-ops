@@ -1,9 +1,12 @@
 <template>
   <el-drawer
+    direction="rtl"
     :model-value="visible"
     :title="dialogTitle"
     size="70%"
     destroy-on-close
+    append-to-body
+    class="content-edit-drawer"
     @update:model-value="(val: boolean) => emit('update:visible', val)"
   >
     <ContentEditPanel
@@ -47,3 +50,10 @@ const handleSaved = (payload?: { contentId?: number; action: 'draft' | 'review' 
   emit('update:visible', false)
 }
 </script>
+
+<style scoped>
+.content-edit-drawer,
+.content-edit-drawer :deep(.el-drawer__body) {
+  background-color: var(--el-bg-color, #fff);
+}
+</style>

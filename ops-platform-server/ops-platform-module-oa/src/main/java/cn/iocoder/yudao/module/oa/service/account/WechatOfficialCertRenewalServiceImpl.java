@@ -6,12 +6,13 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.api.dto.account.WechatCertRenewalCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.account.WechatCertRenewalRespVO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.account.OaAccountExtDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.WechatOfficialCertRenewalDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.WechatOfficialCertRenewalMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,7 +37,9 @@ public class WechatOfficialCertRenewalServiceImpl implements WechatOfficialCertR
 
     private final WechatOfficialCertRenewalMapper renewalMapper;
     private final AccountMapper accountMapper;
-    private final SysUserMapper sysUserMapper;
+    private final OaAccountExtDataService oaAccountExtDataService;
+    private final WechatOfficialAccountResolver wechatOfficialAccountResolver;
+    private final FootballSystemUserValidator footballSystemUserValidator;
 
     @Override
     public List<WechatCertRenewalRespVO> listByAccount(Long accountId) {
@@ -76,12 +79,7 @@ public class WechatOfficialCertRenewalServiceImpl implements WechatOfficialCertR
         entity.setUpdateTime(LocalDateTime.now());
         renewalMapper.insert(entity);
 
-        int nextCount = (account.getCertCount() != null ? account.getCertCount() : 0) + 1;
-        account.setCertCount(nextCount);
-        account.setUsageStatus(USAGE_RENEWED);
-        account.setUpdater(TenantContextHolder.getUsername());
-        account.setUpdateTime(LocalDateTime.now());
-        accountMapper.updateById(account);
+        applyRenewalSideEffects(req.getAccountId(), tenantId);
         return entity.getId();
     }
 
@@ -118,14 +116,14 @@ public class WechatOfficialCertRenewalServiceImpl implements WechatOfficialCertR
         if (userIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        return sysUserMapper.selectBatchIds(userIds).stream()
-                .collect(Collectors.toMap(SysUserDO::getId,
-                        u -> u.getNickname() != null ? u.getNickname() : u.getUsername(),
-                        (a, b) -> a));
+        return footballSystemUserValidator.loadNicknames(userIds);
     }
 
     private AccountDO assertWechatOfficialAccount(Long accountId, Long tenantId) {
         AccountDO account = accountMapper.selectById(accountId);
+        if (account == null) {
+            account = wechatOfficialAccountResolver.resolveReadableAccount(accountId, tenantId).orElse(null);
+        }
         if (account == null) {
             throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "关联平台账号不存在");
         }
@@ -138,17 +136,28 @@ public class WechatOfficialCertRenewalServiceImpl implements WechatOfficialCertR
         return account;
     }
 
+    private void applyRenewalSideEffects(Long accountId, Long tenantId) {
+        AccountDO legacy = accountMapper.selectById(accountId);
+        if (legacy != null && "WECHAT_OFFICIAL".equals(legacy.getPlatformType())) {
+            int nextCount = (legacy.getCertCount() != null ? legacy.getCertCount() : 0) + 1;
+            legacy.setCertCount(nextCount);
+            legacy.setUsageStatus(USAGE_RENEWED);
+            legacy.setUpdater(TenantContextHolder.getUsername());
+            legacy.setUpdateTime(LocalDateTime.now());
+            accountMapper.updateById(legacy);
+            return;
+        }
+        OaAccountExtDO ext = oaAccountExtDataService.findByMpAccountId(tenantId, accountId);
+        if (ext != null) {
+            ext.setUsageStatus(USAGE_RENEWED);
+            ext.setUpdater(TenantContextHolder.getUsername());
+            ext.setUpdateTime(LocalDateTime.now());
+            oaAccountExtDataService.updateById(ext);
+        }
+    }
+
     private void assertUserEnabled(Long userId, Long tenantId) {
-        SysUserDO user = sysUserMapper.selectById(userId);
-        if (user == null) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "续费人不存在");
-        }
-        if (!tenantId.equals(user.getTenantId())) {
-            throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
-        }
-        if (!"ENABLED".equals(user.getStatus())) {
-            throw new ServiceException(OaErrorCodes.ENTITY_DISABLED);
-        }
+        footballSystemUserValidator.assertEnabledInTenant(userId, tenantId, "续费人不存在");
     }
 
     private WechatOfficialCertRenewalDO getRequiredInTenant(Long id) {

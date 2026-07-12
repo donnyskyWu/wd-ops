@@ -1,0 +1,64 @@
+﻿r）
+.\scripts\start-integration-stack.ps1
+
+# 分步
+.\scripts\start-nacos-local.ps1          # 需 Docker Desktop
+.\scripts\start-integration-oa.ps1       # oa-server :48094
+# Gateway / system-server：见 football-backend 团队脚本或 start-football-integration.ps1（待完善）
+
+# Football 前端壳层
+cd football-front
+pnpm dev:ele                             # :5777
+
+# 独立 Ops 开发（非 Football 集成路径）
+.\scripts\restart-all.ps1                # :8080 + :3000 + collector
+```
+
+**集成 Profile**：`dev,dev-nacos,dev-nacos-local`  
+**Gateway 探针**：`curl http://localhost:48080/admin-api/system/tenant/get-id-by-name?name=...`  
+**oa 健康**：`curl http://localhost:48094/actuator/health`
+
+**默认登录账号（Football 惯例）**：`admin` / `admin123`（以 Nacos/seed 为准）
+
+---
+
+## 7. 下一步优先级
+
+1. 拉起 **Redis + system-server + member-server + mp-server**（配置-only，namespace **`local`**）。
+2. **oa-server** 改注册到 **`local`**（或 Gateway 改 `dev`，二选一统一）。
+3. 验证 Gateway：`/admin-api/system/**` 200 + `/admin-api/oa/**` → oa-server。
+4. 确认 **5777** 进入登录页无 router 500。
+5. S1-B：菜单 CSV、`system_menu` seed、Token 鉴权桥接。
+
+---
+
+## 8. 相关文档
+
+| 文档 | 用途 |
+|------|------|
+| [ADR-047](../adr/ADR-047-Football-Ops平台集成决策.md) | 集成决策与架构 |
+| [INTEGRATION-S0](./INTEGRATION-S0-Football-Ops.md) | S0 Checklist 与环境矩阵 |
+| [MASTER §18](./MASTER-EXECUTION-TRACKER.md#18-football--ops-平台集成2026-07-02-启动) | Gate 与 S1 任务索引 |
+---
+
+## 9. S1-B 状态检查（2026-07-03）
+
+**已修（仅配置/数据）**
+
+| 项 | 处理 |
+|----|------|
+| Redis AUTH 不一致 | 本地 Redis CONFIG SET requirepass 123456；integration-config 与 Nacos local DataId 统一 password |
+| Gateway MalformedInputException | UTF-8 无 BOM gateway-server-local.yaml / gateway-integration-local.yaml；Nacos 重发；Gateway integration profile 绕过 jar GBK application-local |
+| Nacos auth login 500 | 旧容器 nacos 保留（镜像拉取失败）；客户端去掉 nacos 凭证 |
+| oa-server namespace | application-dev-nacos-local.yml discovery.namespace local |
+
+**矩阵**：Nacos/Redis/Gateway/oa/5777 壳层 UP；system/member/mp DOWN（wx.appId、im.appId、taskExecutor 等待定）。
+
+**验证**：48080 tenant HTTP 200 但 body code=503；48094 UP；5777 页面可开，system API 仍 503。
+
+日志：scripts/logs/*-integration.log
+
+**验证（2026-07-03 复测）**：48080/48081/48094/5777 端口 LISTEN；Gateway `tenant/simple-list` 与 `get-id-by-name`（URL 编码）均 **HTTP 200 + code=0**；5777 代理 tenant **code=0**；login **code=500**（member-server 未起）。
+
+**Football `system_*` DDL/数据导入（租户库阻塞已解除）**：已写入 **`101.37.161.136:3306/wd`**。运行时脚本：`scripts/start-football-system.ps1`、`scripts/start-integration-system.ps1`；Nacos 覆盖配置目录 **`scripts/integration-config/`**（推送 `scripts/push-integration-config-to-nacos.ps1`）。
+

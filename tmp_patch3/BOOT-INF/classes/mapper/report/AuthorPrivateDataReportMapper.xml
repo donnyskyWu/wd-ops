@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.report.AuthorPrivateDataReportMapper">
+
+    <select id="pageByDay" resultType="football.module.member.controller.admin.report.vo.AuthorPrivateDataReportRespVO">
+        select au.nickname as authorName ,apdr.* from author_private_data_report apdr
+        left join(
+            select id, author_source,nickname from author_user
+        )au on apdr.author_id = au.id
+        <where>
+            <if test="reqVO.authorId != null">
+                and author_id = #{reqVO.authorId}
+            </if>
+            <if test="reqVO.startTime != null and reqVO.startTime != '' and reqVO.endTime != null and reqVO.endTime != ''">
+                and `date` between #{reqVO.startTime} and #{reqVO.endTime}
+            </if>
+            <if test="reqVO.authorIds != null and reqVO.authorIds.size() > 0">
+                and author_id in
+                <foreach item="item" collection="reqVO.authorIds" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="reqVO.type != null">
+                and au.author_source = #{reqVO.type}
+            </if>
+            <if test="reqVO.tenantId != null and reqVO.tenantId == ''">
+                and apdr.tenant_id = #{reqVO.tenantId}
+            </if>
+        </where>
+        order by apdr.date desc
+    </select>
+
+    <select id="pageByWeek" resultType="football.module.member.controller.admin.report.vo.AuthorPrivateDataReportRespVO">
+        SELECT
+        CONCAT(YEAR(apdr.date), '-', WEEK(apdr.date, 1)) AS `date`,
+        CONCAT(
+        DATE_FORMAT(apdr.date, '%Y-%m-%d'),
+        ' ~ ',
+        DATE_FORMAT(DATE_ADD(apdr.date, INTERVAL 6 DAY), '%Y-%m-%d')
+        ) AS dateRange,au.nickname as authorName ,
+        (SELECT apdr_last.fans_count FROM author_private_data_report apdr_last
+        WHERE apdr_last.author_id = apdr.author_id
+        AND CONCAT(YEAR(apdr_last.date), '-', WEEK(apdr_last.date, 1)) = CONCAT(YEAR(apdr.date), '-', WEEK(apdr.date, 1))
+        ORDER BY apdr_last.date DESC LIMIT 1) as fans_count,
+        (SELECT apdr_last.account_fans FROM author_private_data_report apdr_last
+        WHERE apdr_last.author_id = apdr.author_id
+        AND CONCAT(YEAR(apdr_last.date), '-', WEEK(apdr_last.date, 1)) = CONCAT(YEAR(apdr.date), '-', WEEK(apdr.date, 1))
+        ORDER BY apdr_last.date DESC LIMIT 1) as account_fans,
+        ifnull(sum(apdr.add_fans),0) as authorAddFans,
+        ifnull(sum(apdr.cancel_fans),0) as authorCancelFans,
+        ifnull(sum(apdr.account_add_fans),0) as accountAddFans,
+        ifnull(sum(apdr.account_cancel_fans),0) as accountCancelFans
+        from author_private_data_report apdr
+        left join(
+        select id, author_source,nickname from author_user
+        )au on apdr.author_id = au.id
+        <where>
+            <if test="reqVO.authorId != null">
+                and author_id = #{reqVO.authorId}
+            </if>
+            <if test="reqVO.startTime != null and reqVO.startTime != '' and reqVO.endTime != null and reqVO.endTime != ''">
+                AND CONCAT(YEAR(apdr.date), '-', WEEK(apdr.date, 1)) BETWEEN #{reqVO.startTime} AND #{reqVO.endTime}
+            </if>
+            <if test="reqVO.authorIds != null and reqVO.authorIds.size() > 0">
+                and author_id in
+                <foreach item="item" collection="reqVO.authorIds" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="reqVO.type != null">
+                and au.author_source = #{reqVO.type}
+            </if>
+            <if test="reqVO.tenantId != null and reqVO.tenantId == ''">
+                and apdr.tenant_id = #{reqVO.tenantId}
+            </if>
+        </where>
+        group by apdr.date,apdr.author_id
+        order by apdr.date desc
+    </select>
+
+    <select id="pageByMonth" resultType="football.module.member.controller.admin.report.vo.AuthorPrivateDataReportRespVO">
+        SELECT
+        DATE_FORMAT(apdr.date, '%Y-%m') AS `date`,
+        au.nickname as authorName ,
+        (SELECT apdr_last.fans_count FROM author_private_data_report apdr_last
+        WHERE apdr_last.author_id = apdr.author_id
+        AND DATE_FORMAT(apdr_last.date, '%Y-%m') = DATE_FORMAT(ANY_VALUE(apdr.date), '%Y-%m')
+        ORDER BY apdr_last.date DESC LIMIT 1) as fans_count,
+        (SELECT apdr_last.account_fans FROM author_private_data_report apdr_last
+        WHERE apdr_last.author_id = apdr.author_id
+        AND DATE_FORMAT(apdr_last.date, '%Y-%m') = DATE_FORMAT(ANY_VALUE(apdr.date), '%Y-%m')
+        ORDER BY apdr_last.date DESC LIMIT 1) as account_fans,
+        ifnull(sum(apdr.add_fans),0) as authorAddFans,
+        ifnull(sum(apdr.cancel_fans),0) as authorCancelFans,
+        ifnull(sum(apdr.account_add_fans),0) as accountAddFans,
+        ifnull(sum(apdr.account_cancel_fans),0) as accountCancelFans
+        from author_private_data_report apdr
+        left join(
+        select id, author_source,nickname from author_user
+        )au on apdr.author_id = au.id
+        <where>
+            <if test="reqVO.authorId != null">
+                and author_id = #{reqVO.authorId}
+            </if>
+            <if test="reqVO.startTime != null and reqVO.startTime != '' and reqVO.endTime != null and reqVO.endTime != ''">
+                AND DATE_FORMAT(apdr.date, '%Y-%m') BETWEEN #{reqVO.startTime} AND #{reqVO.endTime}
+            </if>
+            <if test="reqVO.authorIds != null and reqVO.authorIds.size() > 0">
+                and author_id in
+                <foreach item="item" collection="reqVO.authorIds" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="reqVO.type != null">
+                and au.author_source = #{reqVO.type}
+            </if>
+            <if test="reqVO.tenantId != null and reqVO.tenantId == ''">
+                and apdr.tenant_id = #{reqVO.tenantId}
+            </if>
+        </where>
+        group by DATE_FORMAT(apdr.date, '%Y-%m'),apdr.author_id
+        order by apdr.date desc
+    </select>
+
+</mapper>

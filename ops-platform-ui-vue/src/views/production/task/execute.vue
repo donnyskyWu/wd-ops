@@ -132,6 +132,7 @@ import { completeTaskExecute, getTaskExecute, saveTaskExecute, uploadTaskExecute
 import type { TaskAttachmentVO, TaskExecuteVO } from '@/types/task'
 import ContentEditDialog from '@/views/production/content/ContentEditDialog.vue'
 import DictLabel from '@/components/DictLabel.vue'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const route = useRoute()
 const router = useRouter()
@@ -178,7 +179,7 @@ const loadContext = async () => {
     deliverableAttachments.value = context.value.deliverableAttachments || []
   } catch {
     ElMessage.error('加载任务执行信息失败')
-    router.push('/task')
+    router.push(opsRouteTo({ name: 'Task' }))
   } finally {
     loading.value = false
   }
@@ -240,7 +241,7 @@ const handleComplete = async () => {
     })
     await completeTaskExecute(taskId.value)
     ElMessage.success('任务已完成')
-    router.push('/task')
+    router.push(opsRouteTo({ name: 'Task' }))
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('完成任务失败，请确认内容创作已完成')
@@ -251,7 +252,7 @@ const handleComplete = async () => {
 }
 
 const goBack = () => {
-  router.push('/task')
+  router.push(opsRouteTo({ name: 'Task' }))
 }
 
 onMounted(loadContext)

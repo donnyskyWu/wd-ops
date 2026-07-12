@@ -109,7 +109,7 @@
     </el-dialog>
 
     <!-- 考核详情抽屉 -->
-    <el-drawer v-model="detailVisible" title="考核详情" size="800px">
+    <el-drawer direction="rtl" append-to-body v-model="detailVisible" title="考核详情" size="800px">
       <template v-if="currentDetail">
         <div class="detail-header">
           <div class="header-info">
@@ -188,6 +188,7 @@ import { getTemplateList } from '@/api/perfTemplate'
 import type { PerfRecordListItem, PerfRecordDetail, CreatePerfRecordRequest } from '@/types/perfExecution'
 import type { PerfTemplateListItem } from '@/types/perfTemplate'
 import { PerfRecordStatus, CycleType } from '@/types/perfExecution'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const loading = ref(false)
 const recordList = ref<PerfRecordListItem[]>([])
@@ -388,7 +389,7 @@ const detailVisible = ref(false)
 const currentDetail = ref<PerfRecordDetail | null>(null)
 
 const handleView = (row: PerfRecordListItem) => {
-  router.push(`/perf/record/${row.id}`)
+  router.push(opsRouteTo({ name: 'PerfRecordDetail', params: { id: String(row.id) } }))
 }
 
 const handleEdit = (row: PerfRecordListItem) => {

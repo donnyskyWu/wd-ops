@@ -9,13 +9,12 @@ import cn.iocoder.yudao.module.oa.api.dto.perf.OrderAttributionRoiVO;
 import cn.iocoder.yudao.module.oa.api.dto.perf.OrderAttributionVO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
-import cn.iocoder.yudao.module.oa.dal.dataobject.author.AuthorDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.OrderAttributionDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.OrderDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.author.AuthorMapper;
+import cn.iocoder.yudao.module.oa.service.author.AuthorResolveSupport;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.OrderAttributionMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.OrderMapper;
@@ -42,7 +41,7 @@ public class OrderAttributionServiceImpl implements OrderAttributionService {
     private final OrderMapper orderMapper;
     private final AccountMapper accountMapper;
     private final IpGroupMapper ipGroupMapper;
-    private final AuthorMapper authorMapper;
+    private final AuthorResolveSupport authorResolveSupport;
     private final SysUserMapper sysUserMapper;
 
     @Override
@@ -133,8 +132,7 @@ public class OrderAttributionServiceImpl implements OrderAttributionService {
         }
         vo.setAuthorId(row.getAuthorId());
         if (row.getAuthorId() != null) {
-            AuthorDO author = authorMapper.selectById(row.getAuthorId());
-            vo.setAuthorName(author != null ? author.getAuthorName() : null);
+            vo.setAuthorName(authorResolveSupport.resolveNickname(row.getAuthorId()));
         }
         vo.setOpsUserId(row.getOpsUserId());
         if (row.getOpsUserId() != null) {

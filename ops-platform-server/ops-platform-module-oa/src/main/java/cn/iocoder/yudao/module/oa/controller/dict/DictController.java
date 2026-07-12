@@ -10,7 +10,9 @@ import cn.iocoder.yudao.module.oa.api.dto.dict.DictTypeRespVO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.dict.SysDictDataDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.dict.SysDictTypeDO;
 import cn.iocoder.yudao.module.oa.service.dict.DictService;
+import cn.iocoder.yudao.module.oa.service.system.SystemDictService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
 public class DictController {
 
     private final DictService dictService;
+    private final SystemDictService systemDictService;
 
     @GetMapping("/data")
     public CommonResult<PageResult<DictDataRespVO>> data(@RequestParam(required = false) String type) {
@@ -43,6 +46,13 @@ public class DictController {
                 .map(this::toDataVO)
                 .collect(Collectors.toList());
         return CommonResult.success(new PageResult<>(list, (long) list.size()));
+    }
+
+    /** Legacy admin probe alias → {@code GET /admin-api/oa/system/dict/type-list}. */
+    @GetMapping("/type/list")
+    @PreAuthorize("hasAuthority('oa:dict:admin-list')")
+    public CommonResult<List<DictTypeRespVO>> adminTypeList() {
+        return CommonResult.success(systemDictService.typeList());
     }
 
     @GetMapping("/types")

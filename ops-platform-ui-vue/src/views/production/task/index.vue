@@ -171,6 +171,7 @@ import ContentWrap from '@/components/ContentWrap.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const router = useRouter()
 
@@ -278,7 +279,7 @@ const getRowClassName = ({ row }: { row: TaskVO }) => {
 }
 
 const handleExecute = (row: TaskVO) => {
-  router.push(`/task/${row.id}/execute`)
+  router.push(opsRouteTo({ name: 'TaskExecute', params: { id: String(row.id) } }))
 }
 
 // 完成任务

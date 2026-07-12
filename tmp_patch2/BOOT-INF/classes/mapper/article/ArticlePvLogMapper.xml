@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.article.ArticlePvLogMapper">
+
+    <select id="getProductUvList" resultType="football.module.member.api.dto.ProductUvDTO">
+        SELECT
+        l.article_id AS productId,
+        a.title AS productName,
+        COUNT(DISTINCT l.user_id) AS uv
+        FROM author_article_pv_logs l
+        INNER JOIN author_article a ON a.id = l.article_id
+        WHERE
+        l.article_id IN
+        <foreach collection="productIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        <if test="startTime != null">
+            AND l.create_time >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND l.create_time &lt;= #{endTime}
+        </if>
+        AND a.deleted = 0
+        GROUP BY l.article_id, a.title
+    </select>
+
+
+    <select id="getUvList" resultType="football.module.member.api.dto.ProductUvDTO">
+        SELECT
+        article_id AS productId,
+        COUNT(DISTINCT user_id) AS uv
+        FROM author_article_pv_logs
+        WHERE
+        article_id IN
+        <foreach collection="productIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        <if test="startTime != null">
+            AND create_time >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND create_time &lt;= #{endTime}
+        </if>
+        GROUP BY article_id
+    </select>
+
+    <select id="countUvByAuthorId" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT user_id)
+        FROM author_article_pv_logs
+        WHERE
+        author_id = #{authorId}
+        <if test="articleId != null">
+            AND article_id = #{articleId}
+        </if>
+        AND create_time >= #{startTime}
+        AND create_time &lt;= #{endTime}
+        AND deleted = 0
+    </select>
+
+    <!-- 获取浏览过某方案的用户列表（分页）- 简化SQL，用户信息在Service层补充 -->
+    <select id="getArticlePvPage" resultType="football.module.member.dal.dataobject.article.ArticlePvDTO">
+        SELECT
+        user_id AS userId,
+        MAX(create_time) AS lastViewTime,
+        MAX(ip) AS lastViewIp,
+        MAX(user_purchase_amount) AS userPurchaseAmount,
+        MAX(user_purchase_num) AS userPurchaseNum
+        FROM author_article_pv_logs
+        WHERE author_id = #{authorId}
+        AND article_id = #{articleId}
+        AND deleted = 0
+        <if test="userIds != null and !userIds.isEmpty()">
+            AND user_id IN
+            <foreach collection="userIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+        GROUP BY user_id
+        <if test="orderBy != null and orderBy != ''">
+            ORDER BY
+            <choose>
+                <when test="orderBy == 'viewTime'">lastViewTime</when>
+                <when test="orderBy == 'articleCount'">userPurchaseNum</when>
+                <when test="orderBy == 'articleAmount'">userPurchaseAmount</when>
+                <when test="orderBy == 'totalAmount'">userPurchaseAmount</when>
+                <otherwise>lastViewTime</otherwise>
+            </choose>
+            <if test="isAsc">ASC</if>
+            <if test="!isAsc">DESC</if>
+        </if>
+    </select>
+</mapper>

@@ -19,7 +19,6 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.phone.PhoneDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.realname.RealnameDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.simcard.SimCardDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.company.CompanyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
@@ -32,17 +31,22 @@ import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUser;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
 import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataQueryService;
+import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +62,7 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
             "phoneId", "手机",
             "simCardId", "手机卡");
     private static final String PLATFORM_WECHAT_OFFICIAL = "WECHAT_OFFICIAL";
+    private static final int ALL_PLATFORM_FETCH_CAP = 5000;
     private static final String QUALIFICATION_ENTERPRISE = "ENTERPRISE";
     private static final String QUALIFICATION_PERSONAL = "PERSONAL";
     private static final Map<String, String> PLATFORM_LABELS = Map.of(
@@ -77,13 +82,75 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
     private final IpGroupMapper ipGroupMapper;
     private final FollowerDailyMapper followerDailyMapper;
     private final ContentMapper contentMapper;
-    private final SysUserMapper sysUserMapper;
+    private final FootballSystemUserValidator footballSystemUserValidator;
     private final AesUtil aesUtil;
     private final CollectedDataQueryService collectedDataQueryService;
+    private final PlatformAccountSyncService platformAccountSyncService;
+    @Autowired
+    @Lazy
+    private PlatformAccountServiceImpl self;
 
     @Override
     public PageResult<AccountRespVO> list(String platformType, String accountName, Long companyId,
                                           Long realnameId, String status, Integer pageNo, Integer pageSize) {
+        if (PLATFORM_WECHAT_OFFICIAL.equals(platformType)) {
+            return listWechatOfficialAccounts(accountName, companyId, realnameId, status, pageNo, pageSize);
+        }
+        if (isAllPlatformType(platformType)) {
+            return listAllPlatforms(accountName, companyId, realnameId, status, pageNo, pageSize);
+        }
+        return listOaAccounts(platformType, accountName, companyId, realnameId, status, pageNo, pageSize);
+    }
+
+    private PageResult<AccountRespVO> listWechatOfficialAccounts(String accountName, Long companyId, Long realnameId,
+                                                                 String status, Integer pageNo, Integer pageSize) {
+        try {
+            return platformAccountSyncService.listWechatOfficial(
+                    accountName, companyId, realnameId, status, pageNo, pageSize);
+        } catch (DataAccessException ex) {
+            return listOaAccounts(PLATFORM_WECHAT_OFFICIAL, accountName, companyId, realnameId, status, pageNo, pageSize);
+        }
+    }
+
+    private boolean isAllPlatformType(String platformType) {
+        return StrUtil.isBlank(platformType) || "ALL".equalsIgnoreCase(platformType);
+    }
+
+    /**
+     * 「全部」平台：合并 oa_account（非公众号）与 mp 公众号账号。
+     * 公众号走 mp 数据源；其余平台仍在 oa_account。
+     */
+    private PageResult<AccountRespVO> listAllPlatforms(String accountName, Long companyId, Long realnameId,
+                                                       String status, Integer pageNo, Integer pageSize) {
+        int pn = pageNo == null ? 1 : pageNo;
+        int ps = pageSize == null ? 10 : pageSize;
+
+        PageResult<AccountRespVO> oaPage = listOaAccounts(
+                null, accountName, companyId, realnameId, status, 1, ALL_PLATFORM_FETCH_CAP);
+
+        List<AccountRespVO> nonOfficial = oaPage.getList().stream()
+                .filter(vo -> !PLATFORM_WECHAT_OFFICIAL.equals(vo.getPlatformType()))
+                .collect(Collectors.toCollection(ArrayList::new));
+        nonOfficial.addAll(loadWechatOfficialForAll(accountName, companyId, realnameId, status));
+        nonOfficial.sort(Comparator.comparing(AccountRespVO::getId, Comparator.nullsLast(Comparator.reverseOrder())));
+
+        long total = nonOfficial.size();
+        int from = Math.max(0, (pn - 1) * ps);
+        if (from >= nonOfficial.size()) {
+            return new PageResult<>(Collections.emptyList(), total);
+        }
+        int to = Math.min(from + ps, nonOfficial.size());
+        return new PageResult<>(nonOfficial.subList(from, to), total);
+    }
+
+    private List<AccountRespVO> loadWechatOfficialForAll(String accountName, Long companyId, Long realnameId,
+                                                           String status) {
+        return listWechatOfficialAccounts(accountName, companyId, realnameId, status, 1, ALL_PLATFORM_FETCH_CAP)
+                .getList();
+    }
+
+    private PageResult<AccountRespVO> listOaAccounts(String platformType, String accountName, Long companyId,
+                                                     Long realnameId, String status, Integer pageNo, Integer pageSize) {
         Long tenantId = requireTenantId();
         LambdaQueryWrapper<AccountDO> wrapper = new LambdaQueryWrapper<AccountDO>()
                 .eq(AccountDO::getTenantId, tenantId)
@@ -106,7 +173,17 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
 
     @Override
     public AccountRespVO get(Long id) {
-        AccountDO entity = getRequiredInTenant(id);
+        AccountDO entity = accountMapper.selectById(id);
+        if (entity == null || PLATFORM_WECHAT_OFFICIAL.equals(entity.getPlatformType())) {
+            try {
+                return platformAccountSyncService.getWechatOfficial(id);
+            } catch (ServiceException ex) {
+                if (entity == null) {
+                    throw ex;
+                }
+            }
+        }
+        entity = getRequiredInTenant(id);
         assertAccountReadable(entity);
         AccountRespVO vo = toResp(entity,
                 loadCompanyName(entity.getCompanyId()),
@@ -146,9 +223,16 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
     }
 
     @Override
-    @Transactional
     @AuditLog(module = "M4-account", action = "create")
     public Long create(AccountCreateReq req) {
+        if (PLATFORM_WECHAT_OFFICIAL.equals(req.getPlatformType())) {
+            return platformAccountSyncService.createWechatOfficial(req);
+        }
+        return self.createLegacyAccount(req);
+    }
+
+    @Transactional
+    public Long createLegacyAccount(AccountCreateReq req) {
         boolean forceReplace = Boolean.TRUE.equals(req.getForceReplace());
         assertForceReplaceReason(forceReplace, req.getReason());
         Long tenantId = requireTenantId();
@@ -203,9 +287,23 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
     }
 
     @Override
-    @Transactional
     @AuditLog(module = "M4-account", action = "update")
     public void update(AccountUpdateReq req) {
+        AccountDO existing = accountMapper.selectById(req.getId());
+        if (existing == null) {
+            platformAccountSyncService.updateWechatOfficial(req);
+            return;
+        }
+        existing = getRequiredInTenant(req.getId());
+        if (PLATFORM_WECHAT_OFFICIAL.equals(existing.getPlatformType())) {
+            platformAccountSyncService.updateWechatOfficial(req);
+            return;
+        }
+        self.updateLegacyAccount(req);
+    }
+
+    @Transactional
+    public void updateLegacyAccount(AccountUpdateReq req) {
         AccountDO existing = getRequiredInTenant(req.getId());
         boolean forceReplace = Boolean.TRUE.equals(req.getForceReplace());
         assertForceReplaceReason(forceReplace, req.getReason());
@@ -687,10 +785,10 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
             }
         }
         if (entity.getAdminUserId() != null) {
-            SysUserDO admin = sysUserMapper.selectById(entity.getAdminUserId());
-            if (admin != null) {
-                vo.setAdminUserName(admin.getNickname() != null ? admin.getNickname() : admin.getUsername());
-                vo.setAdminPhoneMasked(maskUserPhone(admin.getPhoneEncrypted()));
+            vo.setAdminUserName(footballSystemUserValidator.resolveDisplayName(entity.getAdminUserId()));
+            SysUserDO legacyAdmin = footballSystemUserValidator.findLegacyUser(entity.getAdminUserId());
+            if (legacyAdmin != null) {
+                vo.setAdminPhoneMasked(maskUserPhone(legacyAdmin.getPhoneEncrypted()));
             }
         }
     }
@@ -845,16 +943,7 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
     }
 
     private void assertAdminUserEnabled(Long userId, Long tenantId) {
-        SysUserDO user = sysUserMapper.selectById(userId);
-        if (user == null) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "管理员用户不存在");
-        }
-        if (!tenantId.equals(user.getTenantId())) {
-            throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
-        }
-        if (!"ENABLED".equals(user.getStatus())) {
-            throw new ServiceException(OaErrorCodes.ENTITY_DISABLED);
-        }
+        footballSystemUserValidator.assertEnabledInTenant(userId, tenantId, "管理员用户不存在");
     }
 
     private LocalDateTime resolveVideoAccountRegisteredAt(AccountDO video) {
@@ -865,11 +954,7 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
     }
 
     private String resolveAdminDisplayName(Long userId) {
-        SysUserDO user = sysUserMapper.selectById(userId);
-        if (user == null) {
-            return null;
-        }
-        return user.getNickname() != null ? user.getNickname() : user.getUsername();
+        return footballSystemUserValidator.resolveDisplayName(userId);
     }
 
     private String maskUserPhone(String encrypted) {

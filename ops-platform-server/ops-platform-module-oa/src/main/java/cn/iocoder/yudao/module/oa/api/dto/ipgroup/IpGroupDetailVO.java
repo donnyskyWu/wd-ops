@@ -16,6 +16,8 @@ public class IpGroupDetailVO {
     private String leaderName;
     private Integer sortOrder;
     private Integer status;
+    /** dict_ip_group_level: S/A/B/C */
+    private String level;
     private String remark;
     private Integer memberCount;
     private Integer accountCount;

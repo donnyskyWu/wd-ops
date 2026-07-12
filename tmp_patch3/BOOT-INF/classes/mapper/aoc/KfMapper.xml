@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.aoc.KfManageMapper">
+
+    <!-- 公共过滤条件（与 KfManagePageReqVO 一一对应） -->
+    <sql id="pageFilter">
+        <if test="reqVO.kfName != null and reqVO.kfName != ''">
+            AND (
+                km.name LIKE CONCAT('%', #{reqVO.kfName}, '%')
+                OR km.id LIKE CONCAT('%', #{reqVO.kfName}, '%')
+                OR km.code LIKE CONCAT('%', #{reqVO.kfName}, '%')
+            )
+        </if>
+        <if test="reqVO.wechatAccountId != null and reqVO.wechatAccountId != ''">
+            AND km.wechat_account_id = #{reqVO.wechatAccountId}
+        </if>
+        <if test="reqVO.bindAuthorId != null">
+            AND FIND_IN_SET(#{reqVO.bindAuthorId}, km.author_ids)
+        </if>
+        <if test="reqVO.status != null">
+            AND km.status = #{reqVO.status}
+        </if>
+        <if test="reqVO.createTimes != null and reqVO.createTimes.length == 2">
+            AND km.create_time BETWEEN #{reqVO.createTimes[0]} AND #{reqVO.createTimes[1]}
+        </if>
+    </sql>
+
+    <!-- 1. 分页列表：仅返回客服基础字段，占位默认值给到非聚合字段 -->
+    <select id="getPage" resultType="football.module.member.controller.admin.aoc.vo.KfManageRespVO">
+        SELECT
+            km.*,
+            0 AS schemeNum,
+            0 AS privilegeNum,
+            0.00 AS saleAmount
+        FROM kf_manage km
+        <where>
+            <include refid="pageFilter"/>
+        </where>
+    </select>
+
+
+</mapper>

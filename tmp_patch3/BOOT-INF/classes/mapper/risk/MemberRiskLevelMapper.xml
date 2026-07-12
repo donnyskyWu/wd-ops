@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.risk.MemberRiskLevelMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="football.module.member.dal.dataobject.risk.MemberRiskLevelDO">
+        <id column="id" property="id"/>
+        <result column="level_type" property="levelType"/>
+        <result column="level_name" property="levelName"/>
+        <result column="min_score" property="minScore"/>
+        <result column="max_score" property="maxScore"/>
+        <result column="desc_info" property="descInfo"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <result column="tenant_id" property="tenantId"/>
+    </resultMap>
+
+</mapper>

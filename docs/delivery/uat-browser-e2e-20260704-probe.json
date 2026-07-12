@@ -1,0 +1,150 @@
+{
+  "generatedAt": "2026-07-04T00:48:09.383Z",
+  "tool": "playwright",
+  "baseURL": "http://localhost:3000",
+  "apiURL": "http://localhost:8080",
+  "scope": "内容生产 remaining + 运营管理 + 账号管理",
+  "total": 15,
+  "passed": 15,
+  "failed": 0,
+  "pages": [
+    {
+      "group": "内容生产",
+      "path": "/content",
+      "title": "内容管理",
+      "pass": true,
+      "errors": [],
+      "apiStatus": 200,
+      "apiCode": 0,
+      "durationMs": 7606
+    },
+    {
+      "group": "内容生产",
+      "path": "/knowledge",
+      "title": "内容知识库",
+      "pass": true,
+      "errors": [],
+      "apiStatus": 200,
+      "apiCode": 0,
+      "durationMs": 1167
+    },
+    {
+      "group": "内容生产",
+      "path": "/layout-template",
+      "title": "公推模板库",
+      "pass": true,
+      "errors": [],
+      "apiStatus": 200,
+      "apiCode": 0,
+      "durationMs": 13991
+    },
+    {
+      "group": "内容生产",
+      "path": "/sop",
+      "title": "SOP管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 2385
+    },
+    {
+      "group": "内容生产",
+      "path": "/sop/review",
+      "title": "SOP审核",
+      "pass": true,
+      "errors": [],
+      "durationMs": 1666
+    },
+    {
+      "group": "内容生产",
+      "path": "/task",
+      "title": "任务管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 6371
+    },
+    {
+      "group": "运营管理",
+      "path": "/account-analysis",
+      "title": "账号分析",
+      "pass": true,
+      "errors": [],
+      "apiStatus": 200,
+      "apiCode": 0,
+      "durationMs": 2255
+    },
+    {
+      "group": "运营管理",
+      "path": "/author",
+      "title": "作者管理",
+      "pass": true,
+      "errors": [],
+      "apiStatus": 200,
+      "apiCode": 0,
+      "durationMs": 7351
+    },
+    {
+      "group": "运营管理",
+      "path": "/efficiency",
+      "title": "人效盘点",
+      "pass": true,
+      "errors": [],
+      "durationMs": 16586
+    },
+    {
+      "group": "运营管理",
+      "path": "/fans-analysis",
+      "title": "粉丝分析",
+      "pass": true,
+      "errors": [],
+      "durationMs": 2269
+    },
+    {
+      "group": "运营管理",
+      "path": "/internal-content",
+      "title": "内部作品分析",
+      "pass": true,
+      "errors": [],
+      "apiStatus": 200,
+      "apiCode": 0,
+      "durationMs": 5801
+    },
+    {
+      "group": "账号管理",
+      "path": "/company",
+      "title": "公司管理",
+      "pass": true,
+      "errors": [],
+      "apiStatus": 200,
+      "apiCode": 0,
+      "durationMs": 4560
+    },
+    {
+      "group": "账号管理",
+      "path": "/phone",
+      "title": "手机管理",
+      "pass": true,
+      "errors": [],
+      "apiStatus": 200,
+      "apiCode": 0,
+      "durationMs": 4214
+    },
+    {
+      "group": "账号管理",
+      "path": "/realname",
+      "title": "实名人管理",
+      "pass": true,
+      "errors": [],
+      "apiStatus": 200,
+      "apiCode": 0,
+      "durationMs": 3505
+    },
+    {
+      "group": "账号管理",
+      "path": "/simcard",
+      "title": "手机卡管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 5212
+    }
+  ]
+}

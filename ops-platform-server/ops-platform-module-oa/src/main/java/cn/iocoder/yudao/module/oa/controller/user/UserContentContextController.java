@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.oa.api.dto.user.UserIpGroupVO;
 import cn.iocoder.yudao.module.oa.service.user.UserContentContextService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,6 +21,7 @@ public class UserContentContextController {
     private final UserContentContextService userContentContextService;
 
     @GetMapping("/ip-groups")
+    @PreAuthorize("isAuthenticated()")
     public CommonResult<List<UserIpGroupVO>> myIpGroups() {
         return CommonResult.success(userContentContextService.listMyIpGroups());
     }

@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.oa.api.dto.ipgroup;
 
+import cn.iocoder.yudao.module.oa.framework.dict.InDict;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -17,5 +18,7 @@ public class IpGroupCreateReq {
     private Long leaderUserId;
     private Integer sortOrder;
     private Integer status;
+    @InDict("dict_ip_group_level")
+    private String level;
     private String remark;
 }

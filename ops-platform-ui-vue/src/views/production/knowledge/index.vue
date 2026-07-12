@@ -172,7 +172,7 @@
     </el-dialog>
 
     <!-- 详情抽屉 -->
-    <el-drawer v-model="detailVisible" title="知识详情" size="600px">
+    <el-drawer direction="rtl" append-to-body v-model="detailVisible" title="知识详情" size="600px">
       <template v-if="currentDetail">
         <div class="detail-header">
           <h2>{{ currentDetail.title }}</h2>

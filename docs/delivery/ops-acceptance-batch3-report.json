@@ -1,0 +1,153 @@
+{
+  "summary": {
+    "total": 12,
+    "pass": 12,
+    "fail": 0
+  },
+  "rows": [
+    {
+      "route_path": "",
+      "menu_title": "订单归因分析",
+      "parent_group": "绩效核算",
+      "football_path": "/ops/order-attribution",
+      "football_component": "ops/performance/OrderAttribution",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "考核执行",
+      "parent_group": "绩效核算",
+      "football_path": "/ops/perf-execution",
+      "football_component": "ops/performance/PerfExecution",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "绩效结果",
+      "parent_group": "绩效核算",
+      "football_path": "/ops/perf-result",
+      "football_component": "ops/performance/PerfResult",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "考核模板",
+      "parent_group": "绩效核算",
+      "football_path": "/ops/perf-template",
+      "football_component": "ops/performance/PerfTemplate",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "账号成本管理",
+      "parent_group": "财务管理",
+      "football_path": "/ops/account-cost",
+      "football_component": "ops/finance/AccountCostManage",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "ROI分析",
+      "parent_group": "财务管理",
+      "football_path": "/ops/roi-analysis",
+      "football_component": "ops/finance/RoiAnalysis",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "公司管理",
+      "parent_group": "账号管理",
+      "football_path": "/ops/company",
+      "football_component": "ops/internal/CompanyManage",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "平台账号管理",
+      "parent_group": "账号管理",
+      "football_path": "/ops/internal-account",
+      "football_component": "ops/internal/InternalAccountManage",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "个人账号管理",
+      "parent_group": "账号管理",
+      "football_path": "/ops/personal-account",
+      "football_component": "ops/internal/PersonalAccountManage",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "手机管理",
+      "parent_group": "账号管理",
+      "football_path": "/ops/phone",
+      "football_component": "ops/internal/PhoneManage",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "实名人管理",
+      "parent_group": "账号管理",
+      "football_path": "/ops/realname",
+      "football_component": "ops/internal/RealnameManage",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "手机卡管理",
+      "parent_group": "账号管理",
+      "football_path": "/ops/simcard",
+      "football_component": "ops/internal/SimcardManage",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    }
+  ]
+}

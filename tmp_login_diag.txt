@@ -1,0 +1,12 @@
+﻿python : Traceback (most recent call last):
+所在位置 C:\Users\donny\AppData\Local\Temp\ps-script-e20f239a-ea20-4490-895a-f263388e7445.ps1:83 字符: 1
++ python -c "
++ ~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "<string>", line 10, in <module>
+    for j in range(idx, min(idx+150,len(lines))):
+                            ~~~^~~~
+TypeError: unsupported operand type(s) for +: 'NoneType' and 'int'
+idx None

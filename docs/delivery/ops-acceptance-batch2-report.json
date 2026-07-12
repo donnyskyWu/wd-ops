@@ -1,0 +1,213 @@
+{
+  "summary": {
+    "total": 17,
+    "pass": 17,
+    "fail": 0
+  },
+  "rows": [
+    {
+      "route_path": "",
+      "menu_title": "自定义查询",
+      "parent_group": "数据分析",
+      "football_path": "/ops/custom-query",
+      "football_component": "ops/analysis/CustomQuery",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "数据报表",
+      "parent_group": "数据分析",
+      "football_path": "/ops/data-report",
+      "football_component": "ops/analysis/ReportCenter",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "总体财务分析",
+      "parent_group": "数据分析",
+      "football_path": "/ops/financial-analysis",
+      "football_component": "ops/finance/FinancialAnalysis",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "漏斗分析",
+      "parent_group": "数据分析",
+      "football_path": "/ops/funnel-analysis",
+      "football_component": "ops/analysis/FunnelAnalysis",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "指标管理",
+      "parent_group": "数据分析",
+      "football_path": "/ops/metric",
+      "football_component": "ops/analysis/MetricManage",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "指标分析",
+      "parent_group": "数据分析",
+      "football_path": "/ops/metric-analysis",
+      "football_component": "ops/analysis/MetricAnalysis",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "数据大屏",
+      "parent_group": "数据分析",
+      "football_path": "/ops/screen",
+      "football_component": "ops/screen/DataScreenFullscreen",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "大屏配置",
+      "parent_group": "数据分析",
+      "football_path": "/ops/screen-config",
+      "football_component": "ops/screen/ScreenConfig",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "采集日志",
+      "parent_group": "数据采集",
+      "football_path": "/ops/collect/log",
+      "football_component": "ops/collect/log",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "私域桥接",
+      "parent_group": "数据采集",
+      "football_path": "/ops/collect/private-domain-bridge",
+      "football_component": "ops/collect/private-domain-bridge",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "数据质量",
+      "parent_group": "数据采集",
+      "football_path": "/ops/collect/quality",
+      "football_component": "ops/collect/quality",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "采集任务",
+      "parent_group": "数据采集",
+      "football_path": "/ops/collect/task",
+      "football_component": "ops/collect/task",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "字典配置",
+      "parent_group": "系统管理(OA)",
+      "football_path": "/ops/system-dict",
+      "football_component": "ops/system/DictManage",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "登录日志",
+      "parent_group": "系统管理(OA)",
+      "football_path": "/ops/system-log/login",
+      "football_component": "ops/system/LoginLog",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "操作日志",
+      "parent_group": "系统管理(OA)",
+      "football_path": "/ops/system-log/operation",
+      "football_component": "ops/system/LogManage",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "消息管理",
+      "parent_group": "系统管理(OA)",
+      "football_path": "/ops/system-message",
+      "football_component": "ops/system/MessageManage",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "系统参数",
+      "parent_group": "系统管理(OA)",
+      "football_path": "/ops/system-param",
+      "football_component": "ops/system/ParamManage",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    }
+  ]
+}

@@ -6,10 +6,11 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysRoleDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.content.ProductionContentDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
+import cn.iocoder.yudao.module.oa.dal.mysql.auth.FootballOAuth2MasterTokenMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysRoleMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserTokenMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
+import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.service.system.ParamService;
 import cn.hutool.core.util.StrUtil;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -41,9 +43,10 @@ public class ContentReviewConfigService {
 
     private final ParamService paramService;
     private final SysUserTokenMapper sysUserTokenMapper;
-    private final SysUserMapper sysUserMapper;
     private final SysRoleMapper sysRoleMapper;
     private final IpGroupMapper ipGroupMapper;
+    private final FootballOAuth2MasterTokenMapper footballOAuth2MasterTokenMapper;
+    private final FootballSystemUserValidator footballSystemUserValidator;
 
     public ContentReviewConfigVO getConfig() {
         Long tenantId = TenantContextHolder.getTenantId();
@@ -187,6 +190,9 @@ public class ContentReviewConfigService {
         if (IP_GROUP_LEADER_ROLE.equals(roleCode)) {
             return "IP组长";
         }
+        if ("DEPT_HEAD".equals(roleCode)) {
+            return "部门负责人";
+        }
         Long tenantId = TenantContextHolder.getTenantId();
         SysRoleDO role = sysRoleMapper.selectOne(new LambdaQueryWrapper<SysRoleDO>()
                 .eq(SysRoleDO::getTenantId, tenantId)
@@ -195,38 +201,31 @@ public class ContentReviewConfigService {
         if (role != null && StrUtil.isNotBlank(role.getName())) {
             return role.getName();
         }
+        try {
+            String footballRoleName = footballOAuth2MasterTokenMapper.selectRoleNameByCode(tenantId, roleCode);
+            if (StrUtil.isNotBlank(footballRoleName)) {
+                return footballRoleName;
+            }
+        } catch (Exception ignored) {
+            // H2 test profile has no wd.system_role overlay.
+        }
         return roleCode;
     }
 
     public List<String> listEligibleReviewerNames(ProductionContentDO content, String stage) {
-        String roleCode = resolveStageRoleCode(stage);
-        if (StrUtil.isBlank(roleCode)) {
+        List<Long> userIds = listEligibleReviewerUserIds(content, stage);
+        if (userIds.isEmpty()) {
             return Collections.emptyList();
         }
-        Long tenantId = TenantContextHolder.getTenantId();
-        Set<Long> userIds = new LinkedHashSet<>();
-        if ("FIRST_REVIEW".equals(stage) && IP_GROUP_LEADER_ROLE.equals(roleCode)) {
-            if (content.getIpGroupId() != null) {
-                IpGroupDO ipGroup = ipGroupMapper.selectById(content.getIpGroupId());
-                if (ipGroup != null && ipGroup.getLeaderUserId() != null) {
-                    userIds.add(ipGroup.getLeaderUserId());
-                }
-            }
-        } else {
-            for (SysUserDO user : sysUserTokenMapper.selectUsersByRoleCode(tenantId, roleCode)) {
-                if (user.getId() != null) {
-                    userIds.add(user.getId());
-                }
-            }
-        }
+        Map<Long, String> nameMap = footballSystemUserValidator.loadNicknames(userIds);
         List<String> names = new ArrayList<>();
         for (Long userId : userIds) {
-            SysUserDO user = sysUserMapper.selectById(userId);
-            if (user != null) {
-                String name = displayUserName(user);
-                if (StrUtil.isNotBlank(name)) {
-                    names.add(name);
-                }
+            String name = nameMap.get(userId);
+            if (StrUtil.isBlank(name)) {
+                name = footballSystemUserValidator.resolveDisplayName(userId);
+            }
+            if (StrUtil.isNotBlank(name)) {
+                names.add(name);
             }
         }
         return names;
@@ -248,13 +247,28 @@ public class ContentReviewConfigService {
                 }
             }
         } else {
-            for (SysUserDO user : sysUserTokenMapper.selectUsersByRoleCode(tenantId, roleCode)) {
-                if (user.getId() != null) {
-                    userIds.add(user.getId());
-                }
-            }
+            addUsersByRoleCode(userIds, tenantId, roleCode);
         }
         return new ArrayList<>(userIds);
+    }
+
+    private void addUsersByRoleCode(Set<Long> userIds, Long tenantId, String roleCode) {
+        for (SysUserDO user : sysUserTokenMapper.selectUsersByRoleCode(tenantId, roleCode)) {
+            if (user.getId() != null) {
+                userIds.add(user.getId());
+            }
+        }
+        if (!userIds.isEmpty()) {
+            return;
+        }
+        try {
+            List<Long> footballUserIds = footballOAuth2MasterTokenMapper.selectUserIdsByRoleCode(tenantId, roleCode);
+            if (footballUserIds != null) {
+                userIds.addAll(footballUserIds);
+            }
+        } catch (Exception ignored) {
+            // H2 test profile has no Football system_users on master DS.
+        }
     }
 
     public String formatReviewerDisplay(String roleLabel, List<String> userNames) {
@@ -275,13 +289,6 @@ public class ContentReviewConfigService {
             return userName;
         }
         return roleLabel + "：" + userName;
-    }
-
-    private String displayUserName(SysUserDO user) {
-        if (user == null) {
-            return null;
-        }
-        return StrUtil.isNotBlank(user.getNickname()) ? user.getNickname() : user.getUsername();
     }
 
     private boolean hasRole(Long userId, String roleCode) {

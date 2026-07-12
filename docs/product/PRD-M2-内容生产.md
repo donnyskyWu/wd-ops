@@ -76,7 +76,11 @@
 
 - **岗位匹配**：节点执行人/审核人 = 任务分配用户的 `position` 字段
 - **本人内容**：内容创作者仅可编辑自己创建的内容
-- **审核阶段**：每个审核人仅能操作匹配的阶段（一级/二级）；一级角色为 `OPS_LEADER` 时仅可审本 IP 组内容（ADR-017）
+- **内容列表数据范围**（2026-07）：非 ALL 数据权限用户，内容列表仅可见：
+  - `creator_user_id` 属于本人数据范围用户集，或
+  - `author_id` 关联到本人范围用户所绑定的作者，或
+  - `task_id` 对应任务的 `assignee_id` 属于本人范围
+- **审核队列例外**：查询 `PENDING_*_REVIEW` 且具备对应审核列表权限时不受上述列表过滤；一级审核 `OPS_LEADER` 无全量权限时仅可见本 IP 组内容（ADR-017）
 
 ---
 
@@ -383,6 +387,7 @@ SOP 任务实例，跟踪任务执行状态、节点进度、审核结果、SLA 
 - **平台/账号**：独立创作时 **可选**、**可多选**；任务驱动场景可不填
 - **无封面图**：UI 已移除 `cover_image` / `coverUrl` 录入（库字段保留兼容）
 - **自动发布**：末级审核通过 → `@Async` 发布
+- **列表读范围**：见 §2.2「内容列表数据范围」；单条读/写仍校验创建者、作者、任务指派或审核权限
 
 #### 4.3.4 状态机
 
@@ -403,16 +408,15 @@ SOP 任务实例，跟踪任务执行状态、节点进度、审核结果、SLA 
 | `competition_id` | 只读 | 外部赛事 |
 | `document_type` | `<DictSelect dict-type="dict_document_type" />` | 仅 `content_type=ARTICLE` 必填 |
 | `ip_group_id` | `<IpGroupTreeSelect />` | `oa_ip_group`（默认当前用户所属，可切换） |
-| `author_id` | 只读/联动 IP 组 | `oa_author` |
+| `author_id` | 只读/联动 IP 组 | `author_user` + `oa_author_ext`（ADR-051） |
 | `final_video_url` | `<VideoUploader />` | 短视频最终视频（可空，空则用 AI 生成） |
 
-#### 4.3.5.1 FR-M2-003-AI（占位，依赖 M8 + BLK）
+#### 4.3.5.1 FR-M2-003-AI（M8 + V134 占位符扩展）
 
-> **不编造 endpoint 细节**。实现前须确认 BLK-M2-004 / BLK-M2-005。
-
-- 文档 AI 生成：输入 `competitionId` + `documentType` → 读取 M8 提示词 → 变量替换 → 调模型 → 写入 `body`
-- 短视频 AI 生成：输入 `competitionId` → 读取提示词 → 生成视频 → 写入 `generated_video_url` / `final_video_url`
-- 复用或扩展 `POST /admin-api/oa/content/ai-generate`（契约待 Slice S-13 定稿）
+- 文档 AI 生成：`POST /admin-api/oa/content/ai-generate`；须选 M8 **已启用模型** + **匹配提示词**（`content_type` / `document_type`）
+- 提示词占位符（V134）：`{{match}}`、`{{author}}`、`{{historicalRecord}}`、`{{matchDirection}}`、`{{streamerPersona}}`、`{{revisionFeedback}}`、`{{lengthType}}`（`dict_content_length_type`）
+- 生成结果写入 `body`；`ai_generated=1`；须人工审核后发布
+- 契约详见 [`API-REQ-M2-AI-内容生成第三方对接.md`](../specs/API-REQ-M2-AI-内容生成第三方对接.md) · [`API-M2-内容生产.md`](../engineering/API-M2-内容生产.md) §3.7
 
 #### 4.3.6 验收标准
 

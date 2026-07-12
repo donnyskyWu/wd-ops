@@ -1,0 +1,143 @@
+{
+  "login": "ok",
+  "pages": [
+    {
+      "page": "内容审核",
+      "hash": "#/ops/content/review",
+      "football_path": "/ops/content/review",
+      "component": "ops/production/content/review",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "review-config",
+          "path": "/admin-api/oa/content/review-config",
+          "ok": true,
+          "code": 0,
+          "data": "object keys=['level1Enabled', 'level2Enabled', 'level1Role', 'level2Role']",
+          "api_ok": true,
+          "sensible": true
+        },
+        {
+          "name": "content/list",
+          "path": "/admin-api/oa/content/list?pageNo=1&pageSize=1&status=PENDING_FIRST_REVIEW",
+          "ok": true,
+          "code": 0,
+          "data": "list=0 total=0",
+          "api_ok": true,
+          "sensible": true
+        },
+        {
+          "name": "dict/data",
+          "path": "/admin-api/oa/dict/data?type=dict_platform_type",
+          "ok": true,
+          "code": 0,
+          "data": "list=9 total=9",
+          "api_ok": true,
+          "sensible": true
+        }
+      ],
+      "search_note": "TableSearch: 标题 / 平台(DictSelect) / 提交人 / 提交时间",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "计划管理",
+      "hash": "#/ops/plan",
+      "football_path": "/ops/plan",
+      "component": "ops/production/plan/index",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "plan/list",
+          "path": "/admin-api/oa/plan/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=11",
+          "api_ok": true,
+          "sensible": true
+        }
+      ],
+      "search_note": "TableSearch on plan page",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "IP组管理",
+      "hash": "#/ops/ip-group",
+      "football_path": "/ops/ip-group",
+      "component": "ops/operations/IpGroup",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "ip-group/tree",
+          "path": "/admin-api/oa/ip-group/tree",
+          "ok": true,
+          "code": 0,
+          "data": "array len=3",
+          "api_ok": true,
+          "sensible": true
+        }
+      ],
+      "search_note": "Left tree search (组名); ops-page root",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "平台账号管理",
+      "hash": "#/ops/internal-account",
+      "football_path": "/ops/internal-account",
+      "component": "ops/internal/InternalAccountManage",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "account/list",
+          "path": "/admin-api/oa/account/list?pageNo=1&pageSize=1&platformType=WECHAT_OFFICIAL",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=7",
+          "api_ok": true,
+          "sensible": true
+        }
+      ],
+      "search_note": "TableSearch: 账号名称 / 状态; platform tabs",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "内部个人账号",
+      "hash": "#/ops/personal-account",
+      "football_path": "/ops/personal-account",
+      "component": "ops/internal/PersonalAccountManage",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "personal-account/list",
+          "path": "/admin-api/oa/internal/personal-account/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=4",
+          "api_ok": true,
+          "sensible": true
+        }
+      ],
+      "search_note": "TableSearch on personal account page",
+      "issues": [],
+      "pass": true
+    }
+  ]
+}

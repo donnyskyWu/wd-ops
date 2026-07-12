@@ -96,10 +96,23 @@
 
 ## 6. 跨页通用
 
-- **强关联**：`accountId` 强制选择器
-- **字典**：5 个 `dict_collect_*` + `dict_quality_*` 全部用 `<DictSelect />`
-- **凭证**：`apiConfig` 输入框 + 加密存储
+- **强关联**：Channel-A `accountId` 强制选择器；Channel-D `collectConfigId` 强制外部配置选择器
+- **字典**：`dict_collect_*` + `dict_quality_*` + `dict_collect_method.EXTERNAL` 全部用 `<DictSelect />`
+- **凭证**：`apiConfig` 输入框 + 加密存储；Channel-D 凭账号在 M8 租户级维护
 - **空/错/加载**：三态完整
+
+---
+
+## 7. Channel-D 任务编辑增量（ADR-052 · P0+）
+
+当 `method=EXTERNAL` 时，编辑页与 Channel-A 区分：
+
+| 控件 | 类型 | 说明 |
+|------|------|------|
+| F-COLLECT-CONFIG | 外部竞品配置选择器 | 必填；`scope=EXTERNAL` |
+| F-CREDENTIAL-PROFILE | `<Input />` 可空 | 默认 `default` |
+| F-DATA-TYPE | `<DictSelect dict-type="dict_collect_data_type" />` | 如 `EXT_KUAISHOU_USER_VIDEOS` |
+| ~~F-ACCOUNT~~ | 隐藏 | `account_id` 必须 null |
 
 ---
 

@@ -27,7 +27,7 @@ public class CollectTaskController {
 
     private final CollectTaskService collectTaskService;
 
-    @GetMapping("/page")
+    @GetMapping({"/page", "/list"})
     public CommonResult<PageResult<CollectTaskRespVO>> page(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String platformType,

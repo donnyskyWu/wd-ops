@@ -55,7 +55,7 @@
     </el-card>
 
     <el-empty v-else-if="!loading" description="未找到该作品内容">
-      <el-button type="primary" @click="router.push('/internal-content')">返回列表</el-button>
+      <el-button type="primary" @click="router.push(opsRouteTo({ name: 'InternalContent' }))">返回列表</el-button>
     </el-empty>
   </div>
 </template>
@@ -70,6 +70,7 @@ import { getContentAnalysisList, getContentTrend } from '@/api/works'
 import type { ContentAnalysisVO } from '@/types/works'
 import DictLabel from '@/components/DictLabel.vue'
 import { formatDateTime } from '@/utils'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const route = useRoute()
 const router = useRouter()

@@ -6,6 +6,16 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+/**
+ * 公司信息数据对象
+ * <p>
+ * 对应数据库表 oa_company，存储公司的基本信息，包括公司名称、信用代码、
+ * 行业、地址、法人信息、公众号容量等。
+ * </p>
+ *
+ * @author system
+ */
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 @TableName("oa_company")

@@ -6,14 +6,13 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanPreviewMatchReq;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanPreviewTasksReq;
 import cn.iocoder.yudao.module.oa.api.dto.plan.ContentPlanTaskPreviewVO;
-import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupMemberDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.sop.SopNodeDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMemberMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.SopNodeMapper;
+import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,7 +24,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +39,7 @@ public class PlanTaskGeneratorService {
     private final SopNodeMapper sopNodeMapper;
     private final IpGroupMapper ipGroupMapper;
     private final IpGroupMemberMapper ipGroupMemberMapper;
-    private final SysUserMapper sysUserMapper;
+    private final FootballSystemUserValidator footballSystemUserValidator;
 
     public List<ContentPlanTaskPreviewVO> preview(ContentPlanPreviewTasksReq req, Long tenantId) {
         List<SopNodeDO> nodes = sopNodeMapper.selectList(new LambdaQueryWrapper<SopNodeDO>()
@@ -64,7 +62,7 @@ public class PlanTaskGeneratorService {
                 .filter(StrUtil::isNotBlank)
                 .collect(Collectors.toSet());
 
-        Map<Long, SysUserDO> userMap = loadUsers(members, ipGroup.getLeaderUserId());
+        Map<Long, String> userNames = loadUserNames(members, ipGroup.getLeaderUserId());
 
         List<ContentPlanTaskPreviewVO> result = new ArrayList<>();
         for (ContentPlanPreviewMatchReq match : req.getMatches()) {
@@ -89,10 +87,7 @@ public class PlanTaskGeneratorService {
                 AssigneeResolution resolution = resolveAssignee(role, members, ipGroup.getLeaderUserId());
                 vo.setAssigneeId(resolution.userId());
                 vo.setAssigneeFallback(resolution.fallback());
-                SysUserDO user = userMap.get(resolution.userId());
-                if (user != null) {
-                    vo.setAssigneeName(user.getNickname());
-                }
+                vo.setAssigneeName(userNames.get(resolution.userId()));
                 result.add(vo);
             }
         }
@@ -148,7 +143,7 @@ public class PlanTaskGeneratorService {
         return day.atTime(20, 0);
     }
 
-    private Map<Long, SysUserDO> loadUsers(List<IpGroupMemberDO> members, Long leaderUserId) {
+    private Map<Long, String> loadUserNames(List<IpGroupMemberDO> members, Long leaderUserId) {
         Set<Long> ids = new HashSet<>();
         for (IpGroupMemberDO member : members) {
             ids.add(member.getUserId());
@@ -156,14 +151,7 @@ public class PlanTaskGeneratorService {
         if (leaderUserId != null) {
             ids.add(leaderUserId);
         }
-        if (ids.isEmpty()) {
-            return Map.of();
-        }
-        Map<Long, SysUserDO> map = new HashMap<>();
-        for (SysUserDO user : sysUserMapper.selectBatchIds(ids)) {
-            map.put(user.getId(), user);
-        }
-        return map;
+        return footballSystemUserValidator.loadNicknames(ids);
     }
 
     public record AssigneeResolution(Long userId, boolean fallback) {

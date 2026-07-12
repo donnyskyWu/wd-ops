@@ -266,6 +266,7 @@ import {
 } from '@/api/layoutTemplate'
 
 import type { LayoutImportJobVO, LayoutMergePreviewVO, LayoutSchema } from '@/types/layoutTemplate'
+import { opsRouteTo } from '@/utils/ops-route'
 
 
 
@@ -493,7 +494,7 @@ async function confirmJobTemplate() {
 
   ElMessage.success('模板已创建')
 
-  router.push('/layout-template')
+  router.push(opsRouteTo({ name: 'LayoutTemplate' }))
 
 }
 

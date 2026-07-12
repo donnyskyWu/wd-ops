@@ -79,6 +79,21 @@
 | 企微 Channel-C | `WeComAdapter` + `oa_wework_daily_stats`（ADR-048） |
 | M1/M4 展示桥接 | `CollectedDataQueryService` 只读合并（ADR-049 Q4） |
 
+### 2.4 Channel-D 外部竞品采集（2026-07-08 · GATE-EXT-P0 立项）
+
+> SSOT：[ADR-052](../adr/ADR-052-Ops外部竞品四平台采集通道.md) · [M10-EXTERNAL-四平台竞品采集-SLICE](../delivery/M10-EXTERNAL-四平台竞品采集-SLICE.md)
+
+| 能力 | 说明 |
+|------|------|
+| **Channel-D · EXTERNAL** | `ExternalCollectorAdapter`；竞品账号来自 M8 `oa_collect_config`（`scope=EXTERNAL`） |
+| **任务主体** | `collect_config_id` 必填；`account_id` **必须 null**（禁止复用 M4 bind） |
+| **运营凭账号** | 租户级 `oa_tenant_collector_credential`；任务经 `credential_profile`（默认 `default`）引用，**禁止**任务/配置内嵌 Cookie |
+| **落库** | `oa_external_account`（快照）· `oa_external_work`（作品）· `oa_external_follower_daily`（粉丝日聚合） |
+| **展示** | M7 `MonitorService` 读 `oa_external_*`；**不**经 M1 `CollectedDataQueryService` |
+| **分平台 Gate** | P0 快手 `EXT_KUAISHOU_USER_VIDEOS` → P1 公众号 → P2 抖音 → P3 视频号 |
+
+**P0 首 shippable**：M8 配置 1 条快手竞品 → M10 任务 `method=EXTERNAL` → run SUCCESS → M7 爆款作品列表可见。
+
 ---
 
 ## 3. 功能需求
@@ -95,8 +110,10 @@
 |------|------|----------|
 | `task_name` | `<Input />` | - |
 | `platform_type` | `<DictSelect dict-type="dict_platform_type" />` | 字典 |
-| `account_id` | `<AccountSelect />` | `oa_account`（**强关联** ⭐） |
-| `method` | 后端默认 `INTERNAL`（运营 UI 不编辑） | 字典 |
+| `account_id` | `<AccountSelect />` | `oa_account`（Channel-A **强关联** ⭐） |
+| `collect_config_id` | `<ExternalCollectConfigSelect />` | `oa_collect_config`（`method=EXTERNAL` 时 **必填**） |
+| `credential_profile` | `<Input />` 可空 | 租户凭账号 profile，默认 `default` |
+| `method` | Channel-A：后端默认 `INTERNAL`；Channel-D：`EXTERNAL` | `dict_collect_method` |
 | `source` | 后端按 `platformType` 默认（运营 UI 不编辑） | 字典 |
 | `data_type` | 存库 `null` = 全量采集；运营 UI 不编辑 | `dict_collect_data_type` |
 | `frequency` | `<DictSelect dict-type="dict_collect_frequency" />` | 字典 |
@@ -115,6 +132,8 @@
 - **全量采集**：`data_type` 为空时，`CollectPlatformDefaults` 按平台顺序串行执行全部 dataType（ADR-049）
 - **日志状态**：多类型执行时，部分成功 → `PARTIAL`；全部成功 → `SUCCESS`；全部失败 → `FAILED`
 - **企微任务**：`platform_type=WEWORK` 时 `account_id` → `oa_wework_account.id`（ADR-048）
+- **Channel-D 任务**（ADR-052）：`method=EXTERNAL` → `collect_config_id` 指向 M8 外部账号配置；`account_id=null`；凭账号由 `oa_tenant_collector_credential` 按租户+平台+profile 解析
+- **Channel-D 与 Channel-A 隔离**：竞品数据写入 `oa_external_*`，**不**写入 `oa_douyin_video` 等自有表
 
 #### 4.1.4 验收标准
 
@@ -134,6 +153,11 @@
 
 **AC-M10-001-6**（凭证加密）
 - `apiConfig` 数据库存储为密文
+
+**AC-M10-001-7**（Channel-D 快手 P0）
+- Given M8 已配置快手竞品 `account_identifier`=user_id
+- When 创建任务 `method=EXTERNAL`、`collect_config_id`、 `dataType=EXT_KUAISHOU_USER_VIDEOS` 并执行
+- Then `oa_external_work` 有新行；M7 外部爆款列表 `is_external=1` 可见
 
 ---
 

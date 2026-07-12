@@ -301,7 +301,7 @@
 
         <!-- CHART 轴配置 -->
         <template v-if="editingWidget.type === 'CHART'">
-          <el-divider content-position="left">图表配置</el-divider>
+        <el-divider content-position="left">图表配置</el-divider>
           <el-form-item label="图表类型">
             <el-select v-model="editingWidget.chartType" style="width: 120px">
               <el-option label="折线" value="line" />
@@ -460,6 +460,7 @@ import {
   type WidgetGlobalFilter,
   type WidgetType,
 } from '@/types/dataScreen'
+import { opsRouteTo } from '@/utils/ops-route'
 
 interface ListFieldRow {
   key: string
@@ -760,7 +761,7 @@ const previewScreen = () => {
     ElMessage.warning('请先保存模板后再预览')
     return
   }
-  router.push({ path: `/screen/${formMeta.id}`, query: { _t: String(Date.now()) } })
+  router.push(opsRouteTo({ name: 'DataScreenFullscreenById', params: { id: String(formMeta.id) }, query: { _t: String(Date.now()) } }))
 }
 
 const newWidgetId = () => `w${Date.now()}${Math.floor(Math.random() * 1000)}`

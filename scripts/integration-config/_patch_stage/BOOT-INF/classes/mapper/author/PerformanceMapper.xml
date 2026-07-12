@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.author.PerformanceMapper">
+
+    <select id="getMaxPerformanceValue" resultType="football.module.member.api.author.dto.PerformanceDTO">
+        SELECT
+        ap.author_id,
+        MAX(ap.performance_value) AS performanceValue
+        FROM author_performance ap
+        <where>
+            <!-- 1. 基础过滤：未删除、有效 -->
+            AND ap.deleted = 0
+            AND ap.status = 0
+
+            <!-- 2. 作者列表过滤 -->
+            <if test="authorIds != null and authorIds.size() > 0">
+                AND ap.author_id IN
+                <foreach item="id" collection="authorIds" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+
+            <!-- 3. 业务日期精确匹配 -->
+            <if test="bizDate != null">
+                AND ap.biz_date = #{bizDate}
+            </if>
+
+            <!-- 4. 开始时间范围过滤 -->
+            <if test="startDate != null">
+                AND ap.biz_date >= #{startDate}
+            </if>
+            <!-- 4. 战绩类型精确匹配 -->
+            <if test="performanceType != null">
+                AND ap.performance_type = #{performanceType}
+            </if>
+        </where>
+        <!-- 5. 按作者分组，确保返回每个作者的一行最大值 -->
+        GROUP BY ap.author_id
+    </select>
+
+
+    <select id="getPerformanceValue" resultType="football.module.member.api.author.dto.PerformanceDTO">
+        SELECT
+        ap.author_id,
+        ap.performance_value
+        FROM author_performance ap
+        <where>
+            <!-- 1. 基础过滤：未删除、有效 -->
+            AND ap.deleted = 0
+            AND ap.status = 0
+
+            <!-- 2. 作者列表过滤 -->
+            <if test="authorIds != null and authorIds.size() > 0">
+                AND ap.author_id IN
+                <foreach item="id" collection="authorIds" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+
+            <!-- 3. 业务日期精确匹配 -->
+            <if test="bizDate != null">
+                AND ap.biz_date = #{bizDate}
+            </if>
+
+            <!-- 4. 开始时间范围过滤 -->
+            <if test="startDate != null">
+                AND ap.biz_date >= #{startDate}
+            </if>
+            <!-- 4. 战绩类型精确匹配 -->
+            <if test="performanceType != null">
+                AND ap.performance_type = #{performanceType}
+            </if>
+        </where>
+    </select>
+
+
+</mapper>

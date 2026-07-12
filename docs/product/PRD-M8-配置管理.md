@@ -37,6 +37,7 @@
 | 5 | 阈值规则配置 | FR-M8-005 | 预警/粉丝/作品阈值及账号覆盖 |
 | 6 | AI 模型配置 | FR-M8-006 | AI 大模型接入参数 |
 | 7 | AI 提示词配置 | FR-M8-007 | AI 任务提示词模板 |
+| 8 | **元数据维护** | **FR-M8-008** | 物理表→实体映射，供 M6 指标/自定义查询 |
 
 ---
 
@@ -64,12 +65,13 @@
 | 内部采集 | 企业微信应用配置 | CFG-008a | 企微 Tab，复用 `WeworkAppConfigPanel` |
 | 内部采集 | 奥创接口配置 | CFG-008b | 个微 Tab **仅**奥创表单（管理员） |
 | 内部采集 | 快手特殊字段 | CFG-009 | Cookie/AuthToken/字段映射/直播号 |
-| 外部采集 | 外部账号 / 关键词 / 导入 | CFG-010~013 | 双 Tab + CSV 导入 |
+| 外部采集 | 外部账号 / 关键词 / 导入 / **租户采集凭账号** | CFG-010~013 · **CFG-013a** | 双 Tab + CSV 导入 + Channel-D 凭账号 |
 | 外部数据 | 数据源管理 | CFG-014~016 | 第三方 API 接入 |
 | 订单采集 | DB 配置 / 连接测试 / 采集模式 | CFG-017~019 | 增量/全量 |
 | 阈值规则 | 四类阈值 + 账号覆盖 | CFG-020~024 | 覆盖优先级高于全局 |
 | AI 模型 | 模型管理 / 测试 / 默认 | CFG-025~030 | 同时仅一个默认 |
 | AI 提示词 | 提示词 / 版本 / 占位符 | CFG-031~036 | 编辑 version +1 |
+| 元数据维护 | 实体 / 字段 / 未映射表发现 | CFG-037~040 | 供 M6 指标与自定义查询（ADR-046） |
 
 ### 2.3 实现映射（必读）
 
@@ -81,12 +83,14 @@
 | `config_aocreate_api` | `oa_aocreate_api` | `/admin-api/oa/config/internal-collect/aocreate` |
 | 企微应用 | `oa_wework_account` | `/admin-api/oa/internal/wework/*` |
 | `config_external_account` | `oa_collect_config` (EXTERNAL, sub_type=account) | `/admin-api/oa/config/external-collect/*` |
+| `config_tenant_collector_credential` | `oa_tenant_collector_credential` | `/admin-api/oa/config/tenant-credential/*`（P1+） |
 | `config_keyword` | `oa_config_keyword` | `/admin-api/oa/config/external-collect/keyword/*` |
 | `config_order_db` | `oa_collect_config` (GENERAL) | `/admin-api/oa/config/order-collect/*` |
 | 外部数据源 | `oa_collect_config` (EXTERNAL_SOURCE) | `/admin-api/oa/config/external-source/*` |
 | 四类阈值 | `oa_threshold_config` | `/admin-api/oa/config/threshold/*` |
 | `config_ai_model` | `oa_ai_model_config` | `/admin-api/oa/config/ai-model/*` |
 | `config_ai_prompt` | `oa_ai_prompt_config` | `/admin-api/oa/config/ai-prompt/*` |
+| `config_metadata` | `sys_metadata_entity` + `sys_metadata_field` | `/admin-api/oa/metadata/*` |
 
 ---
 
@@ -248,6 +252,17 @@
 | 格式 | CSV（平台、账号名称、账号标识） |
 | 限制 | ≤5MB（BR-M8-005） |
 | 输出 | 成功数、失败数 |
+
+**CFG-013a 租户采集凭账号**（Channel-D · [ADR-052](../adr/ADR-052-Ops外部竞品四平台采集通道.md) §3.4 · P1+ UI）
+
+| 项目 | 内容 |
+|------|------|
+| 定位 | 公众号/平台 **运营会话**（Cookie/Token）；租户级 SSOT，**非** `oa_collect_config` / 任务行内嵌 |
+| 表 | `oa_tenant_collector_credential` |
+| UK | `(tenant_id, platform, credential_profile)` |
+| 字段 | `platform`（`dict_third_platform`）、`credential_profile`（默认 `default`）、`profile_name`、Cookie/Token（AES-256）、`expire_at`、`status`、`conn_status` |
+| 用途 | M10 `method=EXTERNAL` 解析凭账号；公众号 P1 须配置 `WECHAT_OFFICIAL` |
+| P0 快手 | 可回退部署 env；租户表有 `ENABLED` 行则优先 |
 
 #### 3.2.3 数据逻辑流
 
@@ -455,6 +470,41 @@ AI 任务 → 读默认模型配置 → 调 API → 返回结果
 ```
 AI 任务 → 按类型取提示词 → 变量替换 → 调模型 → 返回
 ```
+
+---
+
+### 3.8 FR-M8-008 元数据维护（ADR-046）
+
+#### 3.8.1 功能概述
+
+将物理表映射为**元数据实体**，为每个字段配置**查询条件类别**（IP 组、人员、平台、账号、日期、文本、枚举等），供 M6 指标构建器与自定义查询逐步替换硬编码 schema。
+
+#### 3.8.2 功能点详情
+
+**CFG-037 实体列表**
+
+分页展示 `entity_code`、`entity_name`、`physical_table`、`status`。
+
+**CFG-038 新增实体（未映射表发现）**
+
+- `GET /unmapped-tables`：`information_schema` 减去已映射表；排除 `sys_*`、`flyway_*`
+- 下拉文案：`{tableName} ({tableComment})`；无注释时回退建议名
+- 选中表后 `entityName` 默认取 `tableComment`
+
+**CFG-039 字段配置**
+
+为实体维护 `field_code`、`column_name`、`data_type`、`query_condition_type`、`dict_type`、`selector_config`。
+
+**CFG-040 删除实体**
+
+仅 **`ROLE_OA_ADMIN`**（超级管理员）可删除实体。
+
+#### 3.8.3 验收标准
+
+**AC-M8-008-1**（未映射表含表注释）
+- Given 库中存在未映射业务表且 `TABLE_COMMENT` 非空
+- When 打开新增实体弹窗
+- Then 下拉显示 `表名 (注释)`；选中后实体名称默认填充注释
 
 ---
 

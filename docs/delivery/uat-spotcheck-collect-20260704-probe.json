@@ -1,0 +1,102 @@
+{
+  "section": "collect",
+  "login": "ok",
+  "pages": [
+    {
+      "page": "采集任务",
+      "hash": "#/ops/collect/task",
+      "football_path": "/ops/collect/task",
+      "component": "ops/collect/task",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "collect/task/page",
+          "path": "/admin-api/oa/collect/task/page?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=7",
+          "api_ok": true,
+          "sensible": true
+        }
+      ],
+      "search_note": "TableSearch: 任务名 / 平台 / 采集方式 / 频率 / 状态",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "数据质量",
+      "hash": "#/ops/collect/quality",
+      "football_path": "/ops/collect/quality",
+      "component": "ops/collect/quality",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "collect/quality/list",
+          "path": "/admin-api/oa/collect/quality/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=0 total=0",
+          "api_ok": true,
+          "sensible": true
+        }
+      ],
+      "search_note": "TableSearch: 规则名 / 检查类型 / 级别；右侧质量日志筛选",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "内部采集配置",
+      "hash": "#/ops/config-internal-collect",
+      "football_path": "/ops/config-internal-collect",
+      "component": "ops/config/InternalCollectConfig",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "internal/wework/list",
+          "path": "/admin-api/oa/internal/wework/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=1",
+          "api_ok": true,
+          "sensible": true
+        }
+      ],
+      "search_note": "默认企微 Tab → WeworkAppConfigPanel；个微 Tab → 奥创配置",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "外部采集配置",
+      "hash": "#/ops/config-external-collect",
+      "football_path": "/ops/config-external-collect",
+      "component": "ops/config/ExternalCollectConfig",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "external-collect/list",
+          "path": "/admin-api/oa/config/external-collect/list?pageNo=1&pageSize=10&subType=account",
+          "ok": true,
+          "code": 0,
+          "data": "list=4 total=4",
+          "api_ok": true,
+          "sensible": true
+        }
+      ],
+      "search_note": "Tab: 外部账号 TableSearch / 关键词配置 TableSearch",
+      "issues": [],
+      "pass": true
+    }
+  ]
+}

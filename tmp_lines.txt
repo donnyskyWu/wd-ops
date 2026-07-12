@@ -1,0 +1,15 @@
+10|以 **Football**（`football-front` + `football-backend-saas`）为登录 / 菜单 / 鉴权壳层，将 **Ops 业务**（`ops-platform-module-oa`）迁入，统一从 **http://localhost:5777** 访问。
+35|| **S1-B** 鉴权与配置 | 🔄 **当前** | 本地 Nacos Docker 脚本、fail-soft 启动 | **5777 登录/bootstrap 503**；system-server 栈未齐；Nacos `local` vs `dev` 不一致 | 拉起 system/member/mp + Redis；对齐 namespace |
+36|| **S2** 菜单路由 | ⬜ 待开始 | — | 依赖 S1-B 登录可用 | 菜单 CSV → `system_menu` seed |
+50|| **system-server** | 48081 | ❌ 未稳定运行 | bootstrap `/admin-api/system/**` 503 根因 |
+54|| **football-front** | 5777 | ⚠️ 壳层 200，bootstrap 失败 | 待 system-server 栈 |
+58|## 5. 当前阻塞（5777 登录）
+65|**未验证通过**：5777 登录页完整可用（**勿宣称已修复**）。
+82|pnpm dev:ele                             # :5777
+100|3. 验证 Gateway：`/admin-api/system/**` 200 + `/admin-api/oa/**` → oa-server。
+101|4. 确认 **5777** 进入登录页无 router 500。
+102|5. S1-B：菜单 CSV、`system_menu` seed、Token 鉴权桥接。
+115|## 9. S1-B 状态检查（2026-07-03）
+126|**矩阵**：Nacos/Redis/Gateway/oa/5777 壳层 UP；system/member/mp DOWN（wx.appId、im.appId、taskExecutor 等待定）。
+128|**验证**：48080 tenant HTTP 200 但 body code=503；48094 UP；5777 页面可开，system API 仍 503。
+132|**验证（2026-07-03 复测）**：48080/48081/48094/5777 端口 LISTEN；Gateway `tenant/simple-list` 与 `get-id-by-name`（URL 编码）均 **HTTP 200 + code=0**；5777 代理 tenant **code=0**；login **code=500**（member-server 未起）。

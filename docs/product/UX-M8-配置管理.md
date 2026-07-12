@@ -36,6 +36,10 @@
 
 | AI 提示词配置 | `/config/ai-prompt` | FR-M8-007 |
 
+| 元数据维护 | `/config-metadata` | FR-M8-008 |
+
+| 租户采集凭账号 | `/config-external-collect` 子 Tab 或 `/config-tenant-credential`（P1+） | FR-M8-002 / CFG-013a |
+
 
 
 ---
@@ -154,11 +158,31 @@
 
 
 
+### 3.4 租户采集凭账号 Tab（P1+ · ADR-052）
+
+列：平台 | profile | 展示名 | 连接状态 | 过期时间 | 状态 | 操作
+
+表单：Cookie/Token（脱敏录入）、`expire_at`、探活按钮；**禁止**在外部账号行内嵌密钥。
+
+
+
 ---
 
 
 
-## 4. 订单采集配置 UX
+## 4. 元数据维护 UX（FR-M8-008）
+
+路由：`/config-metadata` · 组件 `MetadataManage.vue`
+
+- 实体列表 + 新增/编辑/删除（删除仅超级管理员）
+- 新增弹窗：未映射表下拉 `{tableName} ({tableComment})`；选中后默认填充实体名称
+- 字段配置抽屉：`query_condition_type`、`dict_type`、`selector_config`
+
+---
+
+
+
+## 5. 订单采集配置 UX
 
 
 

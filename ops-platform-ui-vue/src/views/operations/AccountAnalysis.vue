@@ -175,6 +175,7 @@ import DictLabel from '@/components/DictLabel.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { exportToExcel } from '@/utils'
 import { normalizePlatform, normalizeAccountStatus, PLATFORM_LABEL, type PlatformType as DictPlatform } from '@/utils/enum-alias'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const router = useRouter()
 
@@ -289,10 +290,11 @@ const handleExport = () => {
 const handleViewDetail = (row: any, tab: string) => {
   const tabName = tab === 'follower' ? 'followers' : 'contents'
   const accountId = row.accountId ?? row.id
-  router.push({
-    path: `/analysis/account/${accountId}/detail`,
+  router.push(opsRouteTo({
+    name: 'AccountAnalysisDetail',
+    params: { id: String(accountId) },
     query: { tab: tabName, platform: row.platformType },
-  })
+  }))
 }
 
 // S-R3：获取平台标签类型（用后端真实 enum 值）

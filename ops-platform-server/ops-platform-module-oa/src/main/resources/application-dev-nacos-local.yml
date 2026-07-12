@@ -1,0 +1,13 @@
+# Override Nacos server for local Docker (scripts/start-nacos-local.ps1).
+# Run: mvn spring-boot:run "-Dspring-boot.run.profiles=dev,dev-nacos,dev-nacos-local"
+
+spring:
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+      username: ""
+      password: ""
+      discovery:
+        namespace: local
+        fail-fast: false
+        failure-tolerance-enabled: true

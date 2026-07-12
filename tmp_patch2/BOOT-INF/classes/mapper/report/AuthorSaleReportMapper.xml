@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.report.AuthorSaleReportMapper">
+
+    <select id="pageByDay" resultType="football.module.member.controller.admin.report.vo.AuthorSaleReportRespVO">
+        select psr.*, au.nickname as authorName, au.author_source from author_sale_report psr
+        left join(
+            select id,nickname ,author_source from author_user
+        ) au on psr.author_id = au.id
+        <where>
+            <if test="reqVO.startTime != null and reqVO.startTime != '' and reqVO.endTime != null and reqVO.endTime != ''">
+                and `date` between #{reqVO.startTime} and #{reqVO.endTime}
+            </if>
+            <if test="reqVO.tenantId != null and reqVO.tenantId == ''">
+                and psr.tenant_id = #{reqVO.tenantId}
+            </if>
+            <if test="reqVO.authorIds != null and reqVO.authorIds.size() > 0">
+                and psr.author_id in
+                <foreach item="item" collection="reqVO.authorIds" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="reqVO.userAuthorPermissionId != null and reqVO.userAuthorPermissionId.size() > 0">
+                and psr.author_id in
+                <foreach item="item" collection="reqVO.userAuthorPermissionId" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="reqVO.authorId != null and reqVO.authorId != ''">
+                and psr.author_id = #{reqVO.authorId}
+            </if>
+            <if test="reqVO.type != null and reqVO.type != ''">
+                and au.author_source = #{reqVO.type}
+            </if>
+        </where>
+        order by psr.date desc
+    </select>
+
+    <select id="pageByWeek" resultType="football.module.member.controller.admin.report.vo.AuthorSaleReportRespVO">
+        select psr.*,au.nickname as authorName,au.author_source from author_sale_week_report psr
+        left join(
+            select id,nickname ,author_source from author_user
+        ) au on psr.author_id = au.id
+        <where>
+            <if test="reqVO.startTime != null and reqVO.startTime != '' and reqVO.endTime != null and reqVO.endTime != ''">
+                and `date` between #{reqVO.startTime} and #{reqVO.endTime}
+            </if>
+
+            <if test="reqVO.tenantId != null and reqVO.tenantId == ''">
+                and psr.tenant_id = #{reqVO.tenantId}
+            </if>
+            <if test="reqVO.authorIds != null and reqVO.authorIds.size() > 0">
+                and psr.author_id in
+                <foreach item="item" collection="reqVO.authorIds" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="reqVO.userAuthorPermissionId != null and reqVO.userAuthorPermissionId.size() > 0">
+                and psr.author_id in
+                <foreach item="item" collection="reqVO.userAuthorPermissionId" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="reqVO.type != null and reqVO.type != ''">
+                and au.author_source = #{reqVO.type}
+            </if>
+        </where>
+        order by psr.date desc
+    </select>
+
+    <select id="pageByMonth" resultType="football.module.member.controller.admin.report.vo.AuthorSaleReportRespVO">
+        select psr.*,au.nickname as authorName,au.author_source from author_sale_month_report psr
+        left join(
+            select id,nickname ,author_source from author_user
+        ) au on psr.author_id = au.id
+        <where>
+            <if test="reqVO.startTime != null and reqVO.startTime != '' and reqVO.endTime != null and reqVO.endTime != ''">
+                and `date` between #{reqVO.startTime} and #{reqVO.endTime}
+            </if>
+
+            <if test="reqVO.tenantId != null and reqVO.tenantId == ''">
+                and psr.tenant_id = #{reqVO.tenantId}
+            </if>
+            <if test="reqVO.authorIds != null and reqVO.authorIds.size() > 0">
+                and psr.author_id in
+                <foreach item="item" collection="reqVO.authorIds" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="reqVO.userAuthorPermissionId != null and reqVO.userAuthorPermissionId.size() > 0">
+                and psr.author_id in
+                <foreach item="item" collection="reqVO.userAuthorPermissionId" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="reqVO.type != null and reqVO.type != ''">
+                and au.author_source = #{reqVO.type}
+            </if>
+        </where>
+        order by psr.date desc
+    </select>
+
+    <delete id="deleteByDate" >
+        delete from author_sale_report where `date` = #{date}
+    </delete>
+
+    <delete id="deleteByWeek" >
+        delete from author_sale_week_report where `date` = #{date}
+    </delete>
+
+    <delete id="deleteByMonth" >
+        delete from author_sale_month_report where `date` = #{date}
+    </delete>
+
+    <insert id="insertBatchWeek">
+        insert into author_sale_week_report
+        (author_id, tenant_id, `date`, date_range,
+         published_plan_count, add_new_user,
+         new_user_pay, old_user_pay, pay_user_count,
+         article_income, privilege_income,
+         article_refund, privilege_refund,
+         income_count, old_user_pay_amount, new_user_pay_amount,user_count)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.authorId}, #{item.tenantId}, #{item.date}, #{item.dateRange},
+             #{item.publishedPlanCount}, #{item.addNewUser},
+             #{item.newUserPay}, #{item.oldUserPay}, #{item.payUserCount},
+             #{item.articleIncome}, #{item.privilegeIncome},
+             #{item.articleRefund}, #{item.privilegeRefund},
+             #{item.incomeCount}, #{item.oldUserPayAmount}, #{item.newUserPayAmount},#{item.userCount})
+        </foreach>
+    </insert>
+
+    <insert id="insertBatchMonth">
+        insert into author_sale_month_report
+        (author_id, tenant_id, `date`,
+         published_plan_count, add_new_user,
+         new_user_pay, old_user_pay, pay_user_count,
+         article_income, privilege_income,
+         article_refund, privilege_refund,
+         income_count, old_user_pay_amount, new_user_pay_amount,user_count)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.authorId}, #{item.tenantId}, #{item.date},
+             #{item.publishedPlanCount}, #{item.addNewUser},
+             #{item.newUserPay}, #{item.oldUserPay}, #{item.payUserCount},
+             #{item.articleIncome}, #{item.privilegeIncome},
+             #{item.articleRefund}, #{item.privilegeRefund},
+             #{item.incomeCount}, #{item.oldUserPayAmount}, #{item.newUserPayAmount},#{item.userCount})
+        </foreach>
+    </insert>
+
+    <select id="statisticsByDay" resultType="football.module.member.controller.admin.report.vo.AuthorSaleReportRespVO">
+        select
+        sum(published_plan_count)  as publishedPlanCount,
+        sum(add_new_user)          as addNewUser,
+        sum(new_user_pay)          as newUserPay,
+        sum(old_user_pay)          as oldUserPay,
+        sum(pay_user_count)        as payUserCount,
+        sum(article_income)        as articleIncome,
+        sum(privilege_income)      as privilegeIncome,
+        sum(article_refund)        as articleRefund,
+        sum(privilege_refund)      as privilegeRefund,
+        sum(income_count)          as incomeCount,
+        sum(old_user_pay_amount)   as oldUserPayAmount,
+        sum(new_user_pay_amount)   as newUserPayAmount
+        from author_sale_report
+        <where>
+            <if test="reqVO.startTime != null and reqVO.startTime != '' and reqVO.endTime != null and reqVO.endTime != ''">
+                and `date` between #{reqVO.startTime} and #{reqVO.endTime}
+            </if>
+            <if test="reqVO.tenantId != null">
+                and tenant_id = #{reqVO.tenantId}
+            </if>
+            <if test="reqVO.authorIds != null and reqVO.authorIds.size() > 0">
+                and author_id in
+                <foreach item="item" collection="reqVO.authorIds" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="reqVO.userAuthorPermissionId != null and reqVO.userAuthorPermissionId.size() > 0">
+                and author_id in
+                <foreach item="item" collection="reqVO.userAuthorPermissionId" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="statisticsByWeek" resultType="football.module.member.controller.admin.report.vo.AuthorSaleReportRespVO">
+        select
+        sum(published_plan_count)  as publishedPlanCount,
+        sum(add_new_user)          as addNewUser,
+        sum(new_user_pay)          as newUserPay,
+        sum(old_user_pay)          as oldUserPay,
+        sum(pay_user_count)        as payUserCount,
+        sum(article_income)        as articleIncome,
+        sum(privilege_income)      as privilegeIncome,
+        sum(article_refund)        as articleRefund,
+        sum(privilege_refund)      as privilegeRefund,
+        sum(income_count)          as incomeCount,
+        sum(old_user_pay_amount)   as oldUserPayAmount,
+        sum(new_user_pay_amount)   as newUserPayAmount
+        from author_sale_week_report
+        <where>
+            <if test="reqVO.startTime != null and reqVO.startTime != '' and reqVO.endTime != null and reqVO.endTime != ''">
+                and `date` between #{reqVO.startTime} and #{reqVO.endTime}
+            </if>
+            <if test="reqVO.tenantId != null">
+                and tenant_id = #{reqVO.tenantId}
+            </if>
+            <if test="reqVO.authorIds != null and reqVO.authorIds.size() > 0">
+                and author_id in
+                <foreach item="item" collection="reqVO.authorIds" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="reqVO.userAuthorPermissionId != null and reqVO.userAuthorPermissionId.size() > 0">
+                and author_id in
+                <foreach item="item" collection="reqVO.userAuthorPermissionId" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="statisticsByMonth" resultType="football.module.member.controller.admin.report.vo.AuthorSaleReportRespVO">
+        select
+        sum(published_plan_count)  as publishedPlanCount,
+        sum(add_new_user)          as addNewUser,
+        sum(new_user_pay)          as newUserPay,
+        sum(old_user_pay)          as oldUserPay,
+        sum(pay_user_count)        as payUserCount,
+        sum(article_income)        as articleIncome,
+        sum(privilege_income)      as privilegeIncome,
+        sum(article_refund)        as articleRefund,
+        sum(privilege_refund)      as privilegeRefund,
+        sum(income_count)          as incomeCount,
+        sum(old_user_pay_amount)   as oldUserPayAmount,
+        sum(new_user_pay_amount)   as newUserPayAmount
+        from author_sale_month_report
+        <where>
+            <if test="reqVO.startTime != null and reqVO.startTime != '' and reqVO.endTime != null and reqVO.endTime != ''">
+                and `date` between #{reqVO.startTime} and #{reqVO.endTime}
+            </if>
+            <if test="reqVO.tenantId != null">
+                and tenant_id = #{reqVO.tenantId}
+            </if>
+            <if test="reqVO.authorIds != null and reqVO.authorIds.size() > 0">
+                and author_id in
+                <foreach item="item" collection="reqVO.authorIds" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="reqVO.userAuthorPermissionId != null and reqVO.userAuthorPermissionId.size() > 0">
+                and author_id in
+                <foreach item="item" collection="reqVO.userAuthorPermissionId" separator="," close=")" open="(" index="index">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+</mapper>

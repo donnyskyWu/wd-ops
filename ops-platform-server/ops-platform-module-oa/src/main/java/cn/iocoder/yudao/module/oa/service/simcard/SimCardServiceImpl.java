@@ -12,14 +12,13 @@ import cn.iocoder.yudao.module.oa.api.dto.simcard.SimCardCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.simcard.SimCardRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.simcard.SimCardUpdateReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
-import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.phone.PhoneDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.simcard.SimCardDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.phone.PhoneMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.simcard.SimCardMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -49,7 +48,7 @@ public class SimCardServiceImpl implements SimCardService {
     private final SimCardMapper simCardMapper;
     private final AccountMapper accountMapper;
     private final PhoneMapper phoneMapper;
-    private final SysUserMapper sysUserMapper;
+    private final FootballSystemUserValidator footballSystemUserValidator;
     private final AesUtil aesUtil;
 
     @Override
@@ -273,13 +272,7 @@ public class SimCardServiceImpl implements SimCardService {
     }
 
     private void assertUserInTenant(Long userId, Long tenantId) {
-        SysUserDO user = sysUserMapper.selectById(userId);
-        if (user == null) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "归属人不存在");
-        }
-        if (!tenantId.equals(user.getTenantId())) {
-            throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
-        }
+        footballSystemUserValidator.assertInTenant(userId, tenantId, "归属人不存在");
     }
 
     private Map<Long, String> loadUserNames(List<SimCardDO> records) {
@@ -291,11 +284,7 @@ public class SimCardServiceImpl implements SimCardService {
         if (ids.isEmpty()) {
             return Collections.emptyMap();
         }
-        List<SysUserDO> list = sysUserMapper.selectBatchIds(ids);
-        if (list == null || list.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        return list.stream().collect(Collectors.toMap(SysUserDO::getId, SysUserDO::getNickname, (a, b) -> a));
+        return footballSystemUserValidator.loadNicknames(ids);
     }
 
     private Map<Long, PhoneDO> loadPhones(List<SimCardDO> records) {

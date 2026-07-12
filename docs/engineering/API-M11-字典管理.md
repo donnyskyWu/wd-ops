@@ -78,7 +78,8 @@
   "data": {
     "list": [
       { "type": "dict_author_type", "name": "作者类型", "status": "ENABLED" },
-      { "type": "dict_ip_group_type", "name": "IP组类型", "status": "ENABLED" }
+      { "type": "dict_ip_group_type", "name": "IP组类型", "status": "ENABLED" },
+      { "type": "dict_ip_group_level", "name": "IP组等级", "status": "ENABLED" }
     ],
     "total": 27
   }
@@ -142,7 +143,7 @@ public class DictDataRespVO {
 | 2 | `GET /dict/data` 缺 `type` | 1500 |
 | 3 | `GET /dict/data?type=dict_not_exist` | 1501 |
 | 4 | `GET /dict/data?type=dict_author_type` 无 token | 401 |
-| 5 | `GET /dict/types` 含 `dict_author_type / dict_ip_group_type / ...` | 200 + 27 项 |
+| 5 | `GET /dict/types` 含 `dict_author_type / dict_ip_group_type / dict_ip_group_level / dict_content_length_type / ...` | 200 + 29 项 |
 | 6 | 重复调用 `dict:data:dict_author_type` 第二次应命中缓存 | DB query count 不增加 |
 
 ---
@@ -177,4 +178,4 @@ export function fetchDictTypes() {
 ## 7. 关联模块
 
 - M1 / M2 / M3 / M4 / M5 / M6 / M8 / M9 全部使用
-- 已存在字典 type 27 项（D3-all 范围）
+- 已存在字典 type 29 项（含 V128 `dict_ip_group_level`、V134 `dict_content_length_type`）

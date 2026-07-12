@@ -85,13 +85,17 @@ public class MetadataServiceImpl implements MetadataService {
                 .map(MetadataEntityDO::getPhysicalTable)
                 .collect(Collectors.toSet());
 
-        List<String> allTables = queryAllPhysicalTables();
+        List<TableMeta> allTables = queryAllPhysicalTables();
         List<UnmappedTableVO> result = new ArrayList<>();
-        for (String tableName : allTables) {
-            if (mapped.contains(tableName)) {
+        for (TableMeta table : allTables) {
+            if (mapped.contains(table.tableName())) {
                 continue;
             }
-            result.add(new UnmappedTableVO(tableName, suggestEntityCode(tableName), suggestEntityName(tableName)));
+            result.add(new UnmappedTableVO(
+                    table.tableName(),
+                    suggestEntityCode(table.tableName()),
+                    suggestEntityName(table.tableName()),
+                    table.tableComment()));
         }
         return result;
     }
@@ -270,26 +274,30 @@ public class MetadataServiceImpl implements MetadataService {
     }
 
     private void requirePhysicalTableExists(String tableName) {
-        List<String> tables = queryAllPhysicalTables();
-        if (!tables.contains(tableName.toLowerCase(Locale.ROOT))) {
+        String normalized = tableName.toLowerCase(Locale.ROOT);
+        boolean exists = queryAllPhysicalTables().stream()
+                .anyMatch(t -> t.tableName().equals(normalized));
+        if (!exists) {
             throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "物理表不存在");
         }
     }
 
-    private List<String> queryAllPhysicalTables() {
+    private List<TableMeta> queryAllPhysicalTables() {
         String schema = resolveSchema();
-        List<String> tables = jdbcTemplate.queryForList(
+        List<TableMeta> tables = jdbcTemplate.query(
                 """
-                        SELECT LOWER(TABLE_NAME) AS TABLE_NAME
+                        SELECT LOWER(TABLE_NAME) AS TABLE_NAME, TABLE_COMMENT
                         FROM INFORMATION_SCHEMA.TABLES
                         WHERE TABLE_SCHEMA = ?
                           AND TABLE_TYPE IN ('BASE TABLE', 'TABLE')
                         ORDER BY TABLE_NAME
                         """,
-                String.class,
+                (rs, rowNum) -> new TableMeta(
+                        rs.getString("TABLE_NAME"),
+                        StrUtil.blankToDefault(rs.getString("TABLE_COMMENT"), null)),
                 schema);
         return tables.stream()
-                .filter(t -> EXCLUDED_TABLE_PREFIXES.stream().noneMatch(t::startsWith))
+                .filter(t -> EXCLUDED_TABLE_PREFIXES.stream().noneMatch(t.tableName()::startsWith))
                 .collect(Collectors.toList());
     }
 
@@ -423,6 +431,9 @@ public class MetadataServiceImpl implements MetadataService {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED.getCode(), "缺少租户上下文");
         }
         return tenantId;
+    }
+
+    private record TableMeta(String tableName, String tableComment) {
     }
 
     private record ColumnMeta(String columnName, String dataType) {

@@ -182,6 +182,55 @@ class M10AoCreateAccountS00IT extends OaITBase {
     }
 
     @Test
+    @DisplayName("M10-AO-S-00: 拉取远程奥创子账号 stub")
+    void listRemoteSubAccountsStub() throws Exception {
+        mockMvc.perform(get("/admin-api/oa/config/internal-collect/aocreate/accounts/list-remote")
+                        .header("Authorization", AUTH)
+                        .header("X-Tenant-Id", TENANT))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[0].accountType").value(11))
+                .andExpect(jsonPath("$.data[0].synced").value(false));
+    }
+
+    @Test
+    @DisplayName("M10-AO-S-00: 同步远程子账号到本地")
+    void syncRemoteSubAccountsStub() throws Exception {
+        mockMvc.perform(post("/admin-api/oa/config/internal-collect/aocreate/accounts/sync-remote")
+                        .header("Authorization", AUTH)
+                        .header("X-Tenant-Id", TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "syncAll": true
+                                }
+                                """))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.successCount").value(2))
+                .andExpect(jsonPath("$.data.skipCount").value(0));
+
+        mockMvc.perform(get("/admin-api/oa/config/internal-collect/aocreate/accounts/list-remote")
+                        .header("Authorization", AUTH)
+                        .header("X-Tenant-Id", TENANT))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data[0].synced").value(true))
+                .andExpect(jsonPath("$.data[1].synced").value(true));
+
+        mockMvc.perform(post("/admin-api/oa/config/internal-collect/aocreate/accounts/sync-remote")
+                        .header("Authorization", AUTH)
+                        .header("X-Tenant-Id", TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "syncAll": true
+                                }
+                                """))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.successCount").value(0))
+                .andExpect(jsonPath("$.data.skipCount").value(2));
+    }
+
+    @Test
     @DisplayName("M10-AO-S-00: 非法状态字典 → 1503")
     void invalidStatusFails() throws Exception {
         mockMvc.perform(post("/admin-api/oa/config/internal-collect/aocreate/accounts/create")

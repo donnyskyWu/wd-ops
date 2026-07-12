@@ -292,6 +292,7 @@ import {
 import { getIpGroupTree } from '@/api/ip-group'
 import { getAccountList } from '@/api/account'
 import { fetchUserList } from '@/api/system-user'
+import { opsRouteTo } from '@/utils/ops-route'
 import DictSelect from '@/components/DictSelect.vue'
 import type {
   AuthorListVO,
@@ -574,12 +575,12 @@ const handleDelete = async (row: AuthorListVO) => {
 
 // 跳转到作者看板独立页
 const handleGoDashboard = (row: AuthorListVO) => {
-  router.push(`/author/${row.id}/dashboard`)
+  router.push(opsRouteTo({ name: 'AuthorDashboard', params: { id: String(row.id) } }))
 }
 
 // 查看数据看板(旧版弹窗,已用独立页替代)
 const handleViewDashboard = (row: AuthorListVO) => {
-  router.push(`/author/${row.id}/dashboard`)
+  router.push(opsRouteTo({ name: 'AuthorDashboard', params: { id: String(row.id) } }))
 }
 
 // 查看运营人员

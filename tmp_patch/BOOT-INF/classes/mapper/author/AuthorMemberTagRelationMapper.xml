@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.author.AuthorMemberTagRelationMapper">
+
+    <select id="countMemberTag" resultType="java.util.Map">
+        SELECT tag_id,COUNT(user_id) AS member_count FROM author_member_tag_relation
+        <where>
+            AND author_id = #{authorId} and deleted = 0
+            AND tag_id IN
+            <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+                #{tagId}
+            </foreach>
+            GROUP BY tag_id
+        </where>
+    </select>
+
+    <select id="deleteRealByIds">
+        <if test="list != null and list.size() > 0">
+            DELETE FROM author_member_tag_relation WHERE id IN
+                <foreach item="item" collection="list" separator="," open="(" close=")" index="index">
+                    #{item}
+                </foreach>
+        </if>
+    </select>
+
+    <select id="getUserIdsNotInTag" resultType="football.module.pay.api.order.dto.MemberSimpleRespDTO">
+        SELECT
+        mu.id AS userId,
+        mu.nickname,
+        mu.avatar_url,
+        mu.last_login_ip,
+        muf.create_time AS attentionTime
+        FROM member_user_follow muf
+        INNER JOIN member_user mu ON muf.user_id = mu.id
+
+        <where>
+            AND muf.status = 0
+            AND muf.target_type = 1
+            AND muf.target_id = #{reqVO.authorId}
+
+            AND NOT EXISTS (
+            SELECT 1
+            FROM author_member_tag_relation amtr_exclude
+            WHERE amtr_exclude.user_id = muf.user_id
+            AND amtr_exclude.author_id = #{reqVO.authorId}
+            AND amtr_exclude.tag_id = #{reqVO.tagId}
+            AND amtr_exclude.deleted = 0
+            )
+
+            <if test="reqVO.fansName != null and reqVO.fansName != ''">
+                AND mu.nickname LIKE CONCAT('%', #{reqVO.fansName}, '%')
+            </if>
+
+            <if test="reqVO.beginTime != null and reqVO.beginTime != ''">
+                AND muf.create_time &gt;= #{reqVO.beginTime}
+            </if>
+            <if test="reqVO.endTime != null and reqVO.endTime != ''">
+                AND muf.create_time &lt;= #{reqVO.endTime}
+            </if>
+        </where>
+    </select>
+
+    <select id="getUserIdsByTag" resultType="football.module.pay.api.order.dto.MemberSimpleRespDTO">
+        SELECT
+        mu.id AS user_id,
+        mu.nickname,
+        mu.avatar_url,
+        mu.last_login_ip,
+        muf.create_time AS attentionTime,
+        muf.user_status AS userStatus
+        FROM member_user_follow muf
+        INNER JOIN member_user mu ON muf.user_id = mu.id
+        <if test="reqVO.tagId != null">
+            INNER JOIN author_member_tag_relation amtr
+            ON muf.user_id = amtr.user_id
+            AND amtr.author_id = #{reqVO.authorId}
+            AND amtr.deleted = 0
+        </if>
+
+        <where>
+            AND muf.status = 0
+            AND muf.target_type = 1
+            AND muf.target_id = #{reqVO.authorId}
+
+            <if test="reqVO.tagId != null">
+                AND amtr.tag_id = #{reqVO.tagId}
+            </if>
+
+            <if test="reqVO.userStatus != null">
+                AND muf.user_status = #{reqVO.userStatus}
+            </if>
+
+            <if test="reqVO.fansName != null and reqVO.fansName != ''">
+                AND mu.nickname LIKE CONCAT('%', #{reqVO.fansName}, '%')
+            </if>
+
+            <if test="reqVO.beginTime != null and reqVO.beginTime != ''">
+                AND muf.create_time &gt;= #{reqVO.beginTime}
+            </if>
+            <if test="reqVO.endTime != null and reqVO.endTime != ''">
+                AND muf.create_time &lt;= #{reqVO.endTime}
+            </if>
+        </where>
+    </select>
+
+    <select id="getUnTaggedUser" resultType="football.module.pay.api.order.dto.MemberSimpleRespDTO">
+        SELECT
+        mu.id AS user_id,
+        mu.nickname,
+        mu.avatar_url,
+        mu.last_login_ip,
+        muf.create_time AS attentionTime,
+        muf.user_status AS userStatus
+        FROM member_user_follow muf
+        INNER JOIN member_user mu ON muf.user_id = mu.id
+
+        <where>
+            AND muf.status = 0
+            AND muf.target_type = 1
+            AND muf.target_id = #{reqVO.authorId}
+            AND NOT EXISTS (
+            SELECT 1
+            FROM author_member_tag_relation amtr
+            WHERE amtr.user_id = muf.user_id
+            AND amtr.author_id = #{reqVO.authorId}
+            AND amtr.deleted = 0
+            )
+
+            <if test="reqVO.userStatus != null">
+                AND muf.user_status = #{reqVO.userStatus}
+            </if>
+
+            <if test="reqVO.fansName != null and reqVO.fansName != ''">
+                AND mu.nickname LIKE CONCAT('%', #{reqVO.fansName}, '%')
+            </if>
+
+            <if test="reqVO.beginTime != null and reqVO.beginTime != ''">
+                AND muf.create_time &gt;= #{reqVO.beginTime}
+            </if>
+            <if test="reqVO.endTime != null and reqVO.endTime != '' ">
+                AND muf.create_time &lt;= #{reqVO.endTime}
+            </if>
+        </where>
+    </select>
+
+    <select id="getUserIdByTagId" resultType="football.module.pay.api.order.dto.MemberSimpleRespDTO">
+        SELECT
+        mu.id AS user_id,
+        mu.nickname,
+        mu.avatar_url
+        FROM author_member_tag_relation amtr
+        INNER JOIN member_user mu ON amtr.user_id = mu.id
+        inner JOIN member_user_follow muf ON muf.user_id = mu.id and amtr.author_id = muf.target_id
+        <where>
+            AND amtr.tag_id = #{tagId}
+            AND amtr.author_id = #{authorId}
+            and amtr.deleted = 0
+            AND muf.status = 0
+            <if test="beginTime != null and beginTime != ''">
+                AND muf.create_time >= #{beginTime}
+            </if>
+            <if test="endTime != null and endTime != ''">
+                AND muf.create_time &lt;= #{endTime}
+            </if>
+        </where>
+    </select>
+
+</mapper>

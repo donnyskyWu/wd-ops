@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.livecode.LiveCodeScanLogMapper">
+
+    <select id="getScanCountByLiveCodeIds" resultType="football.module.member.controller.admin.livecode.vo.LiveCodeScanCountRespVO">
+        SELECT
+        live_code_id AS liveCodeId,
+        COUNT(*) AS accessCount,
+        COUNT(DISTINCT CASE WHEN user_id > 0 THEN user_id END) AS accessUserCount
+        FROM channel_live_code_scan_log
+        WHERE live_code_id IN
+        <foreach collection="liveCodeIdList" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        GROUP BY live_code_id
+    </select>
+
+    <select id="getOldUserCount" resultType="football.module.member.controller.admin.livecode.vo.LiveCodeScanCountRespVO">
+        SELECT
+        sl.live_code_id AS liveCodeId,
+        COUNT(DISTINCT CASE WHEN sl.user_id > 0 THEN sl.user_id END) AS accessUserCount
+        FROM channel_live_code_scan_log sl
+        INNER JOIN member_user mu ON mu.id = sl.user_id
+        WHERE sl.live_code_id IN
+        <foreach collection="liveCodeIdList" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND mu.create_time &lt;= #{registerTime}
+        GROUP BY sl.live_code_id
+    </select>
+
+    <select id="getLiveScanPage" resultType="football.module.member.controller.admin.livecode.vo.LiveCodeDataRespVO">
+        SELECT sl.user_id AS userId, mu.nickname, sl.ip_address AS ipAddress, sl.redirect_page AS redirectPage,
+        sl.create_time AS createTime, mu.create_time AS registerTime
+        FROM channel_live_code_scan_log sl
+        LEFT JOIN member_user mu ON mu.id = sl.user_id
+        WHERE sl.live_code_id = #{reqVO.liveCodeId}
+        <if test="reqVO.ipAddress != null and reqVO.ipAddress != ''">
+            AND sl.ip_address = #{reqVO.ipAddress}
+        </if>
+        <if test="reqVO.userId != null">
+            AND sl.user_id = #{reqVO.userId}
+        </if>
+        <if test="reqVO.redirectPage != null and reqVO.redirectPage != ''">
+            AND sl.redirect_page like concat('%', #{reqVO.redirectPage}, '%')
+        </if>
+        <if test="reqVO.isNewUser != null and reqVO.isNewUser == 0">
+            AND mu.create_time &lt;= #{reqVO.registerTime}
+        </if>
+        <if test="reqVO.isNewUser != null and reqVO.isNewUser == 1">
+            AND mu.create_time &gt;= #{reqVO.registerTime}
+        </if>
+        <if test="reqVO.createTime != null and reqVO.createTime.length == 2">
+            AND sl.create_time BETWEEN #{reqVO.createTime[0]} AND #{reqVO.createTime[1]}
+        </if>
+        order by sl.id desc
+    </select>
+
+    <select id="getLiveScanUserPage" resultType="football.module.member.controller.admin.livecode.vo.LiveCodeDataRespVO">
+        SELECT sl.user_id AS userId, COUNT(*) AS scanCount, mu.nickname, MIN(sl.ip_address) AS ipAddress,
+        MIN(sl.redirect_page) AS redirectPage, MIN(sl.create_time) AS createTime, mu.create_time AS registerTime
+        FROM channel_live_code_scan_log sl
+        LEFT JOIN member_user mu ON mu.id = sl.user_id
+        WHERE sl.live_code_id = #{reqVO.liveCodeId}
+        AND sl.user_id > 0
+        <if test="reqVO.ipAddress != null and reqVO.ipAddress != ''">
+            AND sl.ip_address = #{reqVO.ipAddress}
+        </if>
+        <if test="reqVO.userId != null">
+            AND sl.user_id = #{reqVO.userId}
+        </if>
+        <if test="reqVO.redirectPage != null and reqVO.redirectPage != ''">
+            AND sl.redirect_page like concat('%', #{reqVO.redirectPage}, '%')
+        </if>
+        <if test="reqVO.isNewUser != null and reqVO.isNewUser == 0">
+            AND mu.create_time &lt;= #{reqVO.registerTime}
+        </if>
+        <if test="reqVO.isNewUser != null and reqVO.isNewUser == 1">
+            AND mu.create_time &gt;= #{reqVO.registerTime}
+        </if>
+        <if test="reqVO.createTime != null and reqVO.createTime.length == 2">
+            AND sl.create_time BETWEEN #{reqVO.createTime[0]} AND #{reqVO.createTime[1]}
+        </if>
+        GROUP BY sl.user_id, sl.ip_address
+    </select>
+
+    <select id="getLiveScanOldUserPage" resultType="football.module.member.controller.admin.livecode.vo.LiveCodeDataRespVO">
+        SELECT sl.user_id AS userId, mu.nickname, MAX(sl.ip_address) AS ipAddress, MAX(sl.redirect_page) AS redirectPage,
+        MAX(sl.create_time) AS createTime, mu.create_time AS registerTime, mu.last_login_time AS lastLoginTime
+        FROM channel_live_code_scan_log sl
+        LEFT JOIN member_user mu ON mu.id = sl.user_id
+        WHERE sl.live_code_id = #{reqVO.liveCodeId}
+        AND sl.user_id > 0
+        AND mu.create_time &lt;= #{reqVO.registerTime}
+        <if test="reqVO.ipAddress != null and reqVO.ipAddress != ''">
+            AND sl.ip_address = #{reqVO.ipAddress}
+        </if>
+        <if test="reqVO.userId != null">
+            AND sl.user_id = #{reqVO.userId}
+        </if>
+        <if test="reqVO.redirectPage != null and reqVO.redirectPage != ''">
+            AND sl.redirect_page like concat('%', #{reqVO.redirectPage}, '%')
+        </if>
+        <if test="reqVO.isActiveUser != null and reqVO.isActiveUser == 0">
+            AND sl.create_time &gt; #{reqVO.lastLoginTime}
+        </if>
+        <if test="reqVO.isActiveUser != null and reqVO.isActiveUser == 1">
+            AND sl.create_time &lt; #{reqVO.lastLoginTime}
+        </if>
+        <if test="reqVO.createTime != null and reqVO.createTime.length == 2">
+            AND sl.create_time BETWEEN #{reqVO.createTime[0]} AND #{reqVO.createTime[1]}
+        </if>
+        GROUP BY sl.user_id
+    </select>
+
+    <select id="getLiveNewRegisterPage" resultType="football.module.member.controller.admin.livecode.vo.LiveCodeDataRespVO">
+        SELECT mu.id AS userId, mu.nickname, MAX(sl.ip_address) AS ipAddress, MAX(sl.redirect_page) AS redirectPage,
+        mu.create_time AS registerTime
+        FROM member_user mu
+        LEFT JOIN channel_live_code_scan_log sl ON sl.user_id = mu.id
+        WHERE mu.live_code_id = #{reqVO.liveCodeId}
+        <if test="reqVO.ipAddress != null and reqVO.ipAddress != ''">
+            AND sl.ip_address = #{reqVO.ipAddress}
+        </if>
+        <if test="reqVO.userId != null">
+            AND mu.id = #{reqVO.userId}
+        </if>
+        <if test="reqVO.redirectPage != null and reqVO.redirectPage != ''">
+            AND sl.redirect_page like concat('%', #{reqVO.redirectPage}, '%')
+        </if>
+        <if test="reqVO.createTime != null and reqVO.createTime.length == 2">
+            AND mu.create_time BETWEEN #{reqVO.createTime[0]} AND #{reqVO.createTime[1]}
+        </if>
+        GROUP BY mu.id
+    </select>
+
+    <select id="getScanCountByReferrers" resultType="football.module.member.controller.admin.livecode.vo.ReferrerScanCountRespVO">
+        SELECT
+        sl.referrer_id AS referrer,
+        COUNT(*) AS accessCount,
+        COUNT(DISTINCT CASE WHEN sl.user_id > 0 THEN sl.user_id END) AS accessUserCount
+        FROM channel_live_code_scan_log sl
+        INNER JOIN channel_live_code lc ON lc.id = sl.live_code_id
+        WHERE sl.referrer_id IN
+        <foreach collection="referrerList" item="referrer" open="(" separator="," close=")">
+            #{referrer}
+        </foreach>
+        GROUP BY sl.referrer_id
+    </select>
+
+    <select id="getOldUserCountByReferrers" resultType="football.module.member.controller.admin.livecode.vo.ReferrerScanCountRespVO">
+        SELECT
+        lc.referrer AS referrer,
+        COUNT(DISTINCT CASE WHEN sl.user_id > 0 THEN sl.user_id END) AS accessUserCount
+        FROM channel_live_code_scan_log sl
+        INNER JOIN channel_live_code lc ON lc.id = sl.live_code_id
+        INNER JOIN member_user mu ON mu.id = sl.user_id
+        WHERE lc.referrer IN
+        <foreach collection="referrerList" item="referrer" open="(" separator="," close=")">
+            #{referrer}
+        </foreach>
+        AND mu.create_time &lt;= #{registerTime}
+        GROUP BY lc.referrer
+    </select>
+
+</mapper>

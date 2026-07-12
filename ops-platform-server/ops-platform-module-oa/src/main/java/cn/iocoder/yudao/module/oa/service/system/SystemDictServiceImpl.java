@@ -28,6 +28,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 字典管理双轨路由（S2 / ADR-050 D4）：
+ * <ul>
+ *   <li>平台/infra 类型 → {@link SystemDictAdapter}（@DS system）</li>
+ *   <li>业务 {@code dict_*} → wd {@code sys_dict_*}</li>
+ * </ul>
+ */
 @Service
 @RequiredArgsConstructor
 public class SystemDictServiceImpl implements SystemDictService {
@@ -35,37 +42,81 @@ public class SystemDictServiceImpl implements SystemDictService {
     private final SysDictTypeMapper sysDictTypeMapper;
     private final SysDictDataMapper sysDictDataMapper;
     private final DictService dictService;
+    private final SystemDictAdapter systemDictAdapter;
 
     @Override
     public List<DictTypeRespVO> typeList() {
-        return sysDictTypeMapper.selectList(new LambdaQueryWrapper<SysDictTypeDO>()
-                        .orderByAsc(SysDictTypeDO::getId))
-                .stream()
-                .map(t -> {
-                    DictTypeRespVO vo = new DictTypeRespVO();
-                    vo.setType(t.getType());
-                    vo.setName(t.getName());
-                    vo.setStatus(t.getStatus());
-                    return vo;
-                })
-                .collect(Collectors.toList());
+        return systemDictAdapter.typeList();
     }
 
     @Override
     public DictTypeDetailVO getByType(String type) {
-        SysDictTypeDO dictType = requireType(type);
-        DictTypeDetailVO vo = new DictTypeDetailVO();
-        vo.setDictType(dictType.getType());
-        vo.setDictName(dictType.getName());
-        vo.setStatus(dictType.getStatus());
-        vo.setItems(listItems(type));
-        return vo;
+        if (SystemDictAdapter.isBusinessDictType(type)) {
+            return getBusinessByType(type);
+        }
+        return systemDictAdapter.getByType(type);
     }
 
     @Override
     public PageResult<DictAdminRowVO> adminList(String dictName, String dictType, String status,
                                                 Integer pageNo, Integer pageSize) {
-        List<DictAdminRowVO> all = buildAdminRows(dictName, dictType, status);
+        if (SystemDictAdapter.isBusinessDictType(dictType)) {
+            return adminListBusiness(dictName, dictType, status, pageNo, pageSize);
+        }
+        return systemDictAdapter.adminList(dictName, dictType, status, pageNo, pageSize);
+    }
+
+    @Override
+    @Transactional
+    @AuditLog(module = "M9-dict", action = "create")
+    public Long create(DictCreateReq req) {
+        if (SystemDictAdapter.isBusinessDictType(req.getDictType())) {
+            return createBusiness(req);
+        }
+        Long id = systemDictAdapter.create(req);
+        dictService.evictCache();
+        return id;
+    }
+
+    @Override
+    @Transactional
+    @AuditLog(module = "M9-dict", action = "update")
+    public void update(DictUpdateReq req) {
+        SysDictTypeDO businessType = sysDictTypeMapper.selectById(req.getId());
+        if (businessType != null && SystemDictAdapter.isBusinessDictType(businessType.getType())) {
+            updateBusiness(req);
+            return;
+        }
+        systemDictAdapter.update(req);
+        dictService.evictCache();
+    }
+
+    @Override
+    @Transactional
+    @AuditLog(module = "M9-dict", action = "delete")
+    public void deleteData(Long id) {
+        SysDictDataDO businessData = sysDictDataMapper.selectById(id);
+        if (businessData != null && SystemDictAdapter.isBusinessDictType(businessData.getDictType())) {
+            deleteBusinessData(id);
+            return;
+        }
+        systemDictAdapter.deleteData(id);
+        dictService.evictCache();
+    }
+
+    private DictTypeDetailVO getBusinessByType(String type) {
+        SysDictTypeDO dictType = requireBusinessType(type);
+        DictTypeDetailVO vo = new DictTypeDetailVO();
+        vo.setDictType(dictType.getType());
+        vo.setDictName(dictType.getName());
+        vo.setStatus(dictType.getStatus());
+        vo.setItems(listBusinessItems(type));
+        return vo;
+    }
+
+    private PageResult<DictAdminRowVO> adminListBusiness(String dictName, String dictType, String status,
+                                                         Integer pageNo, Integer pageSize) {
+        List<DictAdminRowVO> all = buildBusinessAdminRows(dictName, dictType, status);
         int pn = pageNo == null ? 1 : pageNo;
         int ps = pageSize == null ? 10 : pageSize;
         int from = Math.max(0, (pn - 1) * ps);
@@ -74,10 +125,7 @@ public class SystemDictServiceImpl implements SystemDictService {
         return new PageResult<>(page, (long) all.size());
     }
 
-    @Override
-    @Transactional
-    @AuditLog(module = "M9-dict", action = "create")
-    public Long create(DictCreateReq req) {
+    private Long createBusiness(DictCreateReq req) {
         Long typeCount = sysDictTypeMapper.selectCount(new LambdaQueryWrapper<SysDictTypeDO>()
                 .eq(SysDictTypeDO::getType, req.getDictType()));
         if (typeCount != null && typeCount > 0) {
@@ -88,15 +136,12 @@ public class SystemDictServiceImpl implements SystemDictService {
         typeRow.setName(req.getDictName());
         typeRow.setStatus("ENABLED");
         sysDictTypeMapper.insert(typeRow);
-        insertItems(req.getDictType(), req.getItems());
+        insertBusinessItems(req.getDictType(), req.getItems());
         dictService.evictCache();
         return typeRow.getId();
     }
 
-    @Override
-    @Transactional
-    @AuditLog(module = "M9-dict", action = "update")
-    public void update(DictUpdateReq req) {
+    private void updateBusiness(DictUpdateReq req) {
         SysDictTypeDO typeRow = sysDictTypeMapper.selectById(req.getId());
         if (typeRow == null) {
             throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
@@ -110,19 +155,16 @@ public class SystemDictServiceImpl implements SystemDictService {
         if (req.getItems() != null) {
             for (DictDataItemReq item : req.getItems()) {
                 if (item.getId() != null) {
-                    updateItem(typeRow.getType(), item);
+                    updateBusinessItem(typeRow.getType(), item);
                 } else {
-                    insertItems(typeRow.getType(), List.of(item));
+                    insertBusinessItems(typeRow.getType(), List.of(item));
                 }
             }
         }
         dictService.evictCache();
     }
 
-    @Override
-    @Transactional
-    @AuditLog(module = "M9-dict", action = "delete")
-    public void deleteData(Long id) {
+    private void deleteBusinessData(Long id) {
         SysDictDataDO data = sysDictDataMapper.selectById(id);
         if (data == null) {
             throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
@@ -134,7 +176,7 @@ public class SystemDictServiceImpl implements SystemDictService {
         dictService.evictCache();
     }
 
-    private List<DictAdminRowVO> buildAdminRows(String dictName, String dictType, String status) {
+    private List<DictAdminRowVO> buildBusinessAdminRows(String dictName, String dictType, String status) {
         LambdaQueryWrapper<SysDictTypeDO> typeWrapper = new LambdaQueryWrapper<>();
         if (StrUtil.isNotBlank(dictName)) {
             typeWrapper.like(SysDictTypeDO::getName, dictName);
@@ -143,9 +185,11 @@ public class SystemDictServiceImpl implements SystemDictService {
             typeWrapper.like(SysDictTypeDO::getType, dictType);
         }
         Map<String, SysDictTypeDO> typeMap = sysDictTypeMapper.selectList(typeWrapper).stream()
+                .filter(t -> SystemDictAdapter.isBusinessDictType(t.getType()))
                 .collect(Collectors.toMap(SysDictTypeDO::getType, t -> t, (a, b) -> a));
 
         LambdaQueryWrapper<SysDictDataDO> dataWrapper = new LambdaQueryWrapper<>();
+        dataWrapper.likeRight(SysDictDataDO::getDictType, "dict_");
         if (StrUtil.isNotBlank(dictType)) {
             dataWrapper.like(SysDictDataDO::getDictType, dictType);
         }
@@ -180,9 +224,9 @@ public class SystemDictServiceImpl implements SystemDictService {
         return rows;
     }
 
-    private void insertItems(String dictType, List<DictDataItemReq> items) {
+    private void insertBusinessItems(String dictType, List<DictDataItemReq> items) {
         for (DictDataItemReq item : items) {
-            assertValueUnique(dictType, item.getDictValue(), null);
+            assertBusinessValueUnique(dictType, item.getDictValue(), null);
             SysDictDataDO row = new SysDictDataDO();
             row.setDictType(dictType);
             row.setLabel(item.getDictLabel());
@@ -196,12 +240,12 @@ public class SystemDictServiceImpl implements SystemDictService {
         }
     }
 
-    private void updateItem(String dictType, DictDataItemReq item) {
+    private void updateBusinessItem(String dictType, DictDataItemReq item) {
         SysDictDataDO row = sysDictDataMapper.selectById(item.getId());
         if (row == null || !dictType.equals(row.getDictType())) {
             throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
         }
-        assertValueUnique(dictType, item.getDictValue(), item.getId());
+        assertBusinessValueUnique(dictType, item.getDictValue(), item.getId());
         row.setLabel(item.getDictLabel());
         row.setDictValue(item.getDictValue());
         if (item.getSort() != null) {
@@ -218,7 +262,7 @@ public class SystemDictServiceImpl implements SystemDictService {
         sysDictDataMapper.updateById(row);
     }
 
-    private void assertValueUnique(String dictType, String value, Long excludeId) {
+    private void assertBusinessValueUnique(String dictType, String value, Long excludeId) {
         LambdaQueryWrapper<SysDictDataDO> wrapper = new LambdaQueryWrapper<SysDictDataDO>()
                 .eq(SysDictDataDO::getDictType, dictType)
                 .eq(SysDictDataDO::getDictValue, value);
@@ -231,7 +275,7 @@ public class SystemDictServiceImpl implements SystemDictService {
         }
     }
 
-    private SysDictTypeDO requireType(String type) {
+    private SysDictTypeDO requireBusinessType(String type) {
         SysDictTypeDO dictType = sysDictTypeMapper.selectOne(new LambdaQueryWrapper<SysDictTypeDO>()
                 .eq(SysDictTypeDO::getType, type));
         if (dictType == null) {
@@ -240,7 +284,7 @@ public class SystemDictServiceImpl implements SystemDictService {
         return dictType;
     }
 
-    private List<DictDataItemVO> listItems(String type) {
+    private List<DictDataItemVO> listBusinessItems(String type) {
         return sysDictDataMapper.selectList(new LambdaQueryWrapper<SysDictDataDO>()
                         .eq(SysDictDataDO::getDictType, type)
                         .orderByAsc(SysDictDataDO::getSort)

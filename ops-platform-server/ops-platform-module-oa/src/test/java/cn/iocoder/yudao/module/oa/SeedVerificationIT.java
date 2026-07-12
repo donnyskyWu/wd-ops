@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.oa;
 
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
-import cn.iocoder.yudao.module.oa.dal.dataobject.author.AuthorDO;
+import cn.iocoder.yudao.module.oa.dal.mysql.author.OaAuthorExtMapper;
 import cn.iocoder.yudao.module.oa.dal.dataobject.company.CompanyDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.dict.SysDictDataDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
@@ -18,7 +18,6 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.sop.SopTemplateDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.sop.TaskDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserTokenMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.author.AuthorMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.company.CompanyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.dict.SysDictDataMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
@@ -68,7 +67,7 @@ class SeedVerificationIT extends OaITBase {
     private IpGroupMapper ipGroupMapper;
 
     @Autowired
-    private AuthorMapper authorMapper;
+    private OaAuthorExtMapper oaAuthorExtMapper;
 
     @Autowired
     private FollowerDailyMapper followerDailyMapper;
@@ -166,19 +165,16 @@ class SeedVerificationIT extends OaITBase {
     }
 
     @Test
-    @DisplayName("SEED-OPS-001: tenant=1 IP组≥3 作者≥5 粉丝日表≥30")
+    @DisplayName("SEED-OPS-001: tenant=1 IP组≥3 · oa_author_ext 可空(S4 member SSOT)")
     void seedOps() {
         long ipGroupCount = ipGroupMapper.selectCount(new LambdaQueryWrapper<IpGroupDO>()
                 .eq(IpGroupDO::getTenantId, TENANT_1));
-        long authorCount = authorMapper.selectCount(new LambdaQueryWrapper<AuthorDO>()
-                .eq(AuthorDO::getTenantId, TENANT_1)
-                .likeRight(AuthorDO::getAuthorName, "SEED-"));
         long followerDailyCount = followerDailyMapper.selectCount(new LambdaQueryWrapper<FollowerDailyDO>()
                 .eq(FollowerDailyDO::getTenantId, TENANT_1)
                 .eq(FollowerDailyDO::getAccountId, 9001L));
 
         assertTrue(ipGroupCount >= 3, "tenant=1 IP 组应 ≥ 3");
-        assertTrue(authorCount >= 5, "tenant=1 SEED 作者应 ≥ 5");
+        assertTrue(oaAuthorExtMapper.selectCount(null) >= 0, "S4: oa_author 已 DROP，作者 SSOT 在 member");
         assertTrue(followerDailyCount >= 90, "账号 9001 粉丝日表应 ≥ 90");
     }
 

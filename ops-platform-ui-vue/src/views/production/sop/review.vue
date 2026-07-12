@@ -119,7 +119,7 @@
     </ContentWrap>
 
     <!-- 审核详情抽屉 -->
-    <el-drawer v-model="reviewDrawerVisible" title="SOP 模板审核" size="60%">
+    <el-drawer direction="rtl" append-to-body v-model="reviewDrawerVisible" title="SOP 模板审核" size="60%">
       <div v-if="currentTemplate" class="review-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="模板名称">{{ currentTemplate.templateName }}</el-descriptions-item>

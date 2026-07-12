@@ -18,6 +18,8 @@ import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysRoleMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserRoleMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.framework.auth.LoginUser;
+import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -156,7 +158,25 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserRespVO profile() {
-        return toResp(getRequiredInTenant(TenantContextHolder.getUserId()));
+        Long userId = TenantContextHolder.getUserId();
+        if (userId != null) {
+            SysUserDO entity = sysUserMapper.selectById(userId);
+            if (entity != null && requireTenantId().equals(entity.getTenantId())) {
+                return toResp(entity);
+            }
+        }
+        return toRespFromLoginUser(LoginUserContext.getRequired());
+    }
+
+    /** Football shell users may not exist in sys_user; expose auth context for self-service profile. */
+    private UserRespVO toRespFromLoginUser(LoginUser loginUser) {
+        UserRespVO vo = new UserRespVO();
+        vo.setId(loginUser.getUserId());
+        vo.setUsername(loginUser.getUsername());
+        vo.setNickname(loginUser.getNickname());
+        vo.setEmail(loginUser.getEmail());
+        vo.setStatus("ENABLED");
+        return vo;
     }
 
     private void bindRoles(Long userId, List<Long> roleIds) {

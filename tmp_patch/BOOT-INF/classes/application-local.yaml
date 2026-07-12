@@ -1,0 +1,200 @@
+--- #################### 注册中心 + 配置中心相关配置 ####################
+
+spring:
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848 # Nacos 服务器地址
+      username: nacos
+      password: nacos
+      discovery: # 【配置中心】配置项
+        namespace: local # 命名空间。这里使用 dev 开发环境
+        group: DEFAULT_GROUP # 使用的 Nacos 配置分组，默认为 DEFAULT_GROUP
+        metadata:
+          version: 1.0.0 # 服务实例的版本号，可用于灰度发布
+        register-enabled: true # 是否开启服务注册
+      config: # 【注册中心】配置项
+        namespace: local # 命名空间。这里使用 dev 开发环境
+        group: DEFAULT_GROUP # 使用的 Nacos 配置分组，默认为 DEFAULT_GROUP
+
+--- #################### 数据库相关配置 ####################
+spring:
+  # 数据源配置项
+  autoconfigure:
+    exclude:
+  datasource:
+    druid: # Druid 【监控】相关的全局配置
+      web-stat-filter:
+        enabled: true
+      stat-view-servlet:
+        enabled: true
+        allow: # 设置白名单，不填则允许所有访问
+        url-pattern: /druid/*
+        login-username: # 控制台管理用户名和密码
+        login-password:
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true # 慢 SQL 记录
+          slow-sql-millis: 100
+          merge-sql: true
+        wall:
+          config:
+            multi-statement-allow: true
+    dynamic: # 多数据源配置
+      druid: # Druid 【连接池】相关的全局配置
+        initial-size: 1 # 初始连接数
+        min-idle: 1 # 最小连接池数量
+        max-active: 20 # 最大连接池数量
+        max-wait: 60000 # 配置获取连接等待超时的时间，单位：毫秒（1 分钟）
+        time-between-eviction-runs-millis: 60000 # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位：毫秒（1 分钟）
+        min-evictable-idle-time-millis: 600000 # 配置一个连接在池中最小生存的时间，单位：毫秒（10 分钟）
+        max-evictable-idle-time-millis: 1800000 # 配置一个连接在池中最大生存的时间，单位：毫秒（30 分钟）
+        validation-query: SELECT 1 FROM DUAL # 配置检测连接是否有效
+        test-while-idle: true
+        test-on-borrow: false
+        test-on-return: false
+        pool-prepared-statements: true # 是否开启 PreparedStatement 缓存
+        max-pool-prepared-statement-per-connection-size: 20 # 每个连接缓存的 PreparedStatement 数量
+      primary: master
+      datasource:
+        master:
+          url: jdbc:mysql://192.168.10.47:3306/shenyu-member?useSSL=false&serverTimezone=Asia/Shanghai&useTimeZone=true&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true # MySQL Connector/J 8.X 连接的示例
+          #          url: jdbc:mysql://192.168.10.47:3306/football-saas?useSSL=true&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true # MySQL Connector/J 5.X 连接的示例
+          #          url: jdbc:postgresql://192.168.10.47:5432/ruoyi-vue-pro # PostgreSQL 连接的示例
+          #          url: jdbc:oracle:thin:@192.168.10.47:1521:xe # Oracle 连接的示例
+          #          url: jdbc:sqlserver://192.168.10.47:1433;DatabaseName=ruoyi-vue-pro # SQLServer 连接的示例
+          #          url: jdbc:dm://10.211.55.4:5236?schema=RUOYI_VUE_PRO # DM 连接的示例
+          username: shenyumember
+          password: 170bc8696f329da2709db8ea52f6200b
+        #          username: sa # SQL Server 连接的示例
+        #          password: JSm:g(*%lU4ZAkz06cd52KqT3)i1?H7W # SQL Server 连接的示例
+        #          username: SYSDBA # DM 连接的示例
+        #          password: SYSDBA # DM 连接的示例
+        slave: # 模拟从库，可根据自己需要修改
+          lazy: true # 开启懒加载，保证启动速度
+          url: jdbc:mysql://192.168.10.47:3306/shenyu-member?useSSL=false&serverTimezone=Asia/Shanghai&useTimeZone=true&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true
+          username: shenyumember
+          password: 170bc8696f329da2709db8ea52f6200b
+
+  # Redis 配置。Redisson 默认的配置足够使用，一般不需要进行调优
+  data:
+    redis:
+      host: 192.168.10.47 # 地址
+      port: 6379 # 端口
+      database: 0 # 数据库索引
+      password: 123456 # 密码，建议生产环境开启
+
+--- #################### MQ 消息队列相关配置 ####################
+# rocketmq 配置项，对应 RocketMQProperties 配置类
+rocketmq:
+  name-server: 192.168.10.51:9876 # RocketMQ Namesrv
+  # rocketmq 配置项，对应 RocketMQProperties 配置类
+  producer:
+    group: ${spring.application.name}_PRODUCER # 生产者分组
+    send-message-timeout: 3000 # 发送消息超时时间，单位：毫秒
+    retry-times-when-send-failed: 2 # 同步发送消息失败重试次数
+    retry-times-when-send-async-failed: 2 # 异步发送消息失败重试次数
+--- #################### 定时任务相关配置 ####################
+
+xxl:
+  job:
+    enabled: false # 是否开启调度中心，默认为 true 开启
+    admin:
+      addresses: http://192.168.10.47:9090/xxl-job-admin # 调度中心部署跟地址
+
+--- #################### 服务保障相关配置 ####################
+
+# Lock4j 配置项
+lock4j:
+  acquire-timeout: 3000 # 获取分布式锁超时时间，默认为 3000 毫秒
+  expire: 30000 # 分布式锁的超时时间，默认为 30 毫秒
+
+--- #################### 监控相关配置 ####################
+
+# Actuator 监控端点的配置项
+management:
+  endpoints:
+    web:
+      base-path: /actuator # Actuator 提供的 API 接口的根目录。默认为 /actuator
+      exposure:
+        include: '*' # 需要开放的端点。默认值只打开 health 和 info 两个端点。通过设置 * ，可以开放所有端点。
+
+# Spring Boot Admin 配置项
+spring:
+  boot:
+    admin:
+      # Spring Boot Admin Client 客户端的相关配置
+      client:
+        instance:
+          service-host-type: IP # 注册实例时，优先使用 IP [IP, HOST_NAME, CANONICAL_HOST_NAME]
+
+# 日志文件配置
+logging:
+  level:
+    # 配置自己写的 MyBatis Mapper 打印日志
+    football.module.member.dal.mysql: debug
+    org.springframework.context.support.PostProcessorRegistrationDelegate: ERROR # TODO 芋艿：先禁用，Spring Boot 3.X 存在部分错误的 WARN 提示
+
+--- #################### 芋道相关配置 ####################
+
+# 芋道配置项，设置当前项目所有自定义的配置
+football:
+  env: # 多环境的配置项
+    tag: ${HOSTNAME}
+  security:
+    mock-enable: true
+  access-log: # 访问日志的配置项
+    enable: false
+  signature:
+    app-id: 20260408160327_DEV
+    app-secret: 8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c
+  encrypt:
+    data-key: K9m2P5v8x1B4n7Q0
+    data-iv: L3j6R9w2Z5c8F1b4
+nacos:
+  privilege.qrcodeUrl: http://192.168.10.57/qrcodeUrl/
+  app.privilegeCode.url: http://192.168.10.57/privilegeCode/
+
+im:
+  url: https://zim-api.zego.im
+  appId: 16075197
+  serverSecret: ba5bddbc9854d8e968d404bd44a302b8
+
+# 创蓝一键登录的配置
+chuanglan:
+  flash:
+    ios:
+      app-id: 9qbIRa7A
+      app-key: aFdBe7OW
+    android:
+      app-id: sFAX4BpZ
+      app-key: do4mKGhz
+    query-url: https://api.253.com/open/flashsdk/mobile-query
+
+showPush: true
+
+apple:
+  auth:
+    url: https://appleid.apple.com/auth/keys
+  iss:
+    url: https://appleid.apple.com
+  client:
+    id: com.shenyu.sports.dev
+app:
+  wxAuth:
+    url: https://beta.h5.shenyu.com/pages/plan/planInfo?id=%s
+    authorUrl: https://beta.h5.shenyu.com/pages/plan/planExpertInfo?id=%s
+    newsUrl: https://h5.shenyu.com/app-api/match/news/get?id=%s
+  privilegeCode:
+    url: https://beta.h5.shenyu.com/pages/plan/planExpertInfo?id=%s&kfCode=%s
+  columnCode:
+    url: https://beta.h5.shenyu.com/pages/plan/planColumnInfo?id=%s&kfCode=%s
+  article:
+    url: https://beta.h5.shenyu.com/pages/plan/planExpertInfo?id=%s&code=%s
+
+operateData:
+  dingUserIds: 35194848852320
+privilege:
+  qrcodeUrl: http://192.168.10.27:1900/pages/authorPackageDetail/index?authorId=%s&privilegeId=%s
+
+wxAuthUrl: https://beta.h5.shenyu.com/pages/wx/auth

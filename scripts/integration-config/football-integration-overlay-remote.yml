@@ -1,0 +1,14 @@
+# ARCHIVE ONLY — remote 101.37.161.136 overlay for export/backup reference.
+# NOT used by start-integration-all.ps1 (daily dev uses football-integration-overlay.yml → localhost).
+spring:
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://101.37.161.136:3306/wd?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: shenyu
+          password: "Zhangwu+123456"
+        slave:
+          url: jdbc:mysql://101.37.161.136:3306/wd?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: shenyu
+          password: "Zhangwu+123456"

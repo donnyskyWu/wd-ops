@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="football.module.member.dal.mysql.report.ROIReportMapper">
+
+
+    <select id="getAuthorInOutPage" resultType="football.module.member.controller.admin.report.vo.AuthorInOutRespVO">
+        select au.id as authorId,au.nickname as authorName, ac.inCost from author_user au
+        left join(
+            select target_id,count(*) as h5Fans from member_user_follow
+            where status = 0 and target_type = 1 and user_status = 1
+            <if test="reqVO.userStartDate != null and reqVO.userStartDate != '' and
+                                            reqVO.userEndDate != null and reqVO.userEndDate != ''">
+                and date_format(create_time, '%Y-%m-%d' ) between #{reqVO.userStartDate} and #{reqVO.userEndDate}
+            </if>
+            group by target_id
+        )ma on ma.target_id = au.id
+        left join(
+            select ifnull(sum(in_cost),0) as inCost,author_id from author_cost
+            where status = 0
+                <if test="reqVO.costStartDate != null and reqVO.costStartDate != '' and
+                    reqVO.costEndDate != null and reqVO.costEndDate != ''">
+                    and `date` between #{reqVO.costStartDate} and #{reqVO.costEndDate}
+                </if>
+
+            group by author_id
+        )ac on ac.author_id = au.id
+        where au.author_source = 1
+        <if test="reqVO.authorIds != null and reqVO.authorIds.size() > 0">
+            and au.id IN
+            <foreach item="id" index="index" collection="reqVO.authorIds" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+        <if test="reqVO.userAuthorPermissionId != null and reqVO.userAuthorPermissionId.size() > 0">
+            and au.id in
+            <foreach item="item" collection="reqVO.userAuthorPermissionId" separator="," close=")" open="(" index="index">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+
+
+    <insert id="addAuthorCost">
+        INSERT INTO author_cost(author_id,date,in_cost,type,status) VALUES
+        (#{reqVO.authorId},#{reqVO.date},#{reqVO.inCost},#{reqVO.type},0)
+
+    </insert>
+
+    <update id="deleteAuthorCost">
+        update  author_cost set status = 1 where id = #{id}
+    </update>
+
+    <select id="getAuthorCostPage" resultType="football.module.member.controller.admin.report.vo.AuthorCostRespVO">
+        SELECT id,author_id as authorId,`date`,in_cost as inCost,`type`
+        FROM author_cost
+        <where>
+            status = 0
+            <if test="reqVO.authorId != null">
+                and author_id = #{reqVO.authorId}
+            </if>
+            <if test="reqVO.startDate != null and reqVO.startDate != '' and
+                    reqVO.endDate != null and reqVO.endDate != ''">
+                and `date` between #{reqVO.startDate} and #{reqVO.endDate}
+            </if>
+
+        </where>
+        order by `date` desc
+    </select>
+
+    <select id="selectAuthorCostTotalSum" resultType="football.module.member.controller.admin.report.vo.AuthorCostRespVO">
+
+        select au.id as authorId, ac.inCost from author_user au
+        left join(
+            select ifnull(sum(in_cost),0) as inCost,author_id from author_cost
+            <where>
+                <if test="reqVO.costStartDate != null and reqVO.costStartDate != '' and
+                        reqVO.costEndDate != null and reqVO.costEndDate != ''">
+                    `date` between #{reqVO.costStartDate} and #{reqVO.costEndDate}
+                </if>
+            </where>
+            group by author_id
+        )ac on ac.author_id = au.id
+        where au.author_source = 1
+        <if test="reqVO.authorIds != null and reqVO.authorIds.size() > 0">
+            and au.id IN
+            <foreach item="id" index="index" collection="reqVO.authorIds" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+        <if test="reqVO.userAuthorPermissionId != null and reqVO.userAuthorPermissionId.size() > 0">
+            and au.id in
+            <foreach item="item" collection="reqVO.userAuthorPermissionId" separator="," close=")" open="(" index="index">
+                #{item}
+            </foreach>
+        </if>
+
+    </select>
+</mapper>

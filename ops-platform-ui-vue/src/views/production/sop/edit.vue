@@ -259,6 +259,7 @@ import '@logicflow/core/dist/index.css'
 import { createSopNode, getSopNodeList, getSopTemplateList, updateSopNode, validateDag } from '@/api/sop'
 import DictSelect from '@/components/DictSelect.vue'
 import type { SopNodeVO } from '@/types/sop'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const route = useRoute()
 const router = useRouter()
@@ -815,7 +816,7 @@ const resetEditor = () => {
 const bootstrapEditor = async () => {
   if (!templateId.value || Number.isNaN(templateId.value)) {
     ElMessage.error('无效的模板 ID')
-    router.push('/sop')
+    router.push(opsRouteTo({ name: 'Sop' }))
     return
   }
   await loadTemplateMeta()
@@ -1124,7 +1125,7 @@ const handleSave = async () => {
 
 // 返回
 const handleBack = () => {
-  router.push('/sop')
+  router.push(opsRouteTo({ name: 'Sop' }))
 }
 
 // ==================== 生命周期 ====================

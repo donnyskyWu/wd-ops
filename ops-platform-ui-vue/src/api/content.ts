@@ -52,6 +52,14 @@ export function aiGenerateContent(data: {
   competitionId?: string
   competitionName?: string
   taskId?: number
+  ipGroupId?: number
+  authorId?: number
+  authorName?: string
+  historicalRecord?: string
+  matchDirection?: string
+  streamerPersona?: string
+  revisionFeedback?: string
+  lengthType?: string
 }): Promise<{ content: string; title?: string; eventInfo?: string; mock?: boolean; message?: string }> {
   return request.post({ url: '/oa/content/ai-generate', data, timeout: AI_GENERATE_TIMEOUT_MS })
 }

@@ -277,7 +277,7 @@
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailVisible" title="计划详情" size="960px">
+    <el-drawer direction="rtl" append-to-body v-model="detailVisible" title="计划详情" size="960px">
       <template v-if="detailData">
         <el-divider content-position="left">计划信息</el-divider>
         <el-descriptions :column="2" border>

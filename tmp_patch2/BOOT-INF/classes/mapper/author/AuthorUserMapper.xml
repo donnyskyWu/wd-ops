@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.author.AuthorUserMapper">
+
+    <!-- 根据赛事类型查询（去重作者） -->
+    <select id="getMatchRanking" resultType="football.module.member.controller.app.author.vo.AuthorInfoRespVO">
+        SELECT
+        au.id AS authorId,
+        au.nickname AS authorName,
+        au.avatar_url AS avatarUrl,
+        au.total_articles AS totalArticles,
+        au.hit_rate AS hitRate,
+        au.recent_articles AS recentArticles,
+        au.recent_hits AS recentHits,
+        au.consecutive_hits AS consecutiveHits,
+        au.on_sale_num AS onSaleNum,
+        au.fans AS fans
+        FROM
+        author_user au
+        WHERE
+        au.status = 0
+        AND au.id IN (
+        SELECT DISTINCT aam.author_id
+        FROM author_article_match aam
+        WHERE aam.deleted=0
+        <if test="hasOnSale != null and hasOnSale">
+            AND au.on_sale_num > 0
+        </if>
+        <choose>
+            <when test="classId != null">
+                and aam.class_id = #{classId}
+            </when>
+            <otherwise>
+                aam.class_id = -1
+            </otherwise>
+        </choose>
+        )
+        ORDER BY au.recent_hits DESC
+        LIMIT 100
+    </select>
+
+    <update id="decrementFans">
+        UPDATE author_user
+        SET fans = fans - 1
+        WHERE fans > 0
+        AND
+        <choose>
+            <when test="authorIds != null and authorIds.size() == 1">
+                id = #{authorIds[0]}
+            </when>
+            <when test="authorIds != null and authorIds.size() > 1">
+                id IN
+                <foreach collection="authorIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </when>
+            <otherwise>
+                1 = 0
+            </otherwise>
+        </choose>
+    </update>
+
+    <update id="incrementFans">
+        UPDATE author_user
+        SET fans = fans + 1
+        WHERE
+        <choose>
+            <when test="authorIds != null and authorIds.size() == 1">
+                id = #{authorIds[0]}
+            </when>
+            <when test="authorIds != null and authorIds.size() > 1">
+                id IN
+                <foreach collection="authorIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </when>
+            <!-- 空集合：不更新任何记录 -->
+            <otherwise>
+                1 = 0
+            </otherwise>
+        </choose>
+    </update>
+
+
+    <!-- 更新单个作者方案相关统计数据 -->
+    <update id="updateArticleCountByAuthorId">
+        UPDATE author_user u
+            JOIN (
+            SELECT
+            author_id,
+            COUNT (CASE WHEN win_result = 0 AND status = 1 AND publish_time &lt; NOW() AND order_deadline &gt; NOW() THEN 1 END) AS on_sale_cnt,
+            COUNT (*) AS total_cnt
+            FROM author_article
+            WHERE author_id = #{authorId} and deleted = 0
+            GROUP BY author_id
+            ) a
+        ON u.id = a.author_id
+            SET
+                u.on_sale_num = a.on_sale_cnt, u.total_articles = a.total_cnt
+        WHERE u.id = #{authorId}
+    </update>
+
+
+    <update id="updateAuthorPerformance">
+        UPDATE author_user
+        SET hit_rate         = #{hitRate},
+            recent_articles  = #{recentArticles},
+            recent_hits      = #{recentHits},
+            consecutive_hits = #{consecutiveHits},
+            rtp= #{rtp}
+        WHERE id = #{id}
+    </update>
+</mapper>

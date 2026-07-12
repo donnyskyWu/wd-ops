@@ -2,8 +2,8 @@
   IP 组管理
   改造说明(2026-06-08): 从"树表 + 弹窗"重构为"左树 + 右 5 Tab"
   依据: UX-M1 § 3.1 IP 组管理布局 + API-M1 § 2
-  5 Tab: 基本信息 / 成员管理 / 关联账号 / 关联主播 / 统计
-  保护删除: ADR-M1-002 - 成员/账号/主播未迁移不允许删除 IP 组
+  5 Tab: 基本信息 / 成员管理 / 关联账号 / 关联作者 / 统计
+  保护删除: ADR-M1-002 - 成员/账号/作者未迁移不允许删除 IP 组
 -->
 <template>
   <div class="ip-group-page">
@@ -46,6 +46,9 @@
                   ({{ data.memberCount || 0 }}/{{ data.accountCount || 0 }}/{{ data.anchorCount || 0 }})
                 </span>
                 <el-tag v-if="data.status === 0" type="danger" size="small" effect="plain">停用</el-tag>
+                <el-tag v-if="data.level" size="small" effect="plain">
+                  <DictLabel dict-type="dict_ip_group_level" :value="data.level" :fallback="data.level" />
+                </el-tag>
               </span>
             </template>
           </el-tree>
@@ -98,6 +101,15 @@
                 <el-descriptions-item label="组类型">{{ currentNode.groupType === 1 ? '大组' : '小组' }}</el-descriptions-item>
                 <el-descriptions-item label="上级组">{{ currentNode.parentName || '顶级' }}</el-descriptions-item>
                 <el-descriptions-item label="组长">{{ currentNode.leaderName || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="等级">
+                  <DictLabel
+                    v-if="currentNode.level"
+                    dict-type="dict_ip_group_level"
+                    :value="currentNode.level"
+                    :fallback="currentNode.level"
+                  />
+                  <span v-else>-</span>
+                </el-descriptions-item>
                 <el-descriptions-item label="状态">
                   <el-tag :type="currentNode.status === 1 ? 'success' : 'danger'">
                     {{ currentNode.status === 1 ? '启用' : '停用' }}
@@ -164,20 +176,26 @@
               </el-table>
             </el-tab-pane>
 
-            <!-- Tab 4: 关联主播 -->
-            <el-tab-pane label="关联主播" name="anchor">
+            <!-- Tab 4: 关联作者 -->
+            <el-tab-pane label="关联作者" name="anchor">
               <div class="tab-actions">
                 <el-button type="primary" @click="handleBindAnchor">
-                  <el-icon><Plus /></el-icon>添加主播
+                  <el-icon><Plus /></el-icon>添加作者
                 </el-button>
                 <el-button @click="loadAnchors">刷新</el-button>
               </div>
               <el-table v-loading="anchorLoading" :data="anchorList" border stripe>
                 <el-table-column type="index" label="#" width="60" align="center" />
-                <el-table-column prop="anchorName" label="主播姓名" width="140" />
-                <el-table-column prop="platformName" label="主要平台" width="120" align="center" />
-                <el-table-column prop="liveHours" label="本月直播时长(h)" width="140" align="right" />
-                <el-table-column prop="gpm" label="GPM" width="100" align="right" />
+                <el-table-column label="作者姓名" width="180">
+                  <template #default="{ row }">
+                    {{ row.authorName || row.anchorUserName || '-' }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="anchorType" label="作者类型" width="140" align="center">
+                  <template #default="{ row }">
+                    <DictLabel dict-type="dict_author_type" :value="row.anchorType" :fallback="row.anchorType || '-'" />
+                  </template>
+                </el-table-column>
                 <el-table-column prop="boundAt" label="绑定时间" width="170" align="center" />
                 <el-table-column label="操作" width="120" fixed="right" align="center">
                   <template #default="{ row }">
@@ -210,7 +228,7 @@
                   <el-card shadow="hover">
                     <div class="stat-item">
                       <div class="stat-value">{{ statsData?.anchorCount || 0 }}</div>
-                      <div class="stat-label">关联主播数</div>
+                      <div class="stat-label">关联作者数</div>
                     </div>
                   </el-card>
                 </el-col>
@@ -255,7 +273,7 @@
                 :closable="false"
                 show-icon
                 title="聚合说明"
-                description="统计基于当前 IP 组及其子组的账号/主播/内容数据汇总，每日凌晨 02:00 更新"
+                description="统计基于当前 IP 组及其子组的账号/作者/内容数据汇总，每日凌晨 02:00 更新"
               />
             </el-tab-pane>
           </el-tabs>
@@ -285,6 +303,14 @@
         </el-form-item>
         <el-form-item label="组长" prop="leaderId">
           <UserSelect v-model="formData.leaderId" placeholder="请选择组长" />
+        </el-form-item>
+        <el-form-item label="等级" prop="level">
+          <DictSelect
+            v-model="formData.level"
+            dict-type="dict_ip_group_level"
+            placeholder="请选择等级"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="排序" prop="sortOrder">
           <el-input-number v-model="formData.sortOrder" :min="0" :max="999" />
@@ -339,14 +365,33 @@
       </template>
     </el-dialog>
 
-    <!-- 添加主播 -->
-    <el-dialog v-model="anchorDialogVisible" title="添加主播" width="500px">
+    <!-- 添加作者 -->
+    <el-dialog v-model="anchorDialogVisible" title="添加作者" width="500px">
       <el-form :model="anchorForm" label-width="80px">
-        <el-form-item label="主播" required>
-          <UserSelect v-model="anchorForm.anchorUserId" role-code="ANCHOR" />
+        <el-form-item label="作者" required>
+          <el-select
+            v-model="anchorForm.authorId"
+            placeholder="请选择作者"
+            style="width: 100%"
+            filterable
+            clearable
+            :loading="authorOptionsLoading"
+          >
+            <el-option
+              v-for="item in authorOptions"
+              :key="item.id"
+              :label="item.authorName"
+              :value="item.id"
+            />
+          </el-select>
         </el-form-item>
-        <el-form-item label="主要平台">
-          <DictSelect v-model="anchorForm.platformType" dict-type="dict_platform_type" placeholder="请选择" clearable />
+        <el-form-item label="作者类型">
+          <DictSelect
+            v-model="anchorForm.anchorType"
+            dict-type="dict_author_type"
+            placeholder="默认取所选作者类型"
+            clearable
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -379,7 +424,9 @@ import {
   bindIpGroupAnchors,
   unbindIpGroupAnchor,
 } from '@/api/ip-group'
+import { getAuthorPage } from '@/api/author'
 import type { IpGroupTreeVO, IpGroupStatsVO } from '@/types/ip-group'
+import type { AuthorListVO } from '@/types/author'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import UserSelect from '@/components/selectors/UserSelect.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
@@ -493,9 +540,9 @@ const loadAnchors = async () => {
     const data = await getIpGroupAnchors(currentNode.value.id)
     anchorList.value = data
   } catch (e) {
-    console.error('[IpGroup] 加载主播失败:', e)
+    console.error('[IpGroup] 加载作者失败:', e)
     anchorList.value = []
-    ElMessage.error('主播列表加载失败')
+    ElMessage.error('作者列表加载失败')
   } finally {
     anchorLoading.value = false
   }
@@ -525,6 +572,7 @@ const formData = reactive({
   groupType: 1 as 1 | 2,
   parentId: undefined as number | undefined,
   leaderId: undefined as number | undefined,
+  level: undefined as string | undefined,
   sortOrder: 0,
   status: 1 as 0 | 1,
   remark: '',
@@ -538,7 +586,7 @@ const handleCreateRoot = () => {
   dialogMode.value = 'create'
   Object.assign(formData, {
     id: undefined, groupName: '', groupType: 1, parentId: undefined,
-    leaderId: undefined, sortOrder: 0, status: 1, remark: '',
+    leaderId: undefined, level: undefined, sortOrder: 0, status: 1, remark: '',
   })
   dialogVisible.value = true
 }
@@ -547,7 +595,7 @@ const handleCreateChild = () => {
   dialogMode.value = 'createChild'
   Object.assign(formData, {
     id: undefined, groupName: '', groupType: 2, parentId: currentNode.value?.id,
-    leaderId: undefined, sortOrder: 0, status: 1, remark: '',
+    leaderId: undefined, level: undefined, sortOrder: 0, status: 1, remark: '',
   })
   dialogVisible.value = true
 }
@@ -564,6 +612,7 @@ const handleEdit = async () => {
       groupType: detail.groupType,
       parentId: detail.parentId,
       leaderId: detail.leaderId,
+      level: detail.level || undefined,
       sortOrder: detail.sortOrder || 0,
       status: detail.status,
       remark: detail.remark || '',
@@ -633,20 +682,20 @@ const handleToggleStatus = async () => {
 
 const handleDelete = async () => {
   if (!currentNode.value) return
-  // ADR-M1-002 保护删除: 有成员/账号/主播时不允许删除
+  // ADR-M1-002 保护删除: 有成员/账号/作者时不允许删除
   const hasChildren = (currentNode.value.memberCount > 0) ||
     (currentNode.value.accountCount > 0) ||
     (currentNode.value.anchorCount > 0)
   try {
     await ElMessageBox.confirm(
       hasChildren
-        ? `【${currentNode.value.groupName}】下还有成员/账号/主播，请先迁移后再删除`
+        ? `【${currentNode.value.groupName}】下还有成员/账号/作者，请先迁移后再删除`
         : `确认删除【${currentNode.value.groupName}】？删除后可在回收站恢复`,
       hasChildren ? '无法删除' : '删除确认',
       { type: hasChildren ? 'warning' : 'error', confirmButtonText: hasChildren ? '去迁移' : '确认删除' }
     ).catch(() => { throw new Error('cancel') })
     if (hasChildren) {
-      ElMessage.info('请先移除成员/账号/主播')
+      ElMessage.info('请先移除成员/账号/作者')
       activeTab.value = 'member'
       return
     }
@@ -742,22 +791,51 @@ const handleUnbindAccount = async (row: any) => {
   } catch {}
 }
 
-// ============== Tab 4: 关联主播 ==============
+// ============== Tab 4: 关联作者 ==============
 const anchorDialogVisible = ref(false)
 const anchorSubmitting = ref(false)
-const anchorForm = reactive({ anchorUserId: undefined as number | undefined, platformType: undefined as string | undefined })
+const authorOptions = ref<AuthorListVO[]>([])
+const authorOptionsLoading = ref(false)
+const anchorForm = reactive({
+  authorId: undefined as number | undefined,
+  anchorType: undefined as string | undefined,
+})
 
-const handleBindAnchor = () => {
-  Object.assign(anchorForm, { anchorUserId: undefined, platformType: undefined })
+const loadAuthorOptions = async () => {
+  authorOptionsLoading.value = true
+  try {
+    const page = await getAuthorPage({ status: 1, page: 1, size: 200 })
+    const boundIds = new Set(anchorList.value.map((item) => item.authorId ?? item.anchorUserId))
+    authorOptions.value = page.list.filter((item) => !boundIds.has(item.id))
+  } catch (e) {
+    console.error('[IpGroup] 加载作者选项失败:', e)
+    authorOptions.value = []
+    ElMessage.error('作者选项加载失败')
+  } finally {
+    authorOptionsLoading.value = false
+  }
+}
+
+watch(() => anchorForm.authorId, (authorId) => {
+  if (!authorId) return
+  const selected = authorOptions.value.find((item) => item.id === authorId)
+  if (selected?.authorType && !anchorForm.anchorType) {
+    anchorForm.anchorType = selected.authorType
+  }
+})
+
+const handleBindAnchor = async () => {
+  Object.assign(anchorForm, { authorId: undefined, anchorType: undefined })
   anchorDialogVisible.value = true
+  await loadAuthorOptions()
 }
 const handleSubmitAnchor = async () => {
-  if (!anchorForm.anchorUserId) { ElMessage.warning('请选择主播'); return }
+  if (!anchorForm.authorId) { ElMessage.warning('请选择作者'); return }
   anchorSubmitting.value = true
   try {
     await bindIpGroupAnchors(currentNode.value.id, {
-      anchorUserId: anchorForm.anchorUserId,
-      platformType: anchorForm.platformType,
+      anchorUserIds: [anchorForm.authorId],
+      anchorType: anchorForm.anchorType,
     })
     ElMessage.success('已添加')
     anchorDialogVisible.value = false
@@ -770,9 +848,11 @@ const handleSubmitAnchor = async () => {
   }
 }
 const handleUnbindAnchor = async (row: any) => {
+  const authorName = row.authorName || row.anchorUserName || '该作者'
+  const authorId = row.authorId ?? row.anchorUserId
   try {
-    await ElMessageBox.confirm(`确认解绑【${row.anchorName}】？`, '提示', { type: 'warning' })
-    await unbindIpGroupAnchor(currentNode.value.id, row.id)
+    await ElMessageBox.confirm(`确认解绑【${authorName}】？`, '提示', { type: 'warning' })
+    await unbindIpGroupAnchor(currentNode.value.id, authorId)
     ElMessage.success('已解绑')
     await loadAnchors()
     await loadTree()

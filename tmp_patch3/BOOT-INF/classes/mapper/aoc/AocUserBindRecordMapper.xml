@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.aoc.AocUserBindRecordMapper">
+
+    <select id="getList" resultType="football.module.member.controller.admin.aoc.vo.AocUserBindRecordRespVO">
+        select aubr.*,
+               case
+                   when aubr.operate_type = 0 then ifnull(km.name, cast(aubr.operate as char))
+                   else cast(aubr.operate as char)
+               end as operateName
+        from aoc_user_bind_record aubr
+                 left join kf_manage km on aubr.operate = km.id and aubr.operate_type = 0
+        where aoc_user = #{aocUserId}
+        order by aubr.id desc
+    </select>
+
+    <select id="getPage" resultType="football.module.member.controller.admin.aoc.vo.AocUserBindRecordRespVO">
+        select aubr.*,
+               case
+                   when aubr.operate_type = 0 then ifnull(km.name, cast(aubr.operate as char))
+                   else cast(aubr.operate as char)
+               end as operateName
+        from aoc_user_bind_record aubr
+                 left join kf_manage km on aubr.operate = km.id and aubr.operate_type = 0
+        <where>
+            <if test="reqVO.id != null">
+                and aubr.aoc_user = #{reqVO.id}
+            </if>
+        </where>
+        order by aubr.id desc
+    </select>
+
+</mapper>

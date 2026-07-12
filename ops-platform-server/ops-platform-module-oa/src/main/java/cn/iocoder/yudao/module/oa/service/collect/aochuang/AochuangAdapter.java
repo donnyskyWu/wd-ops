@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.config.AoCreateApiDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.config.AoCreateAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.config.AoCreateApiMapper;
 import cn.iocoder.yudao.module.oa.service.config.ConfigTenantSupport;
+import cn.iocoder.yudao.module.oa.service.config.aochuang.AochuangAccountDTO;
 import cn.iocoder.yudao.module.oa.service.config.aochuang.AochuangApiClient;
 import cn.iocoder.yudao.module.oa.service.config.aochuang.AochuangFriendPageResult;
 import cn.iocoder.yudao.module.oa.service.config.aochuang.AochuangMessagePageResult;
@@ -32,6 +33,19 @@ public class AochuangAdapter {
         AoCreateAccountDO account = requireAoCreateAccount(aoCreateAccountId);
         AoCreateApiDO api = requireApiForAccount(account);
         return aochuangApiClient.listWechatAccounts(api, account.getAochuangAccountId());
+    }
+
+    public List<AochuangAccountDTO> listRemoteSubAccounts(String lastUpdateTime) {
+        AoCreateApiDO api = requireTenantApi();
+        return aochuangApiClient.listAccounts(api, lastUpdateTime).stream()
+                .filter(dto -> dto.getAccountType() != null
+                        && dto.getAccountType() == AochuangApiClient.ACCOUNT_TYPE_SUB)
+                .toList();
+    }
+
+    public List<AochuangAccountDTO> listRemoteAccounts(String lastUpdateTime) {
+        AoCreateApiDO api = requireTenantApi();
+        return aochuangApiClient.listAccounts(api, lastUpdateTime);
     }
 
     public AochuangFriendPageResult listFriends(Long aoCreateAccountId, String wechatAccountId,

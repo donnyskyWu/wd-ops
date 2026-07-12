@@ -1,0 +1,146 @@
+﻿baseline football menus: 931
+dump football menus: 1300
+added (dump - import baseline): 369
+
+## 作者管理 | author | +91 total (24 目录/菜单, 67 按钮)
+   - [118] 作者管理  (author) parent=0
+   - [119] 基本信息  (Author) parent=作者管理
+   - [5071] 作者信息  (info) parent=作者管理
+   - [120] 作者数据  (datas) parent=作者管理
+   - [121] 发布的方案  (scheme) parent=作者管理
+   - [122] 发布的套餐  (setMeal) parent=作者管理
+   - [5072] 发布的方案  (article) parent=作者管理
+   - [5084] 发布的套餐  (privilegeset) parent=作者管理
+   - [123] 作者粉丝  (fans) parent=作者管理
+   - [124] 订单记录  (record) parent=作者管理
+   - [5085] 作者粉丝2  (attention) parent=作者管理
+   - [125] 新媒体账号管理  (media) parent=作者管理
+   ... 另有 12 个目录/菜单项
+
+## 我的发布 | release | +56 total (16 目录/菜单, 40 按钮)
+   - [133] 我的发布  (release) parent=0
+   - [136] 发布方案  (amphipoda) parent=我的发布
+   - [134] 方案列表  (scheme) parent=我的发布
+   - [135] 套餐列表  (Release) parent=我的发布
+   - [5207] 方案数据  (scheme/database) parent=我的发布
+   - [5114] 套餐列表  (privileglist) parent=我的发布
+   - [138] 发布套餐  (setMeal) parent=我的发布
+   - [5117] 套餐数据  (privileglist/database) parent=我的发布
+   - [5378] 直播总结列表  (article/live) parent=我的发布
+   - [5379] 公推列表  (article/recommend) parent=我的发布
+   - [5206] 方案管理  (article) parent=我的发布
+   - [5115] 套餐管理  (PackageManagement) parent=我的发布
+   ... 另有 4 个目录/菜单项
+
+## 系统管理 | /system | +33 total (9 目录/菜单, 24 按钮)
+   - [117] 平台配置  (platform) parent=系统管理
+   - [5347] APP菜单开关  (app-menu) parent=系统管理
+   - [5043] app版本管理  (version) parent=系统管理
+   - [5048] app轮播图管理  (banner) parent=系统管理
+   - [5108] app内容配置  (contentconfig) parent=系统管理
+   - [5218] app埋点日志  (event-log) parent=系统管理
+   - [5053] 意见反馈  (userfeedback) parent=系统管理
+   - [5058] 帮助中心  (helpcenter) parent=系统管理
+   - [5358] 客服管理  (customer) parent=系统管理
+
+## 营销管理 | /marketing | +33 total (7 目录/菜单, 26 按钮)
+   - [5204] 营销管理  (/marketing) parent=0
+   - [5205] 代金券  (voucher) parent=营销管理
+   - [5216] 活动管理  (activity) parent=营销管理
+   - [5217] 活动关联  (activity) parent=营销管理
+   - [5224] 渠道推广码  (channel) parent=营销管理
+   - [5359] 料码统计分析  (channelStatistics) parent=营销管理
+   - [5384] 推广员统计分析  (referrerStatistics) parent=营销管理
+
+## 公众号管理 | /mp | +22 total (11 目录/菜单, 11 按钮)
+   - [5315] 分组管理  (group) parent=公众号管理
+   - [5319] 号池管理  (pool) parent=公众号管理
+   - [5221] 报表统计  (mp/report-statistics) parent=公众号管理
+   - [5200] 公众号轮询关注  (attention) parent=公众号管理
+   - [5201] 推送模板配置  (template) parent=公众号管理
+   - [5202] 推送模板记录  (record) parent=公众号管理
+   - [5222] 公众号作者数据  (author-account-data) parent=报表统计
+   - [5223] 作者私域数据报表  (author-private-data) parent=报表统计
+   - [5232] 平台运营数据报表  (platform-operation-data) parent=报表统计
+   - [5233] 作者销售报表  (author-sale-report) parent=报表统计
+   - [5239] 投入产出报表  (author-in-out-report) parent=报表统计
+
+## 赛事管理 | /match | +17 total (4 目录/菜单, 13 按钮)
+   - [3] 赛事管理  (/match) parent=0
+   - [5073] 资讯管理  (news) parent=赛事管理
+   - [5158] 热门赛事管理  (matchConfig) parent=赛事管理
+   - [5351] 竞彩单场配置  (single) parent=赛事管理
+
+## 财务管理 | /financial | +17 total (8 目录/菜单, 9 按钮)
+   - [5185] 财务管理  (/financial) parent=0
+   - [5186] 支付分账配置  (config) parent=财务管理
+   - [5187] 商户管理  (merchant) parent=财务管理
+   - [5188] 分账流水明细  (serial) parent=财务管理
+   - [5190] 分账提现明细  (withdraw) parent=财务管理
+   - [5191] 线下提现明细  (offline) parent=财务管理
+   - [5189] 商户账户余额  (balance) parent=财务管理
+   - [5350] 提现管理  (withdrawrecord) parent=财务管理
+
+## 直播管理 | /live | +17 total (4 目录/菜单, 13 按钮)
+   - [5245] 直播管理  (/live) parent=0
+   - [5252] 商品管理  (product) parent=直播管理
+   - [5246] 直播间管理  (room) parent=直播管理
+   - [5253] 商品详情  (product) parent=商品管理
+
+## 支付管理 | /pay | +14 total (2 目录/菜单, 12 按钮)
+   - [5129] 鱼币充值  (goldorder) parent=支付管理
+   - [5175] 新人活动  (activity) parent=支付管理
+
+## 玩法管理 | /playmanage | +13 total (4 目录/菜单, 9 按钮)
+   - [5067] 玩法管理  (/playmanage) parent=0
+   - [5068] 比赛玩法  (play) parent=玩法管理
+   - [5069] 玩法类型  (playtype) parent=玩法管理
+   - [5070] 方案玩法  (scheme) parent=玩法管理
+
+## CRM 系统 | /crm | +12 total (3 目录/菜单, 9 按钮)
+   - [5323] 客服  (customer) parent=CRM 系统
+   - [5324] 客服管理  (kf-manage) parent=客服
+   - [5325] 微信客户  (aoc-user) parent=客服
+
+## 站点管理 | /station | +12 total (4 目录/菜单, 8 按钮)
+   - [5367] 站点管理  (/station) parent=0
+   - [5366] 域名配置  (domain/index) parent=站点管理
+   - [5368] 授权号配置  (auth-account/index) parent=站点管理
+   - [5369] 域名访问模式  (access-mode/index) parent=站点管理
+
+## 会员中心 | /member | +7 total (2 目录/菜单, 5 按钮)
+   - [5329] 风险计分  (risk) parent=会员中心
+   - [5332] 黑名单管理  (blacklist) parent=会员中心
+
+## 合伙人管理 | /partner | +7 total (7 目录/菜单, 0 按钮)
+   - [5313] 合伙人管理  (/partner) parent=0
+   - [5314] 合伙人审核  (apply) parent=合伙人管理
+   - [5326] 合伙人管理  (manage) parent=合伙人管理
+   - [5327] 合伙人订单  (order) parent=合伙人管理
+   - [5328] 业绩统计  (performance) parent=合伙人管理
+   - [5330] 合伙人全局设置  (config) parent=合伙人管理
+   - [5331] 结算统计  (settlement) parent=合伙人管理
+
+## 企微管理 | /wecom | +6 total (6 目录/菜单, 0 按钮)
+   - [5362] 企微管理  (/wecom) parent=0
+   - [5365] 企微配置  (config) parent=企微管理
+   - [5363] 企微活码  (qr-code) parent=企微管理
+   - [5364] 统计数据  (live-code-stat) parent=企微管理
+   - [5391] 企微获客链接  (acquisition-link) parent=企微管理
+   - [5390] 个微管理  (wechat) parent=企微管理
+
+## (orphan) |  | +5 total (1 目录/菜单, 4 按钮)
+   - [5227] 新建直播  (room) parent=5226
+
+## 报表统计 | /report | +5 total (5 目录/菜单, 0 按钮)
+   - [5262] 平台运营数据报表  (platform-operation-data) parent=报表统计
+   - [5263] 作者销售报表  (author-sale-report) parent=报表统计
+   - [5264] 作者私域数据报表  (author-private-data) parent=报表统计
+   - [5265] 作者公众号数据报表  (author-account-data) parent=报表统计
+   - [5266] 投入产出报表  (author-in-out-report) parent=报表统计
+
+## 数据看版 | /dashboard | +2 total (2 目录/菜单, 0 按钮)
+   - [5386] 数据看版  (/dashboard) parent=0
+   - [5387] 工作台  (workspace) parent=数据看版
+
+Wrote ids: d:\self\sy\运营数据平台\202606\wd\docs\delivery\tmp-v137-added-menu-ids.txt

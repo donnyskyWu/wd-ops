@@ -134,6 +134,7 @@ import {
   type DashboardWidgetResult,
   type DataScreenScope,
 } from '@/types/dataScreen'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const DEFAULT_INTERNAL_ID = 98601
 const DEFAULT_EXTERNAL_ID = 98602
@@ -373,13 +374,13 @@ const switchScope = (scope: DataScreenScope) => {
   })
   if (target && target.id !== selectedDashboardId.value) {
     selectedDashboardId.value = target.id
-    router.replace({ path: `/screen/${target.id}` })
+    router.replace(opsRouteTo({ name: 'DataScreenFullscreenById', params: { id: String(target.id) } }))
     loadData()
   }
 }
 
 const onTemplateChange = () => {
-  router.replace({ path: `/screen/${selectedDashboardId.value}` })
+  router.replace(opsRouteTo({ name: 'DataScreenFullscreenById', params: { id: String(selectedDashboardId.value) } }))
   const d = dashboards.value.find((x) => x.id === selectedDashboardId.value)
   if (d) currentScope.value = parseLayout(d.layout).scope
   loadData()
@@ -431,7 +432,7 @@ onMounted(async () => {
     selectedDashboardId.value = routeId
   } else {
     selectedDashboardId.value = DEFAULT_INTERNAL_ID
-    router.replace({ path: `/screen/${DEFAULT_INTERNAL_ID}` })
+    router.replace(opsRouteTo({ name: 'DataScreenFullscreenById', params: { id: String(DEFAULT_INTERNAL_ID) } }))
   }
   await loadData()
   setupAutoRefresh()

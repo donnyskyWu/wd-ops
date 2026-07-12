@@ -56,6 +56,58 @@
             </template>
           </el-table-column>
         </el-table>
+
+        <el-divider content-position="left">奥创远程子账号</el-divider>
+        <div style="margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap">
+          <el-button type="primary" :loading="remoteFetchLoading" @click="handleFetchRemoteAccounts">
+            拉取奥创子账号
+          </el-button>
+          <el-button
+            type="success"
+            :disabled="!remoteSelectedIds.length"
+            :loading="remoteSyncLoading"
+            @click="handleSyncSelectedRemote"
+          >
+            导入选中
+          </el-button>
+          <el-button type="success" plain :loading="remoteSyncAllLoading" @click="handleSyncAllRemote">
+            全部导入/同步
+          </el-button>
+        </div>
+        <el-table
+          :data="remoteAccountList"
+          border
+          stripe
+          v-loading="remoteFetchLoading"
+          @selection-change="handleRemoteSelectionChange"
+        >
+          <el-table-column type="selection" width="48" :selectable="row => !row.synced" />
+          <el-table-column prop="userName" label="用户名" min-width="120" />
+          <el-table-column prop="accountId" label="奥创 AccountId" min-width="140" />
+          <el-table-column prop="status" label="状态" width="90" align="center" />
+          <el-table-column prop="department" label="部门" min-width="120" />
+          <el-table-column prop="updateDate" label="更新时间" width="170" />
+          <el-table-column label="本地" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="row.synced" type="success" size="small">已同步</el-tag>
+              <el-tag v-else type="info" size="small">未同步</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="100" fixed="right" align="center">
+            <template #default="{ row }">
+              <el-button
+                v-if="!row.synced"
+                link
+                type="primary"
+                :loading="remoteRowSyncId === row.accountId"
+                @click="handleSyncOneRemote(row)"
+              >
+                导入
+              </el-button>
+              <span v-else>—</span>
+            </template>
+          </el-table-column>
+        </el-table>
       </el-card>
     </ContentWrap>
 
@@ -87,7 +139,7 @@ import ContentWrap from '@/components/ContentWrap.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
 import WeworkAppConfigPanel from '@/components/WeworkAppConfigPanel.vue'
-import { internalCollectApi, type AoCreateAccountVO } from '@/api/config'
+import { internalCollectApi, type AoCreateAccountVO, type AochuangRemoteAccountVO } from '@/api/config'
 
 const platformTabs = [
   { label: '企业微信', value: 'WEWORK' },
@@ -103,6 +155,12 @@ const aoAccountLoading = ref(false)
 const aoAccountDialogVisible = ref(false)
 const aoAccountSubmitLoading = ref(false)
 const aoTestLoadingId = ref<number | null>(null)
+const remoteAccountList = ref<AochuangRemoteAccountVO[]>([])
+const remoteFetchLoading = ref(false)
+const remoteSyncLoading = ref(false)
+const remoteSyncAllLoading = ref(false)
+const remoteRowSyncId = ref<string | null>(null)
+const remoteSelectedIds = ref<string[]>([])
 const aoAccountFormRef = ref<FormInstance>()
 const aoAccountForm = reactive({
   id: undefined as number | undefined,
@@ -212,6 +270,74 @@ const handleAoAccountDelete = async (row: AoCreateAccountVO) => {
   await internalCollectApi.deleteAoCreateAccount(row.id)
   ElMessage.success('删除成功')
   await loadAoAccounts()
+}
+
+const handleFetchRemoteAccounts = async () => {
+  remoteFetchLoading.value = true
+  try {
+    remoteAccountList.value = await internalCollectApi.listRemoteAoCreateAccounts()
+    remoteSelectedIds.value = []
+    ElMessage.success(`已拉取 ${remoteAccountList.value.length} 个奥创子账号`)
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : '拉取失败'
+    ElMessage.error(msg)
+  } finally {
+    remoteFetchLoading.value = false
+  }
+}
+
+const handleRemoteSelectionChange = (rows: AochuangRemoteAccountVO[]) => {
+  remoteSelectedIds.value = rows.filter(r => !r.synced).map(r => r.accountId)
+}
+
+const showSyncResult = (result: { successCount: number; skipCount: number; failCount: number; failReasons?: string[] }) => {
+  const parts = [`成功 ${result.successCount}`, `跳过 ${result.skipCount}`]
+  if (result.failCount > 0) {
+    parts.push(`失败 ${result.failCount}`)
+  }
+  ElMessage.success(`同步完成：${parts.join('，')}`)
+  if (result.failReasons?.length) {
+    ElMessage.warning(result.failReasons.join('；'))
+  }
+}
+
+const handleSyncOneRemote = async (row: AochuangRemoteAccountVO) => {
+  remoteRowSyncId.value = row.accountId
+  try {
+    const result = await internalCollectApi.syncRemoteAoCreateAccounts({
+      aochuangAccountIds: [row.accountId],
+    })
+    showSyncResult(result)
+    await Promise.all([loadAoAccounts(), handleFetchRemoteAccounts()])
+  } finally {
+    remoteRowSyncId.value = null
+  }
+}
+
+const handleSyncSelectedRemote = async () => {
+  if (!remoteSelectedIds.value.length) return
+  remoteSyncLoading.value = true
+  try {
+    const result = await internalCollectApi.syncRemoteAoCreateAccounts({
+      aochuangAccountIds: remoteSelectedIds.value,
+    })
+    showSyncResult(result)
+    await Promise.all([loadAoAccounts(), handleFetchRemoteAccounts()])
+  } finally {
+    remoteSyncLoading.value = false
+  }
+}
+
+const handleSyncAllRemote = async () => {
+  await ElMessageBox.confirm('将导入/更新全部远程子账号到本地列表，是否继续？', '全部同步', { type: 'info' })
+  remoteSyncAllLoading.value = true
+  try {
+    const result = await internalCollectApi.syncRemoteAoCreateAccounts({ syncAll: true })
+    showSyncResult(result)
+    await Promise.all([loadAoAccounts(), handleFetchRemoteAccounts()])
+  } finally {
+    remoteSyncAllLoading.value = false
+  }
 }
 
 onMounted(() => {

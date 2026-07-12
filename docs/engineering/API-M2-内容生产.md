@@ -351,6 +351,8 @@
 | aiGenerated | Integer | `dict_yes_no` |
 | pageNum / pageSize | Integer | - |
 
+**数据范围**（BR-006）：非 ALL 权限用户自动过滤为「本人关联内容」——创建者、绑定作者、任务指派人在数据范围用户集内；审核队列状态 + 具备审核列表权限时不过滤（一级审核无全量时仍限本 IP 组）。
+
 ---
 
 ### 3.2 POST `/admin-api/oa/content/create`
@@ -530,18 +532,38 @@
 
 ```json
 {
-  "contentId": 100,
   "modelId": 1,
   "promptId": 2,
-  "competitionId": "123456789",
   "contentType": "ARTICLE",
-  "documentType": "SHORT_VIDEO_SCRIPT"
+  "documentType": "POST_MATCH_REVIEW",
+  "competitionId": "20260626001",
+  "competitionName": "2026 中超联赛 第 12 轮 上海申花 2:1 山东泰山",
+  "taskId": 8801,
+  "ipGroupId": 9001,
+  "authorId": 68028,
+  "authorName": "李四",
+  "historicalRecord": "近5场3胜1平1负",
+  "matchDirection": "主队受让",
+  "streamerPersona": "理性分析型",
+  "revisionFeedback": "加强结尾互动",
+  "lengthType": "MEDIUM"
 }
 ```
 
-- `modelId` → M8 `oa_ai_model_config` 已启用记录
-- `promptId` → M8 提示词（含 `content_type` / `document_type` 字段，V69）
-- 后端 HTTP 调 LLM，写入 `body` 或视频 URL（短视频 BLK-M2-010 部分占位）
+| 字段 | 必填 | 说明 |
+|------|------|------|
+| `modelId` | ✅ | M8 `oa_ai_model_config` 已启用记录 |
+| `promptId` | ✅ | M8 提示词；须与 `contentType`/`documentType` 匹配 |
+| `contentType` | ✅ | `@InDict("dict_content_type")` |
+| `documentType` | 条件 | `contentType=ARTICLE` 时必填 |
+| `competitionId` / `competitionName` | 推荐 | 赛事解析优先级见 API-REQ-M2 |
+| `taskId` | ❌ | 任务驱动创作 |
+| `ipGroupId` | ❌ | 校验作者归属 |
+| `authorId` / `authorName` | ❌ | 填充 `{{author}}`；`authorId` = `author_user.id` |
+| `historicalRecord` / `matchDirection` / `streamerPersona` / `revisionFeedback` | ❌ | V134 提示词占位符 |
+| `lengthType` | ❌ | `@InDict("dict_content_length_type")`：SHORT/MEDIUM/LONG |
+
+- 后端 HTTP 调 LLM（`oa.ai-generate.llm-timeout-seconds` 默认 300s），写入 `body` 或返回占位（模型未连通时 `mock=true`）
 
 **响应**：`ContentAiGenerateResultVO`（生成文本/URL）
 

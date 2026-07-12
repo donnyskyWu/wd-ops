@@ -9,13 +9,12 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.api.dto.phone.PhoneCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.phone.PhoneRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.phone.PhoneUpdateReq;
-import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.phone.PhoneDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.realname.RealnameDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.phone.PhoneMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.realname.RealnameMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -37,7 +36,7 @@ public class PhoneServiceImpl implements PhoneService {
 
     private final PhoneMapper phoneMapper;
     private final RealnameMapper realnameMapper;
-    private final SysUserMapper sysUserMapper;
+    private final FootballSystemUserValidator footballSystemUserValidator;
     private final AesUtil aesUtil;
 
     @Override
@@ -227,13 +226,7 @@ public class PhoneServiceImpl implements PhoneService {
     }
 
     private void assertKeeperInTenant(Long keeperId, Long tenantId) {
-        SysUserDO user = sysUserMapper.selectById(keeperId);
-        if (user == null) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "保管人不存在");
-        }
-        if (!tenantId.equals(user.getTenantId())) {
-            throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
-        }
+        footballSystemUserValidator.assertInTenant(keeperId, tenantId, "保管人不存在");
     }
 
     private Map<Long, String> loadRealNames(List<PhoneDO> records) {
@@ -261,11 +254,7 @@ public class PhoneServiceImpl implements PhoneService {
         if (ids.isEmpty()) {
             return Collections.emptyMap();
         }
-        List<SysUserDO> list = sysUserMapper.selectBatchIds(ids);
-        if (list == null || list.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        return list.stream().collect(Collectors.toMap(SysUserDO::getId, SysUserDO::getNickname, (a, b) -> a));
+        return footballSystemUserValidator.loadNicknames(ids);
     }
 
     private Long requireTenantId() {

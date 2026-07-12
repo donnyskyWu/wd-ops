@@ -74,7 +74,7 @@
       />
     </ContentWrap>
 
-    <el-drawer v-model="detailVisible" title="操作日志详情" size="500px">
+    <el-drawer direction="rtl" append-to-body v-model="detailVisible" title="操作日志详情" size="500px">
       <el-descriptions v-if="current" :column="1" border>
         <el-descriptions-item label="操作用户">{{ current.userName }}</el-descriptions-item>
         <el-descriptions-item label="模块">{{ LOG_MODULE_LABEL[current.module] || current.module }}</el-descriptions-item>

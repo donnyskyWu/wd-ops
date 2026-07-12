@@ -22,6 +22,14 @@ public interface SysUserTokenMapper extends BaseMapper<SysUserTokenDO> {
     SysUserDO selectUserByToken(@Param("token") String token);
 
     @Select("""
+            SELECT u.* FROM sys_user u
+            WHERE u.username = #{username} AND u.tenant_id = #{tenantId}
+              AND u.deleted = 0 AND u.status = 'ENABLED'
+            LIMIT 1
+            """)
+    SysUserDO selectUserByUsernameAndTenant(@Param("username") String username, @Param("tenantId") Long tenantId);
+
+    @Select("""
             SELECT r.* FROM sys_role r
             INNER JOIN sys_user_role ur ON ur.role_id = r.id
             WHERE ur.user_id = #{userId} AND r.deleted = 0

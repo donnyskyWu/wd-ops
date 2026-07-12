@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.privilegeset.MemberAuthorPrivilegeMapper">
+
+
+    <select id="getAvailableList"
+            resultType="football.module.member.api.privilege.dto.MemberAuthorPrivilegeDTO">
+
+        <!-- type = 0 分支 -->
+        SELECT
+        id, order_id,user_id, author_id, privilege_id,parent_privilege_id, type,start_date, end_date, num
+        FROM member_author_privilege
+        WHERE
+        user_id = #{userId}
+        AND author_id = #{authorId}
+        AND status > 0
+        AND type = 0
+        AND (num > 0 or num is null)
+        AND end_date > NOW()
+        <if test="privilegeIds != null and !privilegeIds.isEmpty()">
+            AND privilege_id IN
+            <foreach collection="privilegeIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+
+        UNION ALL
+
+        <!-- type = 1 分支 -->
+        SELECT
+        id, order_id,user_id, author_id, privilege_id,parent_privilege_id, type,start_date, end_date, num
+        FROM member_author_privilege
+        WHERE
+        user_id = #{userId}
+        AND author_id = #{authorId}
+        AND status > 0
+        AND type = 1
+        AND end_date > NOW()
+        <if test="privilegeIds != null and !privilegeIds.isEmpty()">
+            AND privilege_id IN
+            <foreach collection="privilegeIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+    </select>
+
+
+
+
+    <select id="getAvailableSubscribeList"
+            resultType="football.module.member.api.privilege.dto.MemberAuthorPrivilegeDTO">
+
+        SELECT
+        id,order_id, user_id, author_id, privilege_id, parent_privilege_id,type,start_date, end_date, num
+        FROM member_author_privilege
+        WHERE
+        user_id = #{userId}
+        AND author_id = #{authorId}
+        AND status > 0
+        AND type = 0
+        AND (num > 0 or num is null)
+        AND end_date > NOW()
+        order by id asc
+    </select>
+
+
+
+    <select id="getAvailableColumnList"
+            resultType="football.module.member.api.privilege.dto.MemberAuthorPrivilegeDTO">
+        SELECT
+        id, order_id,user_id, author_id, privilege_id,parent_privilege_id, type,start_date, end_date, num
+        FROM member_author_privilege
+        WHERE
+        user_id = #{userId}
+        AND author_id = #{authorId}
+        AND status > 0
+        AND type = 1
+        AND end_date > NOW()
+        order by id asc
+    </select>
+
+    <select id="getMemberPrivilegeInfo" resultType="football.module.member.api.privilege.dto.MemberAuthorPrivilegeDTO">
+        SELECT
+        child.id AS privilege_id,
+        parent.name,
+        child.days,
+        child.numbers,
+        b.id,
+        b.order_id,
+        b.end_date,
+        b.num
+        FROM member_author_privilege b
+        <!-- 关联子级套餐配置（必须存在） -->
+        INNER JOIN author_privilege_set child ON child.id = b.privilege_id
+        <!-- 关联父级套餐名称（允许为空） -->
+        LEFT JOIN author_privilege_set parent ON child.parent_id = parent.id
+        <where>
+            <!-- 只查子级记录（有天数/次数） -->
+            AND child.parent_id > 0
+
+            <!-- 订单ID IN 查询 -->
+            <if test="orderIds != null and orderIds.size() > 0">
+                AND b.order_id IN
+                <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+                    #{orderId}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+
+</mapper>

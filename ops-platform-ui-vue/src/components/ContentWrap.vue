@@ -27,15 +27,17 @@ withDefaults(defineProps<Props>(), {
 
 <style scoped lang="scss">
 .content-wrap {
-  background-color: #fff;
+  background-color: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--el-box-shadow-light);
   padding: 20px;
   margin-bottom: 16px;
   transition: all 0.3s ease;
+  color: var(--el-text-color-primary);
 
   &:hover {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--el-box-shadow);
   }
 
   &__header {
@@ -44,13 +46,13 @@ withDefaults(defineProps<Props>(), {
     justify-content: space-between;
     margin-bottom: 16px;
     padding-bottom: 12px;
-    border-bottom: 1px solid #ebeef5;
+    border-bottom: 1px solid var(--el-border-color-lighter);
   }
 
   &__title {
     font-size: 16px;
     font-weight: 600;
-    color: #303133;
+    color: var(--el-text-color-primary);
     position: relative;
     padding-left: 12px;
 
@@ -62,7 +64,11 @@ withDefaults(defineProps<Props>(), {
       transform: translateY(-50%);
       width: 3px;
       height: 16px;
-      background: linear-gradient(180deg, #1890ff, #40a9ff);
+      background: linear-gradient(
+        180deg,
+        var(--el-color-primary),
+        var(--el-color-primary-light-3)
+      );
       border-radius: 2px;
     }
   }

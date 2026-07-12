@@ -124,6 +124,8 @@ public final class CollectPlatformDefaults {
         slice.setTenantId(task.getTenantId());
         slice.setPlatformType(task.getPlatformType());
         slice.setAccountId(task.getAccountId());
+        slice.setCollectConfigId(task.getCollectConfigId());
+        slice.setCredentialProfile(task.getCredentialProfile());
         slice.setMethod(task.getMethod());
         slice.setSource(task.getSource());
         slice.setDataType(normalizeSentinel(dataType));

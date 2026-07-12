@@ -34,6 +34,7 @@ import {
   User,
   Bell,
 } from '@element-plus/icons-vue'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const router = useRouter()
 
@@ -49,7 +50,7 @@ const reports = [
 ] as any[]
 
 const goReport = (path: string) => {
-  router.push(path)
+  router.push(opsRouteTo(path))
 }
 </script>
 

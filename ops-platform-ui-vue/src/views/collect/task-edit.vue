@@ -103,6 +103,7 @@ import DictSelect from '@/components/DictSelect.vue'
 import AccountSelect from '@/components/selectors/AccountSelect.vue'
 import WeworkAccountSelect from '@/components/selectors/WeworkAccountSelect.vue'
 import { getCollectTaskDetail, createCollectTask, updateCollectTask } from '@/api/collect'
+import { opsRouteTo } from '@/utils/ops-route'
 
 type PlatformDefaults = {
   source: string
@@ -274,7 +275,7 @@ const handleSubmit = async () => {
       await createCollectTask(payload as any)
       ElMessage.success('创建成功')
     }
-    router.push('/collect/task')
+    router.push(opsRouteTo({ name: 'CollectTask' }))
   } catch (e: any) {
     ElMessage.error(e?.message || '保存失败')
   } finally {

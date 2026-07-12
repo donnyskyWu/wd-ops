@@ -69,6 +69,7 @@
     "memberCount": 3,
     "accountCount": 12,
     "anchorCount": 2,
+    "level": "A",
     "children": [
       { "id": 11, "groupName": "八卦一组", "groupType": "SMALL", "parentId": 1, "...": "..." }
     ]
@@ -100,10 +101,17 @@
   "groupType": "BIG",
   "parentId": null,
   "leaderUserId": 100,
+  "level": "A",
   "description": "...",
   "status": 1
 }
 ```
+
+**字段说明**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `level` | String | ❌ | IP 组等级，`@InDict("dict_ip_group_level")`：S/A/B/C；空=未分级 |
 
 **响应**：`Long`（新 ID）
 
@@ -129,6 +137,7 @@
 | `leaderUserId` | Long | ❌ | 组长用户 ID（与 `leaderId` 等价，优先用此字段） |
 | `sortOrder` | Integer | ❌ | 排序 |
 | `status` | Integer | ❌ | 状态（0/1） |
+| `level` | String | ❌ | IP 组等级，`@InDict("dict_ip_group_level")`：S/A/B/C |
 | `remark` | String | ❌ | 备注 |
 
 **校验**：
@@ -206,18 +215,25 @@
 
 ### 2.12 POST `/admin-api/oa/ip-group/{id}/anchors`
 
-绑定主播到 IP 组。
+绑定**关联作者**到 IP 组（DB 列名 `anchor_user_id` 保留；语义为 `author_user.id`，见 ADR-051）。
 
 **请求体**：
 
 ```json
 {
-  "anchorUserIds": [301, 302],
+  "anchorUserIds": [68028, 68029],
   "anchorType": "BOTH"
 }
 ```
 
+| 字段 | 说明 |
+|------|------|
+| `anchorUserIds` | **作者 ID 列表**（`author_user.id` / API 别名 `authorId`）；**非** `sys_user.id` |
+| `anchorType` | `@InDict("dict_author_type")`；可空，默认取作者档案类型 |
+
 **响应**：`Boolean`
+
+**列表 GET `.../anchors` 响应** `IpGroupAnchorVO`：含 `authorId`/`authorName`（展示）与 `anchorUserId`/`anchorUserName`（兼容别名）。
 
 ### 2.13 GET `/admin-api/oa/ip-group/{id}/stats`
 
@@ -585,7 +601,7 @@ M1 中所有 `*_id` 字段必须通过选择器：
 | `account_id` | `<AccountSelect />`（**强关联** ⭐，需从 M4 选择） |
 | `author_id` | `<UserSelect />` |
 | `assignee_id` | `<UserSelect />` |
-| `anchor_user_id` | `<UserSelect />` |
+| `anchor_user_id` | **作者选择器**（`author_user.id`） |
 | `ops_user_id` | `<UserSelect />` |
 | `metric_id` | `<MetricSelect />` |
 
@@ -598,6 +614,7 @@ M1 中所有 `*_id` 字段必须通过选择器：
 | `account_status` | `dict_account_status` |
 | `ip_group_type` | `dict_ip_group_type` |
 | `ip_group_status` | `dict_ip_group_status` |
+| `level` | `dict_ip_group_level` |
 | `author_type` | `dict_author_type` |
 | `author_status` | `dict_author_status` |
 | `content_type` | `dict_content_type` |

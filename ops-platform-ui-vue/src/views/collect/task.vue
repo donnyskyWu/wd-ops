@@ -122,6 +122,7 @@ import {
   stopCollectTask,
   deleteCollectTask,
 } from '@/api/collect'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const STARTABLE_STATUSES = new Set(['PENDING', 'STOPPED', 'FAILED'])
 const STOPPABLE_STATUSES = new Set(['RUNNING'])
@@ -181,8 +182,8 @@ const handleReset = () => {
   loadData()
 }
 
-const handleAdd = () => router.push('/collect/task/0')
-const handleEdit = (row: any) => router.push(`/collect/task/${row.id}`)
+const handleAdd = () => router.push(opsRouteTo({ name: 'CollectTaskEdit', params: { id: '0' } }))
+const handleEdit = (row: any) => router.push(opsRouteTo({ name: 'CollectTaskEdit', params: { id: String(row.id) } }))
 
 const handleRun = async (row: any) => {
   try {
@@ -245,7 +246,7 @@ const handleStop = async (row: any) => {
     actionType.value = null
   }
 }
-const handleViewLog = (row: any) => router.push({ path: '/collect/log', query: { taskId: row.id } })
+const handleViewLog = (row: any) => router.push(opsRouteTo({ name: 'CollectLog', query: { taskId: String(row.id) } }))
 const handleDelete = async (row: any) => {
   try {
     await ElMessageBox.confirm(`确认删除【${row.name}】？`, '危险操作', { type: 'error' })

@@ -1,11 +1,12 @@
 -- M4 S-06: 平台账号强关联字段扩展
+-- 为oa_account表添加公司、实名人、中介、账号类型、IP组和Cookie等关联字段
 
-ALTER TABLE oa_account ADD COLUMN company_id BIGINT NULL;
-ALTER TABLE oa_account ADD COLUMN realname_id BIGINT NULL;
-ALTER TABLE oa_account ADD COLUMN intermediary_id BIGINT NULL;
-ALTER TABLE oa_account ADD COLUMN account_type VARCHAR(32) NULL;
-ALTER TABLE oa_account ADD COLUMN ip_group_id BIGINT NULL;
-ALTER TABLE oa_account ADD COLUMN cookie_encrypted VARCHAR(512) NULL;
+ALTER TABLE oa_account ADD COLUMN company_id BIGINT NULL COMMENT '所属公司ID';
+ALTER TABLE oa_account ADD COLUMN realname_id BIGINT NULL COMMENT '实名人ID';
+ALTER TABLE oa_account ADD COLUMN intermediary_id BIGINT NULL COMMENT '中介ID';
+ALTER TABLE oa_account ADD COLUMN account_type VARCHAR(32) NULL COMMENT '账号类型: OFFICIAL_ACCOUNT-官方账号, PERSONAL_ACCOUNT-个人账号, SERVICE_ACCOUNT-服务号';
+ALTER TABLE oa_account ADD COLUMN ip_group_id BIGINT NULL COMMENT 'IP组ID';
+ALTER TABLE oa_account ADD COLUMN cookie_encrypted VARCHAR(512) NULL COMMENT 'Cookie（加密）';
 
 CREATE UNIQUE INDEX uk_oa_account_platform_ext ON oa_account (tenant_id, platform_type, external_account_id);
 

@@ -1,0 +1,156 @@
+[
+  {
+    "title": "外部账号分析",
+    "football_path": "/ops/external-account",
+    "api": "/admin-api/oa/monitor/external/list?pageNum=1&pageSize=1",
+    "api_ok": true,
+    "code": 0,
+    "data": "page list=1 total=19",
+    "theme_ok": true,
+    "fixed": false,
+    "notes": ""
+  },
+  {
+    "title": "高粉账号分析",
+    "football_path": "/ops/high-fans-account",
+    "api": "/admin-api/oa/monitor/high-follower/list?pageNum=1&pageSize=1",
+    "api_ok": true,
+    "code": 0,
+    "data": "page list=1 total=1",
+    "theme_ok": true,
+    "fixed": false,
+    "notes": ""
+  },
+  {
+    "title": "爆款作品分析",
+    "football_path": "/ops/hot-works",
+    "api": "/admin-api/oa/monitor/hit/list?pageNum=1&pageSize=1",
+    "api_ok": true,
+    "code": 0,
+    "data": "page list=1 total=7",
+    "theme_ok": true,
+    "fixed": false,
+    "notes": ""
+  },
+  {
+    "title": "IP主题数据",
+    "football_path": "/ops/ip-theme",
+    "api": "/admin-api/oa/monitor/ip-theme/1",
+    "api_ok": true,
+    "code": 0,
+    "data": "object keys=['topTitles', 'ipGroupId', 'workCount', 'totalPlay']",
+    "theme_ok": true,
+    "fixed": false,
+    "notes": ""
+  },
+  {
+    "title": "低粉账号分析",
+    "football_path": "/ops/low-fans-account",
+    "api": "/admin-api/oa/monitor/low-follower/list?pageNum=1&pageSize=1",
+    "api_ok": true,
+    "code": 0,
+    "data": "page list=0 total=0",
+    "theme_ok": true,
+    "fixed": false,
+    "notes": ""
+  },
+  {
+    "title": "低分作品分析",
+    "football_path": "/ops/low-score",
+    "api": "/admin-api/oa/monitor/low-score/list?pageNum=1&pageSize=1",
+    "api_ok": true,
+    "code": 0,
+    "data": "page list=1 total=4",
+    "theme_ok": true,
+    "fixed": false,
+    "notes": ""
+  },
+  {
+    "title": "内容管理",
+    "football_path": "/ops/content",
+    "api": "/admin-api/oa/content/list?pageNum=1&pageSize=1",
+    "api_ok": true,
+    "code": 0,
+    "data": "page list=1 total=21",
+    "theme_ok": true,
+    "fixed": false,
+    "notes": ""
+  },
+  {
+    "title": "内容审核",
+    "football_path": "/ops/content/review",
+    "api": "/admin-api/oa/content/list?pageNum=1&pageSize=1",
+    "api_ok": true,
+    "code": 0,
+    "data": "page list=1 total=21",
+    "theme_ok": true,
+    "fixed": false,
+    "notes": ""
+  },
+  {
+    "title": "内容知识库",
+    "football_path": "/ops/knowledge",
+    "api": "/admin-api/oa/knowledge/list?pageNo=1&pageSize=1",
+    "api_ok": true,
+    "code": 0,
+    "data": "page list=1 total=12",
+    "theme_ok": true,
+    "fixed": false,
+    "notes": ""
+  },
+  {
+    "title": "公推模板库",
+    "football_path": "/ops/layout-template",
+    "api": "/admin-api/oa/layout-template/list?pageNo=1&pageSize=1",
+    "api_ok": true,
+    "code": 0,
+    "data": "page list=1 total=15",
+    "theme_ok": true,
+    "fixed": false,
+    "notes": ""
+  },
+  {
+    "title": "计划管理",
+    "football_path": "/ops/plan",
+    "api": "/admin-api/oa/plan/list?pageNo=1&pageSize=1",
+    "api_ok": true,
+    "code": 0,
+    "data": "page list=1 total=11",
+    "theme_ok": true,
+    "fixed": false,
+    "notes": ""
+  },
+  {
+    "title": "SOP管理",
+    "football_path": "/ops/sop",
+    "api": "/admin-api/oa/sop/template/list?pageNo=1&pageSize=1",
+    "api_ok": true,
+    "code": 0,
+    "data": "page list=1 total=7",
+    "theme_ok": true,
+    "fixed": false,
+    "notes": ""
+  },
+  {
+    "title": "SOP审核",
+    "football_path": "/ops/sop/review",
+    "api": "/admin-api/oa/sop/review/pending",
+    "api_ok": true,
+    "code": 0,
+    "data": "array len=0",
+    "theme_ok": true,
+    "fixed": false,
+    "notes": ""
+  },
+  {
+    "title": "任务管理",
+    "football_path": "/ops/task",
+    "api": "/admin-api/oa/task/list?pageNum=1&pageSize=1",
+    "api_ok": true,
+    "code": 0,
+    "data": "page list=1 total=98",
+    "theme_ok": true,
+    "fixed": false,
+    "notes": ""
+  }
+]

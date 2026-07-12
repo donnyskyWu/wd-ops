@@ -8,10 +8,12 @@ import cn.iocoder.yudao.module.oa.api.dto.collect.CollectTaskCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.collect.CollectTaskRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.collect.CollectTaskUpdateReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.account.MpAccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.CollectTaskDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.personal.PersonalWechatAccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.personal.WeworkAccountDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.account.MpAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.PersonalWechatAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.WeworkAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.CollectTaskMapper;
@@ -43,6 +45,7 @@ public class CollectTaskServiceImpl implements CollectTaskService {
     private static final java.util.Set<String> STARTABLE_STATUSES = java.util.Set.of(
             "PENDING", STATUS_STOPPED, "FAILED");
 
+    private static final String PLATFORM_WECHAT_OFFICIAL = "WECHAT_OFFICIAL";
     private static final String PLATFORM_PERSONAL_WECHAT = "WECHAT_PERSONAL";
     private static final String PLATFORM_WEWORK = "WEWORK";
     private static final String SOURCE_AOCHUANG = "AOCHUANG_API";
@@ -51,6 +54,7 @@ public class CollectTaskServiceImpl implements CollectTaskService {
 
     private final CollectTaskMapper collectTaskMapper;
     private final AccountMapper accountMapper;
+    private final MpAccountMapper mpAccountMapper;
     private final PersonalWechatAccountMapper personalWechatAccountMapper;
     private final WeworkAccountMapper weworkAccountMapper;
     private final AesUtil aesUtil;
@@ -245,7 +249,18 @@ public class CollectTaskServiceImpl implements CollectTaskService {
             ConfigTenantSupport.getRequiredInTenant(personal);
             return;
         }
+        if (PLATFORM_WECHAT_OFFICIAL.equals(platformType)) {
+            MpAccountDO mp = mpAccountMapper.selectById(accountId);
+            if (mp == null || !requireTenantId().equals(mp.getTenantId())) {
+                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
+            }
+            return;
+        }
         ConfigTenantSupport.assertAccountInTenant(accountMapper, accountId);
+    }
+
+    private Long requireTenantId() {
+        return ConfigTenantSupport.requireTenantId();
     }
 
     private boolean isWeworkCollectTask(String platformType, String source) {
@@ -318,6 +333,13 @@ public class CollectTaskServiceImpl implements CollectTaskService {
             }
             return null;
         }
+        if (PLATFORM_WECHAT_OFFICIAL.equals(entity.getPlatformType())) {
+            MpAccountDO mp = mpAccountMapper.selectById(entity.getAccountId());
+            if (mp != null && ConfigTenantSupport.requireTenantId().equals(mp.getTenantId())) {
+                return mp.getName();
+            }
+            return null;
+        }
         AccountDO account = accountMapper.selectById(entity.getAccountId());
         return account != null ? account.getAccountName() : null;
     }
@@ -332,6 +354,10 @@ public class CollectTaskServiceImpl implements CollectTaskService {
                 && SOURCE_AOCHUANG.equals(entity.getSource())) {
             return resolveAccountName(entity);
         }
+        if (PLATFORM_WECHAT_OFFICIAL.equals(entity.getPlatformType())) {
+            MpAccountDO mp = mpAccountMapper.selectById(entity.getAccountId());
+            return mp != null ? mp.getName() : resolveAccountName(entity);
+        }
         AccountDO account = accountById.get(entity.getAccountId());
         return account != null ? account.getAccountName() : null;
     }
@@ -342,6 +368,7 @@ public class CollectTaskServiceImpl implements CollectTaskService {
         vo.setName(entity.getTaskName());
         vo.setPlatformType(entity.getPlatformType());
         vo.setAccountId(entity.getAccountId());
+        applyBindIds(vo, entity);
         vo.setAccountName(accountName);
         vo.setMethod(entity.getMethod());
         vo.setSource(entity.getSource());
@@ -357,6 +384,23 @@ public class CollectTaskServiceImpl implements CollectTaskService {
         vo.setCreatedAt(entity.getCreateTime());
         vo.setUpdatedAt(entity.getUpdateTime());
         return vo;
+    }
+
+    private void applyBindIds(CollectTaskRespVO vo, CollectTaskDO entity) {
+        if (PLATFORM_WECHAT_OFFICIAL.equals(entity.getPlatformType())) {
+            vo.setMpAccountId(entity.getAccountId());
+            vo.setOaAccountId(null);
+            return;
+        }
+        if (isWeworkCollectTask(entity.getPlatformType(), entity.getSource())
+                || (PLATFORM_PERSONAL_WECHAT.equals(entity.getPlatformType())
+                && SOURCE_AOCHUANG.equals(entity.getSource()))) {
+            vo.setMpAccountId(null);
+            vo.setOaAccountId(null);
+            return;
+        }
+        vo.setOaAccountId(entity.getAccountId());
+        vo.setMpAccountId(null);
     }
 
     private String maskIfPresent(String encrypted) {

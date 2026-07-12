@@ -1,0 +1,477 @@
+{
+  "generatedAt": "2026-07-07T03:23:30.588Z",
+  "tool": "playwright",
+  "baseURL": "http://localhost:5777",
+  "gatewayURL": "http://localhost:48080",
+  "login": "admin/admin123 tenant 1",
+  "scope": "all 58 visible Ops menu routes (oa-menu-permission-map.csv)",
+  "total": 58,
+  "passed": 58,
+  "failed": 0,
+  "pages": [
+    {
+      "group": "作品监测",
+      "hash": "/ops/external-account",
+      "title": "外部账号分析",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3341
+    },
+    {
+      "group": "作品监测",
+      "hash": "/ops/high-fans-account",
+      "title": "高粉账号分析",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3528
+    },
+    {
+      "group": "作品监测",
+      "hash": "/ops/hot-works",
+      "title": "爆款作品分析",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3238
+    },
+    {
+      "group": "作品监测",
+      "hash": "/ops/ip-theme",
+      "title": "IP主题数据",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3274
+    },
+    {
+      "group": "作品监测",
+      "hash": "/ops/low-fans-account",
+      "title": "低粉账号分析",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3064
+    },
+    {
+      "group": "作品监测",
+      "hash": "/ops/low-score",
+      "title": "低分作品分析",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3185
+    },
+    {
+      "group": "内容生产",
+      "hash": "/ops/content",
+      "title": "内容管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3256
+    },
+    {
+      "group": "内容生产",
+      "hash": "/ops/content/review",
+      "title": "内容审核",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3317
+    },
+    {
+      "group": "内容生产",
+      "hash": "/ops/knowledge",
+      "title": "内容知识库",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3215
+    },
+    {
+      "group": "内容生产",
+      "hash": "/ops/layout-template",
+      "title": "公推模板库",
+      "pass": true,
+      "errors": [],
+      "durationMs": 2954
+    },
+    {
+      "group": "内容生产",
+      "hash": "/ops/plan",
+      "title": "计划管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3193
+    },
+    {
+      "group": "内容生产",
+      "hash": "/ops/sop",
+      "title": "SOP管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3073
+    },
+    {
+      "group": "内容生产",
+      "hash": "/ops/sop/review",
+      "title": "SOP审核",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3147
+    },
+    {
+      "group": "内容生产",
+      "hash": "/ops/task",
+      "title": "任务管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3106
+    },
+    {
+      "group": "数据分析",
+      "hash": "/ops/custom-query",
+      "title": "自定义查询",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3565
+    },
+    {
+      "group": "数据分析",
+      "hash": "/ops/data-report",
+      "title": "数据报表",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3230
+    },
+    {
+      "group": "数据分析",
+      "hash": "/ops/financial-analysis",
+      "title": "总体财务分析",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3288
+    },
+    {
+      "group": "数据分析",
+      "hash": "/ops/funnel-analysis",
+      "title": "漏斗分析",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3135
+    },
+    {
+      "group": "数据分析",
+      "hash": "/ops/metric",
+      "title": "指标管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3599
+    },
+    {
+      "group": "数据分析",
+      "hash": "/ops/metric-analysis",
+      "title": "指标分析",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3442
+    },
+    {
+      "group": "数据分析",
+      "hash": "/ops/screen",
+      "title": "数据大屏",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3539
+    },
+    {
+      "group": "数据分析",
+      "hash": "/ops/screen-config",
+      "title": "大屏配置",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3613
+    },
+    {
+      "group": "数据采集",
+      "hash": "/ops/collect/log",
+      "title": "采集日志",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3567
+    },
+    {
+      "group": "数据采集",
+      "hash": "/ops/collect/private-domain-bridge",
+      "title": "私域桥接",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3428
+    },
+    {
+      "group": "数据采集",
+      "hash": "/ops/collect/quality",
+      "title": "数据质量",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3486
+    },
+    {
+      "group": "数据采集",
+      "hash": "/ops/collect/task",
+      "title": "采集任务",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3526
+    },
+    {
+      "group": "系统管理(OA)",
+      "hash": "/ops/system-dict",
+      "title": "字典配置",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3518
+    },
+    {
+      "group": "系统管理(OA)",
+      "hash": "/ops/system-log/login",
+      "title": "登录日志",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3474
+    },
+    {
+      "group": "系统管理(OA)",
+      "hash": "/ops/system-log/operation",
+      "title": "操作日志",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3427
+    },
+    {
+      "group": "系统管理(OA)",
+      "hash": "/ops/system-message",
+      "title": "消息管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 4113
+    },
+    {
+      "group": "系统管理(OA)",
+      "hash": "/ops/system-param",
+      "title": "系统参数",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3361
+    },
+    {
+      "group": "绩效核算",
+      "hash": "/ops/order-attribution",
+      "title": "订单归因分析",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3413
+    },
+    {
+      "group": "绩效核算",
+      "hash": "/ops/perf-execution",
+      "title": "考核执行",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3573
+    },
+    {
+      "group": "绩效核算",
+      "hash": "/ops/perf-result",
+      "title": "绩效结果",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3374
+    },
+    {
+      "group": "绩效核算",
+      "hash": "/ops/perf-template",
+      "title": "考核模板",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3415
+    },
+    {
+      "group": "财务管理",
+      "hash": "/ops/account-cost",
+      "title": "账号成本管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3045
+    },
+    {
+      "group": "财务管理",
+      "hash": "/ops/roi-analysis",
+      "title": "ROI分析",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3367
+    },
+    {
+      "group": "账号管理",
+      "hash": "/ops/company",
+      "title": "公司管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3028
+    },
+    {
+      "group": "账号管理",
+      "hash": "/ops/internal-account",
+      "title": "平台账号管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3142
+    },
+    {
+      "group": "账号管理",
+      "hash": "/ops/personal-account",
+      "title": "个人账号管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3180
+    },
+    {
+      "group": "账号管理",
+      "hash": "/ops/phone",
+      "title": "手机管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 2947
+    },
+    {
+      "group": "账号管理",
+      "hash": "/ops/realname",
+      "title": "实名人管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3115
+    },
+    {
+      "group": "账号管理",
+      "hash": "/ops/simcard",
+      "title": "手机卡管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3064
+    },
+    {
+      "group": "运营管理",
+      "hash": "/ops/account-analysis",
+      "title": "账号分析",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3018
+    },
+    {
+      "group": "运营管理",
+      "hash": "/ops/author",
+      "title": "作者管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3045
+    },
+    {
+      "group": "运营管理",
+      "hash": "/ops/efficiency",
+      "title": "人效盘点",
+      "pass": true,
+      "errors": [],
+      "durationMs": 2927
+    },
+    {
+      "group": "运营管理",
+      "hash": "/ops/fans-analysis",
+      "title": "粉丝分析",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3008
+    },
+    {
+      "group": "运营管理",
+      "hash": "/ops/internal-content",
+      "title": "内部作品分析",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3103
+    },
+    {
+      "group": "运营管理",
+      "hash": "/ops/ip-group",
+      "title": "IP组管理",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3045
+    },
+    {
+      "group": "配置管理",
+      "hash": "/ops/config-ai-model",
+      "title": "AI模型",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3043
+    },
+    {
+      "group": "配置管理",
+      "hash": "/ops/config-ai-prompt",
+      "title": "AI提示词",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3052
+    },
+    {
+      "group": "配置管理",
+      "hash": "/ops/config-external-collect",
+      "title": "外部采集配置",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3015
+    },
+    {
+      "group": "配置管理",
+      "hash": "/ops/config-external-data",
+      "title": "外部数据配置",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3359
+    },
+    {
+      "group": "配置管理",
+      "hash": "/ops/config-internal-collect",
+      "title": "内部采集配置",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3447
+    },
+    {
+      "group": "配置管理",
+      "hash": "/ops/config-metadata",
+      "title": "元数据维护",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3259
+    },
+    {
+      "group": "配置管理",
+      "hash": "/ops/config-order-collect",
+      "title": "订单采集配置",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3396
+    },
+    {
+      "group": "配置管理",
+      "hash": "/ops/config-threshold",
+      "title": "阈值规则配置",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3444
+    },
+    {
+      "group": "首页",
+      "hash": "/ops/dashboard",
+      "title": "首页仪表盘",
+      "pass": true,
+      "errors": [],
+      "durationMs": 3715
+    }
+  ]
+}

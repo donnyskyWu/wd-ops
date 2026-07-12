@@ -3,6 +3,10 @@
 # Usage (from repo root):
 #   .\scripts\restart-all.ps1
 #
+# Football integration (Nacos + Gateway): use standalone Ops stack above OR
+#   .\scripts\start-integration-oa.ps1   # oa-server :48094 → Nacos dev
+#   See docs/delivery/INTEGRATION-S0-Football-Ops.md §4.1 S1-A
+#
 # Optional:
 #   .\scripts\restart-all.ps1 -NoFrontend
 #   .\scripts\restart-all.ps1 -WaitSeconds 90

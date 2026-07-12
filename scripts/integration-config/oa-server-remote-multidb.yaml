@@ -1,0 +1,35 @@
+# oa-server Nacos overlay — remote 101.37.161.136 five-database cutover (GATE-MDB-S4)
+# Push: scripts/push-remote-multidb-config.ps1 (requires user approval)
+# Credentials: set OA_DB_USER / OA_DB_PASSWORD env vars before push; do NOT commit secrets.
+
+spring:
+  datasource:
+    dynamic:
+      primary: master
+      strict: false
+      datasource:
+        master:
+          url: jdbc:mysql://101.37.161.136:3306/wd?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: ${OA_DB_USER:shenyu}
+          password: ${OA_DB_PASSWORD}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+        member:
+          url: jdbc:mysql://101.37.161.136:3306/shenyu-member?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: ${OA_DB_USER:shenyu}
+          password: ${OA_DB_PASSWORD}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+        mp:
+          url: jdbc:mysql://101.37.161.136:3306/shenyu-mp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: ${OA_DB_USER:shenyu}
+          password: ${OA_DB_PASSWORD}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+        pay:
+          url: jdbc:mysql://101.37.161.136:3306/shenyu-pay?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: ${OA_DB_USER:shenyu}
+          password: ${OA_DB_PASSWORD}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+        system:
+          url: jdbc:mysql://101.37.161.136:3306/shenyu-system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: ${OA_DB_USER:shenyu}
+          password: ${OA_DB_PASSWORD}
+          driver-class-name: com.mysql.cj.jdbc.Driver

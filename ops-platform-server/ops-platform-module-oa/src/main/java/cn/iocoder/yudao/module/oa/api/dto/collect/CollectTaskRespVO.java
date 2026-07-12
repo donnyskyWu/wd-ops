@@ -11,6 +11,10 @@ public class CollectTaskRespVO {
     private String name;
     private String platformType;
     private Long accountId;
+    /** 微信公号：shenyu-mp.mp_account.id（S3 bind 语义） */
+    private Long mpAccountId;
+    /** 非微信：wd.oa_account.id（S3 bind 语义） */
+    private Long oaAccountId;
     private String accountName;
     private String method;
     private String source;

@@ -1,0 +1,39 @@
+{
+  "generatedAt": "2026-07-05T12:45:00+08:00",
+  "stack": "localhost integration :5777 / :48080 / :48094",
+  "login": "POST /admin-api/system/auth/login admin/admin123 tenant 1",
+  "fix": "INTEGRATION-PROGRESS §23 #2 — patch-smoke-api-permissions.sql (wd + shenyu-system)",
+  "db": {
+    "author_user": 35,
+    "login_log": 3172,
+    "mp_account": 187,
+    "dict_type": 179,
+    "dev_token_rows": 0,
+    "token_in_wd": 1,
+    "token_in_system": 0
+  },
+  "api_smoke_before": {
+    "author_list": {"httpStatus": 200, "code": 0, "total": 35, "pass": true},
+    "wechat_account_list": {"httpStatus": 200, "code": 403, "pass": false},
+    "login_log": {"httpStatus": 200, "code": 403, "pass": false},
+    "dict_list": {"httpStatus": 200, "code": 403, "pass": false}
+  },
+  "api_smoke_after": {
+    "all_pass": true,
+    "checks": [
+      {"name": "author_list", "httpStatus": 200, "code": 0, "total": 35, "pass": true},
+      {"name": "wechat_account_list", "httpStatus": 200, "code": 0, "total": 0, "pass": true},
+      {"name": "login_log", "httpStatus": 200, "code": 0, "total": 3151, "pass": true},
+      {"name": "dict_list", "httpStatus": 200, "code": 0, "total": 869, "pass": true}
+    ]
+  },
+  "permissions_added": [
+    {"menu_id": 6137, "permission": "oa:dict:admin-list", "parent": 6105},
+    {"menu_id": 6138, "permission": "oa:log:login", "parent": 6105},
+    {"menu_id": 6139, "permission": "oa:log:operation", "parent": 6105},
+    {"menu_id": 6149, "permission": "oa:platform-account:list", "parent": 6108},
+    {"menu_id": 6174, "permission": "oa:account:list", "parent": 6149, "type": "hidden_button"}
+  ],
+  "e2e": {"result": "58/58 PASS", "duration_min": 8.0},
+  "gate_verdict": "POST-MDB Gateway API smoke PASS after §23 #2 permission patch"
+}

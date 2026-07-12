@@ -139,6 +139,7 @@ import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { DataLine, Warning, VideoPlay, Headset, Money, TrendCharts, User, Bell } from '@element-plus/icons-vue'
 import { exportToExcel } from '@/utils'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const router = useRouter()
 const reports = [
@@ -151,7 +152,7 @@ const reports = [
   { path: '/analysis/report/team-config', title: '团队配置', desc: '人员/账号人均/人效', tag: '人力', tagType: 'primary', color: '#409eff', icon: User },
   { path: '/analysis/report/account-alert', title: '异常预警', desc: '三级预警', tag: '风控', tagType: 'danger', color: '#f56c6c', icon: Bell },
 ] as any[]
-const goReport = (path: string) => router.push(path)
+const goReport = (path: string) => router.push(opsRouteTo(path))
 
 const activeTab = ref('unified-account')
 
@@ -404,12 +405,12 @@ const handleTabChange = (tabName: string | number) => {
   const tab = String(tabName)
   activeTab.value = tab
   const path = tabRouteMap[tab]
-  if (path) router.push(path)
+  if (path) router.push(opsRouteTo(path))
 }
 
 const handleQuery = () => {
   const path = tabRouteMap[activeTab.value]
-  if (path) router.push(path)
+  if (path) router.push(opsRouteTo(path))
 }
 
 const handleReset = () => {

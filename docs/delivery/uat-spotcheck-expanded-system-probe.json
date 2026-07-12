@@ -1,0 +1,155 @@
+{
+  "login": "ok",
+  "auth_base": "http://localhost:48081",
+  "oa_base": "http://localhost:48094",
+  "gateway_base": "http://localhost:48080",
+  "gateway_dict_checks": [
+    {
+      "name": "list",
+      "path": "/admin-api/oa/dict/type/list",
+      "ok": false,
+      "code": 500,
+      "data": "系统异常"
+    },
+    {
+      "name": "list?pageNo=1&pageSize=10",
+      "path": "/admin-api/oa/system/dict/list?pageNo=1&pageSize=10",
+      "ok": false,
+      "code": 500,
+      "data": "系统异常"
+    },
+    {
+      "name": "data?type=dict_platform_type",
+      "path": "/admin-api/oa/dict/data?type=dict_platform_type",
+      "ok": false,
+      "code": 500,
+      "data": "系统异常"
+    }
+  ],
+  "pages": [
+    {
+      "title": "字典配置",
+      "menu_id": 6137,
+      "hash": "#/ops/system-dict",
+      "path": "/ops/system-dict",
+      "component": "ops/system/DictManage",
+      "apis": [
+        {
+          "name": "dict/type/list",
+          "path": "/admin-api/oa/dict/type/list",
+          "ok": true,
+          "code": 0,
+          "data": "array len=94"
+        },
+        {
+          "name": "system/dict/list",
+          "path": "/admin-api/oa/system/dict/list?pageNo=1&pageSize=10",
+          "ok": true,
+          "code": 0,
+          "data": "list=10 total=359"
+        },
+        {
+          "name": "dict/data",
+          "path": "/admin-api/oa/dict/data?type=dict_platform_type",
+          "ok": true,
+          "code": 0,
+          "data": "list=9 total=9"
+        }
+      ],
+      "search": "TableSearch: 字典名称 / 字典类型 / 状态",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "pass": true
+    },
+    {
+      "title": "登录日志",
+      "menu_id": 6138,
+      "hash": "#/ops/system-log/login",
+      "path": "/ops/system-log/login",
+      "component": "ops/system/LoginLog",
+      "apis": [
+        {
+          "name": "log/login",
+          "path": "/admin-api/oa/system/log/login?pageNo=1&pageSize=10",
+          "ok": true,
+          "code": 0,
+          "data": "list=3 total=3"
+        }
+      ],
+      "search": "TableSearch: 用户 / IP / 状态 / 时间",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "pass": true
+    },
+    {
+      "title": "操作日志",
+      "menu_id": 6139,
+      "hash": "#/ops/system-log/operation",
+      "path": "/ops/system-log/operation",
+      "component": "ops/system/LogManage",
+      "apis": [
+        {
+          "name": "log/operation",
+          "path": "/admin-api/oa/system/log/operation?pageNo=1&pageSize=10",
+          "ok": true,
+          "code": 0,
+          "data": "list=10 total=686"
+        }
+      ],
+      "search": "TableSearch: 模块 / 操作人 / 类型 / 时间",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "pass": true
+    },
+    {
+      "title": "消息管理",
+      "menu_id": 6140,
+      "hash": "#/ops/system-message",
+      "path": "/ops/system-message",
+      "component": "ops/system/MessageManage",
+      "apis": [
+        {
+          "name": "message/list",
+          "path": "/admin-api/oa/system/message/list?pageNo=1&pageSize=10",
+          "ok": true,
+          "code": 0,
+          "data": "list=10 total=92"
+        }
+      ],
+      "search": "TableSearch: 标题 / 类型 / 状态",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "pass": true
+    },
+    {
+      "title": "系统参数",
+      "menu_id": 6141,
+      "hash": "#/ops/system-param",
+      "path": "/ops/system-param",
+      "component": "ops/system/ParamManage",
+      "apis": [
+        {
+          "name": "param/list",
+          "path": "/admin-api/oa/system/param/list?pageNo=1&pageSize=10",
+          "ok": true,
+          "code": 0,
+          "data": "list=10 total=11"
+        }
+      ],
+      "search": "TableSearch: 参数名称 / 键名 / 状态",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "pass": true
+    }
+  ]
+}

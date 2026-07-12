@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.user.MemberUserFollowMapper">
+
+
+    <select id="selectMemberUserFollowPage"
+            resultType="football.module.member.controller.admin.user.vo.MemberUserFollowRespVO">
+        SELECT
+        fs.id as follow_id,
+        fs.user_status,
+        fs.target_id as author_id,
+        fs.create_time as follow_time,
+        mu.id as userId,
+        mu.avatar_url,
+        mu.nickname,
+        mu.mobile,
+        mu.create_time as register_time,
+        mu.register_ip,
+        mu.last_login_ip,
+        mu.last_login_time,
+        COALESCE(mua.total_recharge_amount, 0) as total_recharge_amount,
+        COALESCE(mua.order_num, 0) as order_num,
+        mua.update_time as accountUpdateTime
+        FROM member_user_follow fs
+        <if test="reqVO.tagId != null and reqVO.tagId != 0">
+            INNER JOIN author_member_tag_relation amtr ON fs.user_id = amtr.user_id AND amtr.tag_id = #{reqVO.tagId} and
+            amtr.deleted = 0
+        </if>
+        INNER JOIN member_user mu ON fs.user_id = mu.id
+        LEFT JOIN member_user_account mua ON mu.id = mua.user_id
+        <where>
+            fs.status = 0
+            and fs.target_type = 1
+            and fs.target_id = #{reqVO.authorId}
+            <if test="reqVO.mobile != null and reqVO.mobile != ''">
+                AND mu.mobile LIKE CONCAT('%', #{reqVO.mobile}, '%')
+            </if>
+            <if test="reqVO.nickname != null and reqVO.nickname != ''">
+                AND mu.nickname LIKE CONCAT('%', #{reqVO.nickname}, '%')
+            </if>
+            <if test="reqVO.attentionStartTime != null and reqVO.attentionEndTime != null">
+                AND fs.create_time BETWEEN #{reqVO.attentionStartTime} AND #{reqVO.attentionEndTime}
+            </if>
+            <if test="reqVO.createStartTime != null and reqVO.createEndTime != null">
+                AND mu.create_time BETWEEN #{reqVO.createStartTime} AND #{reqVO.createEndTime}
+            </if>
+            <if test="reqVO.userStatus != null">
+                AND fs.user_status = #{reqVO.userStatus}
+            </if>
+        </where>
+        <choose>
+            <when test="reqVO.sortingFields != null and reqVO.sortingFields.size > 0">
+                ORDER BY
+                <foreach collection="reqVO.sortingFields" item="sort" separator=",">
+                    <choose>
+                        <when test="sort.field == 'orderNum'">
+                            mua.order_num 
+                            <choose>
+                                <when test="sort.order != null and sort.order.equalsIgnoreCase('ASC')">
+                                    ASC
+                                </when>
+                                <otherwise>
+                                    DESC
+                                </otherwise>
+                            </choose>
+                        </when>
+                        <when test="sort.field == 'consumeAmount'">
+                            COALESCE(mua.consume_amount, 0)
+                            <choose>
+                                <when test="sort.order != null and sort.order.equalsIgnoreCase('ASC')">
+                                    ASC
+                                </when>
+                                <otherwise>
+                                    DESC
+                                </otherwise>
+                            </choose>
+                        </when>
+                        <otherwise>
+                            fs.create_time DESC
+                        </otherwise>
+                    </choose>
+                </foreach>
+            </when>
+            <otherwise>
+                ORDER BY fs.create_time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="getAuthorFollowUserIds" resultType="football.module.pay.api.order.dto.MemberSimpleRespDTO">
+        SELECT mu.id as userId, mu.avatar_url, mu.nickname
+        FROM member_user_follow fs
+                 INNER JOIN member_user mu ON fs.user_id = mu.id
+        WHERE   fs.status = 0 and fs.target_id = #{reqVO.authorId} and fs.target_type = 1
+        <if test="reqVO.beginTime != null and reqVO.beginTime != ''">
+            AND fs.create_time >= #{reqVO.beginTime}
+        </if>
+        <if test="reqVO.endTime != null and reqVO.endTime != ''">
+            AND fs.create_time &lt;= #{reqVO.endTime}
+        </if>
+    </select>
+
+
+    <select id="listAllFollowByNickname" resultType="football.module.member.controller.admin.user.vo.MemberAllFollowRespVO">
+        SELECT
+            fs.id AS follow_id,
+            fs.user_status,
+            fs.target_id AS author_id,
+            fs.create_time AS follow_time,
+            mu.id AS member_id,
+            mu.avatar_url,
+            mu.nickname,
+            mu.mobile
+        FROM member_user_follow fs
+                 INNER JOIN member_user mu ON fs.user_id = mu.id
+        WHERE fs.target_id = #{authorId} and fs.target_type = 1 and mu.nickname LIKE CONCAT('%', #{nickname}, '%')
+    </select>
+
+
+
+    <select id="getFans"
+            resultType="football.module.member.controller.app.user.dto.FansCountDTO">
+        SELECT
+        target_id as targetId,
+        COUNT(*) AS fans
+        FROM member_user_follow
+        WHERE
+        `status` = 0 and
+        target_type = #{targetType}
+        <if test="targetIds != null and !targetIds.isEmpty()">
+            AND target_id IN
+            <foreach collection="targetIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+        GROUP BY target_id
+    </select>
+
+
+    <select id="getFollowCountByAuthorAndTimeRange" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM member_user_follow
+        WHERE target_type =#{targetType}
+          AND target_id = #{targetId}
+          AND create_time >= #{startTime}
+          AND create_time &lt;= #{endTime}
+    </select>
+
+
+    <select id="getUnfollowCountByAuthorAndTimeRange" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM member_user_follow
+        WHERE target_type = #{targetType}
+          AND target_id = #{targetId}
+          AND status = 1
+          AND update_time >= #{startTime}
+          AND update_time &lt;= #{endTime}
+    </select>
+
+
+    <!-- 统计每日新增关注数 -->
+    <select id="getDailyFollowCount" resultType="football.module.member.controller.app.author.dto.FansGrowthDTO">
+        SELECT
+            DATE(create_time) AS bizDate,
+            COUNT(*) AS newFans
+        FROM member_user_follow
+        WHERE
+            target_type = #{targetType}
+          AND target_id = #{targetId}
+          AND create_time >= #{startTime}
+          AND create_time &lt;= #{endTime}
+        GROUP BY DATE(create_time)
+    </select>
+
+    <!-- 统计每日取消关注数 -->
+    <select id="getDailyUnfollowCount" resultType="football.module.member.controller.app.author.dto.FansGrowthDTO">
+        SELECT
+            DATE(update_time) AS bizDate,
+            COUNT(*) AS cancelFans
+        FROM member_user_follow
+        WHERE
+            target_type = #{targetType}
+          AND target_id = #{targetId}
+          AND status =1
+          AND update_time >= #{startTime}
+          AND update_time &lt;= #{endTime}
+        GROUP BY DATE(update_time)
+    </select>
+
+    <!--
+      统计作者未分组的用户数
+      逻辑：统计关注了该目标(target)，但不在该作者标签关系表中的用户
+    -->
+    <select id="getUnTaggedUser" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM member_user_follow muf
+        WHERE muf.target_type = 1
+          AND muf.target_id = #{authorId}
+          and muf.`status` = 0
+          AND NOT EXISTS (
+            SELECT 1
+            FROM author_member_tag_relation amtr
+            WHERE amtr.author_id = #{authorId}
+              AND amtr.user_id = muf.user_id
+            and amtr.deleted = 0
+        )
+    </select>
+
+    <select id="getFollowNewMap" resultType="java.util.Map">
+        SELECT
+        target_id AS authorId,
+        COUNT(*) AS followCount
+        FROM member_user_follow
+        WHERE
+        target_type = 1 and `status` = 0
+        AND target_id IN
+        <foreach collection="authorIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND create_time >= #{startDate}
+        AND create_time &lt;= #{endDate}
+        GROUP BY target_id
+    </select>
+
+    <select id="getFollowCountMap" resultType="java.util.Map">
+        SELECT
+            target_id AS authorId,
+            COUNT(*) AS followCount
+        FROM member_user_follow
+        WHERE
+            target_type = 1 and `status` = 0
+          AND target_id IN
+            <foreach collection="authorIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+          AND create_time &lt;= #{endDate}
+        GROUP BY target_id
+    </select>
+
+    <select id="listAllFollowV1"
+            resultType="football.module.member.controller.admin.user.vo.MemberAllFollowRespVO">
+        SELECT
+            mu.id AS member_id,
+            mu.nickname,
+            mu.mobile
+        FROM
+            member_user_follow fs
+                INNER JOIN member_user mu ON fs.user_id = mu.id
+        WHERE
+            fs.STATUS = 0
+          AND fs.user_status = 1
+          AND fs.target_type = 1
+          AND fs.target_id = #{reqVO.authorId}
+        <if test="reqVO.nickname != null and reqVO.nickname != ''">
+            AND mu.nickname LIKE CONCAT('%', #{reqVO.nickname}, '%')
+        </if>
+        <if test="reqVO.ids != null and reqVO.ids.size > 0">
+            AND mu.id IN
+            <foreach collection="reqVO.ids" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- 批量查询用户关注时间 -->
+    <select id="getFollowTimeMap" resultType="java.util.Map">
+        SELECT
+            user_id AS userId,
+            update_time AS updateTime
+        FROM member_user_follow
+        WHERE target_type = 1
+          AND target_id = #{authorId}
+          AND status = 0
+          AND user_id IN
+          <foreach collection="userIds" item="uid" open="(" separator="," close=")">
+              #{uid}
+          </foreach>
+    </select>
+</mapper>

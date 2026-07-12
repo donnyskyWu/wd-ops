@@ -16,4 +16,10 @@ public class CollectExecutionInvoker {
     public int invoke(ToIntFunction<Long> collector, Long accountId) {
         return collector.applyAsInt(accountId);
     }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public int invokeExternal(java.util.function.BiFunction<Long, String, Integer> collector,
+                              Long collectConfigId, String dataType) {
+        return collector.apply(collectConfigId, dataType);
+    }
 }

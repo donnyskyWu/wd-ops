@@ -24,6 +24,7 @@ import java.util.Map;
 /**
  * 奥创 OpenAPI 客户端（Channel-B · ADR-045 · Apifox doc-8348826）。
  * <ul>
+ *   <li>GET /api/v1/accounts — 账号列表（lastUpdateTime 全量）</li>
  *   <li>GET /api/v1/wechatAccounts — 设备列表（pageIndex 从 0）</li>
  *   <li>GET /api/v1/wechatFriends — 好友瀑布流（lastUpdateTime + maxWechatFriendId）</li>
  *   <li>GET /api/v1/wechatMessages — 消息瀑布流（同上）</li>
@@ -35,7 +36,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AochuangApiClient {
 
+    private static final String URI_ACCOUNTS = "/api/v1/accounts";
     private static final String URI_WECHAT_ACCOUNTS = "/api/v1/wechatAccounts";
+    /** 奥创子账号类型（主账号=10） */
+    public static final int ACCOUNT_TYPE_SUB = 11;
     private static final String URI_WECHAT_FRIENDS = "/api/v1/wechatFriends";
     private static final String URI_WECHAT_MESSAGES = "/api/v1/wechatMessages";
     private static final String DEFAULT_LAST_UPDATE_TIME = "1970-01-01 00:00:00";
@@ -43,6 +47,22 @@ public class AochuangApiClient {
 
     private final AochuangProperties properties;
     private final AesUtil aesUtil;
+
+    public List<AochuangAccountDTO> listAccounts(AoCreateApiDO api, String lastUpdateTime) {
+        if (properties.isStub()) {
+            return stubAccounts();
+        }
+        requireSigningCredentials(api);
+        String baseUrl = normalizeBaseUrl(api.getApiUrl());
+        String accountName = api.getAppId();
+        String secret = decrypt(api.getAppSecretEncrypted());
+
+        Map<String, String> params = AochuangSignatureHelper.orderedParams();
+        params.put("lastUpdateTime", StrUtil.blankToDefault(lastUpdateTime, DEFAULT_LAST_UPDATE_TIME));
+
+        String body = signedGet(baseUrl, URI_ACCOUNTS, params, accountName, secret);
+        return parseAccounts(body);
+    }
 
     public List<AochuangWechatAccountDTO> listWechatAccounts(AoCreateApiDO api, String aochuangAccountId) {
         if (properties.isStub()) {
@@ -196,6 +216,25 @@ public class AochuangApiClient {
 
     // --- stub implementations (unchanged behavior for IT) ---
 
+    private List<AochuangAccountDTO> stubAccounts() {
+        AochuangAccountDTO main = stubAccount("stub-main-1", "Stub 主账号", 10, "ENABLED", "总部", "2026-01-01 00:00:00");
+        AochuangAccountDTO sub1 = stubAccount("stub-sub-1", "Stub 子账号甲", ACCOUNT_TYPE_SUB, "ENABLED", "华东组", "2026-06-01 10:00:00");
+        AochuangAccountDTO sub2 = stubAccount("stub-sub-2", "Stub 子账号乙", ACCOUNT_TYPE_SUB, "ENABLED", "华南组", "2026-06-02 11:00:00");
+        return List.of(main, sub1, sub2);
+    }
+
+    private AochuangAccountDTO stubAccount(String id, String userName, int accountType,
+                                           String status, String department, String updateDate) {
+        AochuangAccountDTO dto = new AochuangAccountDTO();
+        dto.setAccountId(id);
+        dto.setUserName(userName);
+        dto.setAccountType(accountType);
+        dto.setStatus(status);
+        dto.setDepartment(department);
+        dto.setUpdateDate(updateDate);
+        return dto;
+    }
+
     private List<AochuangWechatAccountDTO> stubDevices(String aochuangAccountId) {
         if ("invalid-token".equalsIgnoreCase(aochuangAccountId)) {
             throw new AochuangApiException("TOKEN_FAIL", "stub: token invalid");
@@ -331,6 +370,46 @@ public class AochuangApiClient {
         dto.setAvatar("https://stub.local/f/" + friendId + ".png");
         dto.setRemark(remark);
         return dto;
+    }
+
+    private List<AochuangAccountDTO> parseAccounts(String body) {
+        JSONArray items = extractArray(body);
+        if (items == null) {
+            return Collections.emptyList();
+        }
+        List<AochuangAccountDTO> result = new ArrayList<>();
+        for (int i = 0; i < items.size(); i++) {
+            JSONObject item = items.getJSONObject(i);
+            AochuangAccountDTO dto = new AochuangAccountDTO();
+            dto.setAccountId(firstNonBlank(item, "id", "accountId"));
+            dto.setUserName(firstNonBlank(item, "userName", "accountName", "name"));
+            dto.setAccountType(parseAccountType(item.get("accountType")));
+            dto.setStatus(firstNonBlank(item, "status", "accountStatus"));
+            dto.setDepartment(firstNonBlank(item, "department", "deptName", "departmentName"));
+            dto.setUpdateDate(firstNonBlank(item, "updateDate", "updateTime", "lastUpdateTime"));
+            if (StrUtil.isNotBlank(dto.getAccountId())) {
+                result.add(dto);
+            }
+        }
+        return result;
+    }
+
+    private static Integer parseAccountType(Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        if (raw instanceof Number number) {
+            return number.intValue();
+        }
+        String text = String.valueOf(raw).trim();
+        if (StrUtil.isBlank(text)) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     private List<AochuangWechatAccountDTO> parseWechatAccounts(String body) {

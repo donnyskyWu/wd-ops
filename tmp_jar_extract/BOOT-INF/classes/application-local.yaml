@@ -1,0 +1,258 @@
+﻿--- #################### 娉ㄥ唽涓績 + 閰嶇疆涓績鐩稿叧閰嶇疆 ####################
+
+spring:
+  # 鎺掗櫎 RocketMQ 鑷姩閰嶇疆锛堟湰鍦板紑鍙戠幆澧冿級
+  autoconfigure:
+    exclude:
+      - org.apache.rocketmq.spring.boot.autoconfigure.RocketMQAutoConfiguration
+
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848 # Nacos 鏈嶅姟鍣ㄥ湴鍧€
+      # username: nacos
+      # password: nacos
+      discovery: # 銆愰厤缃腑蹇冦€戦厤缃」
+        enabled: false # 鏈湴寮€鍙戠鐢ㄦ湇鍔″彂鐜?
+        namespace: local # 鍛藉悕绌洪棿銆傝繖閲屼娇鐢?dev 寮€鍙戠幆澧?
+        group: DEFAULT_GROUP # 浣跨敤鐨?Nacos 閰嶇疆鍒嗙粍锛岄粯璁や负 DEFAULT_GROUP
+        metadata:
+          version: 1.0.0 # 鏈嶅姟瀹炰緥鐨勭増鏈彿锛屽彲鐢ㄤ簬鐏板害鍙戝竷
+        register-enabled: false # 鏄惁寮€鍚湇鍔℃敞鍐?
+      config: # 銆愭敞鍐屼腑蹇冦€戦厤缃」
+        enabled: false # 绂佺敤閰嶇疆涓績
+        namespace: local # 鍛藉悕绌洪棿銆傝繖閲屼娇鐢?dev 寮€鍙戠幆澧?
+        group: DEFAULT_GROUP # 浣跨敤鐨?Nacos 閰嶇疆鍒嗙粍锛岄粯璁や负 DEFAULT_GROUP
+
+    # Feign 瀹㈡埛绔厤缃細鏈湴寮€鍙戞椂缁曡繃 Load Balancer锛岀洿鎺ヨ闂湰鍦版湇鍔?
+    # 瑙ｅ喅 system-server 鍐呴儴鑷皟鐢?Feign锛堣皟鐢ㄨ嚜宸憋級鏃?Load Balancer 鎵句笉鍒板疄渚嬬殑闂
+    openfeign:
+      client:
+        config:
+          system-server:
+            url: http://localhost:48081
+          member-server:
+            url: http://localhost:48087
+          infra-server:
+            url: http://localhost:48082
+          mp-server:
+            url: http://localhost:48086
+
+--- #################### 鏁版嵁搴撶浉鍏抽厤缃?####################
+spring:
+  # 鏁版嵁婧愰厤缃」
+  autoconfigure:
+    exclude:
+  datasource:
+    druid: # Druid 銆愮洃鎺с€戠浉鍏崇殑鍏ㄥ眬閰嶇疆
+      web-stat-filter:
+        enabled: true
+      stat-view-servlet:
+        enabled: true
+        allow: # 璁剧疆鐧藉悕鍗曪紝涓嶅～鍒欏厑璁告墍鏈夎闂?
+        url-pattern: /druid/*
+        login-username: # 鎺у埗鍙扮鐞嗙敤鎴峰悕鍜屽瘑鐮?
+        login-password:
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true # 鎱?SQL 璁板綍
+          slow-sql-millis: 100
+          merge-sql: true
+        wall:
+          config:
+            multi-statement-allow: true
+    dynamic: # 澶氭暟鎹簮閰嶇疆
+      druid: # Druid 銆愯繛鎺ユ睜銆戠浉鍏崇殑鍏ㄥ眬閰嶇疆
+        initial-size: 1 # 鍒濆杩炴帴鏁?
+        min-idle: 1 # 鏈€灏忚繛鎺ユ睜鏁伴噺
+        max-active: 20 # 鏈€澶ц繛鎺ユ睜鏁伴噺
+        max-wait: 60000 # 閰嶇疆鑾峰彇杩炴帴绛夊緟瓒呮椂鐨勬椂闂达紝鍗曚綅锛氭绉掞紙1 鍒嗛挓锛?
+        time-between-eviction-runs-millis: 60000 # 閰嶇疆闂撮殧澶氫箙鎵嶈繘琛屼竴娆℃娴嬶紝妫€娴嬮渶瑕佸叧闂殑绌洪棽杩炴帴锛屽崟浣嶏細姣锛? 鍒嗛挓锛?
+        min-evictable-idle-time-millis: 600000 # 閰嶇疆涓€涓繛鎺ュ湪姹犱腑鏈€灏忕敓瀛樼殑鏃堕棿锛屽崟浣嶏細姣锛?0 鍒嗛挓锛?
+        max-evictable-idle-time-millis: 1800000 # 閰嶇疆涓€涓繛鎺ュ湪姹犱腑鏈€澶х敓瀛樼殑鏃堕棿锛屽崟浣嶏細姣锛?0 鍒嗛挓锛?
+        validation-query: SELECT 1 FROM DUAL # 閰嶇疆妫€娴嬭繛鎺ユ槸鍚︽湁鏁?
+        test-while-idle: true
+        test-on-borrow: false
+        test-on-return: false
+        pool-prepared-statements: true # 鏄惁寮€鍚?PreparedStatement 缂撳瓨
+        max-pool-prepared-statement-per-connection-size: 20 # 姣忎釜杩炴帴缂撳瓨鐨?PreparedStatement 鏁伴噺
+      primary: master
+      datasource:
+        master:
+          url: jdbc:mysql://127.0.0.1:3306/shenyudb?useSSL=false&serverTimezone=Asia/Shanghai&useTimeZone=true&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true&java.net.preferIPv4Stack=true # MySQL Connector/J 8.X 杩炴帴鐨勭ず渚?
+          #          url: jdbc:mysql://192.168.10.47:3306/football-saas?useSSL=true&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true # MySQL Connector/J 5.X 杩炴帴鐨勭ず渚?
+          #          url: jdbc:postgresql://192.168.10.47:5432/ruoyi-vue-pro # PostgreSQL 杩炴帴鐨勭ず渚?
+          #          url: jdbc:oracle:thin:@192.168.10.47:1521:xe # Oracle 杩炴帴鐨勭ず渚?
+          #          url: jdbc:sqlserver://192.168.10.47:1433;DatabaseName=ruoyi-vue-pro # SQLServer 杩炴帴鐨勭ず渚?
+          #          url: jdbc:dm://10.211.55.4:5236?schema=RUOYI_VUE_PRO # DM 杩炴帴鐨勭ず渚?
+          username: root
+          password: 'root'
+        #          username: sa # SQL Server 杩炴帴鐨勭ず渚?
+        #          password: JSm:g(*%lU4ZAkz06cd52KqT3)i1?H7W # SQL Server 杩炴帴鐨勭ず渚?
+        #          username: SYSDBA # DM 杩炴帴鐨勭ず渚?
+        #          password: SYSDBA # DM 杩炴帴鐨勭ず渚?
+        slave: # 妯℃嫙浠庡簱锛屽彲鏍规嵁鑷繁闇€瑕佷慨鏀?
+          lazy: true # 寮€鍚噿鍔犺浇锛屼繚璇佸惎鍔ㄩ€熷害
+          url: jdbc:mysql://127.0.0.1:3306/shenyudb?useSSL=false&serverTimezone=Asia/Shanghai&useTimeZone=true&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true
+          username: root
+          password: 'root'
+
+  # Redis 閰嶇疆銆俁edisson 榛樿鐨勯厤缃冻澶熶娇鐢?涓€鑸笉闇€瑕佽繘琛岃皟浼?
+  data:
+    redis:
+      host: 127.0.0.1 # 鍦板潃
+      port: 6379 # 绔彛
+      database: 0 # 鏁版嵁搴撶储寮?
+      # password: 123456 # 瀵嗙爜,寤鸿鐢熶骇鐜寮€鍚?
+
+--- #################### MQ 娑堟伅闃熷垪鐩稿叧閰嶇疆 ####################
+
+# rocketmq 閰嶇疆椤癸紝瀵瑰簲 RocketMQProperties 閰嶇疆绫?
+rocketmq:
+  name-server: 192.168.10.51:9876 # RocketMQ Namesrv
+
+spring:
+  # RabbitMQ 閰嶇疆椤癸紝瀵瑰簲 RabbitProperties 閰嶇疆绫?
+  rabbitmq:
+    host: 192.168.10.47 # RabbitMQ 鏈嶅姟鐨勫湴鍧€
+    port: 15672 # RabbitMQ 鏈嶅姟鐨勭鍙?
+    username: admin # RabbitMQ 鏈嶅姟鐨勮处鍙?
+    password: 47dceabe # RabbitMQ 鏈嶅姟鐨勫瘑鐮?
+  # Kafka 閰嶇疆椤癸紝瀵瑰簲 KafkaProperties 閰嶇疆绫?
+  kafka:
+    bootstrap-servers: 192.168.10.47:9092 # 鎸囧畾 Kafka Broker 鍦板潃锛屽彲浠ヨ缃涓紝浠ラ€楀彿鍒嗛殧
+
+--- #################### 瀹氭椂浠诲姟鐩稿叧閰嶇疆 ####################
+
+xxl:
+  job:
+    enabled: false # 鏄惁寮€鍚皟搴︿腑蹇冿紝榛樿涓?true 寮€鍚?
+    admin:
+      addresses: http://192.168.10.47:9090/xxl-job-admin # 璋冨害涓績閮ㄧ讲璺熷湴鍧€
+
+--- #################### 鏈嶅姟淇濋殰鐩稿叧閰嶇疆 ####################
+
+# Lock4j 閰嶇疆椤?
+lock4j:
+  acquire-timeout: 3000 # 鑾峰彇鍒嗗竷寮忛攣瓒呮椂鏃堕棿锛岄粯璁や负 3000 姣
+  expire: 30000 # 鍒嗗竷寮忛攣鐨勮秴鏃舵椂闂达紝榛樿涓?30 姣
+
+--- #################### 鐩戞帶鐩稿叧閰嶇疆 ####################
+
+# Actuator 鐩戞帶绔偣鐨勯厤缃」
+management:
+  endpoints:
+    web:
+      base-path: /actuator # Actuator 鎻愪緵鐨?API 鎺ュ彛鐨勬牴鐩綍銆傞粯璁や负 /actuator
+      exposure:
+        include: '*' # 闇€瑕佸紑鏀剧殑绔偣銆傞粯璁ゅ€煎彧鎵撳紑 health 鍜?info 涓や釜绔偣銆傞€氳繃璁剧疆 * 锛屽彲浠ュ紑鏀炬墍鏈夌鐐广€?
+
+# Spring Boot Admin 閰嶇疆椤?
+spring:
+  boot:
+    admin:
+      # Spring Boot Admin Client 瀹㈡埛绔殑鐩稿叧閰嶇疆
+      client:
+        instance:
+          service-host-type: IP # 娉ㄥ唽瀹炰緥鏃讹紝浼樺厛浣跨敤 IP [IP, HOST_NAME, CANONICAL_HOST_NAME]
+
+# 鏃ュ織鏂囦欢閰嶇疆
+logging:
+  level:
+    # 閰嶇疆鑷繁鍐欑殑 MyBatis Mapper 鎵撳嵃鏃ュ織
+    football.module.system.dal.mysql: debug
+    football.module.system.dal.mysql.sms.SmsChannelMapper: INFO # 閰嶇疆 SmsChannelMapper 鐨勬棩蹇楃骇鍒负 info
+    org.springframework.context.support.PostProcessorRegistrationDelegate: ERROR # TODO 鑺嬭壙锛氬厛绂佺敤锛孲pring Boot 3.X 瀛樺湪閮ㄥ垎閿欒鐨?WARN 鎻愮ず
+
+--- #################### 寰俊鍏紬鍙枫€佸皬绋嬪簭鐩稿叧閰嶇疆 ####################
+wx:
+  mp: # 鍏紬鍙烽厤缃紙蹇呭～锛夛紝鍙傝 https://github.com/Wechat-Group/WxJava/blob/develop/spring-boot-starters/wx-java-mp-spring-boot-starter/README.md 鏂囨。
+    #    app-id: wx041349c6f39b268b # 娴嬭瘯鍙凤紙鐗涘笇灏ф彁渚涚殑锛?
+    #    secret: 5abee519483bc9f8cb37ce280e814bd0
+    app-id: wx5b23ba7a5589ecbb # 娴嬭瘯鍙凤紙鑷繁鐨勶級
+    secret: 2a7b3b20c537e52e74afd395eb85f61f
+    #    app-id: wxa69ab825b163be19 # 娴嬭瘯鍙凤紙Kongdy 鎻愪緵鐨勶級
+    #    secret: bd4f9fab889591b62aeac0d7b8d8b4a0
+    # 瀛樺偍閰嶇疆锛岃В鍐?AccessToken 鐨勮法鑺傜偣鐨勫叡浜?
+    config-storage:
+      type: RedisTemplate # 閲囩敤 RedisTemplate 鎿嶄綔 Redis锛屼細鑷姩浠?Spring 涓幏鍙?
+      key-prefix: wx # Redis Key 鐨勫墠缂€
+      http-client-type: HttpClient # 閲囩敤 HttpClient 璇锋眰寰俊鍏紬鍙峰钩鍙?
+  miniapp: # 灏忕▼搴忛厤缃紙蹇呭～锛夛紝鍙傝 https://github.com/Wechat-Group/WxJava/blob/develop/spring-boot-starters/wx-java-miniapp-spring-boot-starter/README.md 鏂囨。
+    #    appid: wx62056c0d5e8db250 # 娴嬭瘯鍙凤紙鐗涘笇灏ф彁渚涚殑锛?
+    #    secret: 333ae72f41552af1e998fe1f54e1584a
+    #    appid: wx63c280fe3248a3e7 # wenhualian鐨勬帴鍙ｆ祴璇曞彿
+    #    secret: 6f270509224a7ae1296bbf1c8cb97aed
+    appid: wxc4598c446f8a9cb3 # 娴嬭瘯鍙凤紙Kongdy 鎻愪緵鐨勶級
+    secret: 4a1a04e07f6a4a0751b39c3064a92c8b
+#    appid: wx66186af0759f47c9 # 娴嬭瘯鍙凤紙puhui 鎻愪緵鐨勶級
+#    secret: 3218bcbd112cbc614c7264ceb20144ac
+    config-storage:
+      type: RedisTemplate # 閲囩敤 RedisTemplate 鎿嶄綔 Redis锛屼細鑷姩浠?Spring 涓幏鍙?
+      key-prefix: wa # Redis Key 鐨勫墠缂€
+      http-client-type: HttpClient # 閲囩敤 HttpClient 璇锋眰寰俊鍏紬鍙峰钩鍙?
+
+--- #################### 鑺嬮亾鐩稿叧閰嶇疆 ####################
+
+# 鑺嬮亾閰嶇疆椤癸紝璁剧疆褰撳墠椤圭洰鎵€鏈夎嚜瀹氫箟鐨勯厤缃?
+football:
+  env: # 澶氱幆澧冪殑閰嶇疆椤?
+    tag: ${HOSTNAME}
+  captcha:
+    enable: false # 鏈湴鐜锛屾殏鏃跺叧闂浘鐗囬獙璇佺爜锛屾柟渚跨櫥褰曠瓑鎺ュ彛鐨勬祴璇?
+  security:
+    mock-enable: true
+  websocket:
+    sender-type: local # 鏈湴寮€鍙戜娇鐢?local锛岀鐢?RocketMQ/Redis/Kafka/RabbitMQ
+  access-log: # 璁块棶鏃ュ織鐨勯厤缃」
+    enable: true
+  wxa-code:
+    env-version: develop # 灏忕▼搴忕増鏈? 姝ｅ紡鐗堜负 "release"锛涗綋楠岀増涓?"trial"锛涘紑鍙戠増涓?"develop"
+  wxa-subscribe-message:
+    miniprogram-state: developer # 璺宠浆灏忕▼搴忕被鍨嬶細寮€鍙戠増涓?"developer"锛涗綋楠岀増涓?"trial"涓猴紱姝ｅ紡鐗堜负 "formal"
+  signature:
+    app-id: 20260408160327_DEV
+    app-secret: 8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c
+  encrypt:
+    data-key: K9m2P5v8x1B4n7Q0
+    data-iv: L3j6R9w2Z5c8F1b4
+justauth:
+  enabled: true
+  type:
+    DINGTALK: # 閽夐拤
+      client-id: dingvrnreaje3yqvzhxg
+      client-secret: i8E6iZyDvZj51JIb0tYsYfVQYOks9Cq1lgryEjFRqC79P3iJcrxEwT6Qk2QvLrLI
+      ignore-check-redirect-uri: true
+    WECHAT_ENTERPRISE: # 浼佷笟寰俊
+      client-id: wwd411c69a39ad2e54
+      client-secret: 1wTb7hYxnpT2TUbIeHGXGo7T0odav1ic10mLdyyATOw
+      agent-id: 1000004
+      ignore-check-redirect-uri: true
+    # noinspection SpringBootApplicationYaml
+    WECHAT_MINI_PROGRAM: # 寰俊灏忕▼搴?
+      client-id: ${wx.miniapp.appid}
+      client-secret: ${wx.miniapp.secret}
+      ignore-check-redirect-uri: true
+      ignore-check-state: true # 寰俊灏忕▼搴忥紝涓嶄細浣跨敤鍒?state锛屾墍浠ヤ笉杩涜鏍￠獙
+    WECHAT_MP: # 寰俊鍏紬鍙?
+      client-id: ${wx.mp.app-id}
+      client-secret: ${wx.mp.secret}
+      ignore-check-redirect-uri: true
+    WECHAT_OPEN: # 寰俊寮€鏀惧钩鍙?
+      client-id: wx9b25ee464924b30c
+      client-secret: e0991a92fec9884755f03ea9e2aba8f8
+      ignore-check-redirect-uri: true
+    APPLE: # Apple 鐧诲綍
+      client-id: com.shenyu.sports.dev
+      client-secret: |
+        -----BEGIN PRIVATE KEY-----
+        MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgS0oJSm6/cR5kA+HxrNtyJNfI12y70eo0vCf1pB2nJemgCgYIKoZIzj0DAQehRANCAARB5pLmHGWos2IoAc9x1Q8Ytt8FJXn4d2hNk+O3rZ3LSRJ4truVqLWhNot3JZvoQxVGPKIW50v6Bw8Jx/ZEyVsZ
+        -----END PRIVATE KEY-----
+      kid: D7SX68H2CW                              # 浣犵殑 Key ID
+      team-id: J62GU48QPB
+      ignore-check-redirect-uri: true
+      ignore-check-state: true
+  cache:
+    type: REDIS
+    prefix: 'social_auth_state:' # 缂撳瓨鍓嶇紑锛岀洰鍓嶅彧瀵?Redis 缂撳瓨鐢熸晥锛岄粯璁?JUSTAUTH::STATE::
+    timeout: 24h # 瓒呮椂鏃堕暱锛岀洰鍓嶅彧瀵?Redis 缂撳瓨鐢熸晥锛岄粯璁?3 鍒嗛挓

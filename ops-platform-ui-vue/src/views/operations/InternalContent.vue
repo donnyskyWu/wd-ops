@@ -803,13 +803,13 @@ const handleReview = async (row: any, status: 1 | 2) => {
     }
 
     :deep(.el-button--primary) {
-      background-color: #1890ff;
-      border-color: #1890ff;
+      background-color: var(--el-color-primary);
+      border-color: var(--el-color-primary);
       border-radius: 6px;
 
       &:hover {
-        background-color: #40a9ff;
-        border-color: #40a9ff;
+        background-color: var(--el-color-primary-light-3);
+        border-color: var(--el-color-primary-light-3);
       }
     }
 

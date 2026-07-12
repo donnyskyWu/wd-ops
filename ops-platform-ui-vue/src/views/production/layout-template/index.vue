@@ -28,7 +28,7 @@
 
     <div class="action-bar">
 
-      <el-button type="primary" @click="router.push('/layout-template/create')">
+      <el-button type="primary" @click="router.push(opsRouteTo({ name: 'LayoutTemplateCreate' }))">
 
         <el-icon><Plus /></el-icon>
 
@@ -36,7 +36,7 @@
 
       </el-button>
 
-      <el-button @click="router.push('/layout-template/import')">导入向导</el-button>
+      <el-button @click="router.push(opsRouteTo({ name: 'LayoutTemplateImport' }))">导入向导</el-button>
 
     </div>
 
@@ -102,9 +102,9 @@
 
         <template #default="{ row }">
 
-          <el-button link type="primary" @click="router.push(`/layout-template/${row.id}`)">预览</el-button>
+          <el-button link type="primary" @click="router.push(opsRouteTo({ name: 'LayoutTemplatePreview', params: { id: String(row.id) } }))">预览</el-button>
 
-          <el-button link type="primary" @click="router.push(`/layout-template/${row.id}/edit`)">
+          <el-button link type="primary" @click="router.push(opsRouteTo({ name: 'LayoutTemplateEdit', params: { id: String(row.id) } }))">
             {{ row.sourceType === 'PRESET' ? '查看' : '编辑' }}
           </el-button>
           <el-button
@@ -233,6 +233,7 @@ import {
 } from '@/api/layoutTemplate'
 
 import type { LayoutTemplateVO } from '@/types/layoutTemplate'
+import { opsRouteTo } from '@/utils/ops-route'
 
 
 
@@ -345,7 +346,7 @@ async function handleEnable(row: LayoutTemplateVO) {
 async function handleCopy(id: number) {
   const newId = await copyLayoutTemplate(id)
   ElMessage.success('已复制预置模板')
-  router.push(`/layout-template/${newId}/edit`)
+  router.push(opsRouteTo({ name: 'LayoutTemplateEdit', params: { id: String(newId) } }))
 }
 
 async function handleDelete(id: number) {

@@ -15,6 +15,10 @@ public class CollectTaskDO extends TenantBaseDO {
     private String taskName;
     private String platformType;
     private Long accountId;
+    /** Channel-D · FK {@code oa_collect_config.id} */
+    private Long collectConfigId;
+    /** Channel-D · 租户凭账号 profile，默认 {@code default} */
+    private String credentialProfile;
     private String method;
     private String source;
     /** 采集数据类型（dict_collect_data_type），如 MP_FOLLOWER_LIST / MP_ARTICLE_LIST */

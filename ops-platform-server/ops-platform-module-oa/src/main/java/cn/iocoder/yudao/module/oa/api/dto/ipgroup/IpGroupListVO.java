@@ -22,5 +22,7 @@ public class IpGroupListVO {
     private Integer anchorCount;
     /** 0=停用 1=启用 */
     private Integer status;
+    /** dict_ip_group_level: S/A/B/C */
+    private String level;
     private LocalDateTime createTime;
 }

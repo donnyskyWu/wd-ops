@@ -1,0 +1,177 @@
+{
+  "summary": {
+    "total": 14,
+    "pass": 14,
+    "fail": 0
+  },
+  "rows": [
+    {
+      "route_path": "",
+      "menu_title": "账号分析",
+      "parent_group": "运营管理",
+      "football_path": "/ops/account-analysis",
+      "football_component": "ops/operations/AccountAnalysis",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "作者管理",
+      "parent_group": "运营管理",
+      "football_path": "/ops/author",
+      "football_component": "ops/operations/Author",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "人效盘点",
+      "parent_group": "运营管理",
+      "football_path": "/ops/efficiency",
+      "football_component": "ops/operations/Efficiency",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "粉丝分析",
+      "parent_group": "运营管理",
+      "football_path": "/ops/fans-analysis",
+      "football_component": "ops/operations/FansAnalysis",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "内部作品分析",
+      "parent_group": "运营管理",
+      "football_path": "/ops/internal-content",
+      "football_component": "ops/operations/InternalContent",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "IP组管理",
+      "parent_group": "运营管理",
+      "football_path": "/ops/ip-group",
+      "football_component": "ops/operations/IpGroup",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "AI模型",
+      "parent_group": "配置管理",
+      "football_path": "/ops/config-ai-model",
+      "football_component": "ops/config/AiModelConfig",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "AI提示词",
+      "parent_group": "配置管理",
+      "football_path": "/ops/config-ai-prompt",
+      "football_component": "ops/config/AiPromptConfig",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "外部采集配置",
+      "parent_group": "配置管理",
+      "football_path": "/ops/config-external-collect",
+      "football_component": "ops/config/ExternalCollectConfig",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "外部数据配置",
+      "parent_group": "配置管理",
+      "football_path": "/ops/config-external-data",
+      "football_component": "ops/config/ExternalDataConfig",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "内部采集配置",
+      "parent_group": "配置管理",
+      "football_path": "/ops/config-internal-collect",
+      "football_component": "ops/config/InternalCollectConfig",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "元数据维护",
+      "parent_group": "配置管理",
+      "football_path": "/ops/config-metadata",
+      "football_component": "ops/config/MetadataManage",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "订单采集配置",
+      "parent_group": "配置管理",
+      "football_path": "/ops/config-order-collect",
+      "football_component": "ops/config/OrderCollectConfig",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    },
+    {
+      "route_path": "",
+      "menu_title": "阈值规则配置",
+      "parent_group": "配置管理",
+      "football_path": "/ops/config-threshold",
+      "football_component": "ops/config/ThresholdConfig",
+      "route": true,
+      "vite": true,
+      "api": true,
+      "theme": true,
+      "issues": []
+    }
+  ]
+}

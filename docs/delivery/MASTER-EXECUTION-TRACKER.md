@@ -1,4 +1,4 @@
-﻿# 全局工作执行进度�?· Gate Checklist
+# 全局工作执行进度�?· Gate Checklist
 
 > **文档性质**：项目执�?SSOT（Single Source of Truth）�?**阶段门禁唯一依据**
 > **版本**：v1.0 | 2026-06-09
@@ -647,7 +647,7 @@ curl http://localhost:8080/oa/...
 ## 17. Phase 2 Backlog（待 Gate 立项）
 
 > **状态**：🔵 P2-M10-A Channel-A 多平台 MVP 代码+IT 完成（S-01~S-06 + V121/V122 全量 dataType + ADR-049 展示桥接 · [ADR-047](../adr/ADR-047-M4-平台账号凭证SSOT与Collector映射.md) · [ADR-049](../adr/ADR-049-M10-全量采集与展示桥接.md)）· **待正式 Gate 签收** · **不得**将 §1 Phase 2 行标为 ✅  
-> **SSOT**：[ADR-045](../adr/ADR-045-M10-奥创多账号与设备同步.md) · [ADR-047](../adr/ADR-047-M4-平台账号凭证SSOT与Collector映射.md) · [ADR-048](../adr/ADR-048-M10-企微采集通道草案.md) · [ADR-049](../adr/ADR-049-M10-全量采集与展示桥接.md) · [M10-三通道采集计划](./M10-三通道采集计划.md)
+> **SSOT**：[ADR-045](../adr/ADR-045-M10-奥创多账号与设备同步.md) · [ADR-047](../adr/ADR-047-M4-平台账号凭证SSOT与Collector映射.md) · [ADR-048](../adr/ADR-048-M10-企微采集通道草案.md) · [ADR-049](../adr/ADR-049-M10-全量采集与展示桥接.md) · [ADR-052](../adr/ADR-052-Ops外部竞品四平台采集通道.md) · [M10-三通道采集计划](./M10-三通道采集计划.md) · [M10-EXTERNAL-四平台竞品采集-SLICE](./M10-EXTERNAL-四平台竞品采集-SLICE.md)
 
 ### 17.1 M10 三通道采集
 
@@ -659,6 +659,21 @@ curl http://localhost:8080/oa/...
 | P2-M10-C | 企微 | M10-WECOM-S-01~S-04 | `WeComAdapter` + `oa_wework_account` · [ADR-048](../adr/ADR-048-M10-企微采集通道草案.md) 已采纳 | 🔵 S-01~S-04 IT 通过；待 Gate 与 M1 微信分析人工联调 |
 | P2-M10-04 | 闭环 | M10-COL-S-04 · AO-S-07 · API-S-05~08 · WECOM-S-05 | 私域桥接 / 漏斗分析 | ⬜ P2 |
 
+### 17.3 M10 Channel-D 外部竞品四平台采集（2026-07-08 立项）
+
+> **SSOT**：[ADR-052](../adr/ADR-052-Ops外部竞品四平台采集通道.md) · [M10-EXTERNAL-四平台竞品采集-SLICE](./M10-EXTERNAL-四平台竞品采集-SLICE.md)  
+> **状态**：🔵 规划完成 · **待 GATE-EXT-P0 启动开发** · collector 路由缺口见 ADR-052 §2
+
+| ID | 阶段 | 平台 | 切片 | 说明 | 状态 |
+|----|------|------|------|------|------|
+| P2-M10-D-00 | P0 | 基建 | M10-EXT-P0-S-01 | ADR-052 · V133 schema · `ExternalCollectorAdapter` 骨架 | 🔵 文档+接口 stub 已建 |
+| P2-M10-D-P0 | P0 | **快手** | M10-EXT-P0-S-02~S-04 | `user-videos` E2E → `oa_external_*` → M7 展示 · **Gate GATE-EXT-P0** | ⬜ 待批字段映射 |
+| P2-M10-D-P1 | P1 | 公众号 | M10-EXT-P1-S-01~S-03 | `search-account` + `article-collect` · operator bind | ⬜ 依赖 P0 Gate |
+| P2-M10-D-P2 | P2 | 抖音 | M10-EXT-P2-S-00~S-02 | collector `user-videos` 路由 + Ops 同步 | ⬜ collector 缺口 |
+| P2-M10-D-P3 | P3 | 视频号 | M10-EXT-P3-S-00~S-02 | collector external 全链路 + Ops | ⬜ 双端缺口最大 |
+
+**推荐顺序**：快手 P0 → 公众号 P1 → 抖音 P2 → 视频号 P3（ROI 见 Slice §1）。
+
 ### 17.2 M2 微信公众号发布（与 M10 采集分离）
 
 | ID | 切片 | 说明 | 依赖 |
@@ -669,3 +684,97 @@ curl http://localhost:8080/oa/...
 | P2-M2-PUB-03 | M2-PUB-WX-S-03 | **`freepublish/submit`** + 异步状态轮询 | P2-M2-PUB-02 |
 
 > **API 边界**：推草稿箱用 `draft/add`；`freepublish/submit` 仅**发布**已有草稿（非存草稿）。
+
+---
+
+## 18. Football × Ops 平台集成（2026-07-02 启动）
+
+> **SSOT**：[ADR-047-Football-Ops平台集成决策](../adr/ADR-047-Football-Ops平台集成决策.md) · [INTEGRATION-S0-Football-Ops](./INTEGRATION-S0-Football-Ops.md) · **[INTEGRATION-PROGRESS 进度看板](./INTEGRATION-PROGRESS.md)**（更新 2026-07-04）  
+> **硬约束**：禁止改 `football-front/`、`football-backend-saas/` Java/Vue **逻辑**；Gateway/Nacos/yaml/DB 配置可改。
+
+| Gate | 阶段 | 范围 | 状态 | 备注 |
+|------|------|------|------|------|
+| **GATE-INT-S0** | 集成 S0 基建 | 环境矩阵 · ADR · 菜单映射计划 | ✅ 已签 | [GATE-INT-S0-报告-20260703](./gates/GATE-INT-S0-报告-20260703.md) · 2026-07-04 |
+| **GATE-INT-S1** | 集成 S1 联通 | S1-A ✅ · S1-B ✅ · Gateway · M9 登录 | ✅ 已签 | [GATE-INT-S1-报告-20260703](./gates/GATE-INT-S1-报告-20260703.md) · 2026-07-04 |
+
+### 18.1 已锁定决策摘要
+
+| # | 决策 |
+|---|------|
+| 1 | 微服务直连（Nacos + Gateway **48080**），非 monolith-first |
+| 2 | 单库 **101.37.161.136:3306/wd** |
+| 3 | M9 → Football `system-server`；废弃 Ops User/Role/Tenant |
+| 4 | 业务权限前缀保留 **`oa:*`** |
+| 5 | 数据权限：OA 扩展 `biz-data-permission`，不改 Football 框架 Java |
+| 6 | 前端路由：Football hash 默认 |
+
+### 18.2 模块放置（推荐）
+
+| 项 | 路径 |
+|----|------|
+| **目标** | `wd/football-module-oa/`（与 `football-backend-saas/` 平级 sibling，**不**写入 Football 根 POM modules） |
+| **S1 过渡** | `ops-platform-server/ops-platform-module-oa` 注册为 Nacos **`oa-server`** |
+
+### 18.3 S1 首批任务
+
+| # | 任务 | 状态 | 产出 |
+|---|------|------|------|
+| 1 | `ops-platform-module-oa` 加 Nacos Discovery + `spring.application.name=oa-server` | ✅ S1-A | 服务在 Nacos 可见 |
+| 2 | Gateway **配置-only** 增加 `/admin-api/oa/**` → `grayLb://oa-server` | ✅ S1-A | 经 48080 访问 OA API |
+| 3 | 新建 `football-module-oa/` sibling 工程 | 🔵 S3 前 | BOM 对齐 · `oa-server-dev.yaml` |
+| 4 | 菜单/权限 CSV 提取 + Football `system_menu` seed（排除 M9 用户/角色/租户） | ✅ S2 | `oa-menu-permission-map.csv` + seed 69 menu / 59 role_menu |
+
+**集成阶段进度**（2026-07-04，详见 [INTEGRATION-PROGRESS](./INTEGRATION-PROGRESS.md)）：
+
+| 阶段 | 状态 | 摘要 |
+|------|------|------|
+| S0 基建 | ✅ Gate 已签 | GATE-INT-S0 · 2026-07-04 |
+| S1 联通/鉴权 | ✅ Gate 已签 | GATE-INT-S1 · 登录 code=0 · 2026-07-04 |
+| S2 菜单 | ✅ 58/58 验收 | vite 90/90 · API probe 58/58 |
+| S4 前端挂载 | ✅ 103 vue | per-menu 58/58 PASS · 4-module parallel ✅ |
+| S3 后端迁移 | ⏸ Deferred | ADR-049 · 待产品排期 sibling 工程 |
+| S5 切流 | ⬜ 待开始 | UAT 扩展 · ~~member 真服评估~~（**仅全栈集成**；standalone 忽略，见 INTEGRATION-PROGRESS §20–§21） |
+
+**开放项（非 P0）**：S3 sibling 工程 · ~~S5 前 member-server 替换 mock~~（**已取消 — standalone 范围**） · 数据质量 stub 页。
+
+---
+
+## 19. 多库复用程序（2026-07-05 启动）
+
+> **SSOT**：[OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN.md](./OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN.md) · [ADR-050](../adr/ADR-050-Ops与Football多库复用总纲.md) · [OPS-FOOTBALL-MULTI-DB-REUSE-ANALYSIS](./OPS-FOOTBALL-MULTI-DB-REUSE-ANALYSIS.md)  
+> **硬约束**：TRUNCATE **仅 localhost:3306/wd**；远程 101.37.161.136 **禁止**在本程序变更；**不改 Football 业务代码与逻辑**（ADR-050 §3.1：改造仅限 oa-server + wd + football-front 挂载层；member/mp/pay/system-server 业务模块禁止改动；gateway 集成基建已冻结）。  
+> **验收 Gate**：**必须**经 Football 集成 UI `:5777` 登录操作签收（[EXECUTION-PLAN §0.6](./OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN.md#06-验收总则强制-gate) · ADR-050 §3.2）；curl/:3000 **非 Gate**。
+
+| Gate | 阶段 | 范围 | Football UI 签收 | 状态 | 备注 |
+|------|------|------|------------------|------|------|
+| **GATE-MDB-S0** | 多库 S0 基建 | TRUNCATE · V131 · ADR · IP skeleton | 58/58 + 登录/dashboard/作者页 spotcheck | ✅ | [GATE-MDB-S0-报告-20260705](./gates/GATE-MDB-S0-报告-20260705.md) · E2E 58/58 |
+| **GATE-MDB-S1** | 作者 + 微信公号 | AuthorService · mp+ext 双写 | 58/58 + **UI 新建作者** + **公号 sync** | ✅ | [GATE-MDB-S1-报告-20260705](./gates/GATE-MDB-S1-报告-20260705.md) |
+| **GATE-MDB-S2** | 非微信 + IP + 字典 | oa_account · DictAdapter | 58/58 + IP 组 tree · 非微信 CRUD · M4 5/5 | ✅ | [GATE-MDB-S2-报告-20260705](./gates/GATE-MDB-S2-报告-20260705.md) |
+| **GATE-MDB-S3** | 日志 + 消息 + 采集 | system DS · pay DS | 58/58 + 登录/操作日志 · 采集 bind · 订单页 | ✅ | [GATE-MDB-S3-报告-20260705](./gates/GATE-MDB-S3-报告-20260705.md) |
+| **GATE-MDB-S4** | Cutover | DROP oa_author · 全环境 matrix | 58/58 + S1–S3 场景全复验 | ✅ | [GATE-MDB-S4-报告-20260705](./gates/GATE-MDB-S4-报告-20260705.md) · V132 · E2E 58/58 |
+| **GATE-MDB-REMOTE** | 远程五库 cutover | 101.37.161.136 四库 + V131/V132 + Nacos | 58/58 + author≥35 + login≥3000 | ⏸ **Deferred** | [GATE-MDB-REMOTE-报告-20260705](./gates/GATE-MDB-REMOTE-报告-20260705.md) · **用户取消** — 101.37.161.136 非部署环境；不继续远程 sync |
+
+### 19.2 远程 cutover（⏸ Deferred · 2026-07-05 用户取消）
+
+| 项 | 状态 | 说明 |
+|----|------|------|
+| 远程 cutover 程序 | ⏸ **Deferred** | 101.37.161.136 **非部署环境**；用户决定不继续远程 DB sync |
+| localhost MDB S0–S4 | ✅ **Complete** | 日常 dev 仅用 `dev-local-multidb` → localhost:3306 五库 |
+| 远程探测归档 | 📄 保留 | 见 [GATE-MDB-REMOTE-报告](./gates/GATE-MDB-REMOTE-报告-20260705.md) 历史记录 |
+| 重启条件 | — | 用户另批明确 **部署环境** + mysqldump 备份 + 书面审批后 |
+
+### 19.1 已锁定决策（ADR-050）
+
+| # | 决策 |
+|---|------|
+| 1 | 五库 localhost：wd + shenyu-member/mp/pay/system |
+| 2 | 配置 SSOT = wd；业务 SSOT = Football 四库 |
+| 3 | wd 测试数据可 TRUNCATE（2026-07-05 用户确认） |
+| 4 | 作者 ext PK = `author_user_id`；弃用 `oa_author` |
+| 5 | 微信 = `mp_account` + `oa_account_ext` |
+| 6 | Supersedes ADR-047 D2（单库）部分 |
+| 7 | **不改 Football 业务代码与逻辑** — Ops 侧 Adapter/sync + football-front 挂载；gateway 集成基建已冻结 |
+| 7 | **GATE-MDB 验收** — Football `:5777` UI 登录操作签收；58/58 E2E 回归基线（§0.6 / ADR-050 §3.2） |
+| 8 | **Post-MDB 本地签收** | 2026-07-05 | [POST-MDB-LOCAL-SIGNOFF-20260705](./gates/POST-MDB-LOCAL-SIGNOFF-20260705.md) · E2E 58/58 · DB SSOT ✅ |
+
+> **用户场景**（2026-07-04）：**Ops standalone only** → `start-ops-standalone.ps1`（:3000 + :8080 · `dev-token-oa-admin` · 无 Gateway/system/member）；**非 GATE-MDB 验收路径**。待办见 [INTEGRATION-PROGRESS §21](./INTEGRATION-PROGRESS.md#21-待办清单--按用户场景2026-07-04-修订)。**Football 全栈集成（Gate 唯一路径）** → `start-integration-all.ps1` → `:5777` 登录签收；member mock 见 §20 · 后续见 [INTEGRATION-PROGRESS §23](./INTEGRATION-PROGRESS.md#23-本地-football-集成路线图post-mdb--2026-07-05)。

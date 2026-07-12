@@ -18,6 +18,8 @@
 
 ### 1.2 POST `/admin-api/oa/collect/task/create`
 
+**Channel-A 示例**：
+
 ```json
 {
   "taskName": "公众号每日数据采集",
@@ -33,11 +35,13 @@
 }
 ```
 
-> **`dataType`**：省略或 `null` 表示按平台 **全量** 采集（ADR-049）；存库规范化后仍为 `null`。指定单一值时仅执行该类型（IT/API 保留；运营 UI 不暴露）。
+**Channel-D 示例**（`method=EXTERNAL`）：见 §8.1。
+
+> **`dataType`**：省略或 `null` 表示按平台 **全量** 采集（ADR-049）；存库规范化后仍为 `null`。指定单一值时仅执行该类型（IT/API 保留；Channel-A 运营 UI 不暴露）。
 
 **校验**：
 - `platformType` `@InDict(type="dict_platform_type")`
-- `accountId` `@NotNull`
+- Channel-A：`accountId` `@NotNull`；Channel-D：`collectConfigId` `@NotNull` 且 `accountId` 必须为 null
 - `method` `@InDict(type="dict_collect_method")`
 - `source` `@InDict(type="dict_collect_source")`
 - `frequency` `@InDict(type="dict_collect_frequency")`
@@ -272,6 +276,63 @@ M10 任务 `source` + `method=INTERNAL` 经 `UnifiedCollectorAdapter` 路由至 
 
 ---
 
+## 8. Channel-D 外部竞品 API（ADR-052 · GATE-EXT-P0）
+
+> 完整 phased 契约见 [M10-EXTERNAL-四平台竞品采集-SLICE](../delivery/M10-EXTERNAL-四平台竞品采集-SLICE.md) §4。
+
+### 8.1 采集任务 create/update（增量字段）
+
+```json
+{
+  "taskName": "快手竞品-作品",
+  "platformType": "KUAISHOU",
+  "method": "EXTERNAL",
+  "source": "UNIFY_COLLECTOR_EXTERNAL",
+  "collectConfigId": 96001,
+  "accountId": null,
+  "credentialProfile": "default",
+  "dataType": "EXT_KUAISHOU_USER_VIDEOS",
+  "frequency": "DAILY",
+  "status": "ENABLED"
+}
+```
+
+**校验**：
+
+| 规则 | 说明 |
+|------|------|
+| `method=EXTERNAL` | `collectConfigId` **必填**；`accountId` **必须 null** |
+| `collectConfigId` | 须指向 `oa_collect_config` 且 `scope=EXTERNAL`, `sub_type=account`, `platform_type` 与任务一致 |
+| 凭账号 | 由 `tenant_id` + `platform_type` + `credentialProfile` 解析 `oa_tenant_collector_credential`；**不在此 API 传 cookie** |
+| `method=INTERNAL` | 沿用 §1.2（`accountId` 必填） |
+
+### 8.2 新增 `dict_collect_data_type`（外部竞品 · phased）
+
+| 值 | 平台 | Gate |
+|----|------|------|
+| `EXT_KUAISHOU_USER_VIDEOS` | 快手 | P0 |
+| `EXT_WECHAT_MP_SEARCH` | 公众号 | P1 |
+| `EXT_WECHAT_MP_ARTICLE_LIST` | 公众号 | P1 |
+| `EXT_DOUYIN_USER_PROFILE` / `EXT_DOUYIN_USER_VIDEOS` | 抖音 | P2 |
+| `EXT_WECHAT_VIDEO_*` | 视频号 | P3 |
+
+### 8.3 落库表（V136+）
+
+| 表 | 说明 |
+|----|------|
+| `oa_external_account` | 竞品账号快照；FK `collect_config_id` |
+| `oa_external_work` | 竞品作品；`account_id` → `oa_external_account.id`；UK `(tenant_id, platform_type, platform_work_id)` |
+| `oa_external_follower_daily` | 粉丝日聚合 |
+| `oa_tenant_collector_credential` | 租户级运营凭账号（AES-256） |
+
+### 8.4 Collector HTTP（Ops Client · P0）
+
+| dataType | HTTP | 参数 |
+|----------|------|------|
+| `EXT_KUAISHOU_USER_VIDEOS` | `GET /api/v1/external/kuaishou/user-videos` | `user_id` ← M8 `account_identifier` |
+
+---
+
 ## 7. 错误码
 
 | 错误码 | 含义 |
@@ -337,7 +398,8 @@ M10 任务 `source` + `method=INTERNAL` 经 `UnifiedCollectorAdapter` 路由至 
 
 | 字段 | 选择器组件 | 关联实体 | 错误码 |
 |------|----------|---------|--------|
-| `accountId` | `<AccountSelect />` | 平台账号 | 1501 / 1504 |
+| `accountId` | `<AccountSelect />` | 平台账号（Channel-A） | 1501 / 1504 |
+| `collectConfigId` | 外部竞品配置选择器 | `oa_collect_config`（EXTERNAL） | 1501 / 1504 |
 | `proxyType` | `<DictSelect dict-type="dict_proxy_type" />` | 代理类型 | 1503 |
 | `authType` | `<DictSelect dict-type="dict_auth_type" />` | 认证类型 | 1503 |
 | `collectFreq` | `<DictSelect dict-type="dict_collect_freq" />` | 采集频率 | 1503 |

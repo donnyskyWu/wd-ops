@@ -6,13 +6,17 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.config.AoCreateAccountCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.config.AoCreateAccountRespVO;
+import cn.iocoder.yudao.module.oa.api.dto.config.AoCreateAccountSyncRemoteReq;
+import cn.iocoder.yudao.module.oa.api.dto.config.AoCreateAccountSyncResultVO;
 import cn.iocoder.yudao.module.oa.api.dto.config.AoCreateAccountTestConnectionRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.config.AoCreateAccountUpdateReq;
+import cn.iocoder.yudao.module.oa.api.dto.config.AochuangRemoteAccountRespVO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.config.AoCreateAccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.config.AoCreateApiDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.config.AoCreateAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.config.AoCreateApiMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.config.aochuang.AochuangAccountDTO;
 import cn.iocoder.yudao.module.oa.service.config.aochuang.AochuangApiClient;
 import cn.iocoder.yudao.module.oa.service.config.aochuang.AochuangApiException;
 import cn.iocoder.yudao.module.oa.service.config.aochuang.AochuangWechatAccountDTO;
@@ -22,7 +26,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -117,6 +125,109 @@ public class AoCreateAccountServiceImpl implements AoCreateAccountService {
         ConfigTenantSupport.fillUpdate(account);
         aoCreateAccountMapper.updateById(account);
         return resp;
+    }
+
+    @Override
+    public List<AochuangRemoteAccountRespVO> listRemoteSubAccounts(String lastUpdateTime) {
+        AoCreateApiDO api = requireTenantApi();
+        Map<String, AoCreateAccountDO> localByAoId = loadLocalAccountMap();
+        return aochuangApiClient.listAccounts(api, lastUpdateTime).stream()
+                .filter(dto -> dto.getAccountType() != null
+                        && dto.getAccountType() == AochuangApiClient.ACCOUNT_TYPE_SUB)
+                .map(dto -> toRemoteResp(dto, localByAoId.get(dto.getAccountId())))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    @AuditLog(module = "M10-aocreate-account", action = "sync-remote")
+    public AoCreateAccountSyncResultVO syncRemoteSubAccounts(AoCreateAccountSyncRemoteReq req) {
+        AoCreateAccountSyncResultVO result = new AoCreateAccountSyncResultVO();
+        AoCreateApiDO api = requireTenantApi();
+        List<AochuangAccountDTO> remoteSubs = aochuangApiClient.listAccounts(api, req.getLastUpdateTime()).stream()
+                .filter(dto -> dto.getAccountType() != null
+                        && dto.getAccountType() == AochuangApiClient.ACCOUNT_TYPE_SUB)
+                .toList();
+        Map<String, AochuangAccountDTO> remoteById = remoteSubs.stream()
+                .collect(Collectors.toMap(AochuangAccountDTO::getAccountId, Function.identity(), (a, b) -> a));
+
+        Set<String> targetIds = resolveSyncTargetIds(req, remoteSubs);
+        if (targetIds.isEmpty()) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "请指定要同步的子账号或选择全部同步");
+        }
+
+        Map<String, AoCreateAccountDO> localByAoId = loadLocalAccountMap();
+        for (String aoId : targetIds) {
+            AochuangAccountDTO remote = remoteById.get(aoId);
+            if (remote == null) {
+                result.setFailCount(result.getFailCount() + 1);
+                result.getFailReasons().add("远程子账号不存在: " + aoId);
+                continue;
+            }
+            AoCreateAccountDO existing = localByAoId.get(aoId);
+            if (existing != null) {
+                String remoteName = resolveAccountName(remote);
+                if (!StrUtil.equals(existing.getAccountName(), remoteName)) {
+                    existing.setAccountName(remoteName);
+                    ConfigTenantSupport.fillUpdate(existing);
+                    aoCreateAccountMapper.updateById(existing);
+                    result.setSuccessCount(result.getSuccessCount() + 1);
+                } else {
+                    result.setSkipCount(result.getSkipCount() + 1);
+                }
+                continue;
+            }
+            AoCreateAccountDO entity = new AoCreateAccountDO();
+            entity.setAocreateApiId(api.getId());
+            entity.setAccountName(resolveAccountName(remote));
+            entity.setAochuangAccountId(aoId);
+            entity.setStatus("ENABLED");
+            entity.setConnStatus("DISCONNECTED");
+            ConfigTenantSupport.fillCreate(entity);
+            aoCreateAccountMapper.insert(entity);
+            result.setSuccessCount(result.getSuccessCount() + 1);
+        }
+        return result;
+    }
+
+    private Set<String> resolveSyncTargetIds(AoCreateAccountSyncRemoteReq req, List<AochuangAccountDTO> remoteSubs) {
+        if (Boolean.TRUE.equals(req.getSyncAll())) {
+            return remoteSubs.stream().map(AochuangAccountDTO::getAccountId).collect(Collectors.toSet());
+        }
+        if (req.getAochuangAccountIds() == null || req.getAochuangAccountIds().isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(req.getAochuangAccountIds());
+    }
+
+    private Map<String, AoCreateAccountDO> loadLocalAccountMap() {
+        Long tenantId = ConfigTenantSupport.requireTenantId();
+        return aoCreateAccountMapper.selectList(new LambdaQueryWrapper<AoCreateAccountDO>()
+                        .eq(AoCreateAccountDO::getTenantId, tenantId))
+                .stream()
+                .collect(Collectors.toMap(AoCreateAccountDO::getAochuangAccountId, Function.identity(), (a, b) -> a));
+    }
+
+    private AochuangRemoteAccountRespVO toRemoteResp(AochuangAccountDTO dto, AoCreateAccountDO local) {
+        AochuangRemoteAccountRespVO vo = new AochuangRemoteAccountRespVO();
+        vo.setAccountId(dto.getAccountId());
+        vo.setUserName(dto.getUserName());
+        vo.setAccountType(dto.getAccountType());
+        vo.setStatus(dto.getStatus());
+        vo.setDepartment(dto.getDepartment());
+        vo.setUpdateDate(dto.getUpdateDate());
+        vo.setSynced(local != null);
+        if (local != null) {
+            vo.setLocalId(local.getId());
+        }
+        return vo;
+    }
+
+    private String resolveAccountName(AochuangAccountDTO remote) {
+        if (StrUtil.isNotBlank(remote.getUserName())) {
+            return remote.getUserName();
+        }
+        return remote.getAccountId();
     }
 
     private AoCreateAccountDO getRequired(Long id) {

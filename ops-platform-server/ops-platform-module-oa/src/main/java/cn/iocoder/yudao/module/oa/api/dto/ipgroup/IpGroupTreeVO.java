@@ -21,6 +21,8 @@ public class IpGroupTreeVO {
     private Integer accountCount;
     private Integer anchorCount;
     private Integer status;
+    /** dict_ip_group_level: S/A/B/C */
+    private String level;
     private LocalDateTime createTime;
     private List<IpGroupTreeVO> children = new ArrayList<>();
 }

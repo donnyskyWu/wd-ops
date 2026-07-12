@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.activity.ActivityMapper">
+
+    <select id="selectCountByType" resultType="java.lang.Long">
+        SELECT COUNT(a.id)
+        FROM member_activity a
+        LEFT JOIN coupon_info ci ON a.coupon_id = ci.id
+        WHERE a.deleted = 0
+        AND type = #{reqVO.type}
+        and ci.id = #{reqVO.couponId}
+        <if test="reqVO.id != null">
+            and a.id != #{reqVO.id}
+        </if>
+    </select>
+
+
+    <select id="getRunningActivity" resultType="football.module.member.controller.app.activity.dto.ActivityCouponDTO">
+        SELECT
+        ma.id,
+        ma.type,
+        ma.status AS act_status,
+        ma.start_time,
+        ma.end_time,
+        ma.scope,
+        ma.available_num,
+        ma.coupon_id,
+        ma.author_id,
+        ma.limited_num,
+        ma.total_count,
+        ci.coupon_name,
+        ci.coupon_type,
+        ci.threshold_amount,
+        ci.discount_amount,
+        ci.effective_type,
+        ci.effective_days,
+        ci.expiration_days,
+        ci.max_issue_count,
+        ci.issued_count,
+        ci.used_count
+        FROM member_activity ma
+        INNER JOIN coupon_info ci ON ma.coupon_id = ci.id
+        <where>
+            AND ma.deleted = 0
+            AND ma.status = 0
+            AND ma.start_time &lt;= NOW()
+            AND ma.end_time &gt;= NOW()
+            AND ci.deleted = 0
+            AND ci.status = 0
+            AND ci.issued_count &lt; ci.max_issue_count
+
+            <if test="reqVO.type != null">
+                AND ma.type = #{reqVO.type}
+            </if>
+
+            <if test="reqVO.authorId != null">
+                AND ma.author_id = #{reqVO.authorId}
+            </if>
+
+            <if test="reqVO.scope != null and reqVO.scope.size() > 0">
+                AND ma.scope IN
+                <foreach item="item" collection="reqVO.scope" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+
+    <!--
+  场景 1: 发行次数递增 (用户领取/系统发放)
+-->
+    <update id="incrementIssuedCount" parameterType="map">
+        UPDATE member_activity
+        SET issued_count = issued_count + 1,
+            update_time = NOW()
+        WHERE id = #{id} AND issued_count &lt; #{maxIssueCount}
+    </update>
+
+</mapper>

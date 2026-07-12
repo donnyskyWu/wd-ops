@@ -184,7 +184,7 @@
 ```yaml
 oa:
   match:
-    api-base-url: http://110.42.49.224:48088/app-api/match
+    api-base-url: https://h5.shenyu.com/app-api/match
     headers: {}   # 可选，外部 API 鉴权头
 ```
 

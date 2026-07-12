@@ -88,7 +88,7 @@ class M1IpGroupS03IT extends OaITBase {
     }
 
     @Test
-    @DisplayName("M1-S-03: 主播绑定与列表")
+  @DisplayName("M1-S-03: 作者绑定与列表")
     void bindAndListAnchors() throws Exception {
         mockMvc.perform(post("/admin-api/oa/ip-group/9002/anchors")
                         .header("Authorization", ADMIN)
@@ -96,8 +96,8 @@ class M1IpGroupS03IT extends OaITBase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "anchorUserIds": [1003],
-                                  "anchorType": "VIDEO"
+                                  "anchorUserIds": [9105],
+                                  "anchorType": "ARTICLE"
                                 }
                                 """))
                 .andExpect(jsonPath("$.code").value(0));
@@ -106,10 +106,10 @@ class M1IpGroupS03IT extends OaITBase {
                         .header("Authorization", ADMIN)
                         .header("X-Tenant-Id", TENANT))
                 .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.data[?(@.anchorUserId == 1003)]").exists())
+                .andExpect(jsonPath("$.data[?(@.anchorUserId == 9105)]").exists())
                 .andReturn();
 
-        mockMvc.perform(delete("/admin-api/oa/ip-group/9002/anchors/1003")
+        mockMvc.perform(delete("/admin-api/oa/ip-group/9002/anchors/9105")
                         .header("Authorization", ADMIN)
                         .header("X-Tenant-Id", TENANT))
                 .andExpect(jsonPath("$.code").value(0));

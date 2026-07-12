@@ -88,7 +88,7 @@
       />
     </ContentWrap>
 
-    <el-drawer v-model="detailVisible" :title="`内容审核 - ${current?.title || ''}`" size="60%">
+    <el-drawer direction="rtl" append-to-body v-model="detailVisible" :title="`内容审核 - ${current?.title || ''}`" size="60%">
       <div v-if="current">
         <el-descriptions title="基础信息" :column="2" border>
           <el-descriptions-item label="标题">{{ current.title || '—' }}</el-descriptions-item>

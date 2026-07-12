@@ -135,10 +135,10 @@ export interface QualityLogVO {
 }
 
 export function getQualityCheckPage(params: any): Promise<{ list: QualityCheckVO[]; total: number }> {
-  return request.get({ url: '/oa/collect/quality/check/page', params })
+  return request.get({ url: '/oa/collect/quality/list', params })
 }
 export function getQualityLogPage(params: any): Promise<{ list: QualityLogVO[]; total: number }> {
-  return request.get({ url: '/oa/collect/quality/log/page', params })
+  return request.get({ url: '/oa/collect/quality/log', params })
 }
 
 // ==================== 私域桥接 (M10-AO-S-07) ====================

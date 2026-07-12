@@ -61,7 +61,7 @@
     />
 
     <!-- 查看：账号信息 + ROI/LTV + 趋势 + 成本明细 -->
-    <el-drawer
+    <el-drawer direction="rtl" append-to-body
       v-model="viewVisible"
       :title="`账号成本详情 - ${currentAccount?.accountName || ''}`"
       size="920px"
@@ -504,9 +504,9 @@ const loadData = async () => {
   try {
     await loadCosts()
     const params: Record<string, unknown> = {
-      page: pagination.pageNo,
-      size: pagination.pageSize,
-      keyword: searchForm.keyword || undefined,
+      pageNo: pagination.pageNo,
+      pageSize: pagination.pageSize,
+      accountName: searchForm.keyword || undefined,
     }
     if (activePlatform.value !== 'ALL') {
       params.platformType = activePlatform.value

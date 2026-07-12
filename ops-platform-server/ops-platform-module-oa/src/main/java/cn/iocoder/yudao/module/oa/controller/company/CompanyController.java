@@ -21,6 +21,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 公司管理控制器
+ * <p>
+ * 提供公司信息的增删改查、扩容管理、公众号统计等RESTful API接口。
+ * 所有接口路径前缀为 /admin-api/oa/company
+ * </p>
+ *
+ * @author system
+ */
+
 @RestController
 @RequestMapping("/admin-api/oa/company")
 @Validated

@@ -154,6 +154,7 @@ import {
   getOrderAttributionRoi,
   exportOrderAttribution,
 } from '@/api/orderAttribution'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const loading = ref(false)
 const activeTab = ref('list')
@@ -228,7 +229,7 @@ const formatMoney = (value: number) => {
 }
 
 const handleRoi = () => {
-  router.push('/perf/order-attribution/roi')
+  router.push(opsRouteTo({ name: 'OrderAttributionRoi' }))
 }
 
 const handleExport = async () => {

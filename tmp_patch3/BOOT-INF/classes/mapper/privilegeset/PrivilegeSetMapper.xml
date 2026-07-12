@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.privilegeset.PrivilegeSetMapper">
+
+    <select id="getPrivilegeArticleList"
+            resultType="football.module.member.controller.app.privilege.vo.AppPrivilegeArticleRespVO">
+        select aa.id, aa.title as name, aa.title, aa.intro, aa.create_time, aa.price
+        from author_privilege_item api
+                 join author_article aa on aa.id = api.article_id
+        where api.privilege_id = #{id}
+        and api.deleted = 0
+        and aa.deleted=0
+        order by aa.id desc
+    </select>
+    <select id="getAppAuthorPrivilegeSetPage"
+            resultType="football.module.member.controller.admin.privilegeset.vo.PrivilegeSetPageRespVO">
+        select aus.id as authorId, aus.nickname as authorName, aps.*
+        from author_privilege_set aps
+        left JOIN author_user aus on aus.id = aps.author_id and aus.deleted = 0
+        where aps.parent_id = 0
+        and aps.deleted = 0
+        <if test="reqVO.authorIds != null and reqVO.authorIds.size() > 0">
+            and aps.author_id in
+            <foreach collection="reqVO.authorIds" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </if>
+        <if test="reqVO.authorId != null ">
+            and aps.author_id =#{reqVO.authorId}
+        </if>
+        <if test="reqVO.name != null and reqVO.name != ''">
+            and aps.name like concat('%',#{reqVO.name},'%')
+        </if>
+        <if test="reqVO.reviewStatus != null">
+            and aps.review_status = #{reqVO.reviewStatus}
+        </if>
+        <if test="reqVO.status != null">
+            and aps.`status` = #{reqVO.status}
+        </if>
+        <if test="reqVO.fastBuy != null">
+            and aps.fast_buy = #{reqVO.fastBuy}
+        </if>
+        <if test="reqVO.type != null">
+            and aps.`type` = #{reqVO.type}
+        </if>
+        <if test="reqVO.createTime != null and reqVO.createTime.length == 2">
+            AND aps.create_time BETWEEN #{reqVO.createTime[0]} AND #{reqVO.createTime[1]}
+        </if>
+        <if test="reqVO.updateTime != null and reqVO.updateTime.length == 2">
+            AND aps.update_time BETWEEN #{reqVO.updateTime[0]} AND #{reqVO.updateTime[1]}
+        </if>
+        order by aps.id desc
+    </select>
+</mapper>

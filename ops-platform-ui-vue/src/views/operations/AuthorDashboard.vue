@@ -32,8 +32,8 @@
           </p>
         </div>
         <div class="actions">
-          <el-button @click="router.push('/author')">返回列表</el-button>
-          <el-button type="primary" @click="router.push(`/author/${author.id}/edit`)">编辑作者</el-button>
+          <el-button @click="router.push(opsRouteTo({ name: 'Author' }))">返回列表</el-button>
+          <el-button type="primary" @click="router.push(opsRouteTo(`/author/${author.id}/edit`))">编辑作者</el-button>
         </div>
       </div>
     </el-card>
@@ -111,6 +111,7 @@ import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
 import { getAuthorDashboard, getAuthorOpsList } from '@/api/author'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const route = useRoute()
 const router = useRouter()

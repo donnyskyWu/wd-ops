@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.report.PlatformStatisticsReportMapper">
+
+    <select id="pageByDay" resultType="football.module.member.controller.admin.report.vo.PlatformStatisticsReportRespVO">
+        select psr.* from platform_statistics_report psr
+        <where>
+            <if test="reqVO.startDate != null and reqVO.startDate != '' and reqVO.endDate != null and reqVO.endDate != ''">
+                and `date` between #{reqVO.startDate} and #{reqVO.endDate}
+            </if>
+
+            <if test="reqVO.tenantId != null and reqVO.tenantId == ''">
+                and psr.tenant_id = #{reqVO.tenantId}
+            </if>
+        </where>
+        order by psr.date desc
+    </select>
+
+    <select id="pageByWeek" resultType="football.module.member.controller.admin.report.vo.PlatformStatisticsReportRespVO">
+        select psr.* from platform_statistics_week_report psr
+        <where>
+            <if test="reqVO.startDate != null and reqVO.startDate != '' and reqVO.endDate != null and reqVO.endDate != ''">
+                and `date` between #{reqVO.startDate} and #{reqVO.endDate}
+            </if>
+
+            <if test="reqVO.tenantId != null and reqVO.tenantId == ''">
+                and psr.tenant_id = #{reqVO.tenantId}
+            </if>
+        </where>
+        order by psr.date desc
+    </select>
+
+    <select id="pageByMonth" resultType="football.module.member.controller.admin.report.vo.PlatformStatisticsReportRespVO">
+        select psr.* from platform_statistics_month_report psr
+        <where>
+            <if test="reqVO.startDate != null and reqVO.startDate != '' and reqVO.endDate != null and reqVO.endDate != ''">
+                and `date` between #{reqVO.startDate} and #{reqVO.endDate}
+            </if>
+
+            <if test="reqVO.tenantId != null and reqVO.tenantId == ''">
+                and psr.tenant_id = #{reqVO.tenantId}
+            </if>
+        </where>
+        order by psr.date desc
+    </select>
+
+
+    <insert id="addBatchMonth" >
+        insert into platform_statistics_month_report (date, active_user_count, new_user_count, pay_user_count, published_plan_count, receipt_amount,refund_amount,
+              income_amount, new_user_pay_total,new_user_pay_count , tenant_id)
+        values
+        <foreach collection="reqLists" item="item" separator=",">
+            (#{item.date}, #{item.activeUserCount}, #{item.newUserCount}, #{item.payUserCount}, #{item.publishedPlanCount}, #{item.receiptAmount},#{item.refundAmount},
+            #{item.incomeAmount}, #{item.newUserPayTotal},#{item.newUserPayCount},  #{item.tenantId})
+        </foreach>
+    </insert>
+
+    <insert id="addBatchWeek" >
+        insert into platform_statistics_week_report (date, active_user_count, new_user_count, pay_user_count, published_plan_count, receipt_amount,refund_amount,
+        income_amount, new_user_pay_total,new_user_pay_count, date_range , tenant_id)
+        values
+        <foreach collection="reqLists" item="item" separator=",">
+            (#{item.date}, #{item.activeUserCount}, #{item.newUserCount}, #{item.payUserCount},  #{item.publishedPlanCount}, #{item.receiptAmount}, #{item.refundAmount},
+            #{item.incomeAmount}, #{item.newUserPayTotal},#{item.newUserPayCount}, #{item.dateRange}, #{item.tenantId})
+        </foreach>
+    </insert>
+
+    <delete id="deleteByDate" >
+        delete from platform_statistics_report where `date` = #{date}
+    </delete>
+
+    <delete id="deleteByWeek" >
+        delete from platform_statistics_week_report where `date` = #{date}
+    </delete>
+
+    <delete id="deleteByMonth" >
+        delete from platform_statistics_month_report where `date` = #{date}
+    </delete>
+
+    <select id="statisticsByDay" resultType="football.module.member.controller.admin.report.vo.PlatformStatisticsReportRespVO">
+        select
+        sum(new_user_count) as newUserCount,
+        sum(published_plan_count) as publishedPlanCount,
+        sum(receipt_amount) as receiptAmount,
+        sum(refund_amount) as refundAmount,
+        sum(income_amount) as incomeAmount,
+        sum(new_user_pay_total) as newUserPayTotal,
+        sum(new_user_pay_count) as newUserPayCount
+        from platform_statistics_report
+        where `date` between #{reqVO.startDate}  and #{reqVO.endDate} and tenant_id = #{reqVO.tenantId}
+    </select>
+
+    <select id="statisticsByWeek" resultType="football.module.member.controller.admin.report.vo.PlatformStatisticsReportRespVO">
+        select
+        sum(new_user_count) as newUserCount,
+        sum(published_plan_count) as publishedPlanCount,
+        sum(receipt_amount) as receiptAmount,
+        sum(refund_amount) as refundAmount,
+        sum(income_amount) as incomeAmount,
+        sum(new_user_pay_total) as newUserPayTotal,
+        sum(new_user_pay_count) as newUserPayCount
+        from platform_statistics_week_report
+        where `date` between #{reqVO.startDate}  and #{reqVO.endDate} and tenant_id = #{reqVO.tenantId}
+    </select>
+
+    <select id="statisticsByMonth"
+            resultType="football.module.member.controller.admin.report.vo.PlatformStatisticsReportRespVO">
+        select sum(new_user_count)       as newUserCount,
+               sum(published_plan_count) as publishedPlanCount,
+               sum(receipt_amount)       as receiptAmount,
+               sum(refund_amount)        as refundAmount,
+               sum(income_amount)        as incomeAmount,
+               sum(new_user_pay_total)   as newUserPayTotal,
+               sum(new_user_pay_count)   as newUserPayCount
+        from platform_statistics_month_report
+        where `date` between #{reqVO.startDate} and #{reqVO.endDate}
+          and tenant_id = #{reqVO.tenantId}
+    </select>
+</mapper>

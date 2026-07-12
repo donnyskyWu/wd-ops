@@ -19,6 +19,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ContentEditPanel from './ContentEditPanel.vue'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const route = useRoute()
 const router = useRouter()
@@ -36,17 +37,17 @@ const pageTitle = computed(() =>
 
 const handleSaved = () => {
   if (isTaskMode.value && taskId.value) {
-    router.push(`/task/${taskId.value}/execute`)
+    router.push(opsRouteTo({ name: 'TaskExecute', params: { id: String(taskId.value) } }))
   } else {
-    router.push('/content')
+    router.push(opsRouteTo({ name: 'Content' }))
   }
 }
 
 const handleCancel = () => {
   if (isTaskMode.value && taskId.value) {
-    router.push(`/task/${taskId.value}/execute`)
+    router.push(opsRouteTo({ name: 'TaskExecute', params: { id: String(taskId.value) } }))
   } else {
-    router.push('/content')
+    router.push(opsRouteTo({ name: 'Content' }))
   }
 }
 </script>

@@ -84,11 +84,11 @@
       />
     </ContentWrap>
 
-    <el-drawer v-model="errorVisible" title="错误详情" size="500px">
+    <el-drawer direction="rtl" append-to-body v-model="errorVisible" title="错误详情" size="500px">
       <pre style="white-space: pre-wrap; word-break: break-all; color: #f56c6c; line-height: 1.6">{{ errorText }}</pre>
     </el-drawer>
 
-    <el-drawer v-model="detailVisible" title="采集日志详情" size="640px" destroy-on-close>
+    <el-drawer direction="rtl" append-to-body v-model="detailVisible" title="采集日志详情" size="640px" destroy-on-close>
       <div v-loading="detailLoading">
         <el-descriptions v-if="detail" :column="1" border>
           <el-descriptions-item label="任务名">{{ detail.taskName || '-' }}</el-descriptions-item>
@@ -250,6 +250,7 @@ import {
   type CollectLogDetailVO,
   type CollectLogTypeResultVO,
 } from '@/api/collect'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const route = useRoute()
 const router = useRouter()
@@ -433,7 +434,7 @@ const showError = (text: string) => {
   errorVisible.value = true
 }
 
-const handleViewTask = (row: any) => router.push(`/collect/task/${row.taskId}`)
+const handleViewTask = (row: any) => router.push(opsRouteTo({ name: 'CollectTaskEdit', params: { id: String(row.taskId) } }))
 
 const handleViewDetail = async (row: any) => {
   detailVisible.value = true

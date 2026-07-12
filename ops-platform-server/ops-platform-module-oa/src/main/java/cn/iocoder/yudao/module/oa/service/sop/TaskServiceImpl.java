@@ -21,16 +21,17 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.plan.ContentPlanStepDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.sop.SopNodeDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.sop.SopReviewDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.sop.TaskDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.dict.SysDictDataMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.content.ProductionContentMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.dict.SysDictDataMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.plan.ContentPlanCompetitionMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.plan.ContentPlanStepMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.SopNodeMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.SopReviewMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
+import cn.iocoder.yudao.module.oa.service.author.AuthorResolveSupport;
 import cn.iocoder.yudao.module.oa.service.file.LocalFileStorageService;
+import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -54,7 +55,7 @@ public class TaskServiceImpl implements TaskService {
     private final TaskMapper taskMapper;
     private final SopNodeMapper sopNodeMapper;
     private final SopReviewMapper sopReviewMapper;
-    private final SysUserMapper sysUserMapper;
+    private final FootballSystemUserValidator footballSystemUserValidator;
     private final SopTemplateServiceImpl sopTemplateService;
     private final ProductionContentMapper productionContentMapper;
     private final ContentPlanStepMapper contentPlanStepMapper;
@@ -62,6 +63,7 @@ public class TaskServiceImpl implements TaskService {
     private final IpGroupMapper ipGroupMapper;
     private final LocalFileStorageService localFileStorageService;
     private final SysDictDataMapper sysDictDataMapper;
+    private final AuthorResolveSupport authorResolveSupport;
 
     private static final String NODE_TYPE_CONTENT_GENERATION = "CONTENT_GENERATION";
 
@@ -119,7 +121,7 @@ public class TaskServiceImpl implements TaskService {
         entity.setPlanName(req.getPlanName());
         entity.setAssigneeId(req.getAssigneeId());
         entity.setIpGroupId(req.getIpGroupId());
-        entity.setAuthorId(req.getAuthorId());
+        entity.setAuthorId(resolveTaskAuthorId(req.getAuthorId(), req.getIpGroupId(), tenantId));
         entity.setStatus("PENDING");
         entity.setNeedReview(req.getNeedReview() != null ? req.getNeedReview() : node.getNeedReview());
         entity.setCreator(TenantContextHolder.getUsername());
@@ -408,10 +410,7 @@ public class TaskServiceImpl implements TaskService {
         vo.setCompetitionId(entity.getCompetitionId());
         vo.setPlanName(entity.getPlanName());
         vo.setAssigneeId(entity.getAssigneeId());
-        SysUserDO user = sysUserMapper.selectById(entity.getAssigneeId());
-        if (user != null) {
-            vo.setAssigneeName(user.getNickname() != null ? user.getNickname() : user.getUsername());
-        }
+        vo.setAssigneeName(footballSystemUserValidator.resolveDisplayName(entity.getAssigneeId()));
         SopNodeDO node = sopNodeMapper.selectById(entity.getNodeId());
         if (node != null) {
             vo.setNodeName(node.getNodeName());
@@ -426,6 +425,17 @@ public class TaskServiceImpl implements TaskService {
         vo.setStartTime(entity.getStartTime());
         vo.setCompleteTime(entity.getCompleteTime());
         return vo;
+    }
+
+    private Long resolveTaskAuthorId(Long authorId, Long ipGroupId, Long tenantId) {
+        if (authorId != null) {
+            authorResolveSupport.assertAuthorInIpGroup(authorId, ipGroupId, tenantId);
+            return authorId;
+        }
+        if (ipGroupId != null) {
+            return authorResolveSupport.findFirstAuthorUserId(ipGroupId, tenantId);
+        }
+        return null;
     }
 
     private void requireAssignee(TaskDO task) {

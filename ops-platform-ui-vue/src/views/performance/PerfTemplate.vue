@@ -209,6 +209,7 @@ import {
 } from '@/api/metric'
 import type { PerfTemplateListItem, PerfTemplateItem, ScoreRange } from '@/types/perfTemplate'
 import { CalcRule, Grade } from '@/types/perfTemplate'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const loading = ref(false)
 const templateList = ref<PerfTemplateListItem[]>([])
@@ -314,7 +315,7 @@ const handleAdd = () => {
 }
 
 const handleEdit = (row: PerfTemplateListItem) => {
-  router.push(`/perf/template/${row.id}`)
+  router.push(opsRouteTo({ name: 'PerfTemplateEdit', params: { id: String(row.id) } }))
 }
 
 const handleAddItem = () => {
@@ -416,7 +417,7 @@ const handleDialogClose = () => {
 }
 
 const handleView = (row: PerfTemplateListItem) => {
-  router.push(`/perf/template/${row.id}`)
+  router.push(opsRouteTo({ name: 'PerfTemplateEdit', params: { id: String(row.id) } }))
 }
 
 const handleActivate = async (row: PerfTemplateListItem) => {

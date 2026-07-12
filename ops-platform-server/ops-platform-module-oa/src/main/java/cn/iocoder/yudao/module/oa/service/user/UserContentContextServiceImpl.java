@@ -4,64 +4,70 @@ import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.api.dto.user.UserIpGroupVO;
-import cn.iocoder.yudao.module.oa.dal.dataobject.author.AuthorDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupMemberDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.author.AuthorMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMemberMapper;
+import cn.iocoder.yudao.module.oa.service.author.AuthorResolveSupport;
+import cn.iocoder.yudao.module.oa.service.ipgroup.IpGroupAccessSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class UserContentContextServiceImpl implements UserContentContextService {
 
-    private final IpGroupMemberMapper ipGroupMemberMapper;
+    private final IpGroupAccessSupport ipGroupAccessSupport;
     private final IpGroupMapper ipGroupMapper;
-    private final AuthorMapper authorMapper;
+    private final AuthorResolveSupport authorResolveSupport;
 
     @Override
     public List<UserIpGroupVO> listMyIpGroups() {
-        Long userId = TenantContextHolder.getUserId();
-        if (userId == null) {
+        if (TenantContextHolder.getUserId() == null) {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED);
         }
         Long tenantId = requireTenantId();
-        List<IpGroupMemberDO> memberships = ipGroupMemberMapper.selectList(
-                new LambdaQueryWrapper<IpGroupMemberDO>()
-                        .eq(IpGroupMemberDO::getTenantId, tenantId)
-                        .eq(IpGroupMemberDO::getUserId, userId)
-                        .orderByAsc(IpGroupMemberDO::getId));
+        Map<Long, IpGroupDO> groups = new LinkedHashMap<>();
+        if (ipGroupAccessSupport.hasUnrestrictedIpGroupAccess()) {
+            ipGroupMapper.selectList(new LambdaQueryWrapper<IpGroupDO>()
+                            .eq(IpGroupDO::getTenantId, tenantId)
+                            .eq(IpGroupDO::getStatus, 1)
+                            .orderByAsc(IpGroupDO::getSortOrder)
+                            .orderByAsc(IpGroupDO::getId))
+                    .forEach(group -> groups.put(group.getId(), group));
+        } else {
+            for (IpGroupMemberDO member : ipGroupAccessSupport.listMemberships(tenantId)) {
+                IpGroupDO group = ipGroupMapper.selectById(member.getIpGroupId());
+                if (group == null || !Objects.equals(group.getTenantId(), tenantId) || group.getStatus() != 1) {
+                    continue;
+                }
+                groups.putIfAbsent(group.getId(), group);
+            }
+        }
         List<UserIpGroupVO> result = new ArrayList<>();
-        for (IpGroupMemberDO member : memberships) {
-            IpGroupDO group = ipGroupMapper.selectById(member.getIpGroupId());
-            if (group == null || !Objects.equals(group.getTenantId(), tenantId) || group.getStatus() != 1) {
-                continue;
-            }
-            UserIpGroupVO vo = new UserIpGroupVO();
-            vo.setIpGroupId(group.getId());
-            vo.setIpGroupName(group.getGroupName());
-            vo.setGroupType(group.getGroupType() != null && group.getGroupType() == 2 ? "SMALL" : "BIG");
-            AuthorDO author = authorMapper.selectOne(
-                    new LambdaQueryWrapper<AuthorDO>()
-                            .eq(AuthorDO::getTenantId, tenantId)
-                            .eq(AuthorDO::getIpGroupId, group.getId())
-                            .eq(AuthorDO::getStatus, 1)
-                            .orderByAsc(AuthorDO::getId)
-                            .last("LIMIT 1"));
-            if (author != null) {
-                vo.setAuthorId(author.getId());
-                vo.setAuthorName(author.getAuthorName());
-            }
-            result.add(vo);
+        for (IpGroupDO group : groups.values()) {
+            result.add(toUserIpGroupVO(group, tenantId));
         }
         return result;
+    }
+
+    private UserIpGroupVO toUserIpGroupVO(IpGroupDO group, Long tenantId) {
+        UserIpGroupVO vo = new UserIpGroupVO();
+        vo.setIpGroupId(group.getId());
+        vo.setIpGroupName(group.getGroupName());
+        vo.setGroupType(group.getGroupType() != null && group.getGroupType() == 2 ? "SMALL" : "BIG");
+        Long authorUserId = authorResolveSupport.findFirstAuthorUserId(group.getId(), tenantId);
+        if (authorUserId != null) {
+            vo.setAuthorId(authorUserId);
+            vo.setAuthorName(authorResolveSupport.resolveNickname(authorUserId));
+        }
+        return vo;
     }
 
     private Long requireTenantId() {

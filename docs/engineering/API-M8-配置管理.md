@@ -181,6 +181,26 @@ Body: `templateName`, `scene`/`type` `@InDict(dict_prompt_type)`, `promptContent
 
 ---
 
+## 8. 元数据维护 `/metadata`（ADR-046 · FR-M8-008）
+
+前缀：`/admin-api/oa/metadata`
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | `/list` | `oa:metadata:query` | 实体分页列表 |
+| GET | `/unmapped-tables` | `oa:metadata:query` | 未映射物理表；含 `tableComment` |
+| GET | `/table-columns` | `oa:metadata:query` | 指定表列信息 |
+| POST | `/create` | `oa:metadata:create` | 新建实体 |
+| GET | `/{id}` | `oa:metadata:query` | 实体详情 |
+| PUT | `/update` | `oa:metadata:update` | 更新实体 |
+| DELETE | `/{id}` | **`ROLE_OA_ADMIN`** | 仅超级管理员 |
+| PUT | `/{entityId}/fields` | `oa:metadata:update` | 批量保存字段配置 |
+| GET | `/entity/{code}/fields` | `oa:metadata:query` | M6 指标/自定义查询读口 |
+
+**`UnmappedTableVO`**：`tableName`、`suggestedEntityCode`、`suggestedEntityName`、`tableComment`（`INFORMATION_SCHEMA.TABLES.TABLE_COMMENT`）。
+
+---
+
 ## 字典映射
 
 | 字段 | dict-type |

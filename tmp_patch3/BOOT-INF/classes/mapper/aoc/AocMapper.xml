@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.aoc.AocMapper">
+
+    <select id="getAttentionAuhtorList" resultType="football.module.member.controller.admin.aoc.vo.AocAttentionRespVO">
+        SELECT
+            ma.author_id,
+            mu.nickname AS authorName
+        FROM member_attention ma
+        LEFT JOIN (
+            SELECT id, nickname
+            FROM member_user
+        ) mu ON ma.author_id = mu.id
+        WHERE ma.status = 0
+          AND ma.user_id = #{userId}
+          AND ma.author_id NOT IN (
+            SELECT author_id
+            FROM black_list bl
+            WHERE bl.user_id = #{userId}
+              AND bl.status = 1
+        )
+        ORDER BY ma.create_time DESC
+    </select>
+
+    <select id="getUserPrivilegeList" resultType="football.module.member.controller.admin.aoc.vo.AocAuthorUserPrivilegeRespVO">
+        SELECT
+            map.author_id AS authorId,
+            map.type AS type,
+            CASE
+                WHEN map.type = 1 THEN map.num
+                WHEN map.type = 0 AND DATEDIFF(map.end_date, NOW()) > 0 THEN DATEDIFF(map.end_date, NOW())
+                WHEN map.type = 0 AND map.activate = 0 THEN map.num
+                ELSE 0
+            END AS lastNum
+        FROM (
+            SELECT
+                mp.user_id,
+                mp.author_id,
+                mp.end_date,
+                mp.num,
+                mp.type,
+                mp.activate,
+                mp.status
+            FROM member_author_privilege mp
+            WHERE mp.user_id = #{reqVO.userId}
+        ) map
+        WHERE map.status = 1
+          AND map.author_id = #{reqVO.authorId}
+          AND (
+            CASE
+                WHEN map.type = 1 THEN map.num
+                WHEN map.type = 0 AND DATEDIFF(map.end_date, NOW()) > 0 THEN DATEDIFF(map.end_date, NOW())
+                WHEN map.type = 0 AND map.activate = 0 THEN map.num
+                ELSE 0
+            END
+        ) > 0
+    </select>
+
+</mapper>

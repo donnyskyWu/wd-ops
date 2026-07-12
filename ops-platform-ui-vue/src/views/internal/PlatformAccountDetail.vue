@@ -534,6 +534,16 @@ const supportsCollect = computed(() => {
   return COLLECTOR_PLATFORMS.includes(platform as (typeof COLLECTOR_PLATFORMS)[number])
 })
 
+const applyTabFromRoute = () => {
+  const mapped = TAB_QUERY_MAP[route.query.tab as string]
+  if (!mapped || !detail.value) return
+  if (mapped === 'collect' && !supportsCollect.value) {
+    activeTab.value = 'basic'
+    return
+  }
+  activeTab.value = mapped
+}
+
 const collectAccountInfo = computed(() => ({
   hasCookie: detail.value?.hasCookie,
   hasMpToken: detail.value?.hasMpToken,
@@ -635,6 +645,8 @@ watch(activeTab, (tab) => {
     loadDouyinFollowers()
   }
 })
+
+watch(() => route.query.tab, () => applyTabFromRoute())
 
 const initFollowerChart = (dates: string[] = [], vals: number[] = []) => {
   if (!followerChartRef.value) return
@@ -867,6 +879,7 @@ const loadDetail = async () => {
     }
     await loadFanGroups()
     await loadRenewals()
+    applyTabFromRoute()
   } catch (e: any) {
     detail.value = null
     loadError.value = e?.message?.includes('403') || e?.message?.includes('无权限')

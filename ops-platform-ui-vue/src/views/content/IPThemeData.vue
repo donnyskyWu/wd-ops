@@ -192,6 +192,7 @@ import { exportToExcel, unwrapApiData } from '@/utils'
 import { getIpThemeStats, getExternalWorkList } from '@/api/monitor'
 import { mapExternalWork, pickMonitorPage } from '@/utils/monitor-map'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const router = useRouter()
 const activeTab = ref('ip-theme')
@@ -314,7 +315,7 @@ const loadIpThemeData = async () => {
   }
 }
 // 跳转外部账号分析
-const goToExternalAccount = (row: any) => { router.push('/external-account') }
+const goToExternalAccount = (row: any) => { router.push(opsRouteTo({ name: 'ExternalAccount' })) }
 
 // 加载图表
 const loadCharts = async () => {

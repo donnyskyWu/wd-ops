@@ -1,0 +1,33 @@
+{
+  "gateway": "http://localhost:48080",
+  "checks": [
+    {
+      "name": "author_list_for_content",
+      "httpStatus": 200,
+      "pass": true,
+      "authorId": 1000003,
+      "ipGroupId": 9001
+    },
+    {
+      "name": "content_create_with_author",
+      "httpStatus": 200,
+      "pass": true,
+      "code": 0,
+      "msg": "ok"
+    },
+    {
+      "name": "author_id_member_ssot",
+      "pass": true
+    }
+  ],
+  "login": {
+    "pass": true
+  },
+  "db": {
+    "content_id": 1,
+    "stored_author_id": "1000003",
+    "member_exists": "1",
+    "aligned": true
+  },
+  "all_pass": true
+}

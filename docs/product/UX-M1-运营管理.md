@@ -70,7 +70,7 @@
 |------|------|------|
 | 页头 | 标题"IP 组管理" + 主按钮"+ 新建大组" | FR-M1-001 / AC-M1-001-1 |
 | 左侧 | 树形结构（可展开/折叠） | 大组 → 嵌套小组 |
-| 右侧（选中节点时） | 详情 Tab：[基本信息 / 成员 / 账号 / 主播 / 统计] | 选中后展开 |
+| 右侧（选中节点时） | 详情 Tab：[基本信息 / 成员 / 账号 / **关联作者** / 统计] | 选中后展开；基本信息含等级（`DictLabel`） |
 
 ### 3.2 控件级规格
 
@@ -80,10 +80,10 @@
 | BTN-NEW-SMALL | 次按钮 | "+ 新建小组" | default(选中大组时) | 打开 D-M1-001 (mode=create, type=SMALL, parent=当前大组) | FR-M1-001 / AC-M1-001-1 |
 | BTN-EDIT | 文字按钮 | "编辑" | default / 隐藏(无权限) | 打开 D-M1-001 (mode=edit) | FR-M1-001 |
 | BTN-DELETE | 文字按钮 | "删除" | default(无数据时) / disabled(有数据时) / 隐藏(无权限) | 二次确认 → 删除 | FR-M1-001 / AC-M1-001-3 |
-| TREE-NODE | Tree | 节点显示"组名 (成员/账号/主播 数)" | default | 单击选中 → 右侧展示详情 | - |
+| TREE-NODE | Tree | 节点显示"组名 (成员/账号/作者 数)" + 等级标签（有值时） | default | 单击选中 → 右侧展示详情 | - |
 | TAB-MEMBER | Tab | "成员" | default | 展示成员表 + "+ 添加成员" | FR-M1-001 |
 | TAB-ACCOUNT | Tab | "账号" | default | 展示账号表 + "+ 关联账号" | FR-M1-001 |
-| TAB-ANCHOR | Tab | "主播" | default | 展示主播表 + "+ 添加主播" | FR-M1-001 |
+| TAB-ANCHOR | Tab | "**关联作者**" | default | 展示作者表 + "+ 添加作者"（**作者下拉**，非 UserSelect） | FR-M1-001 / AC-M1-001-6 |
 | TAB-STATS | Tab | "统计" | default | 展示粉丝、作品、ROI 聚合 | FR-M1-001 |
 
 ### 3.3 状态矩阵
@@ -103,8 +103,18 @@
 | F-TYPE | Radio | "大组 / 小组"（创建大组时禁用"小组"） | ✅ | - |
 | F-PARENT | TreeSelect | "上级 IP 组"（小组必填） | 小组 ✅ | 必须选 BIG |
 | F-LEADER | UserSelect | "组长" | ❌ | - |
+| F-LEVEL | DictSelect | "等级"（`dict_ip_group_level`） | ❌ | S/A/B/C；大组/小组均可选 |
 | F-DESC | Textarea | "描述" | ❌ | 0-200 字符 |
 | BTN-SUBMIT | 主按钮 | "确认" | - | 提交 |
+| BTN-CANCEL | 次按钮 | "取消" | - | 关闭弹窗 |
+
+### 3.5 弹窗 D-M1-003（添加关联作者）
+
+| 控件 ID | 类型 | 文案/默认值 | 必填 | 校验 |
+|---------|------|-------------|------|------|
+| F-AUTHOR | **作者下拉**（`getAuthorPage` 过滤已绑定） | "作者" | ✅ | 须为租户内已建作者（`author_user.id`） |
+| F-AUTHOR-TYPE | DictSelect | "作者类型"（`dict_author_type`） | ❌ | 默认取所选作者类型 |
+| BTN-SUBMIT | 主按钮 | "确定" | - | `POST .../ip-group/{id}/anchors` |
 | BTN-CANCEL | 次按钮 | "取消" | - | 关闭弹窗 |
 
 ---
@@ -338,7 +348,7 @@ M1 中所有 `*_id` 字段必须通过选择器：
 | `account_id` | `<AccountSelect />`（**强关联** ⭐，需从 M4 选择） |
 | `author_id` | `<UserSelect />` |
 | `assignee_id` | `<UserSelect />` |
-| `anchor_user_id` | `<UserSelect />` |
+| `anchor_user_id` | **作者选择器**（作者列表） |
 | `ops_user_id` | `<UserSelect />` |
 | `metric_id` | `<MetricSelect />` |
 
@@ -351,6 +361,7 @@ M1 中所有 `*_id` 字段必须通过选择器：
 | `account_status` | `dict_account_status` |
 | `ip_group_type` | `dict_ip_group_type` |
 | `ip_group_status` | `dict_ip_group_status` |
+| `level` | `dict_ip_group_level` |
 | `author_type` | `dict_author_type` |
 | `author_status` | `dict_author_status` |
 | `content_type` | `dict_content_type` |

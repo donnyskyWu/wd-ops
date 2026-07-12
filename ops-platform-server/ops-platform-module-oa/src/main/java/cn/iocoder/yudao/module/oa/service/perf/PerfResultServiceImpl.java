@@ -65,10 +65,11 @@ public class PerfResultServiceImpl implements PerfResultService {
                 .orderByDesc(PerfRecordDO::getPeriodStart);
         Page<PerfRecordDO> page = perfRecordMapper.selectPage(
                 new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize), wrapper);
-        Map<Long, String> userNames = sysUserMapper.selectBatchIds(
-                        page.getRecords().stream().map(PerfRecordDO::getTargetUserId).distinct().toList())
-                .stream()
-                .collect(Collectors.toMap(SysUserDO::getId, SysUserDO::getNickname, (a, b) -> a));
+        List<Long> userIds = page.getRecords().stream().map(PerfRecordDO::getTargetUserId).distinct().toList();
+        Map<Long, String> userNames = userIds.isEmpty()
+                ? Map.of()
+                : sysUserMapper.selectBatchIds(userIds).stream()
+                        .collect(Collectors.toMap(SysUserDO::getId, SysUserDO::getNickname, (a, b) -> a));
         return new PageResult<>(page.getRecords().stream()
                 .map(record -> toResultVO(record, userNames))
                 .collect(Collectors.toList()), page.getTotal());

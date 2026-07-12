@@ -136,6 +136,7 @@ import {
   updateSimCard,
   type SimCardVO,
 } from '@/api/simcard'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const STATUS_LABEL: Record<string, string> = {
   ENABLED: '在用',
@@ -245,7 +246,7 @@ const handleExport = async () => {
 }
 
 const handleLinked = (row: SimCardVO) => {
-  router.push(`/simcard/${row.id}/linked`)
+  router.push(opsRouteTo({ name: 'SimCardLinked', params: { id: String(row.id) } }))
 }
 
 const dialogVisible = ref(false)

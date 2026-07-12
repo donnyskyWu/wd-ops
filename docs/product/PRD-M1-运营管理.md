@@ -83,7 +83,7 @@
 
 | FR 编号 | 名称 | 优先级 | 章节 |
 |---------|------|--------|------|
-| FR-M1-001 | IP 组管理（树形结构+成员+账号+主播） | P0 | 5.1 |
+| FR-M1-001 | IP 组管理（树形结构+成员+账号+**关联作者**） | P0 | 5.1 |
 | FR-M1-002 | 作者管理（含主推号、运营→主播关联） | P0 | 5.2 |
 | FR-M1-003 | 账号分析（多平台 Tab→列表→粉丝/作品详情） | P0 | 5.3 |
 | FR-M1-004 | 粉丝分析 | P0 | 5.4 |
@@ -110,7 +110,7 @@
 
 #### 4.1.1 描述
 
-构建 IP 运营的层级组织结构（**大组 / 小组**），承载人员、账号、主播的归属关系。
+构建 IP 运营的层级组织结构（**大组 / 小组**），承载人员、账号、**关联作者**的归属关系。
 
 #### 4.1.2 前置条件
 
@@ -123,11 +123,11 @@
 1. 用户进入"运营管理 > IP 组管理"页面
 2. 页面以**树形结构**展示大组与嵌套的小组
 3. 点击"+ 新建大组"按钮，打开新建弹窗
-4. 填写"IP 组名称""组长""描述"字段，"组类型"自动=BIG，点击"确认"
+4. 填写"IP 组名称""组长""等级（可选）""描述"字段，"组类型"自动=BIG，点击"确认"
 5. 系统返回"创建成功"Toast，列表自动刷新
 6. 点击某大组下"+ 新建小组"按钮，打开弹窗
 7. 填写名称、上级（自动=该大组），"组类型"自动=SMALL
-8. 在小组详情中可配置"成员 / 账号 / 主播"三类关系
+8. 在小组详情中可配置"成员 / 账号 / **关联作者**"三类关系（作者 Tab 通过 **作者选择器** 绑定，非系统用户选择器）
 
 #### 4.1.4 备选/异常流
 
@@ -135,13 +135,13 @@
 |------|------|------|
 | 名称已存在（同父级下） | "同上级 IP 组下名称重复" | 弹窗不关闭，标红字段 |
 | 选择的上级不是大组 | "上级必须是大组" | 弹窗不关闭 |
-| 小组存在成员/账号/主播 | "该 IP 组下存在数据，禁止删除" | 弹窗关闭，按钮置灰 |
+| 小组存在成员/账号/关联作者 | "该 IP 组下存在数据，禁止删除" | 弹窗关闭，按钮置灰 |
 | 名称超过 50 字符 | "名称长度 1-50 字符" | 输入框下方红字 |
 | 删除失败（如系统管理员锁定） | "系统数据不允许删除" | 弹窗显示，列表不变 |
 
 #### 4.1.5 业务规则
 
-- BR-M1-001 大组不直接管理账号/主播，必须通过小组
+- BR-M1-001 大组不直接管理账号/关联作者，必须通过小组
 - BR-M1-002 一个账号只能属于一个小组
 - BR-M1-003 一个主播可同时服务多个小组，但通常只主推一个
 - BR-M1-004 统计求和 = 各级子项之和（IP 组粉丝 = 小组粉丝之和）
@@ -155,6 +155,7 @@
 | parent_id | Long | 小组必填 | 必须指向 BIG |
 | description | String | ❌ | 0-200 字符 |
 | leader_user_id | Long | ❌ | 必须在用户表 |
+| level | Enum | ❌ | `dict_ip_group_level`：S/A/B/C；大组/小组均可选；空=未分级 |
 | status | Enum | ✅ | 0=停用 1=启用 |
 
 #### 4.1.7 验收标准（AC）
@@ -162,7 +163,7 @@
 **AC-M1-001-1**（新建大组）
 - Given 用户拥有「IP 组-新建」权限，登录并进入 IP 组管理页
 - When 点击"+ 新建大组"，填写名称"娱乐八卦大组"、选择组长"张三"，点击"确认"
-- Then 系统弹"创建成功"Toast，列表新增"娱乐八卦大组"节点，刷新"成员/账号/主播"统计为 0
+- Then 系统弹"创建成功"Toast，列表新增"娱乐八卦大组"节点，刷新"成员/账号/关联作者"统计为 0
 
 **AC-M1-001-2**（名称重复）
 - Given 已存在名称"娱乐八卦大组"的大组
@@ -177,7 +178,21 @@
 **AC-M1-001-4**（权限校验）
 - Given 用户角色为"运营人员"
 - When 进入 IP 组管理页
-- Then 看不到"+ 新建大组 / + 新建小组"按钮，IP 组下"成员/账号/主播"配置入口置灰
+- Then 看不到"+ 新建大组 / + 新建小组"按钮，IP 组下"成员/账号/关联作者"配置入口置灰
+
+**AC-M1-001-5**（等级可选展示）
+- Given 用户新建大组并选择等级「A级」
+- When 创建成功并在左侧树选中该节点
+- Then 树节点显示「A级」标签，基本信息 Tab「等级」展示「A级」
+- When 新建小组时不选等级
+- Then 树节点与基本信息 Tab 等级显示为「-」
+
+**AC-M1-001-6**（关联作者选择器）
+- Given 用户在 IP 组详情「关联作者」Tab 点击「添加作者」
+- When 打开弹窗
+- Then 作者下拉来自 **作者管理列表**（`author_user` + `oa_author_ext`，见 ADR-051），**非** `<UserSelect />`
+- When 选择作者「李四」并确认
+- Then 列表展示作者姓名与类型；树节点第三段计数 +1；已绑定作者不出现在下拉选项
 
 #### 4.1.8 非功能
 
@@ -486,7 +501,7 @@ Channel-A 五平台（公众号/视频号/抖音/快手/小红书）采集落库
 
 | 实体 | 关键字段 | 生命周期 |
 |------|----------|----------|
-| IP 组 | id, parent_id, group_type | 创建→启用→停用→删除（带数据保护） |
+| IP 组 | id, parent_id, group_type, level | 创建→启用→停用→删除（带数据保护） |
 | 作者 | id, ip_group_id, primary_account_id | 创建→绑定运营→启用→停用 |
 | 数据补录 | id, content_id, review_status | 提交→待审核→通过/驳回→（驳回）修改→重新提交 |
 | 账号 | id, ip_group_id, platform | 采集入库→绑定 IP 组→运营→停用 |
@@ -513,6 +528,8 @@ Channel-A 五平台（公众号/视频号/抖音/快手/小红书）采集落库
 | ADR-M1-001 | 补录数据与 API 数据冲突时优先用哪个？ | API 优先；补录仅作补丁 | API 是真实数据源，补录是补丁 | 2026-06-07 |
 | ADR-M1-002 | IP 组下数据保护删除策略？ | 存在成员/账号/主播时禁止删除 | 避免误删导致历史数据无法回溯 | 2026-06-07 |
 | ADR-M1-003 | 人效盘点的时间维度 | 默认按周，支持切换按月 | 业绩复盘以周为基本周期 | 2026-06-07 |
+| ADR-M1-004 | IP 组等级字段语义 | 可选 `level`，字典 S/A/B/C，大组/小组均适用 | 原 PRD 未定义，实现前补 ADR | 2026-07-02 |
+| ADR-051 | IP 组「关联作者」绑定语义 | `anchor_user_id` 存 `author_user.id`；UI 作者选择器 | 多库复用后作者 SSOT 变更 | 2026-07-05 |
 
 详见 `docs/adr/`。
 
@@ -547,9 +564,9 @@ Channel-A 五平台（公众号/视频号/抖音/快手/小红书）采集落库
 | `oa_ip_group.parent_id` | `oa_ip_group` | `<IpGroupTreeSelect />` | 小组必填 |
 | `oa_ip_group_member.user_id` | `sys_user` | `<UserSelect />` | ✅ |
 | `oa_ip_group_account_rel.account_id` | `oa_account` | `<AccountSelect />` | ✅ 强关联 ⭐ |
-| `oa_ip_group_anchor_rel.anchor_user_id` | `sys_user` | `<UserSelect />` | ✅ |
-| `oa_author.ip_group_id` | `oa_ip_group` | `<IpGroupTreeSelect />`（仅 SMALL） | ✅ |
-| `oa_author.primary_account_id` | `oa_account` | `<AccountSelect />`（仅 OFFICIAL_ACCOUNT） | ✅ |
+| `oa_ip_group_anchor_rel.anchor_user_id` | `author_user`（Football SSOT） | **作者选择器**（作者列表，非 UserSelect） | ✅ |
+| `oa_author_ext.ip_group_id` | `oa_ip_group` | `<IpGroupTreeSelect />`（仅 SMALL） | ✅ |
+| `oa_author_ext.primary_mp_account_id` | `mp_account` | `<AccountSelect />`（公众号/服务号） | ✅ |
 | `oa_ops_anchor_rel.ops_user_id` | `sys_user` | `<UserSelect />` | ✅ |
 | `oa_ops_anchor_rel.anchor_user_id` | `sys_user` | `<UserSelect />` | ✅ |
 | `oa_content_data_import.content_id` | `oa_content` | `<ContentSelect />` | ✅ |
@@ -560,6 +577,7 @@ Channel-A 五平台（公众号/视频号/抖音/快手/小红书）采集落库
 |------|----------|------|
 | IP 组类型 | `dict_ip_group_type` | `<DictSelect dict-type="dict_ip_group_type" />` |
 | IP 组状态 | `dict_ip_group_status` | `<DictSelect dict-type="dict_ip_group_status" />` |
+| IP 组等级 | `dict_ip_group_level` | `<DictSelect dict-type="dict_ip_group_level" />` |
 | 作者类型 | `dict_author_type` | `<DictSelect dict-type="dict_author_type" />` |
 | 作者状态 | `dict_author_status` | `<DictSelect dict-type="dict_author_status" />` |
 | 内容类型 | `dict_content_type` | `<DictSelect dict-type="dict_content_type" />` |
@@ -684,6 +702,7 @@ erDiagram
     IP_GROUP {
         bigint id PK
         string name
+        string level
         string tenant_id
     }
     AGENT {

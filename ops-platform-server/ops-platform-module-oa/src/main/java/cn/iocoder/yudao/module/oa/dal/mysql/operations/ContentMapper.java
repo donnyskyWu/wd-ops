@@ -44,7 +44,7 @@ public interface ContentMapper extends BaseMapper<ContentDO> {
                                  @Param("platformType") String platformType,
                                  @Param("contentType") String contentType);
 
-    // S-R21-Mike / ADR-008：按 author_id（sys_user.id）聚合内容 KPI
+    // ADR-051：按 author_id（member.author_user.id）聚合内容 KPI
     @Select("""
             <script>
             SELECT

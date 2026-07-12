@@ -30,7 +30,7 @@ public class PlatformAccountController {
     private final PlatformAccountService platformAccountService;
 
     @GetMapping("/list")
-    @PreAuthorize("hasAuthority('oa:account:list')")
+    @PreAuthorize("hasAnyAuthority('oa:account:list','oa:platform-account:list')")
     public CommonResult<PageResult<AccountRespVO>> list(
             @RequestParam(required = false) String platformType,
             @RequestParam(required = false) String accountName,
@@ -44,7 +44,7 @@ public class PlatformAccountController {
     }
 
     @GetMapping("/get")
-    @PreAuthorize("hasAuthority('oa:account:list')")
+    @PreAuthorize("hasAnyAuthority('oa:account:list','oa:platform-account:list')")
     public CommonResult<AccountRespVO> get(@RequestParam Long id) {
         return CommonResult.success(platformAccountService.get(id));
     }

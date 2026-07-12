@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.user.UserCouponUsageMapper">
+
+    <select id="selectUserCouponUsagePage" resultType="football.module.member.controller.admin.usercoupon.vo.UserCouponUsageRespVO">
+        SELECT muc.*, mu.nickname as userName, ci.coupon_name, ci.coupon_type
+        FROM member_user_coupon_usage muc
+        LEFT JOIN coupon_info ci ON muc.coupon_id = ci.id
+        LEFT JOIN member_user mu ON muc.user_id = mu.id
+        WHERE muc.deleted = 0
+        <if test="reqVO.couponId != null">
+            AND muc.coupon_id = #{reqVO.couponId}
+        </if>
+        <if test="reqVO.orderId != null">
+            AND muc.order_id = #{reqVO.orderId}
+        </if>
+        <if test="reqVO.orderNo != null and reqVO.orderNo != ''">
+            AND muc.order_no = #{reqVO.orderNo}
+        </if>
+        <if test="reqVO.userName != null and reqVO.userName != ''">
+            AND mu.nickname LIKE CONCAT('%', #{reqVO.userName}, '%')
+        </if>
+        ORDER BY muc.id DESC
+    </select>
+
+    <select id="selectUserUsageCountByCouponIds" resultType="football.module.member.controller.admin.usercoupon.vo.UserCouponCountRespVO">
+        SELECT
+        coupon_id as couponId,
+        sum(numbers) as totalCount
+        FROM member_user_coupon_usage
+        WHERE coupon_id IN
+        <foreach collection="couponIds" item="couponId" open="(" separator="," close=")">
+            #{couponId}
+        </foreach>
+        GROUP BY coupon_id
+    </select>
+
+</mapper>

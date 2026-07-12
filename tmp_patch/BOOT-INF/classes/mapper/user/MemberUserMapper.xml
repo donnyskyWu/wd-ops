@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.user.MemberUserMapper">
+
+    <select id="selectMemberUserPage" resultType="football.module.member.controller.admin.user.vo.MemberUserRespVO">
+        SELECT
+        t1.*,
+        t2.balance,
+        t2.consume_amount,
+        t2.order_num,
+        au.author_level
+        FROM
+        member_user t1
+        LEFT JOIN member_user_account t2 ON t1.id = t2.user_id
+        LEFT JOIN author_user au on t1.id = au.user_id
+        <where>
+            <if test="reqVO.id != null">
+                AND t1.id = #{reqVO.id}
+            </if>
+            <if test="reqVO.nickname != null and reqVO.nickname != ''">
+                AND t1.nickname LIKE CONCAT('%', #{reqVO.nickname}, '%')
+            </if>
+            <if test="reqVO.mobile != null and reqVO.mobile != ''">
+                AND t1.mobile = #{reqVO.mobile}
+            </if>
+            <if test="reqVO.status != null">
+                AND t1.status = #{reqVO.status}
+            </if>
+            <if test="reqVO.createTime != null and reqVO.createTime.length == 2">
+                AND t1.create_time BETWEEN #{reqVO.createTime[0]} AND #{reqVO.createTime[1]}
+            </if>
+            <if test="reqVO.lastLoginTime != null and reqVO.lastLoginTime.length == 2">
+                AND t1.last_login_time BETWEEN #{reqVO.lastLoginTime[0]} AND #{reqVO.lastLoginTime[1]}
+            </if>
+            <if test="reqVO.origin != null">
+                AND t1.origin = #{reqVO.origin}
+            </if>
+            <if test="reqVO.registerIp != null and reqVO.registerIp != ''">
+                AND t1.register_ip = #{reqVO.registerIp}
+            </if>
+            <if test="reqVO.lastLoginIp != null and reqVO.lastLoginIp != ''">
+                AND t1.last_login_ip = #{reqVO.lastLoginIp}
+            </if>
+
+            <if test="reqVO.referrer != null">
+                AND t1.referrer = #{reqVO.referrer}
+            </if>
+
+            <if test="reqVO.referrerType != null">
+                AND t1.referrer_type = #{reqVO.referrerType}
+            </if>
+
+            <if test="reqVO.channelLiveName != null and reqVO.channelLiveName != ''">
+                <choose>
+                    <when test="reqVO.referrerType != null and reqVO.referrerType == 3">
+                        <if test="reqVO.filterChannelLiveCodeIds != null and reqVO.filterChannelLiveCodeIds.size > 0">
+                            AND t1.live_code_id IN
+                            <foreach collection="reqVO.filterChannelLiveCodeIds" item="item" open="(" close=")" separator=",">
+                                #{item}
+                            </foreach>
+                        </if>
+                        <if test="reqVO.filterChannelLiveCodeIds == null or reqVO.filterChannelLiveCodeIds.size == 0">
+                            AND 1 = 0
+                        </if>
+                    </when>
+                    <when test="reqVO.referrerType != null and reqVO.referrerType == 5">
+                        <if test="reqVO.filterWecomRuleIds != null and reqVO.filterWecomRuleIds.size > 0">
+                            AND t1.referrer IN
+                            <foreach collection="reqVO.filterWecomRuleIds" item="item" open="(" close=")" separator=",">
+                                #{item}
+                            </foreach>
+                        </if>
+                        <if test="reqVO.filterWecomRuleIds == null or reqVO.filterWecomRuleIds.size == 0">
+                            AND 1 = 0
+                        </if>
+                    </when>
+                    <otherwise>
+                        AND (
+                        (t1.referrer_type = 3
+                        <if test="reqVO.filterChannelLiveCodeIds != null and reqVO.filterChannelLiveCodeIds.size > 0">
+                            AND t1.live_code_id IN
+                            <foreach collection="reqVO.filterChannelLiveCodeIds" item="item" open="(" close=")" separator=",">
+                                #{item}
+                            </foreach>
+                        </if>
+                        <if test="reqVO.filterChannelLiveCodeIds == null or reqVO.filterChannelLiveCodeIds.size == 0">
+                            AND 1 = 0
+                        </if>
+                        )
+                        OR
+                        (t1.referrer_type = 5
+                        <if test="reqVO.filterWecomRuleIds != null and reqVO.filterWecomRuleIds.size > 0">
+                            AND t1.referrer IN
+                            <foreach collection="reqVO.filterWecomRuleIds" item="item" open="(" close=")" separator=",">
+                                #{item}
+                            </foreach>
+                        </if>
+                        <if test="reqVO.filterWecomRuleIds == null or reqVO.filterWecomRuleIds.size == 0">
+                            AND 1 = 0
+                        </if>
+                        )
+                        )
+                    </otherwise>
+                </choose>
+            </if>
+
+            <if test="reqVO.liveCodeId != null">
+                AND t1.live_code_id =  #{reqVO.liveCodeId}
+            </if>
+
+            <if test="reqVO.consumeMember != null">
+                <choose>
+                    <when test="reqVO.consumeMember == 0">
+                        AND t2.consume_amount = 0
+                    </when>
+                    <when test="reqVO.consumeMember == 1">
+                        AND t2.consume_amount > 0
+                    </when>
+                </choose>
+            </if>
+
+            <if test="reqVO.authorIds != null and reqVO.authorIds.size > 0">
+                AND EXISTS (
+                SELECT
+                1
+                FROM member_user_follow t3
+                WHERE t3.user_id = t1.id
+                AND t3.target_type = 1
+                AND t3.status = 0
+                AND t3.target_id in
+                <foreach collection="reqVO.authorIds" item="item" open="(" close=")" separator=",">
+                    #{item}
+                </foreach>
+                )
+            </if>
+
+            <if test="reqVO.userIdList != null and reqVO.userIdList.size > 0">
+                AND t1.referrer in
+                <foreach collection="reqVO.userIdList" item="item" open="(" close=")" separator=",">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        <choose>
+            <when test="reqVO.sortingFields != null and reqVO.sortingFields.size > 0">
+                ORDER BY
+                <foreach collection="reqVO.sortingFields" item="sort" separator=",">
+                    <choose>
+                        <when test="sort.field == 'consumeAmount'">
+                            t2.consume_amount
+                            <choose>
+                                <when test="sort.order != null and sort.order.equalsIgnoreCase('ASC')">
+                                    ASC
+                                </when>
+                                <otherwise>
+                                    DESC
+                                </otherwise>
+                            </choose>
+                        </when>
+                        <when test="sort.field == 'orderNum'">
+                            t2.order_num
+                            <choose>
+                                <when test="sort.order != null and sort.order.equalsIgnoreCase('ASC')">
+                                    ASC
+                                </when>
+                                <otherwise>
+                                    DESC
+                                </otherwise>
+                            </choose>
+                        </when>
+                        <otherwise>
+                            t1.id DESC
+                        </otherwise>
+                    </choose>
+                </foreach>
+            </when>
+            <otherwise>
+                ORDER BY t1.id DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getWxQrCodeUrl" resultType="java.lang.String">
+        select qr_code_url
+        from wx_work_setting
+        where id = #{id}
+    </select>
+    <select id="getWxId" resultType="java.lang.String">
+        select user_id
+        from wx_work_setting
+        where id = #{id}
+    </select>
+
+
+    <select id="getArticlePvUser" resultType="football.module.member.controller.admin.user.vo.ArticlePvUserRespVO">
+        SELECT u.id AS user_id,
+        u.mobile,
+        u.nickname,
+        u.avatar_url,
+        b.lastViewTime
+        FROM member_user u
+        INNER JOIN (SELECT user_id,
+        MAX(create_time) AS lastViewTime
+        FROM author_article_pv_logs
+        WHERE article_id = #{articleId}
+        GROUP BY user_id) b ON u.id = b.user_id
+        ORDER BY b.lastViewTime DESC
+    </select>
+
+    <select id="getFreeArticleUser" resultType="football.module.member.controller.admin.user.vo.ArticlePvUserRespVO">
+        SELECT u.id AS user_id,
+               u.mobile,
+               u.nickname,
+               u.avatar_url,
+               b.lastViewTime
+        FROM member_user u
+                 INNER JOIN (SELECT sl.user_id,
+                                    MAX(sl.create_time) AS lastViewTime
+                             FROM share_scan_log sl
+                                      INNER JOIN share_live_code slc ON sl.share_token = slc.share_token
+                             WHERE slc.target_id = #{articleId}
+                               AND sl.deleted = 0
+                               AND slc.target_type = 1
+                               AND sl.user_id IS NOT NULL
+                             GROUP BY sl.user_id) b ON u.id = b.user_id
+        ORDER BY b.lastViewTime DESC
+    </select>
+
+    <select id="getRegisterCountByLiveCodeIds" resultType="football.module.member.controller.admin.user.vo.LiveCodeRegisterCountRespVO">
+        SELECT
+        live_code_id AS liveCodeId,
+        COUNT(*) AS registerPeople
+        FROM member_user
+        WHERE live_code_id IN
+        <foreach collection="liveCodeIdList" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        GROUP BY live_code_id
+    </select>
+
+    <select id="selectPartnerPage" resultType="football.module.member.controller.admin.partner.vo.PartnerPageRespVO">
+        SELECT
+        u.id AS userId,
+        u.avatar_url AS avatarUrl,
+        u.nickname,
+        u.partner_id AS superiorUserId,
+        sup.nickname AS superiorNickname,
+        u.status AS status,
+        u.partner_time AS joinTime
+        FROM member_user u
+        LEFT JOIN member_user sup ON sup.id = u.partner_id
+        <where>
+            AND u.identity = 1 AND u.deleted = 0
+            <if test="reqVO.status != null">
+                AND u.status = #{reqVO.status}
+            </if>
+            <if test="reqVO.userInfo != null and reqVO.userInfo != ''">
+                AND (
+                u.nickname LIKE CONCAT('%', #{reqVO.userInfo}, '%')
+                OR u.mobile = #{reqVO.userInfo}
+                OR u.id = #{reqVO.userInfo}
+                )
+            </if>
+            <if test="reqVO.superiorInfo != null and reqVO.superiorInfo != ''">
+                AND (
+                sup.nickname LIKE CONCAT('%', #{reqVO.superiorInfo}, '%')
+                OR sup.mobile = #{reqVO.superiorInfo}
+                OR sup.id = #{reqVO.superiorInfo}
+                )
+            </if>
+            <if test="reqVO.partnerId != null">
+                AND u.partner_id = #{reqVO.partnerId}
+            </if>
+        </where>
+        ORDER BY u.id DESC
+    </select>
+
+    <select id="selectTeamCountByPartnerIds" resultType="football.module.member.controller.admin.partner.dto.PartnerSubCountDTO">
+        SELECT
+        partner_id AS partnerId,
+        COUNT(1) AS cnt
+        FROM member_user
+        WHERE identity = 1 and deleted= 0
+        AND partner_id IN
+        <foreach collection="partnerIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        GROUP BY partner_id
+    </select>
+
+    <select id="selectCustomerCountByPartnerIds" resultType="football.module.member.controller.admin.partner.dto.PartnerSubCountDTO">
+        SELECT
+        lock_fans_id AS partnerId,
+        COUNT(1) AS cnt
+        FROM member_user
+        WHERE deleted = 0
+        AND lock_fans_type = 1
+        AND lock_fans_id IN
+        <foreach collection="partnerIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        GROUP BY lock_fans_id
+    </select>
+
+    <select id="selectCustomerPartnerStat"
+            resultType="football.module.member.controller.admin.partner.vo.PartnerCustomerPartnerStatRespVO">
+        SELECT
+        (
+        SELECT COUNT(1)
+        FROM member_user mu
+        <where>
+            AND mu.deleted = 0
+            AND mu.lock_fans_id IS NOT NULL
+            AND mu.lock_fans_id &gt; 0
+            AND mu.lock_fans_type = 1
+            <if test="reqVO.createTime != null and reqVO.createTime.length == 2">
+                AND mu.lock_fans_time BETWEEN #{reqVO.createTime[0]} AND #{reqVO.createTime[1]}
+            </if>
+            <if test="reqVO.partnerIds != null and reqVO.partnerIds.size() > 0">
+                AND mu.lock_fans_id IN
+                <foreach collection="reqVO.partnerIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+        ) AS customerCount,
+        (
+        SELECT COUNT(1)
+        FROM member_user mp
+        <where>
+            AND mp.deleted = 0
+            AND mp.identity = 1
+            <if test="reqVO.createTime != null and reqVO.createTime.length == 2">
+                AND mp.partner_time BETWEEN #{reqVO.createTime[0]} AND #{reqVO.createTime[1]}
+            </if>
+            <if test="reqVO.partnerIds != null and reqVO.partnerIds.size() > 0">
+                AND mp.id IN
+                <foreach collection="reqVO.partnerIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+        ) AS partnerCount
+    </select>
+
+    <select id="selectExpiredLockFansUserIds" resultType="java.lang.Long">
+        SELECT id
+        FROM member_user
+        WHERE deleted = 0
+        AND lock_fans_time IS NOT NULL
+        AND lock_fans_day IS NOT NULL
+        AND lock_fans_id > 0
+        AND lock_fans_type > 0
+        AND NOW() <![CDATA[ > ]]> DATE_ADD(lock_fans_time, INTERVAL lock_fans_day DAY)
+    </select>
+
+    <update id="clearExpiredLockFansByIds">
+        UPDATE member_user
+        SET lock_fans_id = 0,
+        lock_fans_type = 0,
+        lock_fans_time = NULL
+        WHERE deleted = 0
+        AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <select id="selectRegisterByReferrerType" resultType="football.module.member.api.user.dto.UserRegisterByReferrerTypeDTO">
+        SELECT
+        referrer_type AS referrerType,
+        CASE referrer_type
+        WHEN 0 THEN '散户'
+        WHEN 1 THEN '作者'
+        WHEN 2 THEN '合伙人'
+        WHEN 3 THEN '渠道-推广员'
+        WHEN 4 THEN '渠道-客服'
+        ELSE '其他'
+        END AS referrerTypeName,
+        COUNT(id) AS registerCount
+        FROM member_user
+        WHERE deleted = 0
+        <if test="createTimes != null and createTimes.length == 2">
+            AND create_time BETWEEN #{createTimes[0]} AND #{createTimes[1]}
+        </if>
+        GROUP BY referrer_type
+    </select>
+
+    <select id="selectReturnUserCount" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT u.id)
+        FROM member_user u
+        WHERE u.deleted = 0
+        AND u.last_login_time >= #{todayStart}
+        AND u.last_login_time &lt;= #{todayEnd}
+        AND NOT EXISTS (
+        SELECT 1
+        FROM member_user u2
+        WHERE u2.id = u.id
+        AND u2.last_login_time > #{thirtyDaysAgoStart}
+        AND u2.last_login_time &lt;= #{yesterdayEnd}
+        )
+    </select>
+
+    <select id="getRegisterCountByReferrers" resultType="football.module.member.controller.admin.livecode.vo.ReferrerScanCountRespVO">
+        SELECT
+        u.referrer AS referrer,
+        COUNT(DISTINCT u.id) AS accessUserCount
+        FROM member_user u
+        WHERE u.deleted = 0
+        and u.referrer_type in (3, 4)
+        AND u.referrer IN
+        <foreach collection="referrerList" item="referrer" open="(" separator="," close=")">
+            #{referrer}
+        </foreach>
+        GROUP BY u.referrer
+    </select>
+
+</mapper>

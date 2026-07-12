@@ -22,21 +22,20 @@ import cn.iocoder.yudao.module.oa.api.dto.content.ContentTransferKnowledgeResult
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentVO;
+import cn.iocoder.yudao.module.oa.config.AiGenerateProperties;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
-import cn.iocoder.yudao.module.oa.dal.dataobject.author.AuthorDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.config.AiModelConfigDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.config.AiPromptConfigDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.dict.SysDictDataDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.content.KnowledgeBaseDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.content.ProductionContentDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.content.ReviewRecordDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
-import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupMemberDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.plan.ContentPlanCompetitionDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.plan.ContentPlanStepDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.sop.TaskDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.author.AuthorMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.config.AiModelConfigMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.config.AiPromptConfigMapper;
@@ -44,8 +43,11 @@ import cn.iocoder.yudao.module.oa.dal.mysql.content.KnowledgeBaseMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.content.ProductionContentMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.content.ReviewRecordMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMemberMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.plan.ContentPlanCompetitionMapper;
+import cn.iocoder.yudao.module.oa.service.author.AuthorResolveSupport;
+import cn.iocoder.yudao.module.oa.service.dict.DictService;
+import cn.iocoder.yudao.module.oa.service.ipgroup.IpGroupAccessSupport;
+import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.dal.mysql.plan.ContentPlanStepMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
@@ -62,10 +64,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -80,15 +85,19 @@ public class ProductionContentServiceImpl implements ProductionContentService {
     private final SysUserMapper sysUserMapper;
     private final TaskMapper taskMapper;
     private final IpGroupMapper ipGroupMapper;
-    private final IpGroupMemberMapper ipGroupMemberMapper;
-    private final AuthorMapper authorMapper;
+    private final IpGroupAccessSupport ipGroupAccessSupport;
+    private final ContentDataScopeSupport contentDataScopeSupport;
+    private final AuthorResolveSupport authorResolveSupport;
+    private final DictService dictService;
     private final AiPromptConfigMapper aiPromptConfigMapper;
     private final AiModelConfigMapper aiModelConfigMapper;
     private final ContentPlanStepMapper contentPlanStepMapper;
     private final ContentPlanCompetitionMapper contentPlanCompetitionMapper;
     private final ContentReviewConfigService contentReviewConfigService;
     private final NotificationService notificationService;
+    private final FootballSystemUserValidator footballSystemUserValidator;
     private final AesUtil aesUtil;
+    private final AiGenerateProperties aiGenerateProperties;
 
     private static final String CONTENT_TYPE_ARTICLE = "ARTICLE";
     private static final String CONTENT_TYPE_SHORT_VIDEO = "SHORT_VIDEO";
@@ -161,9 +170,11 @@ public class ProductionContentServiceImpl implements ProductionContentService {
             wrapper.in(ProductionContentDO::getIpGroupId, ledGroupIds);
         }
 
+        contentDataScopeSupport.applyListScope(wrapper, tenantId, status);
+
         Page<ProductionContentDO> page = productionContentMapper.selectPage(
                 new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize), wrapper);
-        return new PageResult<>(page.getRecords().stream().map(this::toVO).collect(Collectors.toList()), page.getTotal());
+        return new PageResult<>(toVOList(page.getRecords()), page.getTotal());
     }
 
     @Override
@@ -176,6 +187,7 @@ public class ProductionContentServiceImpl implements ProductionContentService {
             assertTaskContentCreatable(req.getTaskId(), tenantId);
         }
         ResolvedContentFields resolved = resolveContentFields(req, tenantId, taskDriven);
+        validateAuthorForSave(resolved.authorId(), resolved.ipGroupId(), tenantId);
         ProductionContentDO entity = new ProductionContentDO();
         entity.setTenantId(tenantId);
         entity.setTitle(req.getTitle().trim());
@@ -279,8 +291,10 @@ public class ProductionContentServiceImpl implements ProductionContentService {
             existing.setIpGroupId(req.getIpGroupId());
         }
         if (req.getAuthorId() != null) {
-            assertAuthorInIpGroup(req.getAuthorId(), existing.getIpGroupId(), existing.getTenantId());
+            authorResolveSupport.assertAuthorInIpGroup(req.getAuthorId(), existing.getIpGroupId(), existing.getTenantId());
             existing.setAuthorId(req.getAuthorId());
+        } else if (existing.getAuthorId() != null) {
+            validateAuthorForSave(existing.getAuthorId(), existing.getIpGroupId(), existing.getTenantId());
         }
         if (req.getGeneratedVideoUrl() != null) {
             existing.setGeneratedVideoUrl(req.getGeneratedVideoUrl());
@@ -420,6 +434,16 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         record.setCreateTime(LocalDateTime.now());
         record.setUpdateTime(LocalDateTime.now());
         reviewRecordMapper.insert(record);
+    }
+
+    private void validateAuthorForSave(Long authorId, Long ipGroupId, Long tenantId) {
+        if (authorId == null) {
+            return;
+        }
+        authorResolveSupport.requireAuthorUser(authorId, tenantId);
+        if (ipGroupId != null) {
+            authorResolveSupport.assertAuthorInIpGroup(authorId, ipGroupId, tenantId);
+        }
     }
 
     private void validateAccount(Long tenantId, Long accountId, String platformType) {
@@ -721,9 +745,8 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         step.setCompletedAt(record.getCreateTime());
         step.setComment(record.getComment());
         if (record.getReviewerId() != null) {
-            SysUserDO reviewer = sysUserMapper.selectById(record.getReviewerId());
-            if (reviewer != null) {
-                String userName = reviewer.getNickname() != null ? reviewer.getNickname() : reviewer.getUsername();
+            String userName = footballSystemUserValidator.resolveDisplayName(record.getReviewerId());
+            if (StrUtil.isNotBlank(userName)) {
                 step.setReviewerName(userName);
                 String roleCode = contentReviewConfigService.resolveStageRoleCode(stage);
                 String roleLabel = contentReviewConfigService.resolveReviewRoleLabel(roleCode);
@@ -756,7 +779,28 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         }
     }
 
+    private List<ProductionContentVO> toVOList(List<ProductionContentDO> records) {
+        if (records == null || records.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Set<Long> ipGroupIds = records.stream()
+                .map(ProductionContentDO::getIpGroupId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> ipGroupNameMap = ipGroupIds.isEmpty()
+                ? Collections.emptyMap()
+                : ipGroupMapper.selectBatchIds(ipGroupIds).stream()
+                .collect(Collectors.toMap(IpGroupDO::getId, IpGroupDO::getGroupName, (a, b) -> a));
+        return records.stream()
+                .map(entity -> toVO(entity, ipGroupNameMap))
+                .collect(Collectors.toList());
+    }
+
     private ProductionContentVO toVO(ProductionContentDO entity) {
+        return toVO(entity, null);
+    }
+
+    private ProductionContentVO toVO(ProductionContentDO entity, Map<Long, String> ipGroupNameMap) {
         ProductionContentVO vo = new ProductionContentVO();
         vo.setId(entity.getId());
         vo.setTitle(entity.getTitle());
@@ -805,17 +849,18 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         vo.setDocumentType(entity.getDocumentType());
         vo.setIpGroupId(entity.getIpGroupId());
         if (entity.getIpGroupId() != null) {
-            IpGroupDO ipGroup = ipGroupMapper.selectById(entity.getIpGroupId());
-            if (ipGroup != null) {
-                vo.setIpGroupName(ipGroup.getGroupName());
+            if (ipGroupNameMap != null) {
+                vo.setIpGroupName(ipGroupNameMap.get(entity.getIpGroupId()));
+            } else {
+                IpGroupDO ipGroup = ipGroupMapper.selectById(entity.getIpGroupId());
+                if (ipGroup != null) {
+                    vo.setIpGroupName(ipGroup.getGroupName());
+                }
             }
         }
         vo.setAuthorId(entity.getAuthorId());
         if (entity.getAuthorId() != null) {
-            AuthorDO author = authorMapper.selectById(entity.getAuthorId());
-            if (author != null) {
-                vo.setAuthorName(author.getAuthorName());
-            }
+            vo.setAuthorName(authorResolveSupport.resolveNickname(entity.getAuthorId()));
         }
         vo.setGeneratedVideoUrl(entity.getGeneratedVideoUrl());
         vo.setFinalVideoUrl(entity.getFinalVideoUrl());
@@ -896,17 +941,17 @@ public class ProductionContentServiceImpl implements ProductionContentService {
             }
             assertIpGroupInTenant(ipGroupId, tenantId);
             if (authorId != null) {
-                assertAuthorInIpGroup(authorId, ipGroupId, tenantId);
+                authorResolveSupport.assertAuthorInIpGroup(authorId, ipGroupId, tenantId);
             } else {
-                AuthorDO defaultAuthor = findFirstAuthor(ipGroupId, tenantId);
-                if (defaultAuthor != null) {
-                    authorId = defaultAuthor.getId();
+                Long defaultAuthorUserId = authorResolveSupport.findFirstAuthorUserId(ipGroupId, tenantId);
+                if (defaultAuthorUserId != null) {
+                    authorId = defaultAuthorUserId;
                 }
             }
             if (authorId != null && accountIds.isEmpty()) {
-                AuthorDO author = authorMapper.selectById(authorId);
-                if (author != null && author.getPrimaryAccountId() != null) {
-                    accountIds = List.of(author.getPrimaryAccountId());
+                Long primaryMpAccountId = authorResolveSupport.getPrimaryMpAccountId(authorId);
+                if (primaryMpAccountId != null) {
+                    accountIds = List.of(primaryMpAccountId);
                     platformTypes = resolvePlatformTypes(platformTypes, null, accountIds, tenantId);
                 }
             }
@@ -917,11 +962,11 @@ public class ProductionContentServiceImpl implements ProductionContentService {
             assertIpGroupInTenant(ipGroupId, tenantId);
             assertUserMemberOfIpGroup(TenantContextHolder.getUserId(), ipGroupId, tenantId);
             if (authorId != null) {
-                assertAuthorInIpGroup(authorId, ipGroupId, tenantId);
+                authorResolveSupport.assertAuthorInIpGroup(authorId, ipGroupId, tenantId);
             } else {
-                AuthorDO defaultAuthor = findFirstAuthor(ipGroupId, tenantId);
-                if (defaultAuthor != null) {
-                    authorId = defaultAuthor.getId();
+                Long defaultAuthorUserId = authorResolveSupport.findFirstAuthorUserId(ipGroupId, tenantId);
+                if (defaultAuthorUserId != null) {
+                    authorId = defaultAuthorUserId;
                 }
             }
         }
@@ -1149,7 +1194,11 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         }
         assertPromptMatches(req.getContentType(), req.getDocumentType(), prompt);
         String eventInfo = resolveEventInfo(req.getCompetitionId(), req.getCompetitionName(), req.getTaskId(), tenantId);
-        String filledPrompt = fillPromptPlaceholders(prompt.getPromptContent(), eventInfo);
+        String authorName = resolveAiAuthorName(req, tenantId);
+        String lengthTypeLabel = resolveLengthTypeLabel(req.getLengthType());
+        String filledPrompt = fillPromptPlaceholders(prompt.getPromptContent(), buildAiPromptVars(
+                eventInfo, authorName, req.getHistoricalRecord(), req.getMatchDirection(),
+                req.getStreamerPersona(), req.getRevisionFeedback(), lengthTypeLabel));
         ContentAiGenerateResultVO result = new ContentAiGenerateResultVO();
         result.setEventInfo(eventInfo);
         result.setTitle(StrUtil.blankToDefault(req.getContentType(), "AI 内容"));
@@ -1239,10 +1288,70 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         return competition != null ? competition.getCompetitionName() : null;
     }
 
-    private String fillPromptPlaceholders(String template, String eventInfo) {
+    private String resolveAiAuthorName(ContentAiGenerateReq req, Long tenantId) {
+        if (StrUtil.isNotBlank(req.getAuthorName())) {
+            return req.getAuthorName().trim();
+        }
+        if (req.getAuthorId() == null) {
+            return "";
+        }
+        if (req.getIpGroupId() != null) {
+            authorResolveSupport.assertAuthorInIpGroup(req.getAuthorId(), req.getIpGroupId(), tenantId);
+        } else {
+            authorResolveSupport.requireAuthorUser(req.getAuthorId(), tenantId);
+        }
+        return StrUtil.blankToDefault(authorResolveSupport.resolveNickname(req.getAuthorId()), "");
+    }
+
+    private String resolveLengthTypeLabel(String lengthType) {
+        if (StrUtil.isBlank(lengthType)) {
+            return "";
+        }
+        return dictService.listByType("dict_content_length_type").stream()
+                .filter(item -> lengthType.equals(item.getDictValue()))
+                .map(SysDictDataDO::getLabel)
+                .findFirst()
+                .orElse(lengthType);
+    }
+
+    private Map<String, String> buildAiPromptVars(String match, String author, String historicalRecord,
+                                                    String matchDirection, String streamerPersona,
+                                                    String revisionFeedback, String lengthType) {
+        Map<String, String> vars = new LinkedHashMap<>();
+        vars.put("match", StrUtil.blankToDefault(match, ""));
+        vars.put("eventinfo", StrUtil.blankToDefault(match, ""));
+        vars.put("competitionName", StrUtil.blankToDefault(match, ""));
+        vars.put("author", StrUtil.blankToDefault(author, ""));
+        vars.put("historicalRecord", StrUtil.blankToDefault(historicalRecord, ""));
+        vars.put("matchDirection", StrUtil.blankToDefault(matchDirection, ""));
+        vars.put("streamerPersona", StrUtil.blankToDefault(streamerPersona, ""));
+        vars.put("revisionFeedback", StrUtil.blankToDefault(revisionFeedback, ""));
+        vars.put("lengthType", StrUtil.blankToDefault(lengthType, ""));
+        return vars;
+    }
+
+    private String fillPromptPlaceholders(String template, Map<String, String> vars) {
         String text = StrUtil.blankToDefault(template, "");
-        return text.replace("{eventinfo}", StrUtil.blankToDefault(eventInfo, ""))
-                .replace("{competitionName}", StrUtil.blankToDefault(eventInfo, ""));
+        for (Map.Entry<String, String> entry : vars.entrySet()) {
+            if (StrUtil.isBlank(entry.getValue())) {
+                text = removeOptionalPromptSection(text, entry.getKey());
+            }
+        }
+        for (Map.Entry<String, String> entry : vars.entrySet()) {
+            String value = StrUtil.blankToDefault(entry.getValue(), "");
+            text = text.replace("{{" + entry.getKey() + "}}", value)
+                    .replace("{" + entry.getKey() + "}", value);
+        }
+        return text;
+    }
+
+    private String removeOptionalPromptSection(String template, String key) {
+        if (StrUtil.isBlank(template) || StrUtil.isBlank(key)) {
+            return template;
+        }
+        Pattern pattern = Pattern.compile("\\{\\{#" + Pattern.quote(key) + "\\}\\}[\\s\\S]*?\\{\\{/" + Pattern.quote(key) + "\\}\\}",
+                Pattern.CASE_INSENSITIVE);
+        return pattern.matcher(template).replaceAll("");
     }
 
     private String buildMockAiContent(String filledPrompt, String eventInfo, AiPromptConfigDO prompt) {
@@ -1254,7 +1363,7 @@ public class ProductionContentServiceImpl implements ProductionContentService {
 
     private String generateViaModelEndpoint(AiModelConfigDO model, String filledPrompt) {
         String endpoint = resolveChatCompletionsUrl(model.getApiEndpoint());
-        int timeoutMs = (model.getTimeout() == null ? 120 : model.getTimeout()) * 1000;
+        int timeoutMs = resolveLlmTimeoutMs(model);
         String apiKey = StrUtil.isNotBlank(model.getApiKeyEncrypted())
                 ? aesUtil.decrypt(model.getApiKeyEncrypted()) : "";
 
@@ -1274,41 +1383,62 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         messages.add(userMsg);
         body.set("messages", messages);
 
-        log.info("AI generate calling model endpoint: model={}, url={}", model.getModelName(), endpoint);
-        HttpRequest request = HttpRequest.post(endpoint)
-                .header("Content-Type", "application/json")
-                .timeout(timeoutMs)
-                .body(body.toString());
-        if (StrUtil.isNotBlank(apiKey)) {
-            request.header("Authorization", "Bearer " + apiKey);
-        }
+        log.info("AI generate calling model endpoint: model={}, url={}, timeoutMs={}",
+                model.getModelName(), endpoint, timeoutMs);
+        try {
+            HttpRequest request = HttpRequest.post(endpoint)
+                    .header("Content-Type", "application/json")
+                    .timeout(timeoutMs)
+                    .body(body.toString());
+            if (StrUtil.isNotBlank(apiKey)) {
+                request.header("Authorization", "Bearer " + apiKey);
+            }
 
-        HttpResponse response = request.execute();
-        if (!response.isOk()) {
-            log.warn("AI model HTTP {}: {}", response.getStatus(), response.body());
-            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
-                    "AI 模型调用失败（HTTP " + response.getStatus() + "）");
-        }
+            HttpResponse response = request.execute();
+            if (!response.isOk()) {
+                log.warn("AI model HTTP {}: {}", response.getStatus(), response.body());
+                throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
+                        "AI 模型调用失败（HTTP " + response.getStatus() + "）");
+            }
 
-        JSONObject respJson = JSONUtil.parseObj(response.body());
-        JSONObject error = respJson.getJSONObject("error");
-        if (error != null) {
+            JSONObject respJson = JSONUtil.parseObj(response.body());
+            JSONObject error = respJson.getJSONObject("error");
+            if (error != null) {
+                throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
+                        "AI 模型返回错误：" + StrUtil.blankToDefault(error.getStr("message"), error.toString()));
+            }
+            JSONArray choices = respJson.getJSONArray("choices");
+            if (choices == null || choices.isEmpty()) {
+                throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "AI 模型未返回有效内容");
+            }
+            JSONObject message = choices.getJSONObject(0).getJSONObject("message");
+            String content = message != null ? message.getStr("content") : null;
+            if (StrUtil.isBlank(content)) {
+                content = choices.getJSONObject(0).getStr("text");
+            }
+            if (StrUtil.isBlank(content)) {
+                throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "AI 模型返回空正文");
+            }
+            return content.trim();
+        } catch (ServiceException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.warn("AI model call failed: model={}, url={}, timeoutMs={}, msg={}",
+                    model.getModelName(), endpoint, timeoutMs, ex.getMessage(), ex);
+            String detail = StrUtil.blankToDefault(ex.getMessage(), "外部服务不可用");
+            if (detail.toLowerCase().contains("timed out") || detail.toLowerCase().contains("timeout")) {
+                throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
+                        "AI 模型调用超时（已等待 " + (timeoutMs / 1000) + " 秒），请稍后重试或调大模型超时配置");
+            }
             throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
-                    "AI 模型返回错误：" + StrUtil.blankToDefault(error.getStr("message"), error.toString()));
+                    "AI 模型调用失败：" + detail);
         }
-        JSONArray choices = respJson.getJSONArray("choices");
-        if (choices == null || choices.isEmpty()) {
-            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "AI 模型未返回有效内容");
-        }
-        JSONObject message = choices.getJSONObject(0).getJSONObject("message");
-        String content = message != null ? message.getStr("content") : null;
-        if (StrUtil.isBlank(content)) {
-            content = choices.getJSONObject(0).getStr("text");
-        }
-        if (StrUtil.isBlank(content)) {
-            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "AI 模型返回空正文");
-        }
-        return content.trim();
+    }
+
+    private int resolveLlmTimeoutMs(AiModelConfigDO model) {
+        int floorSec = aiGenerateProperties.getLlmTimeoutSeconds();
+        int modelSec = model.getTimeout() != null ? model.getTimeout() : floorSec;
+        return Math.max(modelSec, floorSec) * 1000;
     }
 
     private String resolveChatCompletionsUrl(String apiEndpoint) {
@@ -1336,16 +1466,17 @@ public class ProductionContentServiceImpl implements ProductionContentService {
             changed = true;
         }
         if (content.getAuthorId() != null) {
-            AuthorDO author = authorMapper.selectById(content.getAuthorId());
-            if (author == null || !Objects.equals(author.getIpGroupId(), task.getIpGroupId())) {
+            try {
+                authorResolveSupport.assertAuthorInIpGroup(content.getAuthorId(), task.getIpGroupId(), content.getTenantId());
+            } catch (ServiceException ex) {
                 content.setAuthorId(null);
                 changed = true;
             }
         }
         if (content.getAuthorId() == null) {
-            AuthorDO defaultAuthor = findFirstAuthor(task.getIpGroupId(), content.getTenantId());
-            if (defaultAuthor != null) {
-                content.setAuthorId(defaultAuthor.getId());
+            Long defaultAuthorUserId = authorResolveSupport.findFirstAuthorUserId(task.getIpGroupId(), content.getTenantId());
+            if (defaultAuthorUserId != null) {
+                content.setAuthorId(defaultAuthorUserId);
                 changed = true;
             }
         }
@@ -1370,36 +1501,9 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         if (userId == null) {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED);
         }
-        Long count = ipGroupMemberMapper.selectCount(new LambdaQueryWrapper<IpGroupMemberDO>()
-                .eq(IpGroupMemberDO::getTenantId, tenantId)
-                .eq(IpGroupMemberDO::getIpGroupId, ipGroupId)
-                .eq(IpGroupMemberDO::getUserId, userId));
-        if (count == null || count == 0) {
+        if (!ipGroupAccessSupport.isMemberOfIpGroup(ipGroupId, tenantId)) {
             throw new ServiceException(OaErrorCodes.FORBIDDEN.getCode(), "当前用户不属于所选 IP 组");
         }
-    }
-
-    private void assertAuthorInIpGroup(Long authorId, Long ipGroupId, Long tenantId) {
-        AuthorDO author = authorMapper.selectById(authorId);
-        if (author == null || !Objects.equals(author.getTenantId(), tenantId)) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
-        }
-        if (author.getStatus() != 1) {
-            throw new ServiceException(OaErrorCodes.ENTITY_DISABLED);
-        }
-        if (ipGroupId != null && !Objects.equals(author.getIpGroupId(), ipGroupId)) {
-            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "作者不属于所选 IP 组");
-        }
-    }
-
-    private AuthorDO findFirstAuthor(Long ipGroupId, Long tenantId) {
-        return authorMapper.selectOne(
-                new LambdaQueryWrapper<AuthorDO>()
-                        .eq(AuthorDO::getTenantId, tenantId)
-                        .eq(AuthorDO::getIpGroupId, ipGroupId)
-                        .eq(AuthorDO::getStatus, 1)
-                        .orderByAsc(AuthorDO::getId)
-                        .last("LIMIT 1"));
     }
 
     private void assertTaskContentCreatable(Long taskId, Long tenantId) {
@@ -1429,9 +1533,11 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         if (entity == null) {
             throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
         }
-        if (!Objects.equals(entity.getTenantId(), requireTenantId())) {
+        Long tenantId = requireTenantId();
+        if (!Objects.equals(entity.getTenantId(), tenantId)) {
             throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
         }
+        contentDataScopeSupport.assertReadable(entity, tenantId);
         return entity;
     }
 

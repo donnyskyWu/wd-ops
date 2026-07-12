@@ -21,6 +21,7 @@ import java.util.Objects;
 public class AccountDataScopeChecker {
 
     private final AccountMapper accountMapper;
+    private final WechatOfficialAccountResolver wechatOfficialAccountResolver;
 
     public AccountDO requireReadableAccount(Long accountId) {
         Long tenantId = TenantContextHolder.getTenantId();
@@ -28,6 +29,9 @@ public class AccountDataScopeChecker {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED);
         }
         AccountDO entity = accountMapper.selectById(accountId);
+        if (entity == null) {
+            entity = wechatOfficialAccountResolver.resolveReadableAccount(accountId, tenantId).orElse(null);
+        }
         if (entity == null) {
             throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "关联平台账号不存在");
         }

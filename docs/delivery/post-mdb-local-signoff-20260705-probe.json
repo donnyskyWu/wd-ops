@@ -1,0 +1,64 @@
+{
+  "generatedAt": "2026-07-05T02:22:21.411072+00:00",
+  "stack": "localhost integration :5777 / :48080",
+  "login": "admin/admin123 tenant 1",
+  "total": 9,
+  "passed": 1,
+  "failed": 8,
+  "checks": [
+    {
+      "id": "SC-01",
+      "name": "Login admin/admin123 tenant 1",
+      "pass": true,
+      "detail": "code=0 token obtained"
+    },
+    {
+      "id": "SC-02",
+      "name": "Author list ≥35",
+      "pass": false,
+      "detail": "HTTP Error 401: Unauthorized"
+    },
+    {
+      "id": "SC-03",
+      "name": "Create author",
+      "pass": false,
+      "detail": "HTTP Error 401: Unauthorized"
+    },
+    {
+      "id": "SC-04",
+      "name": "WeChat internal-account ≥187",
+      "pass": false,
+      "detail": "HTTP Error 401: Unauthorized"
+    },
+    {
+      "id": "SC-05",
+      "name": "system-dict",
+      "pass": false,
+      "detail": "HTTP Error 401: Unauthorized"
+    },
+    {
+      "id": "SC-06",
+      "name": "system-log/login",
+      "pass": false,
+      "detail": "HTTP Error 401: Unauthorized"
+    },
+    {
+      "id": "SC-07",
+      "name": "system-log/operation",
+      "pass": false,
+      "detail": "HTTP Error 401: Unauthorized"
+    },
+    {
+      "id": "SC-08",
+      "name": "Content IP tree (ip-group/tree)",
+      "pass": false,
+      "detail": "HTTP Error 401: Unauthorized"
+    },
+    {
+      "id": "SC-09",
+      "name": "order-attribution list",
+      "pass": false,
+      "detail": "HTTP Error 401: Unauthorized"
+    }
+  ]
+}

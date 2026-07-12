@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.coupon.CouponInfoMapper">
+
+    <select id="selectCashCouponPage" resultType="football.module.member.controller.admin.coupon.vo.CouponInfoRespVO">
+        SELECT ci.*
+        FROM coupon_info ci
+        WHERE ci.deleted = 0
+        <if test="reqVO.couponName != null and reqVO.couponName != ''">
+            AND ci.coupon_name LIKE CONCAT('%', #{reqVO.couponName}, '%')
+        </if>
+        <if test="reqVO.couponType != null">
+            AND ci.coupon_type = #{reqVO.couponType}
+        </if>
+        <if test="reqVO.status != null">
+            AND ci.status = #{reqVO.status}
+        </if>
+        <if test="reqVO.scope != null">
+            AND ci.scope = #{reqVO.scope}
+        </if>
+        <if test="reqVO.createTime != null and reqVO.createTime.length == 2">
+            AND ci.create_time BETWEEN #{reqVO.createTime[0]} AND #{reqVO.createTime[1]}
+        </if>
+        ORDER BY ci.id DESC
+    </select>
+
+    <select id="selectSimpleCouponInfoList" resultType="football.module.member.controller.admin.coupon.vo.CouponInfoSimpleRespVO">
+        SELECT id, coupon_name, coupon_type,
+        COALESCE(threshold_amount, 0) as threshold_amount,
+        COALESCE(discount_amount, 0) as discount_amount,
+        scope, effective_type, effective_days, expiration_days,
+        COALESCE(max_issue_count, 0) as max_issue_count,
+        COALESCE(issued_count, 0) as issued_count,
+        COALESCE(used_count, 0) as used_count
+        FROM coupon_info
+        <where>
+            deleted = 0
+            AND status = 0
+
+            <if test="couponType != null">
+                AND coupon_type = #{couponType}
+            </if>
+
+            <if test="authorId != null">
+                AND author_id = #{authorId}
+            </if>
+            <if test="minAmount != null and minAmount != 0">
+                AND threshold_amount &lt;= #{minAmount}
+                AND discount_amount &gt;= #{minAmount}
+            </if>
+        </where>
+        ORDER BY id DESC
+    </select>
+
+
+
+    <!--
+     场景 1: 发行次数递增 (用户领取/系统发放)
+   -->
+    <update id="incrementIssuedCount" parameterType="map">
+        UPDATE coupon_info
+        SET issued_count = issued_count + 1,
+        update_time = NOW()
+        WHERE id = #{id} AND issued_count &lt; #{maxIssueCount}
+    </update>
+
+    <!--
+      场景 2: 使用次数递增 (用户核销/使用)
+    -->
+    <update id="incrementUsedCount" parameterType="java.lang.Long">
+        UPDATE coupon_info
+        SET used_count = used_count + 1,
+        update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+
+    <!--
+     场景 3: 使用次数递减 (优惠券回滚)
+   -->
+    <update id="decrementUsedCount" parameterType="java.lang.Long">
+    UPDATE coupon_info
+    SET used_count = used_count - 1,
+        update_time = NOW()
+    WHERE id = #{id} AND used_count>0
+    </update>
+
+</mapper>

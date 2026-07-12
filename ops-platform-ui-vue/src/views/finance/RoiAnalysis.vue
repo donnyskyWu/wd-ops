@@ -138,6 +138,7 @@ import * as echarts from 'echarts'
 import { exportToExcel, unwrapApiData } from '@/utils'
 import DictSelect from '@/components/DictSelect.vue'
 import { getRoiAnalysis, getRoiBreakdown, getRoiTrend } from '@/api/finance'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const searchFormRef = ref<FormInstance>()
 const loading = ref(false)
@@ -262,7 +263,7 @@ const handleSearch = async () => {
   }
 }
 const handleTrend = () => {
-  router.push('/finance/roi/trend')
+  router.push(opsRouteTo({ name: 'RoiTrend' }))
 }
 const buildQueryParams = () => ({
   startDate: searchForm.dateRange[0],

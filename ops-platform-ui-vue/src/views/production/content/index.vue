@@ -52,6 +52,9 @@
         </el-table-column>
         <el-table-column prop="accountName" label="发布账号" width="140" show-overflow-tooltip />
         <el-table-column prop="creatorUserName" label="创作者" width="100" />
+        <el-table-column prop="ipGroupName" label="IP组" width="120" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.ipGroupName || '-' }}</template>
+        </el-table-column>
         <el-table-column prop="aiGenerated" label="AI生成" width="90" align="center">
           <template #default="{ row }">
             <el-tag v-if="row.aiGenerated === 1" type="success" size="small">AI</el-tag>
@@ -464,6 +467,7 @@ const handleExport = () => {
     platformType: row.platformType,
     accountName: row.accountName,
     creatorUserName: row.creatorUserName,
+    ipGroupName: row.ipGroupName || '-',
     aiGenerated: row.aiGenerated === 1 ? '是' : '否',
     status: row.status,
     createTime: row.createTime,
@@ -474,6 +478,7 @@ const handleExport = () => {
     { key: 'platformType', label: '平台' },
     { key: 'accountName', label: '发布账号' },
     { key: 'creatorUserName', label: '创作者' },
+    { key: 'ipGroupName', label: 'IP组' },
     { key: 'aiGenerated', label: 'AI生成' },
     { key: 'status', label: '状态' },
     { key: 'createTime', label: '创建时间' },

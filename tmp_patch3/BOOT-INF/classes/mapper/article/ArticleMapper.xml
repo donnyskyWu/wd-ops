@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.article.ArticleMapper">
+
+
+    <resultMap id="AppArticleRespVOMap" type="football.module.member.controller.app.article.vo.AppArticleRespVO">
+        <!-- 其他字段可省略（靠自动映射），但需要特殊处理的必须显式声明 -->
+        <result property="matches" column="matchScheme"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result property="visibleUserIds" column="visibleUserIds"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result property="visibleTagIds" column="visibleTagIds"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+    </resultMap>
+
+    <resultMap id="ArticleRespVOMap" type="football.module.member.dal.dataobject.article.ArticleDO">
+        <!-- 其他字段可省略（靠自动映射），但需要特殊处理的必须显式声明 -->
+        <result property="matchScheme" column="matchScheme"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result property="visibleUserIds" column="visibleUserIds"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result property="visibleTagIds" column="visibleTagIds"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+    </resultMap>
+
+    <resultMap id="PerformanceArticleDTOMap"
+               type="football.module.member.controller.admin.author.dto.PerformanceArticleDTO">
+        <result property="matchScheme" column="matchScheme"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+    </resultMap>
+
+    <!-- 根据文章ID增加浏览量 -->
+    <update id="incrementViewCount" parameterType="java.lang.Long">
+        UPDATE author_article
+        SET view_count = view_count + 1
+        WHERE id = #{articleId}
+    </update>
+
+
+    <!-- 统计作者名下的方案标签 -->
+    <select id="countArticlesGroupByTag"
+            resultType="football.module.member.controller.app.article.vo.ArticleTagRespVO">
+        SELECT aat.tag_id  AS tagId,
+               mt.tag_name AS tagName,
+               COUNT(*)    AS articleCount
+        FROM author_article aa
+                 INNER JOIN author_article_tag aat ON aa.id = aat.article_id
+                 INNER JOIN member_tag mt ON aat.tag_id = mt.id
+        WHERE aa.author_id = #{authorId}
+          AND aa.status = 1
+          AND aa.publish_time &lt; NOW()
+          and aa.order_deadline &gt; NOW()
+          AND aat.deleted = 0
+          AND mt.tag_type = 2
+        GROUP BY aat.tag_id, mt.tag_name
+    </select>
+
+
+    <select id="getAuthorArticleCount"
+            resultType="football.module.member.controller.app.article.dto.AuthorArticleCountDTO">
+        SELECT
+        author_id AS authorId,
+        COUNT(*) AS articleCount
+        FROM author_article
+        WHERE
+        status = 1 AND deleted=0
+        AND win_result = 0
+        AND author_id IN
+        <foreach collection="authorIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        GROUP BY author_id
+    </select>
+
+
+    <select id="getArticlesByAuthorIds" resultMap="AppArticleRespVOMap">
+        SELECT
+        au.id AS authorId,
+        au.nickname AS authorName,
+        au.avatar_url AS avatarUrl ,
+        au.hit_rate AS hitRate,
+        au.recent_articles AS recentArticles,
+        au.recent_hits AS recentHits,
+        au.consecutive_hits AS consecutiveHits,
+        au.performance_show,
+        aa.id AS articleId,
+        aa.title AS title,
+        aa.privilege_types AS privilegeTypes,
+        aa.intro AS intro,
+        aa.price AS price,
+        aa.refund_type AS refundType,
+        aa.order_deadline AS orderDeadline,
+        aa.publish_time AS publishTime,
+        aa.match_type AS matchType,
+        aa.match_scheme AS matchScheme,
+        aa.schedule_publish_status AS schedulePublishStatus,
+        aa.schedule_publish_time AS schedulePublishTime,
+        aa.visible_type AS visibleType,
+        aa.visible_min_num AS visibleMinNum,
+        aa.visible_min_amt AS visibleMinAmt,
+        aa.visible_tag_ids AS visibleTagIds,
+        aa.visible_user_ids AS visibleUserIds,
+        aa.view_count AS viewCount
+        FROM author_article aa
+        INNER JOIN author_user au ON aa.author_id = au.id
+        WHERE aa.status = 1 and aa.win_result=0 and aa.deleted=0 and aa.publish_time &lt; NOW() and aa.order_deadline
+        &gt; NOW()
+        <!-- 动态 IN 条件：仅当 authorIds 非空时生效 -->
+        <if test="authorIds != null and !authorIds.isEmpty()">
+            AND aa.author_id IN
+            <foreach collection="authorIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+
+        <if test="matchType != null">
+            AND aa.match_type = #{matchType}
+        </if>
+
+        <if test="matchCount != null and matchCount==99 ">
+            AND aa.match_type = 1
+            AND aa.match_count = 1
+        </if>
+        <if test="matchCount != null and matchCount==100 ">
+            AND aa.match_type = 1
+            AND aa.match_count > 1
+        </if>
+        <choose>
+            <when test="sortField == 'MATCH_START_TIME'">
+                ORDER BY aa.match_start_time DESC
+            </when>
+            <when test="sortField == 'HIT_RATE'">
+                ORDER BY au.hit_rate DESC
+            </when>
+            <otherwise>
+                ORDER BY aa.id DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <!--    根据赛事id查询在售的方案-->
+    <select id="getArticlesByMatchId" resultMap="AppArticleRespVOMap">
+        SELECT
+        au.id AS authorId,
+        au.nickname AS authorName,
+        au.avatar_url AS avatarUrl ,
+        au.hit_rate AS hitRate,
+        au.recent_articles AS recentArticles,
+        au.recent_hits AS recentHits,
+        au.consecutive_hits AS consecutiveHits,
+
+        aa.id AS articleId,
+        aa.title AS title,
+        aa.privilege_types AS privilegeTypes,
+        aa.price AS price,
+        aa.match_start_time AS matchStartTime,
+        aa.order_deadline AS orderDeadline,
+        aa.publish_time AS publishTime,
+        aa.match_type AS matchType,
+        aa.match_scheme AS matchScheme,
+        aa.refund_type AS refundType,
+        CASE
+        WHEN aa.schedule_content IS NOT NULL AND aa.schedule_content != ''
+        THEN 1
+        ELSE 0
+        END AS schedulePublish,
+        aa.visible_type AS visibleType,
+        aa.visible_min_num AS visibleMinNum,
+        aa.visible_min_amt AS visibleMinAmt,
+        aa.visible_tag_ids AS visibleTagIds,
+        aa.visible_user_ids AS visibleUserIds,
+        aa.view_count AS viewCount
+        FROM author_article aa
+        INNER JOIN author_user au ON aa.author_id = au.id
+        INNER JOIN author_article_match aam ON aa.id = aam.article_id and aam.author_id = au.id
+        WHERE aa.status = 1 and aa.win_result=0 and aa.deleted=0 and aa.publish_time &lt; NOW() and aa.order_deadline
+        &gt; NOW()
+
+        <choose>
+            <when test="matchId != null">
+                AND aam.match_id = #{matchId}
+            </when>
+            <otherwise>
+                AND aam.match_id = -1
+            </otherwise>
+        </choose>
+
+
+    </select>
+
+
+    <select id="getOnSaleAuthorId" resultType="java.lang.Long">
+        select distinct author_id
+        from author_article
+        where status = 1
+          and win_result = 0
+          and deleted = 0
+          and publish_time &lt; NOW()
+          and order_deadline &gt; NOW()
+    </select>
+
+
+    <select id="getAppendCountByArticleIds"
+            resultType="football.module.member.controller.admin.article.dto.ArticleAppendCountDTO">
+        SELECT article_id AS articleId, COUNT(*) AS count
+        FROM author_article_append
+        WHERE deleted=0 and article_id IN
+        <foreach collection="articleIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        group by article_id
+    </select>
+
+
+    <select id="getArticleCountMatchType"
+            resultType="football.module.member.controller.app.article.vo.MatchArticleCountVO">
+        SELECT
+        CASE
+        WHEN match_type = 1 AND match_count = 1 THEN 99
+        WHEN match_type = 1 AND match_count > 1 THEN 100
+        ELSE match_type
+        END AS matchType,
+        COUNT(*) AS articleCount
+        FROM author_article
+        WHERE win_result = 0
+        AND status = 1
+        AND deleted=0
+        AND publish_time &lt; NOW()
+        AND order_deadline &gt; NOW()
+        <if test="authorIds != null and !authorIds.isEmpty()">
+            AND author_id IN
+            <foreach collection="authorIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+        GROUP BY
+        CASE
+        WHEN match_type = 1 AND match_count = 1 THEN 99
+        WHEN match_type = 1 AND match_count > 1 THEN 100
+        ELSE match_type
+        END
+    </select>
+
+
+    <select id="getWinArticlesByClassId" resultType="football.module.member.controller.app.article.dto.ArticleDTO">
+        SELECT a.id, a.author_id, a.win_result
+        FROM author_article a
+        WHERE a.win_result > 0
+          AND EXISTS (SELECT 1
+                      FROM author_article_match m
+                      WHERE m.article_id = a.id
+                        AND m.class_id = #{classId})
+        order by a.id desc;
+    </select>
+
+
+    <!-- 主查询：统计方案数据 + 访问量 -->
+    <select id="getArticleData" resultType="football.module.member.controller.admin.article.dto.ArticleBaseDataDTO">
+        SELECT
+        aa.id AS article_id,
+        aa.title,
+        au.nickname,
+        aa.win_result,
+        aa.price,
+        aa.refund_type,
+        aa.status,
+        aa.create_time,
+        aa.update_time,
+        (SELECT COUNT(1) FROM author_article_pv_logs where article_id = aa.id GROUP BY article_id) as pv_count,
+        (SELECT ifnull(COUNT(DISTINCT ifnull(user_id, ip)),0) FROM author_article_pv_logs where article_id = aa.id GROUP
+        BY article_id) AS uv_count
+        FROM author_article aa
+        LEFT JOIN author_user au ON aa.author_id = au.id AND au.deleted = 0
+        <where>
+            aa.deleted = 0
+            <if test="reqVO.title != null and reqVO.title != ''">
+                AND aa.title LIKE CONCAT('%', #{reqVO.title}, '%')
+            </if>
+            <if test="reqVO.authorId != null">
+                AND aa.author_id = #{reqVO.authorId}
+            </if>
+            <if test="reqVO.matchType != null and reqVO.matchType != ''">
+                AND aa.match_type = #{reqVO.matchType}
+            </if>
+            <if test="reqVO.refundType != null and reqVO.refundType != ''">
+                AND aa.refund_type = #{reqVO.refundType}
+            </if>
+            <if test="reqVO.createTime != null and reqVO.createTime.length == 2">
+                AND aa.create_time BETWEEN #{reqVO.createTime[0]} AND #{reqVO.createTime[1]}
+            </if>
+            <if test="reqVO.publishTime != null and reqVO.publishTime.length == 2">
+                AND aa.publish_time BETWEEN #{reqVO.publishTime[0]} AND #{reqVO.publishTime[1]}
+            </if>
+            <if test="reqVO.authorIds != null and !reqVO.authorIds.isEmpty()">
+                AND aa.author_id IN
+                <foreach collection="reqVO.authorIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+        ORDER BY aa.id DESC
+    </select>
+
+    <select id="getPerformanceArticle" resultMap="PerformanceArticleDTOMap">
+        SELECT DISTINCT
+        a.id as articleId,
+        a.author_id,
+        a.win_result,
+        a.match_scheme as matchScheme
+        <if test="(reqVO.countryId != null and !reqVO.countryId.isEmpty()) or (reqVO.classId != null and !reqVO.classId.isEmpty()) or (reqVO.classType != null and reqVO.classType>0)">
+            ,b.class_id
+        </if>
+        FROM author_article a
+
+        <if test="(reqVO.countryId != null and !reqVO.countryId.isEmpty()) or (reqVO.classId != null and !reqVO.classId.isEmpty()>0) or (reqVO.classType != null and reqVO.classType>0)">
+            INNER JOIN author_article_match b ON a.id = b.article_id
+        </if>
+        <if test="reqVO.articleTagId != null and !reqVO.articleTagId.isEmpty()">
+            INNER JOIN author_article_tag c ON a.id = c.article_id
+        </if>
+
+        <where>
+            a.win_result > 0 AND a.match_type &lt; 5
+            <if test="reqVO.authorId != null and reqVO.authorId>0">AND a.author_id = #{reqVO.authorId}</if>
+            <if test="reqVO.cycleType == 1 and reqVO.startTime != null">AND a.publish_time &gt;= #{reqVO.startTime}</if>
+            <if test="reqVO.cycleType == 1 and reqVO.endTime != null">AND a.publish_time &lt;= #{reqVO.endTime}</if>
+            <if test="reqVO.cycleType == 2 and reqVO.endTime != null">AND a.publish_time &lt;= #{reqVO.endTime}</if>
+            <if test="reqVO.classType != null and reqVO.classType>0">AND b.class_type = #{reqVO.classType}</if>
+            <if test="reqVO.matchType != null and !reqVO.matchType.isEmpty()">
+                AND a.match_type IN
+                <foreach collection="reqVO.matchType" item="type" open="(" separator="," close=")">
+                    #{type}
+                </foreach>
+            </if>
+            <if test="reqVO.countryId != null and !reqVO.countryId.isEmpty()">
+                AND b.country_id IN
+                <foreach collection="reqVO.countryId" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="reqVO.classId != null and !reqVO.classId.isEmpty()">
+                AND b.class_id IN
+                <foreach collection="reqVO.classId" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="reqVO.classId != null and !reqVO.classId.isEmpty()">
+                AND b.class_id IN
+                <foreach collection="reqVO.classId" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="reqVO.articleTagId != null and !reqVO.articleTagId.isEmpty()">
+                AND c.tag_id IN
+                <foreach collection="reqVO.articleTagId" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+
+        ORDER BY a.id DESC
+        <if test="reqVO.cycleType == 2">
+            LIMIT #{reqVO.limit}
+        </if>
+    </select>
+
+
+    <select id="getArticleCountByAuthorIds" resultType="java.util.Map">
+        SELECT author_id, COUNT(*) AS article_count
+        FROM author_article
+        WHERE author_id IN
+        <foreach collection="authorIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        and create_time &gt;= #{startTime}
+        AND create_time &lt;= #{endTime}
+        AND status >= 0
+        AND deleted = 0
+        GROUP BY author_id
+    </select>
+
+    <update id="batchUpdateOnSaleNum">
+        UPDATE author_user au
+            LEFT JOIN (
+            SELECT author_id, COUNT (*) AS cnt
+            FROM
+            author_article
+            WHERE
+            status = 1 AND win_result = 0 AND publish_time &lt; NOW() AND order_deadline &gt; NOW() AND deleted = 0
+            GROUP BY
+            author_id
+            ) stat
+        ON au.id = stat.author_id
+            SET
+                au.on_sale_num = COALESCE (stat.cnt, 0)
+    </update>
+
+
+    <select id="selectArticlePage" resultType="football.module.member.dal.dataobject.article.ArticleDO">
+        SELECT
+        id,
+        author_id,
+        title,
+        content,
+        price,
+        privilege_types,
+        win_result,
+        win_result_info,
+        match_start_time,
+        publish_time,
+        order_deadline,
+        match_type,
+        match_count,
+        match_scheme,
+        refund_type,
+        schedule_publish_status,
+        schedule_publish_time,
+        schedule_content,
+        visible_type,
+        visible_min_amt,
+        visible_min_num,
+        visible_tag_ids,
+        visible_user_ids,
+        status,
+        create_time,
+        update_time,
+        creator,
+        updater,
+        deleted,
+        view_count,
+        has_free_code
+        FROM author_article
+        <where>
+            deleted = 0
+            <if test="reqVO.authorId != null">
+                AND author_id = #{reqVO.authorId}
+            </if>
+            <if test="reqVO.matchType != null">
+                AND match_type = #{reqVO.matchType}
+            </if>
+            <if test="reqVO.winResult != null">
+                AND win_result = #{reqVO.winResult}
+            </if>
+            <if test="reqVO.title != null and reqVO.title != ''">
+                AND title LIKE CONCAT('%', #{reqVO.title}, '%')
+            </if>
+            <if test="reqVO.creator != null and reqVO.creator != ''">
+                AND FIND_IN_SET(creator, #{reqVO.creator})
+            </if>
+            <if test="reqVO.createTime != null and reqVO.createTime.length == 2">
+                AND create_time BETWEEN #{reqVO.createTime[0]} AND #{reqVO.createTime[1]}
+            </if>
+            <if test="reqVO.publishTime != null and reqVO.publishTime.length == 2">
+                AND publish_time BETWEEN #{reqVO.publishTime[0]} AND #{reqVO.publishTime[1]}
+            </if>
+            <if test="reqVO.status != null">
+                AND status = #{reqVO.status}
+            </if>
+            <if test="reqVO.authorIds != null and !reqVO.authorIds.isEmpty()">
+                AND author_id IN
+                <foreach collection="reqVO.authorIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <choose>
+                <when test="reqVO.refundType != null and reqVO.refundType == 1">
+                    AND refund_type = 2
+                </when>
+                <when test="reqVO.refundType != null and reqVO.refundType == 0">
+                    AND refund_type IN (0, 1)
+                </when>
+            </choose>
+        </where>
+        ORDER BY id DESC
+    </select>
+
+
+</mapper>

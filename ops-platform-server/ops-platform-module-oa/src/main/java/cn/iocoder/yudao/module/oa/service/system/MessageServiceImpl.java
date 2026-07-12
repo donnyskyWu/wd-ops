@@ -25,6 +25,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Ops 运营广播/渠道消息（wd.sys_message，ADR-050 D6）。
+ * Football 站内信/公告（system_notify_* / system_notice*）由 Football 侧菜单只读，不合并本表。
+ */
 @Service
 @RequiredArgsConstructor
 public class MessageServiceImpl implements MessageService {

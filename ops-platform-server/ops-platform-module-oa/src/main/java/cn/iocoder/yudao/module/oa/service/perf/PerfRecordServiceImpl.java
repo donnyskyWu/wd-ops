@@ -18,13 +18,13 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfItemRecordDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfRecordDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfTemplateDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfTemplateItemDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.MetricMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfItemRecordMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfRecordMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateItemMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -56,7 +56,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
     private final PerfTemplateService perfTemplateService;
     private final PerfTemplateItemMapper perfTemplateItemMapper;
     private final MetricMapper metricMapper;
-    private final SysUserMapper sysUserMapper;
+    private final FootballSystemUserValidator footballSystemUserValidator;
     private final PerfMetricValueResolver perfMetricValueResolver;
 
     @Override
@@ -83,7 +83,8 @@ public class PerfRecordServiceImpl implements PerfRecordService {
     @AuditLog(module = "M3-perf", action = "create-record")
     public Long create(PerfRecordCreateReq req) {
         Long tenantId = requireTenantId();
-        SysUserDO user = requireEnabledUser(req.getTargetUserId(), tenantId);
+        footballSystemUserValidator.assertEnabledInTenant(req.getTargetUserId(), tenantId, "被考核人不存在");
+        SysUserDO user = footballSystemUserValidator.findLegacyUser(req.getTargetUserId());
         long duplicate = perfRecordMapper.selectCount(new LambdaQueryWrapper<PerfRecordDO>()
                 .eq(PerfRecordDO::getTenantId, tenantId)
                 .eq(PerfRecordDO::getTargetUserId, req.getTargetUserId())
@@ -98,7 +99,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
         entity.setTenantId(tenantId);
         entity.setTemplateId(template.getId());
         entity.setTargetUserId(req.getTargetUserId());
-        entity.setIpGroupId(user.getIpGroupId());
+        entity.setIpGroupId(user != null ? user.getIpGroupId() : null);
         entity.setPeriodType(req.getPeriodType());
         entity.setPeriodStart(req.getPeriodStart());
         entity.setPeriodEnd(req.getPeriodEnd());
@@ -189,7 +190,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
     @Override
     public PerfRecordDetailVO detail(Long id) {
         PerfRecordDO record = requireRecord(id);
-        SysUserDO user = sysUserMapper.selectById(record.getTargetUserId());
+        SysUserDO user = footballSystemUserValidator.findLegacyUser(record.getTargetUserId());
         PerfTemplateDO template = perfTemplateMapper.selectById(record.getTemplateId());
         List<PerfItemRecordDO> itemRecords = perfItemRecordMapper.selectList(
                 new LambdaQueryWrapper<PerfItemRecordDO>()
@@ -207,7 +208,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
         vo.setId(record.getId());
         vo.setTargetUserId(record.getTargetUserId());
         vo.setTemplateId(record.getTemplateId());
-        vo.setTargetUserName(user != null ? user.getNickname() : null);
+        vo.setTargetUserName(footballSystemUserValidator.resolveDisplayName(record.getTargetUserId()));
         vo.setTemplateName(template != null ? template.getTemplateName() : null);
         vo.setPosition(user != null ? user.getPosition() : null);
         vo.setPeriodType(record.getPeriodType());
@@ -351,19 +352,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
         if (userIds.isEmpty()) {
             return Map.of();
         }
-        return sysUserMapper.selectBatchIds(userIds).stream()
-                .collect(Collectors.toMap(SysUserDO::getId, SysUserDO::getNickname, (a, b) -> a));
-    }
-
-    private SysUserDO requireEnabledUser(Long userId, Long tenantId) {
-        SysUserDO user = sysUserMapper.selectById(userId);
-        if (user == null || !Objects.equals(user.getTenantId(), tenantId)) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
-        }
-        if (!"ENABLED".equals(user.getStatus())) {
-            throw new ServiceException(OaErrorCodes.ENTITY_DISABLED);
-        }
-        return user;
+        return footballSystemUserValidator.loadNicknames(userIds);
     }
 
     private PerfRecordDO requireRecord(Long id) {
@@ -401,6 +390,9 @@ public class PerfRecordServiceImpl implements PerfRecordService {
                 throw new ServiceException(OaErrorCodes.ENTITY_DISABLED);
             }
             return template;
+        }
+        if (user == null || user.getPosition() == null) {
+            throw new ServiceException(OaErrorCodes.PERF_NO_TEMPLATE);
         }
         PerfTemplateDO template = perfTemplateService.findActiveByPosition(user.getPosition());
         if (template == null) {

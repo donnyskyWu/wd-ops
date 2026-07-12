@@ -1,0 +1,520 @@
+{
+  "login": "ok",
+  "login_via": "system-server",
+  "api_base": "http://localhost:48094",
+  "modules": {
+    "数据分析": 8,
+    "作品监测": 6,
+    "配置管理": 8
+  },
+  "total": 22,
+  "pass": 22,
+  "pages": [
+    {
+      "page": "外部账号分析",
+      "group": "作品监测",
+      "hash": "#/ops/external-account",
+      "football_path": "/ops/external-account",
+      "component": "ops/account/ExternalAccountAnalysis",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "external-account",
+          "path": "/admin-api/oa/monitor/external/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=19"
+        }
+      ],
+      "search_note": "TableSearch: 账号 / 平台",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "高粉账号分析",
+      "group": "作品监测",
+      "hash": "#/ops/high-fans-account",
+      "football_path": "/ops/high-fans-account",
+      "component": "ops/account/HighFansAccountAnalysis",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "high-fans-account",
+          "path": "/admin-api/oa/monitor/high-follower/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=1"
+        }
+      ],
+      "search_note": "TableSearch: 粉丝阈值 / 平台",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "爆款作品分析",
+      "group": "作品监测",
+      "hash": "#/ops/hot-works",
+      "football_path": "/ops/hot-works",
+      "component": "ops/content/HotWorksAnalysis",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "hot-works",
+          "path": "/admin-api/oa/monitor/hit/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=7"
+        }
+      ],
+      "search_note": "TableSearch: 作品 / 平台",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "IP主题数据",
+      "group": "作品监测",
+      "hash": "#/ops/ip-theme",
+      "football_path": "/ops/ip-theme",
+      "component": "ops/content/IPThemeData",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "ip-theme",
+          "path": "/admin-api/oa/monitor/ip-theme/1",
+          "ok": true,
+          "code": 0,
+          "data": "object keys=['topTitles', 'ipGroupId', 'workCount', 'totalPlay']"
+        }
+      ],
+      "search_note": "IP 主题 Tab + 数据表",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "低粉账号分析",
+      "group": "作品监测",
+      "hash": "#/ops/low-fans-account",
+      "football_path": "/ops/low-fans-account",
+      "component": "ops/account/LowFansAccountAnalysis",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "low-fans-account",
+          "path": "/admin-api/oa/monitor/low-follower/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=0 total=0"
+        }
+      ],
+      "search_note": "TableSearch: 低粉阈值",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "低分作品分析",
+      "group": "作品监测",
+      "hash": "#/ops/low-score",
+      "football_path": "/ops/low-score",
+      "component": "ops/content/LowScoreAnalysis",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "low-score",
+          "path": "/admin-api/oa/monitor/low-score/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=4"
+        }
+      ],
+      "search_note": "TableSearch: 评分阈值",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "自定义查询",
+      "group": "数据分析",
+      "hash": "#/ops/custom-query",
+      "football_path": "/ops/custom-query",
+      "component": "ops/analysis/CustomQuery",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "custom-query",
+          "path": "/admin-api/oa/query/list?pageNo=1&pageSize=10",
+          "ok": true,
+          "code": 0,
+          "data": "list=3 total=3"
+        }
+      ],
+      "search_note": "TableSearch: 查询名称 / 状态",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "数据报表",
+      "group": "数据分析",
+      "hash": "#/ops/data-report",
+      "football_path": "/ops/data-report",
+      "component": "ops/analysis/ReportCenter",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "data-report",
+          "path": "/admin-api/oa/report/unified-account/stats",
+          "ok": true,
+          "code": 0,
+          "data": "object keys=['totalAccounts', 'totalFollowers', 'totalContents', 'totalReads', 'totalRevenue', 'overallRoi']"
+        }
+      ],
+      "search_note": "报表卡片 + 子报表入口",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "总体财务分析",
+      "group": "数据分析",
+      "hash": "#/ops/financial-analysis",
+      "football_path": "/ops/financial-analysis",
+      "component": "ops/finance/FinancialAnalysis",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "financial-analysis",
+          "path": "/admin-api/oa/finance/roi/analysis?startDate=2026-01-01&endDate=2026-06-30",
+          "ok": true,
+          "code": 0,
+          "data": "object keys=['totalRevenue', 'totalCost', 'roi', 'details']"
+        }
+      ],
+      "search_note": "日期范围 + ROI 维度筛选",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "漏斗分析",
+      "group": "数据分析",
+      "hash": "#/ops/funnel-analysis",
+      "football_path": "/ops/funnel-analysis",
+      "component": "ops/analysis/FunnelAnalysis",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "funnel-analysis",
+          "path": "/admin-api/oa/funnel/list?pageNo=1&pageSize=10",
+          "ok": true,
+          "code": 0,
+          "data": "list=5 total=5"
+        }
+      ],
+      "search_note": "漏斗阶段筛选 + 日期",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "指标管理",
+      "group": "数据分析",
+      "hash": "#/ops/metric",
+      "football_path": "/ops/metric",
+      "component": "ops/analysis/MetricManage",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "metric",
+          "path": "/admin-api/oa/metric/list?pageNo=1&pageSize=10",
+          "ok": true,
+          "code": 0,
+          "data": "list=10 total=32"
+        }
+      ],
+      "search_note": "TableSearch: 指标名称 / 分类",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "指标分析",
+      "group": "数据分析",
+      "hash": "#/ops/metric-analysis",
+      "football_path": "/ops/metric-analysis",
+      "component": "ops/analysis/MetricAnalysis",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "metric-analysis",
+          "path": "/admin-api/oa/metric/list?pageNo=1&pageSize=10",
+          "ok": true,
+          "code": 0,
+          "data": "list=10 total=32"
+        }
+      ],
+      "search_note": "指标选择 + 趋势图",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "数据大屏",
+      "group": "数据分析",
+      "hash": "#/ops/screen",
+      "football_path": "/ops/screen",
+      "component": "ops/screen/DataScreenFullscreen",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "screen",
+          "path": "/admin-api/oa/dashboard-config/list?pageNum=1&pageSize=10",
+          "ok": true,
+          "code": 0,
+          "data": "list=3 total=3"
+        }
+      ],
+      "search_note": "全屏大屏（无 TableSearch）",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "大屏配置",
+      "group": "数据分析",
+      "hash": "#/ops/screen-config",
+      "football_path": "/ops/screen-config",
+      "component": "ops/screen/ScreenConfig",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "screen-config",
+          "path": "/admin-api/oa/dashboard-config/list?pageNum=1&pageSize=10",
+          "ok": true,
+          "code": 0,
+          "data": "list=3 total=3"
+        }
+      ],
+      "search_note": "TableSearch: 大屏名称",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "AI模型",
+      "group": "配置管理",
+      "hash": "#/ops/config-ai-model",
+      "football_path": "/ops/config-ai-model",
+      "component": "ops/config/AiModelConfig",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "config-ai-model",
+          "path": "/admin-api/oa/config/ai-model/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=3"
+        }
+      ],
+      "search_note": "TableSearch: 模型名称",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "AI提示词",
+      "group": "配置管理",
+      "hash": "#/ops/config-ai-prompt",
+      "football_path": "/ops/config-ai-prompt",
+      "component": "ops/config/AiPromptConfig",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "config-ai-prompt",
+          "path": "/admin-api/oa/config/ai-prompt/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=8"
+        }
+      ],
+      "search_note": "TableSearch: 提示词名称",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "外部采集配置",
+      "group": "配置管理",
+      "hash": "#/ops/config-external-collect",
+      "football_path": "/ops/config-external-collect",
+      "component": "ops/config/ExternalCollectConfig",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "config-external-collect",
+          "path": "/admin-api/oa/config/external-collect/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=7"
+        }
+      ],
+      "search_note": "TableSearch: 配置名称",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "外部数据配置",
+      "group": "配置管理",
+      "hash": "#/ops/config-external-data",
+      "football_path": "/ops/config-external-data",
+      "component": "ops/config/ExternalDataConfig",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "config-external-data",
+          "path": "/admin-api/oa/config/external-source/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=3"
+        }
+      ],
+      "search_note": "TableSearch: 数据源名称",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "内部采集配置",
+      "group": "配置管理",
+      "hash": "#/ops/config-internal-collect",
+      "football_path": "/ops/config-internal-collect",
+      "component": "ops/config/InternalCollectConfig",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "config-internal-collect",
+          "path": "/admin-api/oa/config/internal-collect/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=2"
+        }
+      ],
+      "search_note": "TableSearch: 配置名称",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "元数据维护",
+      "group": "配置管理",
+      "hash": "#/ops/config-metadata",
+      "football_path": "/ops/config-metadata",
+      "component": "ops/config/MetadataManage",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "config-metadata",
+          "path": "/admin-api/oa/metadata/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=9"
+        }
+      ],
+      "search_note": "TableSearch: 表名 / 字段",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "订单采集配置",
+      "group": "配置管理",
+      "hash": "#/ops/config-order-collect",
+      "football_path": "/ops/config-order-collect",
+      "component": "ops/config/OrderCollectConfig",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "config-order-collect",
+          "path": "/admin-api/oa/config/order-collect/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=4"
+        }
+      ],
+      "search_note": "TableSearch: 配置名称",
+      "issues": [],
+      "pass": true
+    },
+    {
+      "page": "阈值规则配置",
+      "group": "配置管理",
+      "hash": "#/ops/config-threshold",
+      "football_path": "/ops/config-threshold",
+      "component": "ops/config/ThresholdConfig",
+      "route": true,
+      "vite": true,
+      "theme": true,
+      "api_ok": true,
+      "apis": [
+        {
+          "name": "config-threshold",
+          "path": "/admin-api/oa/config/threshold/list?pageNo=1&pageSize=1",
+          "ok": true,
+          "code": 0,
+          "data": "list=1 total=10"
+        }
+      ],
+      "search_note": "TableSearch: 规则名称",
+      "issues": [],
+      "pass": true
+    }
+  ]
+}

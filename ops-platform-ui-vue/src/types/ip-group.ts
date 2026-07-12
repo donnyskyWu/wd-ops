@@ -59,6 +59,8 @@ export interface IpGroupTreeVO {
   anchorCount: number
   /** 状态：0=停用，1=启用 */
   status: IpGroupStatus
+  /** IP组等级 dict_ip_group_level: S/A/B/C */
+  level?: string | null
   /** 创建时间 */
   createTime: string
   /** 子组列表 */
@@ -89,6 +91,8 @@ export interface IpGroupListVO {
   anchorCount: number
   /** 状态：0=停用，1=启用 */
   status: IpGroupStatus
+  /** IP组等级 dict_ip_group_level: S/A/B/C */
+  level?: string | null
   /** 创建时间 */
   createTime: string
 }
@@ -109,6 +113,8 @@ export interface IpGroupSaveReqVO {
   leaderId?: number | null
   /** 状态：0=停用，1=启用 */
   status: IpGroupStatus
+  /** IP组等级 dict_ip_group_level: S/A/B/C */
+  level?: string | null
   /** 备注 */
   remark?: string
 }
@@ -155,6 +161,8 @@ export interface IpGroupDetailVO {
   leaderName: string | null
   sortOrder: number
   status: IpGroupStatus
+  /** IP组等级 dict_ip_group_level: S/A/B/C */
+  level?: string | null
   remark: string
   memberCount: number
   accountCount: number
@@ -249,28 +257,35 @@ export interface IpGroupAccountBindReqVO {
   accountRole: AccountRole
 }
 
-// ==================== 关联主播类型 ====================
+// ==================== 关联作者类型（DB 字段 anchor_user_id 存 author_user.id） ====================
 
 /**
- * 关联主播信息
+ * 关联作者信息
  */
 export interface IpGroupAnchorVO {
-  /** 主播用户ID */
+  /** 关联记录 ID */
+  relId?: number
+  /** 作者 ID（member author_user.id，API 兼容字段 anchorUserId） */
   anchorUserId: number
-  /** 主播姓名 */
-  anchorName: string
-  /** 主播类型 */
+  authorId?: number
+  /** 作者姓名 */
+  anchorUserName?: string
+  authorName?: string
+  /** 作者类型 */
   anchorType: AnchorType
-  /** 主播类型文本 */
-  anchorTypeText: string
+  /** 作者类型文本 */
+  anchorTypeText?: string
   /** 关联时间 */
-  relTime: string
+  boundAt?: string
+  relTime?: string
 }
 
 /**
- * 关联主播请求
+ * 关联作者请求
  */
 export interface IpGroupAnchorBindReqVO {
-  /** 主播用户ID列表 */
+  /** 作者 ID 列表（member author_user.id） */
   anchorUserIds: number[]
+  /** 作者类型 */
+  anchorType?: string
 }

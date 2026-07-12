@@ -1,4 +1,15 @@
+# Standalone dev (restart-all.ps1): port 8080, no Nacos registration.
+# Integration mode: add profile dev-nacos → see application-dev-nacos.yml
+#
+# DB NOTE (2026-07-05): default url below points at 101.37.161.136/wd for remote export/backup only.
+# Daily dev + GATE-MDB integration MUST use profile dev-local-multidb (localhost:3306 five DBs).
+# start-integration-oa.ps1 / start-integration-all.ps1 already pass dev-local-multidb.
 spring:
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+        register-enabled: false
   datasource:
     url: jdbc:mysql://101.37.161.136:3306/wd?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: shenyu
@@ -7,6 +18,7 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+    out-of-order: true
     locations: classpath:db/migration
   config:
     import: optional:classpath:application-dev-local.yml
@@ -20,11 +32,14 @@ oa:
     base-url: http://127.0.0.1:8000
     api-token: test-key-2026
     timeout-ms: 30000
-    # stub: false  # 默认 false，连真实 unify-collector-api；无 collector 时设 true（IT 见 application-test.yml）
+    # stub: false  # 榛樿 false锛岃繛鐪熷疄 unify-collector-api锛涙棤 collector 鏃惰 true锛圛T 瑙?application-test.yml锛?
   wechat-official:
-    stub: false  # 默认 false，发布走真实 draft/add；IT 见 application-test.yml
+    stub: false  # 榛樿 false锛屽彂甯冭蛋鐪熷疄 draft/add锛汭T 瑙?application-test.yml
+  ai-generate:
+    # 外部 LLM 最小超时（秒），与 Gateway / 前端 300s 对齐；模型 DB timeout=60 时会被抬升
+    llm-timeout-seconds: 300
   match:
-    api-base-url: http://110.42.49.224:48088/app-api/match
-    # 外部赛事 API 鉴权头（tenant-id 由 MatchProxyService 从 TenantContext 注入，缺省为 1）
+    api-base-url: https://h5.shenyu.com/app-api/match
+    # 澶栭儴璧涗簨 API 閴存潈澶达紙tenant-id 鐢?MatchProxyService 浠?TenantContext 娉ㄥ叆锛岀己鐪佷负 1锛?
     headers:
       tenant-id: "1"

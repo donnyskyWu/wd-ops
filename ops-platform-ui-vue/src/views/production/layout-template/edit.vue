@@ -101,6 +101,7 @@ import {
 } from '@/api/layoutTemplate'
 import { emptyLayoutSchema, type LayoutTemplateForm } from '@/types/layoutTemplate'
 import { ensureLayoutArticleHtml, htmlToLayoutSchema, sanitizeLayoutHtml, schemaToPreviewHtml } from '@/utils/layoutSync'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const route = useRoute()
 const router = useRouter()
@@ -222,7 +223,7 @@ async function handleSave() {
       await createLayoutTemplate(form)
       ElMessage.success('已创建')
     }
-    router.push('/layout-template')
+    router.push(opsRouteTo({ name: 'LayoutTemplate' }))
   } finally {
     saving.value = false
   }
@@ -234,7 +235,7 @@ async function handleCopy() {
   try {
     const newId = await copyLayoutTemplate(templateId.value)
     ElMessage.success('已复制，可编辑副本')
-    router.push(`/layout-template/${newId}/edit`)
+    router.push(opsRouteTo({ name: 'LayoutTemplateEdit', params: { id: String(newId) } }))
   } finally {
     saving.value = false
   }

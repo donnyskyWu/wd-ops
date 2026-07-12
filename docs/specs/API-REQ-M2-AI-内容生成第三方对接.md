@@ -6,7 +6,7 @@
 
 ## 文档说明
 
-运营平台根据 **赛事**、**内容类型**、**文档类型** 调用 AI 生成运营文稿。前端经本平台 `POST /admin-api/oa/content/ai-generate` 发起；后端按 M8 提示词模板填充 `{eventinfo}` / `{competitionName}` 后，转发至第三方 **OpenAI 兼容** Chat Completions（`/v1/chat/completions`）。生成结果写入 `oa_production_content.body`，须人工审核（`ai_generated=1`）后发布。流式（SSE）为后续增强，Phase 1 以同步 JSON 为准。
+运营平台根据 **赛事**、**内容类型**、**文档类型** 调用 AI 生成运营文稿。前端经本平台 `POST /admin-api/oa/content/ai-generate` 发起；生成结果写入 `oa_production_content.body`，须人工审核（`ai_generated=1`）后发布。流式（SSE）为后续增强，Phase 1 以同步 JSON 为准。
 
 ---
 
@@ -32,6 +32,14 @@
 | `competitionId` | String | 推荐 | 外部赛事 scheduleId（MatchSelectDialog） | `"20260626001"` |
 | `competitionName` | String | 推荐 | 赛事展示名，填充提示词占位符 | `"2026 中超联赛 第 12 轮 上海申花 vs 山东泰山"` |
 | `taskId` | Long | ❌ | 任务驱动创作时传入；无 `competitionId` 时从任务解析赛事 | `8801` |
+| `ipGroupId` | Long | ❌ | 校验作者归属 | `9001` |
+| `authorId` | Long | ❌ | `author_user.id`；填充 `{{author}}` | `68028` |
+| `authorName` | String | ❌ | 作者展示名 | `"李四"` |
+| `historicalRecord` | String | ❌ | 历史战绩占位符 | `"近5场3胜"` |
+| `matchDirection` | String | ❌ | 赛事方向 | `"主队受让"` |
+| `streamerPersona` | String | ❌ | 主播人设 | `"理性分析"` |
+| `revisionFeedback` | String | ❌ | 修改意见 | `"加强结尾"` |
+| `lengthType` | String | ❌ | `dict_content_length_type` | `MEDIUM` |
 | `platformType` | String | ❌ | 目标平台语气参考，`dict_platform_type` | `WECHAT_MP` |
 | `tone` | String | ❌ | 文风：`FORMAL` / `CASUAL` / `HYPE`（供应商自定义枚举） | `CASUAL` |
 
@@ -88,6 +96,8 @@
   "documentType": "POST_MATCH_REVIEW",
   "competitionId": "20260626001",
   "competitionName": "2026 中超联赛 第 12 轮 上海申花 2:1 山东泰山",
+  "authorId": 68028,
+  "lengthType": "MEDIUM",
   "platformType": "WECHAT_MP",
   "tone": "CASUAL"
 }

@@ -152,6 +152,7 @@ import {
   updateRealname,
   type RealnameVO,
 } from '@/api/realname'
+import { opsRouteTo } from '@/utils/ops-route'
 
 const loading = ref(false)
 const exportLoading = ref(false)
@@ -416,7 +417,7 @@ const handleSubmit = async () => {
 }
 
 const handleView = (row: RealnameVO) => {
-  router.push(`/realname/${row.id}`)
+  router.push(opsRouteTo({ name: 'RealnameDetail', params: { id: String(row.id) } }))
 }
 
 const handleDelete = async (row: RealnameVO) => {

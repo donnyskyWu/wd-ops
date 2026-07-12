@@ -40,7 +40,8 @@ public class SopReviewServiceImpl implements SopReviewService {
         Long currentUserId = reviewerId != null ? reviewerId : TenantContextHolder.getUserId();
         SysUserDO user = sysUserMapper.selectById(currentUserId);
         if (user == null) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
+            // Football 登录用户可能不在 OA sys_user；返回空待审列表而非 1500
+            return List.of();
         }
         String position = user.getPosition();
         return sopReviewMapper.selectList(new LambdaQueryWrapper<SopReviewDO>()

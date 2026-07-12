@@ -129,9 +129,10 @@
 
 | 实体 | 用途 |
 |------|------|
-| `oa_external_account` | 外部账号 |
-| `oa_external_content` | 外部作品 |
+| `oa_external_account` | 外部竞品账号快照（Channel-D 采集刷新） |
+| `oa_external_work` | 外部竞品作品（M7 监测消费） |
 | `oa_external_follower_daily` | 外部粉丝每日数据 |
+| `oa_collect_config` | 外部竞品配置 SSOT（`scope=EXTERNAL`, `sub_type=account`） |
 | `oa_ip_theme` | IP 主题（字典） |
 | `oa_industry` | 行业（字典） |
 
@@ -145,8 +146,10 @@
 
 ### 4.3 数据来源
 
-- 依赖 `## 5.40 数据采集` 拉取
-- 若采集未启动 → 显示"暂无数据" + 提示开启采集
+- **Channel-D**（ADR-052）：M8 外部账号配置 → M10 `method=EXTERNAL` → `oa_external_account` / `oa_external_work` / `oa_external_follower_daily`
+- M7 列表读 `oa_external_work`；`account_id` 语义为 **`oa_external_account.id`**（非 M4 `oa_account`）
+- seed 数据保留为 demo；**真实采集数据优先展示**（ADR-052 Q5）
+- 若采集未启动 → 显示"暂无数据" + 提示开启 M8 配置与 M10 任务
 
 ---
 
@@ -156,6 +159,7 @@
 |------|------|------|------|
 | ADR-M7-001 | 爆款阈值是多少？ | 100w 播放（BR-003） | 业务经验 |
 | ADR-M7-002 | 低分阈值 | 完播率 < 20%（BR-004） | 行业标准 |
+| ADR-052 | 外部竞品数据来源 | Channel-D 落库 `oa_external_*`；与 Channel-A 隔离 | M10 EXTERNAL 切片 |
 
 ---
 

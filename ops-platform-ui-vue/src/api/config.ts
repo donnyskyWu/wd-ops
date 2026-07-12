@@ -141,6 +141,24 @@ export interface AoCreateAccountTestResultVO {
   message?: string
 }
 
+export interface AochuangRemoteAccountVO {
+  accountId: string
+  userName?: string
+  accountType?: number
+  status?: string
+  department?: string
+  updateDate?: string
+  synced?: boolean
+  localId?: number
+}
+
+export interface AoCreateAccountSyncResultVO {
+  successCount: number
+  skipCount: number
+  failCount: number
+  failReasons: string[]
+}
+
 export interface ImportResultVO {
   successCount: number
   failCount: number
@@ -207,6 +225,22 @@ export const internalCollectApi = {
   testAoCreateAccountConnection(id: number) {
     return request.post<AoCreateAccountTestResultVO>({
       url: `/oa/config/internal-collect/aocreate/accounts/${id}/test-connection`,
+    })
+  },
+  listRemoteAoCreateAccounts(params?: { lastUpdateTime?: string }) {
+    return request.get<AochuangRemoteAccountVO[]>({
+      url: '/oa/config/internal-collect/aocreate/accounts/list-remote',
+      params,
+    })
+  },
+  syncRemoteAoCreateAccounts(data: {
+    aochuangAccountIds?: string[]
+    syncAll?: boolean
+    lastUpdateTime?: string
+  }) {
+    return request.post<AoCreateAccountSyncResultVO>({
+      url: '/oa/config/internal-collect/aocreate/accounts/sync-remote',
+      data,
     })
   },
 }

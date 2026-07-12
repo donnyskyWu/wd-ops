@@ -36,7 +36,7 @@
       </el-table-column>
     </el-table>
 
-    <el-drawer v-model="detailVisible" title="低分作品详情" size="520px">
+    <el-drawer direction="rtl" append-to-body v-model="detailVisible" title="低分作品详情" size="520px">
       <el-descriptions v-if="currentRow" :column="1" border>
         <el-descriptions-item label="作品标题">{{ currentRow.title }}</el-descriptions-item>
         <el-descriptions-item label="作品类型">

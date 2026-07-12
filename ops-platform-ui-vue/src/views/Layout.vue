@@ -145,15 +145,12 @@
           <el-menu-item index="/config-metadata">元数据维护</el-menu-item>
         </el-sub-menu>
 
-        <!-- 10. 系统管理（M9） -->
+        <!-- 10. 系统管理（OA · ADR-049：仅 sys_* 维护页；M9 user/role/tenant 已移出侧栏） -->
         <el-sub-menu index="system">
           <template #title>
             <el-icon><Tools /></el-icon>
             <span>系统管理</span>
           </template>
-          <el-menu-item index="/system-user">用户管理</el-menu-item>
-          <el-menu-item index="/system-role">角色权限</el-menu-item>
-          <el-menu-item index="/system-tenant">租户管理</el-menu-item>
           <el-menu-item index="/system-param">系统参数</el-menu-item>
           <el-menu-item index="/system-dict">字典配置</el-menu-item>
           <el-menu-item index="/system-log/operation">操作日志</el-menu-item>
@@ -234,7 +231,7 @@
     </el-container>
   </el-container>
 
-  <el-drawer v-model="profileVisible" title="个人中心" size="420px">
+  <el-drawer direction="rtl" append-to-body v-model="profileVisible" title="个人中心" size="420px">
     <el-skeleton v-if="profileLoading" :rows="6" animated />
     <el-descriptions v-else :column="1" border>
       <el-descriptions-item label="用户ID">{{ userProfile?.id || '-' }}</el-descriptions-item>
@@ -251,7 +248,7 @@
     </el-descriptions>
   </el-drawer>
 
-  <el-drawer v-model="messageVisible" title="消息详情" size="460px">
+  <el-drawer direction="rtl" append-to-body v-model="messageVisible" title="消息详情" size="460px">
     <el-empty v-if="!activeMessage" description="请选择消息" />
     <el-descriptions v-else :column="1" border>
       <el-descriptions-item label="标题">{{ activeMessage.title }}</el-descriptions-item>

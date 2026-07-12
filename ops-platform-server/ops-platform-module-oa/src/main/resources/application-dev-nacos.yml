@@ -1,0 +1,28 @@
+﻿# Football integration profile (S1-A): register as oa-server on Nacos dev namespace.
+# Run: mvn spring-boot:run "-Dspring-boot.run.profiles=dev,dev-nacos"
+# Local Nacos (Docker): add profile dev-nacos-local -> 127.0.0.1:8848 (see scripts/start-nacos-local.ps1)
+# Standalone dev (restart-all.ps1) uses profile dev only -> port 8080, no Nacos.
+#
+# Default remote Nacos: 192.168.10.47:8848 (override with dev-nacos-local for 127.0.0.1:8848).
+# fail-fast: false -> oa-server listens on 48094 even when Nacos is unreachable; registration retries in background.
+
+spring:
+  application:
+    name: oa-server
+  cloud:
+    nacos:
+      server-addr: 192.168.10.47:8848
+      username: nacos
+      password: nacos
+      discovery:
+        namespace: dev
+        group: DEFAULT_GROUP
+        enabled: true
+        register-enabled: true
+        fail-fast: false
+        failure-tolerance-enabled: true
+        metadata:
+          version: 1.0.0
+
+server:
+  port: 48094

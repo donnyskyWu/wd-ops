@@ -79,7 +79,7 @@
             <el-option
               v-for="t in unmappedTables"
               :key="t.tableName"
-              :label="`${t.tableName} (${t.suggestedEntityName})`"
+              :label="formatUnmappedTableLabel(t)"
               :value="t.tableName"
             />
           </el-select>
@@ -129,7 +129,7 @@
     </el-dialog>
 
     <!-- 字段维护 -->
-    <el-drawer v-model="fieldDrawerVisible" :title="`字段维护 — ${currentEntity?.entityName ?? ''}`" size="72%">
+    <el-drawer direction="rtl" append-to-body v-model="fieldDrawerVisible" :title="`字段维护 — ${currentEntity?.entityName ?? ''}`" size="72%">
       <div v-loading="fieldLoading">
         <el-alert
           title="配置各字段的「指标查询条件类别」；枚举字典 / 平台选择须从字典类型列表中选择"
@@ -310,11 +310,16 @@ async function openAddDialog() {
   addDialogVisible.value = true
 }
 
+function formatUnmappedTableLabel(t: UnmappedTableVO) {
+  const suffix = t.tableComment?.trim() || t.suggestedEntityName
+  return suffix ? `${t.tableName} (${suffix})` : t.tableName
+}
+
 function onTableSelect(tableName: string) {
   const found = unmappedTables.value.find((t) => t.tableName === tableName)
   if (found) {
     addForm.entityCode = found.suggestedEntityCode
-    addForm.entityName = found.suggestedEntityName
+    addForm.entityName = found.tableComment?.trim() || found.suggestedEntityName
   }
 }
 

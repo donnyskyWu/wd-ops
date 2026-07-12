@@ -41,7 +41,7 @@ public class UserController {
     }
 
     @GetMapping("/profile")
-    @PreAuthorize("hasAuthority('oa:user:profile')")
+    @PreAuthorize("isAuthenticated()")
     public CommonResult<UserRespVO> profile() {
         return CommonResult.success(userService.profile());
     }

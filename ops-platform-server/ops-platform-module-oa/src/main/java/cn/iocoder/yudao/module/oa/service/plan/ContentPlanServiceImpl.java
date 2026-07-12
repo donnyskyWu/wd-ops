@@ -37,6 +37,8 @@ import cn.iocoder.yudao.module.oa.dal.mysql.sop.SopNodeMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.SopTemplateMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.author.AuthorResolveSupport;
+import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.service.sop.TaskService;
 import cn.iocoder.yudao.module.oa.service.notification.NotificationService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -79,10 +81,12 @@ public class ContentPlanServiceImpl implements ContentPlanService {
     private final SopNodeMapper sopNodeMapper;
     private final IpGroupMapper ipGroupMapper;
     private final IpGroupMemberMapper ipGroupMemberMapper;
+    private final FootballSystemUserValidator footballSystemUserValidator;
     private final SysUserMapper sysUserMapper;
     private final TaskService taskService;
     private final NotificationService notificationService;
     private final PlanTaskGeneratorService planTaskGeneratorService;
+    private final AuthorResolveSupport authorResolveSupport;
 
     @Override
     public PageResult<ContentPlanRespVO> list(String planName, String status, Integer pageNo, Integer pageSize) {
@@ -203,6 +207,7 @@ public class ContentPlanServiceImpl implements ContentPlanService {
                 .set(TaskDO::getVisibleInList, 1)
                 .set(TaskDO::getUpdater, TenantContextHolder.getUsername())
                 .set(TaskDO::getUpdateTime, LocalDateTime.now()));
+        backfillTaskAuthorIds(plan);
         try {
             notificationService.notifyPlanStarted(plan.getTenantId(), plan.getId(), plan.getPlanName());
         } catch (Exception e) {
@@ -394,6 +399,7 @@ public class ContentPlanServiceImpl implements ContentPlanService {
         task.setPlanName(plan.getPlanName());
         task.setAssigneeId(assigneeId);
         task.setIpGroupId(plan.getIpGroupId());
+        task.setAuthorId(authorResolveSupport.findFirstAuthorUserId(plan.getIpGroupId(), tenantId));
         task.setStatus(TASK_STATUS_PLAN_DRAFT);
         task.setVisibleInList(0);
         task.setScheduledStart(scheduledStart);
@@ -404,6 +410,20 @@ public class ContentPlanServiceImpl implements ContentPlanService {
         task.setCreateTime(LocalDateTime.now());
         task.setUpdateTime(LocalDateTime.now());
         taskMapper.insert(task);
+    }
+
+    private void backfillTaskAuthorIds(ContentPlanDO plan) {
+        Long defaultAuthorUserId = authorResolveSupport.findFirstAuthorUserId(plan.getIpGroupId(), plan.getTenantId());
+        if (defaultAuthorUserId == null) {
+            return;
+        }
+        taskMapper.update(null, new LambdaUpdateWrapper<TaskDO>()
+                .eq(TaskDO::getTenantId, plan.getTenantId())
+                .eq(TaskDO::getPlanId, plan.getId())
+                .isNull(TaskDO::getAuthorId)
+                .set(TaskDO::getAuthorId, defaultAuthorUserId)
+                .set(TaskDO::getUpdater, TenantContextHolder.getUsername())
+                .set(TaskDO::getUpdateTime, LocalDateTime.now()));
     }
 
     private ContentPlanRespVO toSummary(ContentPlanDO plan) {
@@ -607,10 +627,7 @@ public class ContentPlanServiceImpl implements ContentPlanService {
                 throw new ServiceException(OaErrorCodes.DICT_VALUE_INVALID.getCode(), "每步骤仅可分配一名执行人");
             }
             for (Long assigneeId : step.getAssigneeIds()) {
-                SysUserDO user = sysUserMapper.selectById(assigneeId);
-                if (user == null || !tenantId.equals(user.getTenantId())) {
-                    throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "执行人不存在");
-                }
+                footballSystemUserValidator.assertInTenant(assigneeId, tenantId, "执行人不存在");
             }
         }
     }
@@ -726,10 +743,7 @@ public class ContentPlanServiceImpl implements ContentPlanService {
             if (!memberUserIds.contains(task.getAssigneeId())) {
                 throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "执行人须为所选 IP 组成员或组长");
             }
-            SysUserDO user = sysUserMapper.selectById(task.getAssigneeId());
-            if (user == null || !tenantId.equals(user.getTenantId())) {
-                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "执行人不存在");
-            }
+            footballSystemUserValidator.assertInTenant(task.getAssigneeId(), tenantId, "执行人不存在");
         }
         if (coveredNodes.size() != nodeMap.size()) {
             throw new ServiceException(OaErrorCodes.DICT_VALUE_INVALID.getCode(), "须为每个 SOP 节点生成任务");
