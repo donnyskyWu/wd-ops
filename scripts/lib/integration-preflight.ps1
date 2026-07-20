@@ -229,7 +229,8 @@ function Get-IntegrationHealthRows {
         @{ Service = "Gateway"; Port = 48080; Url = "http://127.0.0.1:48080/admin-api/system/tenant/simple-list"; Critical = $true },
         @{ Service = "system-server"; Port = 48081; Url = "http://127.0.0.1:48081/actuator/health"; Critical = $true },
         @{ Service = "mp-server"; Port = 48086; Url = "http://127.0.0.1:48086/actuator/health"; Critical = $true },
-        @{ Service = "member-mock"; Port = 48087; Url = "http://127.0.0.1:48087/actuator/health" },
+        @{ Service = "member-server"; Port = 48087; Url = "http://127.0.0.1:48087/actuator/health" },
+        @{ Service = "match-server"; Port = 48088; Url = "http://127.0.0.1:48088/actuator/health" },
         @{ Service = "oa-server"; Port = 48094; Url = "http://127.0.0.1:48094/actuator/health"; Critical = $true },
         @{ Service = "football-front"; Port = 5777; Url = "http://127.0.0.1:5777/" }
     )
@@ -273,8 +274,11 @@ function Show-IntegrationTroubleshooting {
     Write-Host "   Fix: run start-ops-dev.ps1 (auto-sets Redis password 123456)"
     Write-Host "2. system-server :48081 DOWN -> cannot login"
     Write-Host "   Log: $LogDir\system-server-integration.log"
-    Write-Host "3. MySQL localhost:3306 five DBs missing -> oa API 500"
-    Write-Host "4. -SkipBuild without jars -> run with -FirstRun"
+    Write-Host "3. member-server :48087 DOWN or Python mock -> Football 方案列表 500 (article/page 404)"
+    Write-Host "   Log: $LogDir\member-server-integration.log"
+    Write-Host "   Fix: run start-ops-dev.ps1 (default FullMemberServer); avoid -UseMemberMock"
+    Write-Host "4. MySQL localhost:3306 five DBs missing -> oa API 500"
+    Write-Host "5. -SkipBuild without jars -> run with -FirstRun"
     Write-Host ""
     Write-Host "Logs: $LogDir"
     Write-Host "Stop: .\scripts\stop-integration-all.ps1"

@@ -53,7 +53,12 @@ COLOR_REWRITES: list[tuple[str, str]] = [
 
 
 def _rewrite_legacy_at_imports(content: str) -> str:
-    """Rewrite ops-platform @/… imports to football-front #/…/ops/ paths (single + double quotes)."""
+    """Rewrite ops-platform @/… imports to football-front #/…/ops/ paths (single + double quotes).
+
+    Required because ops-platform-ui-vue resolves @/ while football-front Vite only
+    resolves #/ with ops-prefixed subpaths. Any copy/sync from upstream must run this
+    (see also scripts/sync-ops-layout-components.py).
+    """
     content = re.sub(
         r"import router from ['\"]@/router['\"]",
         "import { router } from '#/router'",

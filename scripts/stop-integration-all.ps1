@@ -14,7 +14,7 @@ param(
 )
 
 $ErrorActionPreference = "Continue"
-$Ports = @(5777, 48094, 48087, 48081, 48086, 48080)
+$Ports = @(5777, 48094, 48088, 48087, 48081, 48086, 48080)
 if ($StopRedis) { $Ports += 6379 }
 
 function Stop-ListenersOnPort {

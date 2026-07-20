@@ -20,6 +20,7 @@ public class MemberArticleWriteService {
     @DS("member")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void insert(AuthorArticleDO article) {
+        AuthorArticleJsonHelper.normalizeJsonFieldsForInsert(article);
         authorArticleMapper.insert(article);
     }
 
@@ -32,6 +33,7 @@ public class MemberArticleWriteService {
     @DS("member")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void updateById(AuthorArticleDO article) {
+        AuthorArticleJsonHelper.normalizeJsonFields(article);
         authorArticleMapper.updateById(article);
     }
 }

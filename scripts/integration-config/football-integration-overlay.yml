@@ -30,6 +30,8 @@ spring:
             url: http://127.0.0.1:48082
           mp-server:
             url: http://127.0.0.1:48086
+          match-server:
+            url: http://127.0.0.1:48088
   datasource:
     dynamic:
       datasource:

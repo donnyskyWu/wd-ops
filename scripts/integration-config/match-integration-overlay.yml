@@ -1,0 +1,44 @@
+# match-server overlay for local integration (port 48088).
+# Requires shenyu-match schema on localhost:3306 (optional; use mock-match-server.py if DB missing).
+spring:
+  autoconfigure:
+    exclude:
+      - org.apache.rocketmq.spring.autoconfigure.RocketMQAutoConfiguration
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+      discovery:
+        enabled: true
+        register-enabled: true
+        namespace: local
+        group: DEFAULT_GROUP
+        fail-fast: false
+        failure-tolerance-enabled: true
+      config:
+        enabled: false
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://localhost:3306/shenyu-match?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: root
+          password: root
+        slave:
+          url: jdbc:mysql://localhost:3306/shenyu-match?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: root
+          password: root
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      password: 123456
+
+rocketmq:
+  name-server: 127.0.0.1:9876
+
+football:
+  captcha:
+    enable: false
+  security:
+    mock-enable: true

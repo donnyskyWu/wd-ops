@@ -1,7 +1,7 @@
 # start-integration-all.ps1 - 一键启动 Football x Ops 本地集成全栈 (Gate 路径)
 #
 # SSOT matrix: docs/delivery/OPS-STARTUP-MATRIX.md (Path 2 — NOT standalone :3000/:8080).
-# oa-server: dev-local-multidb -> localhost:3306 五库; member mock :48087 (Hybrid C).
+# oa-server: dev-local-multidb -> localhost:3306 五库; member-server :48087 (DEFAULT).
 # Gate: E2E 58/58 + post-mdb-local-smoke 4/4; auth = Football login (NOT dev-token).
 #
 # 推荐一键启动（含 Redis/MySQL 预检）: .\scripts\start-ops-dev.ps1
@@ -11,13 +11,15 @@
 #   .\scripts\start-integration-all.ps1 -Restart
 #   .\scripts\start-integration-all.ps1 -SkipNacos -SkipFrontend
 #   .\scripts\start-integration-all.ps1 -SkipOa -SkipBuild
-#   .\scripts\start-integration-all.ps1 -FullMemberServer   # optional real member jar on :48087 (see §20)
+#   .\scripts\start-integration-all.ps1 -UseMemberMock      # Python mock :48087 (login only)
+#   .\scripts\start-integration-all.ps1 -FullMemberServer   # explicit (default since 2026-07-20)
 #   .\scripts\start-integration-all.ps1 -UseMemberServer    # alias of -FullMemberServer
 #
-# member mock vs real (INTEGRATION-PROGRESS §20 / §23 #4):
-#   Default: Python mock-member-author-server.py on :48087 — login Feign stub only.
-#   Ops author data: oa-server @DS("member") reads localhost:3306/shenyu-member directly.
-#   -FullMemberServer: member jar on :48087 (same Feign URL); may fail without RocketMQ infra.
+# member-server vs mock (INTEGRATION-PROGRESS §20 / §23 #4):
+#   DEFAULT: football-module-member-server JAR on :48087 (+ integration-member-stub RocketMQ bean).
+#   Required for Football 方案列表: GET /admin-api/member/article/page (Gateway -> :48087).
+#   -UseMemberMock: Python mock-member-author-server.py — login Feign stub only; article/* -> 404.
+#   Ops author CRUD: oa-server @DS("member") reads localhost:3306/shenyu-member directly.
 #
 # 停止: .\scripts\stop-integration-all.ps1
 #
@@ -31,6 +33,7 @@ param(
     [switch]$SkipFrontend,
     [switch]$SkipOa,
     [switch]$SkipBuild,
+    [switch]$UseMemberMock,
     [switch]$FullMemberServer,
     [switch]$UseMemberServer,
     [string]$FootballProfiles = "local,local-nacos",
@@ -47,8 +50,10 @@ $preflight = Join-Path $PSScriptRoot "lib\integration-preflight.ps1"
 if (Test-Path $preflight) { . $preflight }
 
 if ($UseMemberServer) { $FullMemberServer = $true }
+$WantFullMemberServer = -not $UseMemberMock
+if ($FullMemberServer) { $WantFullMemberServer = $true }
 
-$IntegrationPorts = @(8848, 6379, 48080, 48081, 48086, 48087, 48094, 5777)
+$IntegrationPorts = @(8848, 6379, 48080, 48081, 48086, 48087, 48088, 48094, 5777)
 
 function Test-CommandExists {
     param([string]$Name)
@@ -214,7 +219,8 @@ if ($OaProfiles -match "dev-local-multidb") {
         "apply-system-role-menu-user-type.py",
         "apply-system-user-author-table.py",
         "apply-system-user-data-table.py",
-        "apply-member-author-user-columns.py"
+        "apply-member-author-user-columns.py",
+        "apply-author-article-json-fields.py"
     )
     foreach ($patchScript in $schemaPatches) {
         $applyPatch = Join-Path $Root "scripts\integration-config\$patchScript"
@@ -251,12 +257,14 @@ $GatewayOverlay = Join-Path $Root "scripts\integration-config\gateway-integratio
 $MpJar = Join-Path $Root "football-backend-saas\football-module-mp\football-module-mp-server\target\football-module-mp-server.jar"
 $SystemJar = Join-Path $Root "football-backend-saas\football-module-system\football-module-system-server\target\football-module-system-server.jar"
 $MemberJar = Join-Path $Root "football-backend-saas\football-module-member\football-module-member-server\target\football-module-member-server.jar"
+$MatchJar = Join-Path $Root "football-backend-saas\football-module-match\football-module-match-server\target\football-module-match-server.jar"
+$MatchOverlay = Join-Path $Root "scripts\integration-config\match-integration-overlay.yml"
 
 if (-not $SkipBuild) {
     Write-Host "[build] football gateway + mp + system (+ member if full) ..."
     Push-Location (Join-Path $Root "football-backend-saas")
     $modules = "football-gateway,football-module-mp/football-module-mp-server,football-module-system/football-module-system-server"
-    if ($FullMemberServer) { $modules += ",football-module-member/football-module-member-server" }
+    if ($WantFullMemberServer) { $modules += ",football-module-member/football-module-member-server" }
     mvn -pl $modules -am package -DskipTests
     $buildOk = $LASTEXITCODE -eq 0
     Pop-Location
@@ -271,10 +279,21 @@ Start-IntegrationJar -Title "mp-server" -Port 48086 -Jar $MpJar -LogFile (Join-P
     -ActiveProfiles $FootballProfiles -ExtraConfig $Overlay
 Start-Sleep -Seconds 8
 
-if ($FullMemberServer) {
+if ($WantFullMemberServer) {
+    $StubJar = Join-Path $Root "scripts\integration-config\integration-member-stub\target\integration-member-stub.jar"
+    if (-not (Test-Path $StubJar)) {
+        Write-Host "[build] integration-member-stub (RocketMQTemplate for local member-server) ..."
+        Push-Location (Join-Path $Root "scripts\integration-config\integration-member-stub")
+        mvn -q package -DskipTests
+        Pop-Location
+        if (-not (Test-Path $StubJar)) {
+            Write-Error "integration-member-stub.jar not found; member-server cannot start without RocketMQ bean stub"
+            exit 1
+        }
+    }
     $memberCfg = if (Test-Path $MemberOverlay) { "$Overlay,$MemberOverlay" } else { $Overlay }
     Start-IntegrationJar -Title "member-server" -Port 48087 -Jar $MemberJar -LogFile (Join-Path $LogDir "member-server-integration.log") `
-        -ActiveProfiles $FootballProfiles -ExtraConfig $memberCfg
+        -ActiveProfiles $FootballProfiles -ExtraConfig $memberCfg -ExtraArgs "-Dloader.path=$StubJar"
 } else {
     if (-not (Test-PortListen -Port 48087)) {
         $mockPy = Join-Path $Root "scripts\integration-config\mock-member-author-server.py"
@@ -291,6 +310,28 @@ if ($FullMemberServer) {
     }
 }
 Start-Sleep -Seconds 5
+
+# match-server :48088 — scheme edit needs GET /admin-api/match/lottery-schedule/getCzIssue
+if (Test-PortListen -Port 48088) {
+    Write-Host "[ok] Port 48088 in use - assuming match-server is running"
+} elseif (Test-Path $MatchJar) {
+    $matchCfg = if (Test-Path $MatchOverlay) { "$Overlay,$MatchOverlay" } else { $Overlay }
+    Start-IntegrationJar -Title "match-server" -Port 48088 -Jar $MatchJar -LogFile (Join-Path $LogDir "match-server-integration.log") `
+        -ActiveProfiles $FootballProfiles -ExtraConfig $matchCfg
+} else {
+    $mockMatchPy = Join-Path $Root "scripts\integration-config\mock-match-server.py"
+    if (Test-Path $mockMatchPy) {
+        $py = if (Test-CommandExists "python") { "python" } elseif (Test-CommandExists "py") { "py" } else { $null }
+        if ($py) {
+            Write-Host "[start] match-mock :48088 (getCzIssue stub; build match-server JAR for full match APIs)"
+            Start-DevWindow -Title "match-mock :48088" -WorkingDirectory (Split-Path $mockMatchPy) `
+                -Command "& '$py' '$mockMatchPy'" -LogFile (Join-Path $LogDir "match-mock.log")
+        } else {
+            Write-Warning "match-server JAR missing and Python unavailable; scheme edit getCzIssue will 404 until :48088 is up"
+        }
+    }
+}
+Start-Sleep -Seconds 3
 
 Start-IntegrationJar -Title "system-server" -Port 48081 -Jar $SystemJar -LogFile (Join-Path $LogDir "system-server-integration.log") `
     -ActiveProfiles $FootballProfiles -ExtraConfig $Overlay
@@ -347,7 +388,8 @@ $rows = @(
     @{ Service = "Gateway"; Port = 48080; Url = "http://127.0.0.1:48080/admin-api/system/tenant/simple-list" },
     @{ Service = "system-server"; Port = 48081; Url = "http://127.0.0.1:48081/actuator/health" },
     @{ Service = "mp-server"; Port = 48086; Url = "http://127.0.0.1:48086/actuator/health" },
-    @{ Service = "member (mock/full)"; Port = 48087; Url = "http://127.0.0.1:48087/actuator/health" },
+    @{ Service = "member-server"; Port = 48087; Url = "http://127.0.0.1:48087/actuator/health" },
+    @{ Service = "match-server"; Port = 48088; Url = "http://127.0.0.1:48088/actuator/health" },
     @{ Service = "oa-server"; Port = 48094; Url = "http://127.0.0.1:48094/actuator/health" },
     @{ Service = "football-front"; Port = 5777; Url = "http://127.0.0.1:5777/" }
 )

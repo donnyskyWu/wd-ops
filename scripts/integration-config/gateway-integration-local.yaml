@@ -37,6 +37,11 @@ spring:
               predicates:
                 - Path=/admin-api/member/**
               order: -100
+            - id: match-admin-api-direct
+              uri: http://127.0.0.1:48088
+              predicates:
+                - Path=/admin-api/match/**
+              order: -100
     discovery:
       client:
         simple:
@@ -49,6 +54,8 @@ spring:
               - uri: http://127.0.0.1:48086
             member-server:
               - uri: http://127.0.0.1:48087
+            match-server:
+              - uri: http://127.0.0.1:48088
   data:
     redis:
       host: 127.0.0.1

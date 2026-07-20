@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.content.ProductionContentExtDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.football.AuthorArticleDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.content.ProductionContentExtMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.content.ProductionContentMapper;
+import cn.iocoder.yudao.module.oa.service.football.AuthorArticleJsonHelper;
 import cn.iocoder.yudao.module.oa.service.football.MemberArticleWriteService;
 import cn.iocoder.yudao.module.oa.util.LayoutJsonHelper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -35,7 +36,8 @@ public class FootballArticleBridgeServiceImpl implements FootballArticleBridgeSe
     private static final int STATUS_ON = 1;
     private static final int TITLE_MAX_LEN = 35;
     private static final BigDecimal DEFAULT_PRICE = new BigDecimal("88.00");
-    private static final String DEFAULT_PRIVILEGE_TYPES = "2";
+    /** member-server ArticleDO.privilegeTypes 为 Jackson List&lt;Integer&gt;，须存 JSON 数组如 [2]（ADR-054 addendum） */
+    private static final String DEFAULT_PRIVILEGE_TYPES = AuthorArticleJsonHelper.DEFAULT_PRIVILEGE_TYPES_JSON;
     private static final int DEFAULT_REFUND_TYPE = 0;
     private static final int DEFAULT_SORT_NUM = 0;
     private static final Integer DEFAULT_MATCH_TYPE = 1;
@@ -149,7 +151,10 @@ public class FootballArticleBridgeServiceImpl implements FootballArticleBridgeSe
         patch.setId(ext.getAuthorArticleId());
         patch.setTitle(sanitizeTitle(content.getTitle()));
         patch.setContent(sanitizeBody(resolvePaidBody(content)));
-        patch.setFreeContent(sanitizeOptionalBody(content.getFreeBody()));
+        // ADR-054 §6.3：OPS free_body 为 null 表示未改免费栏，不覆盖 author_article.free_content
+        if (content.getFreeBody() != null) {
+            patch.setFreeContent(sanitizeOptionalBody(content.getFreeBody()));
+        }
         patch.setUpdater(TenantContextHolder.getUsername());
         patch.setUpdateTime(LocalDateTime.now());
         memberArticleWriteService.updateById(patch);
@@ -172,6 +177,7 @@ public class FootballArticleBridgeServiceImpl implements FootballArticleBridgeSe
         article.setSortNum(DEFAULT_SORT_NUM);
         article.setMatchType(DEFAULT_MATCH_TYPE);
         article.setMatchScheme(null);
+        AuthorArticleJsonHelper.normalizeJsonFieldsForInsert(article);
         article.setTenantId(content.getTenantId());
         String username = TenantContextHolder.getUsername();
         LocalDateTime now = LocalDateTime.now();
@@ -304,12 +310,16 @@ public class FootballArticleBridgeServiceImpl implements FootballArticleBridgeSe
         return entity;
     }
 
+    /**
+     * LAYOUT 正文 SSOT 为 layout_html（富文本 HTML）；paid_body 在 OPS 编辑流中常回填为 body 纯文本。
+     * Football sync 须优先 layout_html，否则 author_article.content 丢失格式（ADR-054 §6.2）。
+     */
     static String resolvePaidBody(ProductionContentDO content) {
-        if (StrUtil.isNotBlank(content.getPaidBody())) {
-            return content.getPaidBody();
-        }
         if ("LAYOUT".equals(content.getBodyFormat()) && StrUtil.isNotBlank(content.getLayoutHtml())) {
             return content.getLayoutHtml();
+        }
+        if (StrUtil.isNotBlank(content.getPaidBody())) {
+            return content.getPaidBody();
         }
         return StrUtil.blankToDefault(content.getBody(), "");
     }

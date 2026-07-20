@@ -3,10 +3,16 @@
 # Fixes recurring "system error" in UI: auto-check Redis password, MySQL, Docker,
 # then restart full integration stack with health table.
 #
+# member-server (:48087): DEFAULT = real football-module-member-server JAR (FullMemberServer).
+# Required for Football 方案列表 (GET /admin-api/member/article/page). Python mock on :48087
+# only stubs login Feign and returns HTTP 404 for article/* -> UI "服务器内部错误".
+# Opt out (login smoke only): -UseMemberMock
+#
 # Usage (from repo root):
-#   .\scripts\start-ops-dev.ps1              # daily: restart, skip Maven build
-#   .\scripts\start-ops-dev.ps1 -FirstRun    # first run / big changes: Maven build
+#   .\scripts\start-ops-dev.ps1              # daily: restart, skip Maven build, member JAR
+#   .\scripts\start-ops-dev.ps1 -FirstRun    # first run / big changes: Maven build (+ member)
 #   .\scripts\start-ops-dev.ps1 -NoRestart   # start missing services only
+#   .\scripts\start-ops-dev.ps1 -UseMemberMock  # Python mock :48087 (no 方案列表)
 #
 # Login: http://localhost:5777  admin / admin123  tenant 1
 # Docs:  docs/delivery/OPS-STARTUP-MATRIX.md
@@ -18,6 +24,7 @@ param(
     [switch]$NoRestart,
     [switch]$SkipFrontend,
     [switch]$SkipNacos,
+    [switch]$UseMemberMock,
     [int]$WaitSeconds = 300
 )
 
@@ -79,6 +86,7 @@ if ($FirstRun) {
 }
 if ($SkipFrontend) { $allArgs.SkipFrontend = $true }
 if ($SkipNacos) { $allArgs.SkipNacos = $true }
+if ($UseMemberMock) { $allArgs.UseMemberMock = $true }
 if (-not $NoRestart) { $allArgs.Restart = $true }
 
 $allScript = Join-Path $PSScriptRoot "start-integration-all.ps1"

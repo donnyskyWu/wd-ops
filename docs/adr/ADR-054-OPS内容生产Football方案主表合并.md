@@ -293,6 +293,8 @@ WHERE ext.id IS NULL;
 | `match_scheme` | **NULL** | Out of Scope；amphipoda 可后续手填 |
 | `content` / `free_content` | 来自 OPS `paid_body` / `free_body` | 分列 sync；可同时非空 |
 
+**Addendum 2026-07-20**：`privilege_types` 须写入 JSON 数组 `"[2]"`，不得依赖 DB 列默认标量 `'2'`（member-server `ArticleDO.privilegeTypes` 为 `List<Integer>` + JacksonTypeHandler；标量导致 GET `/member/article/get` 500）。修复：`AuthorArticleJsonHelper` + `V156` + `apply-author-article-json-fields.py`。
+
 ### 8.6 不迁入 OPS 表单（Football 独占）
 
 高级售卖：`visibleType`、`publishType`、`orderDeadline`、`tagIds`、`maxSaleCount` 等——仍由 amphipoda 或 P5 嵌入处理。

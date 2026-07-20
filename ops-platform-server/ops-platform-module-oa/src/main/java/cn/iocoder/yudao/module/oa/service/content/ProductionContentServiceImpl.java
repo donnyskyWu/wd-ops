@@ -927,8 +927,7 @@ public class ProductionContentServiceImpl implements ProductionContentService {
     }
 
     private void syncPaidBodyFromLayout(ProductionContentDO entity) {
-        if (entity.getPaidBody() == null && "LAYOUT".equals(entity.getBodyFormat())
-                && StrUtil.isNotBlank(entity.getLayoutHtml())) {
+        if ("LAYOUT".equals(entity.getBodyFormat()) && StrUtil.isNotBlank(entity.getLayoutHtml())) {
             entity.setPaidBody(entity.getLayoutHtml());
         }
     }
