@@ -263,4 +263,25 @@ public final class OaLogRecordConstants {
     public static final String M2_PLAN_DELETE_SUB_TYPE = "delete";
     public static final String M2_PLAN_DELETE_SUCCESS = "删除了内容计划【{{#plan.planName}}】";
 
+    // ----- M2-content -----
+    public static final String M2_CONTENT_TYPE = "M2-content";
+    public static final String M2_CONTENT_CREATE_SUB_TYPE = "create";
+    public static final String M2_CONTENT_CREATE_SUCCESS = "创建了内容【{{#content.title}}】";
+    public static final String M2_CONTENT_UPDATE_SUB_TYPE = "update";
+    public static final String M2_CONTENT_UPDATE_SUCCESS = "更新了内容【{{#content.title}}】";
+    public static final String M2_CONTENT_SUBMIT_REVIEW_SUB_TYPE = "submit-review";
+    public static final String M2_CONTENT_SUBMIT_REVIEW_SUCCESS = "提交了内容审核【{{#content.title}}】";
+    public static final String M2_CONTENT_DELETE_SUB_TYPE = "delete";
+    public static final String M2_CONTENT_DELETE_SUCCESS = "删除了内容【{{#content.title}}】";
+    public static final String M2_CONTENT_REVIEW_SUB_TYPE = "review";
+    public static final String M2_CONTENT_REVIEW_SUCCESS = "审核了内容【{{#content.title}}】";
+    public static final String M2_CONTENT_CONFIRM_SUB_TYPE = "confirm";
+    public static final String M2_CONTENT_CONFIRM_SUCCESS = "确认了内容【{{#content.title}}】";
+    public static final String M2_CONTENT_GENERATE_SUB_TYPE = "generate";
+    public static final String M2_CONTENT_GENERATE_SUCCESS = "生成了内容【{{#content.title}}】";
+    public static final String M2_CONTENT_TRANSFER_KNOWLEDGE_SUB_TYPE = "transfer-knowledge";
+    public static final String M2_CONTENT_TRANSFER_KNOWLEDGE_SUCCESS = "将内容【{{#content.title}}】转入知识库";
+    public static final String M2_CONTENT_AI_GENERATE_SUB_TYPE = "ai-generate";
+    public static final String M2_CONTENT_AI_GENERATE_SUCCESS = "AI 生成了内容";
+
 }

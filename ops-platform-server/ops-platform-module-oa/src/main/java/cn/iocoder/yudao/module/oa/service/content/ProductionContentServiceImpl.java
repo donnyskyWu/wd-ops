@@ -46,8 +46,9 @@ import cn.iocoder.yudao.module.oa.service.ipgroup.IpGroupAccessSupport;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.dal.mysql.plan.ContentPlanStepMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.service.notification.NotificationService;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.starter.annotation.LogRecord;
 import cn.iocoder.yudao.module.oa.util.LayoutJsonHelper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -67,6 +68,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 
 @Slf4j
 @Service
@@ -178,7 +181,8 @@ public class ProductionContentServiceImpl implements ProductionContentService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-content", action = "create")
+    @LogRecord(type = M2_CONTENT_TYPE, subType = M2_CONTENT_CREATE_SUB_TYPE, bizNo = "{{#content.id}}",
+            success = M2_CONTENT_CREATE_SUCCESS)
     public Long create(ProductionContentCreateReq req) {
         Long tenantId = requireTenantId();
         boolean taskDriven = req.getTaskId() != null;
@@ -224,15 +228,18 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         productionContentMapper.insert(entity);
+        LogRecordContext.putVariable("content", entity);
         footballArticleBridgeService.syncDraftOnCreate(entity);
         return entity.getId();
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-content", action = "update")
+    @LogRecord(type = M2_CONTENT_TYPE, subType = M2_CONTENT_UPDATE_SUB_TYPE, bizNo = "{{#req.id}}",
+            success = M2_CONTENT_UPDATE_SUCCESS)
     public void update(ProductionContentUpdateReq req) {
         ProductionContentDO existing = requireContent(req.getId());
+        LogRecordContext.putVariable("content", existing);
         if (!isEditableStatus(existing)) {
             throw new ServiceException(OaErrorCodes.CONTENT_STATUS_INVALID);
         }
@@ -328,9 +335,11 @@ public class ProductionContentServiceImpl implements ProductionContentService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-content", action = "submit-review")
+    @LogRecord(type = M2_CONTENT_TYPE, subType = M2_CONTENT_SUBMIT_REVIEW_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_CONTENT_SUBMIT_REVIEW_SUCCESS)
     public void submitReview(Long id) {
         ProductionContentDO content = requireContent(id);
+        LogRecordContext.putVariable("content", content);
         if (!isSubmittableStatus(content.getStatus())) {
             throw new ServiceException(OaErrorCodes.CONTENT_STATUS_INVALID);
         }
@@ -358,9 +367,11 @@ public class ProductionContentServiceImpl implements ProductionContentService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-content", action = "delete")
+    @LogRecord(type = M2_CONTENT_TYPE, subType = M2_CONTENT_DELETE_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_CONTENT_DELETE_SUCCESS)
     public void delete(Long id) {
         ProductionContentDO content = requireContent(id);
+        LogRecordContext.putVariable("content", content);
         if (!"DRAFT".equals(content.getStatus()) && !"REJECTED".equals(content.getStatus())) {
             throw new ServiceException(OaErrorCodes.CONTENT_STATUS_INVALID);
         }
@@ -369,9 +380,11 @@ public class ProductionContentServiceImpl implements ProductionContentService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-content", action = "review")
+    @LogRecord(type = M2_CONTENT_TYPE, subType = M2_CONTENT_REVIEW_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_CONTENT_REVIEW_SUCCESS)
     public void review(Long id, ContentReviewReq req) {
         ProductionContentDO content = requireContent(id);
+        LogRecordContext.putVariable("content", content);
         validateReviewStage(content.getStatus(), req.getStage());
         Long reviewerId = TenantContextHolder.getUserId();
         if (reviewerId == null) {
@@ -500,9 +513,11 @@ public class ProductionContentServiceImpl implements ProductionContentService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-content", action = "confirm")
+    @LogRecord(type = M2_CONTENT_TYPE, subType = M2_CONTENT_CONFIRM_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_CONTENT_CONFIRM_SUCCESS)
     public void confirm(Long id) {
         ProductionContentDO content = requireContent(id);
+        LogRecordContext.putVariable("content", content);
         if (!"DRAFT".equals(content.getStatus())) {
             throw new ServiceException(OaErrorCodes.CONTENT_STATUS_INVALID);
         }
@@ -520,9 +535,11 @@ public class ProductionContentServiceImpl implements ProductionContentService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-content", action = "generate")
+    @LogRecord(type = M2_CONTENT_TYPE, subType = M2_CONTENT_GENERATE_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_CONTENT_GENERATE_SUCCESS)
     public ContentGenerateResultVO generate(Long id) {
         ProductionContentDO content = requireContent(id);
+        LogRecordContext.putVariable("content", content);
         if (!"DRAFT".equals(content.getStatus()) && !"REJECTED".equals(content.getStatus())) {
             throw new ServiceException(OaErrorCodes.CONTENT_STATUS_INVALID);
         }
@@ -1198,9 +1215,11 @@ public class ProductionContentServiceImpl implements ProductionContentService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-content", action = "transfer-knowledge")
+    @LogRecord(type = M2_CONTENT_TYPE, subType = M2_CONTENT_TRANSFER_KNOWLEDGE_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_CONTENT_TRANSFER_KNOWLEDGE_SUCCESS)
     public ContentTransferKnowledgeResultVO transferToKnowledge(Long id) {
         ProductionContentDO content = requireContent(id);
+        LogRecordContext.putVariable("content", content);
         if (!isTransferableToKnowledge(content.getStatus())) {
             throw new ServiceException(OaErrorCodes.CONTENT_STATUS_INVALID);
         }
@@ -1237,7 +1256,8 @@ public class ProductionContentServiceImpl implements ProductionContentService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-content", action = "ai-generate")
+    @LogRecord(type = M2_CONTENT_TYPE, subType = M2_CONTENT_AI_GENERATE_SUB_TYPE, bizNo = BIZ_NO_NONE,
+            success = M2_CONTENT_AI_GENERATE_SUCCESS)
     public ContentAiGenerateResultVO aiGenerate(ContentAiGenerateReq req) {
         Long tenantId = requireTenantId();
         AiModelConfigDO model = aiModelConfigMapper.selectById(req.getModelId());
