@@ -318,12 +318,10 @@ test.describe('P0/P1 运行时回归 @smoke', () => {
     await expect(page.locator('.ip-group-page, .el-tree').first()).toBeVisible({ timeout: 8_000 })
   })
 
-  test('P0-DASH-1: 作者看板路由可达', async ({ page }) => {
-    // 通过 dashboard 跳到 author 列表
-    await page.goto('/author')
+  test('P0-DASH-1: 作者看板 deep-link 可达', async ({ page }) => {
+    await page.goto('/author/9101/dashboard')
     await page.waitForLoadState('networkidle')
-    // 作者页是表格
-    await expect(page.locator('.el-table, .el-card').first()).toBeVisible({ timeout: 8_000 })
+    await expect(page.locator('.author-dashboard, .el-card').first()).toBeVisible({ timeout: 8_000 })
   })
 
   test('P0-EC-1: 行业数据页加载', async ({ page }) => {

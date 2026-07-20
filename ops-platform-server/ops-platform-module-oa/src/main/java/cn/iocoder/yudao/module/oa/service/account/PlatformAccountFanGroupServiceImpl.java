@@ -11,7 +11,10 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.PlatformAccountFanGroupDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.PlatformAccountFanGroupMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -47,7 +50,8 @@ public class PlatformAccountFanGroupServiceImpl implements PlatformAccountFanGro
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-fan-group", action = "create")
+    @LogRecord(type = M4_FAN_GROUP_TYPE, subType = M4_FAN_GROUP_CREATE_SUB_TYPE, bizNo = "{{#fanGroup.id}}",
+            success = M4_FAN_GROUP_CREATE_SUCCESS)
     public Long create(FanGroupCreateReq req) {
         Long tenantId = requireTenantId();
         assertFanGroupAccount(req.getAccountId(), tenantId);
@@ -63,14 +67,17 @@ public class PlatformAccountFanGroupServiceImpl implements PlatformAccountFanGro
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         fanGroupMapper.insert(entity);
+        LogRecordContext.putVariable("fanGroup", entity);
         return entity.getId();
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-fan-group", action = "update")
+    @LogRecord(type = M4_FAN_GROUP_TYPE, subType = M4_FAN_GROUP_UPDATE_SUB_TYPE, bizNo = "{{#fanGroup.id}}",
+            success = M4_FAN_GROUP_UPDATE_SUCCESS)
     public void update(FanGroupUpdateReq req) {
         PlatformAccountFanGroupDO existing = getRequiredInTenant(req.getId());
+        LogRecordContext.putVariable("fanGroup", existing);
         assertGroupNameUnique(existing.getTenantId(), existing.getAccountId(), req.getGroupName(), req.getId());
         existing.setGroupName(req.getGroupName().trim());
         existing.setMemberCount(req.getMemberCount());
@@ -81,9 +88,11 @@ public class PlatformAccountFanGroupServiceImpl implements PlatformAccountFanGro
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-fan-group", action = "delete")
+    @LogRecord(type = M4_FAN_GROUP_TYPE, subType = M4_FAN_GROUP_DELETE_SUB_TYPE, bizNo = "{{#fanGroup.id}}",
+            success = M4_FAN_GROUP_DELETE_SUCCESS)
     public void delete(Long id) {
-        getRequiredInTenant(id);
+        PlatformAccountFanGroupDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("fanGroup", existing);
         fanGroupMapper.deleteById(id);
     }
 

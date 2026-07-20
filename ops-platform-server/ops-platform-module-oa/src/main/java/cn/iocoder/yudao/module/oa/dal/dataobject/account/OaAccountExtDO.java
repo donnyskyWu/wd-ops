@@ -38,6 +38,8 @@ public class OaAccountExtDO {
 
     private String cookieEncrypted;
 
+    private String mpTokenEncrypted;
+
     private String trademarkName;
 
     private String qualificationType;

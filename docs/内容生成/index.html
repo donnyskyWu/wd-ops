@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>神鱼体育 - AI 内容生成助手</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #f0f2f5;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ===== 背景：内容编辑页面 ===== */
+  .editor-bg {
+    position: fixed; inset: 0;
+    background: #fff;
+    z-index: 0;
+    filter: blur(0px);
+    transition: filter 0.3s;
+  }
+  .editor-bg.blurred { filter: blur(2px); }
+  .editor-bg .mock-editor {
+    max-width: 900px; margin: 30px auto; padding: 30px;
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+  }
+  .mock-editor .mock-row {
+    display: flex; align-items: center; margin-bottom: 14px;
+    font-size: 13px;
+  }
+  .mock-editor .mock-label { width: 100px; color: #666; flex-shrink: 0; }
+  .mock-editor .mock-value { color: #333; background: #f5f5f5; padding: 6px 12px; border-radius: 4px; flex: 1; }
+  .mock-editor .mock-input { flex: 1; border: 1px solid #d9d9d9; border-radius: 4px; padding: 6px 12px; font-size: 13px; }
+  .mock-editor .mock-toggle { display: inline-flex; align-items: center; gap: 8px; }
+  .mock-editor .mock-toggle .switch {
+    width: 36px; height: 18px; background: #1890ff; border-radius: 9px; position: relative;
+  }
+  .mock-editor .mock-toggle .switch::after {
+    content: ''; position: absolute; top: 2px; left: 20px;
+    width: 14px; height: 14px; background: #fff; border-radius: 50%;
+  }
+  .mock-editor .mock-toolbar {
+    background: #fafafa; border: 1px solid #e8e8e8; border-bottom: none;
+    padding: 8px 12px; display: flex; gap: 12px; font-size: 12px; color: #999; border-radius: 4px 4px 0 0;
+  }
+  .mock-editor .mock-editor-area {
+    border: 1px solid #e8e8e8; height: 200px; padding: 12px; font-size: 13px; color: #ccc;
+    border-radius: 0 0 4px 4px;
+  }
+  .mock-editor .mock-footer { margin-top: 16px; display: flex; gap: 8px; }
+  .mock-editor .mock-btn {
+    padding: 8px 20px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; cursor: pointer;
+    background: #fff; color: #666;
+  }
+  .mock-editor .mock-btn.primary { background: #1890ff; color: #fff; border-color: #1890ff; }
+  .mock-editor .mock-btn.generate { background: #52c41a; color: #fff; border-color: #52c41a; }
+  .mock-editor .mock-btn:hover { opacity: 0.85; }
+  .mock-editor .mock-btn:active { transform: scale(0.97); }
+
+  /* ===== 抽屉遮罩 ===== */
+  .drawer-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .drawer-overlay.visible { opacity: 1; pointer-events: auto; }
+
+  /* ===== 抽屉 ===== */
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: 720px; max-width: 100vw;
+    background: #fff;
+    z-index: 200;
+    transform: translateX(100%);
+    transition: transform 0.35s ease-out;
+    display: flex; flex-direction: column;
+    box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-inner {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  /* 顶部栏 */
+  .drawer-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e8e8e8;
+    flex-shrink: 0;
+  }
+  .drawer-header .title { font-size: 18px; font-weight: 600; color: #333; }
+  .drawer-header .header-right { display: flex; align-items: center; gap: 12px; }
+
+  /* 模型选择器 */
+  .model-select {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border: 1px solid #d9d9d9; border-radius: 6px;
+    font-size: 13px; cursor: pointer; background: #fff;
+    transition: border-color 0.2s;
+    position: relative;
+  }
+  .model-select:hover { border-color: #1890ff; }
+  .model-select .model-icon { font-size: 16px; }
+  .model-select .model-name { font-weight: 500; color: #333; }
+  .model-select .arrow { font-size: 10px; color: #999; }
+  .model-dropdown {
+    position: absolute; top: 100%; right: 0; margin-top: 4px;
+    background: #fff; border: 1px solid #e8e8e8; border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    min-width: 160px; z-index: 300;
+    overflow: hidden;
+  }
+  .model-dropdown .model-option {
+    padding: 10px 16px; font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    transition: background 0.15s;
+  }
+  .model-dropdown .model-option:hover { background: #f0f5ff; }
+  .model-dropdown .model-option.active { background: #e6f7ff; color: #1890ff; font-weight: 500; }
+  .model-dropdown .model-option .icon { font-size: 16px; }
+
+  .icon-btn {
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    border: none; background: transparent; border-radius: 6px; cursor: pointer;
+    font-size: 16px; color: #999; transition: background 0.15s, color 0.15s;
+  }
+  .icon-btn:hover { background: #f5f5f5; color: #333; }
+
+  /* 滚动内容区 */
+  .drawer-body {
+    flex: 1; overflow-y: auto; padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  /* 信息参数区 */
+  .info-section {
+    background: #fafafa; border: 1px solid #e8e8e8; border-radius: 8px; padding: 14px 16px;
+    flex-shrink: 0;
+  }
+  .info-section .section-title { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 10px; }
+  .info-section .info-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .info-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; background: #e6f7ff; border-radius: 4px;
+    font-size: 12px; color: #1890ff;
+  }
+  .info-tag .tag-label { color: #69b1ff; }
+  .info-section .info-row { display: flex; gap: 12px; margin-bottom: 10px; }
+  .info-section .info-row:last-child { margin-bottom: 0; }
+  .info-field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .info-field label { font-size: 12px; color: #666; }
+  .info-field input, .info-field select, .info-field textarea {
+    padding: 6px 10px; border: 1px solid #d9d9d9; border-radius: 4px;
+    font-size: 13px; outline: none; transition: border-color 0.2s;
+    font-family: inherit;
+  }
+  .info-field input:focus, .info-field select:focus, .info-field textarea:focus { border-color: #1890ff; }
+  .info-field input[readonly] { background: #f5f5f5; color: #999; cursor: default; }
+
+  /* 偏好总结面板 */
+  .pref-panel {
+    background: linear-gradient(135deg, #fff7e6 0%, #fffbe6 100%);
+    border: 1px solid #ffe58f; border-radius: 8px;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s;
+    flex-shrink: 0;
+  }
+  .pref-panel.collapsed { max-height: 40px !important; }
+  .pref-panel.hidden { max-height: 0; opacity: 0; border: none; margin: 0; padding: 0; }
+  .pref-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; cursor: pointer;
+    font-size: 13px; font-weight: 500; color: #874d00;
+    user-select: none;
+  }
+  .pref-header:hover { background: rgba(0,0,0,0.03); }
+  .pref-header .pref-title { display: flex; align-items: center; gap: 6px; }
+  .pref-header .pref-actions { display: flex; gap: 4px; }
+  .pref-header .pref-actions button {
+    border: none; background: transparent; cursor: pointer; font-size: 14px; color: #874d00;
+    padding: 2px 6px; border-radius: 4px;
+  }
+  .pref-header .pref-actions button:hover { background: rgba(0,0,0,0.08); }
+  .pref-body {
+    padding: 0 14px 14px;
+    font-size: 13px; color: #614700; line-height: 1.6;
+  }
+  .pref-body textarea {
+    width: 100%; border: 1px solid #ffe58f; border-radius: 4px;
+    padding: 8px 10px; font-size: 13px; resize: vertical;
+    background: rgba(255,255,255,0.7); outline: none;
+    font-family: inherit;
+  }
+  .pref-body textarea:focus { border-color: #faad14; }
+  .pref-progress {
+    height: 2px; background: #faad14; border-radius: 1px;
+    margin: 0 14px 6px;
+    transition: width 0.1s linear;
+  }
+
+  /* 对话区 */
+  .chat-area {
+    flex: 1; min-height: 200px;
+    display: flex; flex-direction: column; gap: 16px;
+    overflow-y: auto;
+  }
+
+  /* 空状态 */
+  .empty-state {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; color: #999; padding: 40px 0;
+  }
+  .empty-state .empty-icon { font-size: 48px; opacity: 0.5; }
+  .empty-state .empty-title { font-size: 16px; color: #666; font-weight: 500; }
+  .empty-state .empty-desc { font-size: 13px; text-align: center; max-width: 300px; line-height: 1.6; }
+  .empty-state .empty-hints { font-size: 12px; color: #bbb; }
+  .empty-state .empty-hints span { display: block; margin: 2px 0; }
+
+  /* 消息气泡 */
+  .message {
+    display: flex; gap: 10px; max-width: 85%;
+    animation: msgIn 0.3s ease-out;
+  }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .message.ai { align-self: flex-start; }
+  .message.user { align-self: flex-end; flex-direction: row-reverse; }
+  .message .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .message.ai .avatar { background: #e6f7ff; }
+  .message.user .avatar { background: #1890ff; color: #fff; }
+  .message .bubble {
+    padding: 12px 16px; border-radius: 12px;
+    font-size: 13px; line-height: 1.7;
+    position: relative;
+  }
+  .message.ai .bubble {
+    background: #f5f5f5; color: #333;
+    border-bottom-left-radius: 4px;
+  }
+  .message.user .bubble {
+    background: #1890ff; color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .message .bubble .sender { font-size: 11px; color: #999; margin-bottom: 6px; font-weight: 500; }
+  .message.user .bubble .sender { color: rgba(255,255,255,0.7); text-align: right; }
+  .message .bubble .content { white-space: pre-wrap; }
+  .message .bubble .content h3 { font-size: 15px; margin: 10px 0 6px; font-weight: 600; }
+  .message .bubble .content h3:first-child { margin-top: 0; }
+  .message .bubble .content p { margin: 4px 0; }
+  .message .bubble .content strong { font-weight: 600; }
+  .message .bubble .content table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12px; }
+  .message .bubble .content table th, .message .bubble .content table td {
+    border: 1px solid #d9d9d9; padding: 6px 10px; text-align: left;
+  }
+  .message .bubble .content table th { background: #fafafa; font-weight: 600; }
+
+  /* 加载动画 */
+  .typing-indicator {
+    display: flex; gap: 4px; padding: 8px 0;
+  }
+  .typing-indicator .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #999;
+    animation: bounce 1.4s infinite;
+  }
+  .typing-indicator .dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  /* 输入区 */
+  .input-section {
+    padding: 12px 20px;
+    border-top: 1px solid #e8e8e8;
+    flex-shrink: 0;
+  }
+  .input-section .round-counter {
+    font-size: 11px; color: #999; margin-bottom: 6px; text-align: right;
+  }
+  .input-section .round-counter.warning { color: #faad14; }
+  .input-row { display: flex; gap: 8px; align-items: flex-end; }
+  .input-row textarea {
+    flex: 1; border: 1px solid #d9d9d9; border-radius: 8px;
+    padding: 10px 14px; font-size: 13px; resize: none;
+    outline: none; font-family: inherit;
+    min-height: 44px; max-height: 120px;
+    transition: border-color 0.2s;
+  }
+  .input-row textarea:focus { border-color: #1890ff; }
+  .input-row textarea:disabled { background: #f5f5f5; cursor: not-allowed; }
+  .send-btn {
+    padding: 10px 20px; background: #1890ff; color: #fff;
+    border: none; border-radius: 8px; font-size: 13px;
+    cursor: pointer; transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .send-btn:hover { background: #096dd9; }
+  .send-btn:active { transform: scale(0.96); }
+  .send-btn:disabled { background: #d9d9d9; cursor: not-allowed; }
+
+  /* 底部操作区 */
+  .footer-actions {
+    display: flex; gap: 10px; padding: 14px 20px;
+    border-top: 1px solid #e8e8e8;
+    flex-shrink: 0;
+    justify-content: flex-end;
+  }
+  .footer-btn {
+    padding: 8px 20px; border-radius: 6px; font-size: 13px;
+    cursor: pointer; transition: all 0.15s; border: 1px solid #d9d9d9;
+    background: #fff; color: #666;
+  }
+  .footer-btn:hover { opacity: 0.85; }
+  .footer-btn:active { transform: scale(0.97); }
+  .footer-btn.adopt {
+    background: #52c41a; color: #fff; border-color: #52c41a;
+  }
+  .footer-btn.adopt:disabled { background: #d9d9d9; border-color: #d9d9d9; cursor: not-allowed; }
+  .footer-btn.regenerate { background: #fff; color: #1890ff; border-color: #1890ff; }
+  .footer-btn.cancel { background: #fff; color: #999; }
+
+  /* 确认弹窗 */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 500; display: none; align-items: center; justify-content: center;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal-box {
+    background: #fff; border-radius: 12px; padding: 24px;
+    max-width: 400px; width: 90%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  }
+  .modal-box .modal-title { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 12px; }
+  .modal-box .modal-desc { font-size: 13px; color: #666; line-height: 1.6; margin-bottom: 20px; }
+  .modal-box .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .modal-box .modal-actions button {
+    padding: 8px 20px; border-radius: 6px; font-size: 13px; cursor: pointer; border: 1px solid #d9d9d9;
+  }
+  .modal-box .modal-actions .btn-cancel { background: #fff; color: #666; }
+  .modal-box .modal-actions .btn-confirm { background: #1890ff; color: #fff; border-color: #1890ff; }
+  .modal-box .modal-actions .btn-danger { background: #ff4d4f; color: #fff; border-color: #ff4d4f; }
+
+  /* 采纳成功提示 */
+  .adopt-toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: #52c41a; color: #fff; padding: 12px 24px; border-radius: 8px;
+    font-size: 14px; z-index: 600;
+    box-shadow: 0 4px 16px rgba(82,196,26,0.3);
+    animation: toastIn 0.3s ease-out;
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  /* 滚动条美化 */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d9d9d9; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #bbb; }
+</style>
+</head>
+<body>
+
+<!-- ===== 背景：内容编辑页面 ===== -->
+<div class="editor-bg" id="editorBg">
+  <div class="mock-editor">
+    <h3 style="margin-bottom:20px;color:#333;font-size:16px;">新增内容</h3>
+    <div class="mock-row"><span class="mock-label">* 所属IP组</span><span class="mock-value">IP小组1</span></div>
+    <div class="mock-row"><span class="mock-label">作者</span><span class="mock-value">—</span></div>
+    <div class="mock-row"><span class="mock-label">* 关联赛事</span><span class="mock-value">澳首超-坎培拉奥林匹克 VS 堪培拉白头鹰 - 2026-07-11 12:30</span></div>
+    <div class="mock-row"><span class="mock-label">* 标题</span><input class="mock-input" placeholder="请输入内容标题"></div>
+    <div class="mock-row"><span class="mock-label">* 内容类型</span><span class="mock-value">文章</span></div>
+    <div class="mock-row"><span class="mock-label">文档类型</span><span class="mock-value">新号引流</span></div>
+    <div class="mock-row"><span class="mock-label">是否 AI 生成</span><div class="mock-toggle"><div class="switch"></div><span style="font-size:13px;color:#1890ff;">是</span></div></div>
+    <div class="mock-row"><span class="mock-label">版式模板</span><button class="mock-btn" style="font-size:12px;">选择并应用模板</button></div>
+    <div style="margin-top:8px;"><span style="font-size:12px;color:#666;">* 正文</span></div>
+    <div class="mock-toolbar">↰ ↱ 清除 删 17px ▸ B I U S A— █ 左 中 右 两端 缩进 行距 段前 段后 字距 · 列表 1. 列表 版块</div>
+    <div class="mock-editor-area" id="editorContent">请输入正文，支持富文本排版</div>
+    <div class="mock-footer">
+      <button class="mock-btn generate" id="generateBtn" onclick="openDrawer()">⚡ 生成</button>
+      <button class="mock-btn primary">保存</button>
+      <button class="mock-btn" style="background:#52c41a;color:#fff;border-color:#52c41a;">提交审核</button>
+      <button class="mock-btn">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 抽屉遮罩 ===== -->
+<div class="drawer-overlay" id="overlay" onclick="closeDrawer()"></div>
+
+<!-- ===== AI 内容生成抽屉 ===== -->
+<div class="drawer" id="drawer">
+  <div class="drawer-inner">
+    <!-- 顶部栏 -->
+    <div class="drawer-header">
+      <span class="title">🤖 AI 内容生成助手</span>
+      <div class="header-right">
+        <div class="model-select" id="modelSelect" onclick="toggleModelDropdown(event)">
+          <span class="model-icon" id="modelIcon">🔵</span>
+          <span class="model-name" id="modelName">Qwen</span>
+          <span class="arrow">▾</span>
+          <div class="model-dropdown" id="modelDropdown" style="display:none;">
+            <div class="model-option active" data-model="qwen" onclick="selectModel(event,'qwen')">
+              <span class="icon">🔵</span> Qwen
+            </div>
+            <div class="model-option" data-model="deepseek" onclick="selectModel(event,'deepseek')">
+              <span class="icon">🟢</span> DeepSeek
+            </div>
+            <div class="model-option" data-model="glm" onclick="selectModel(event,'glm')">
+              <span class="icon">🟣</span> GLM
+            </div>
+            <div class="model-option" data-model="kimi" onclick="selectModel(event,'kimi')">
+              <span class="icon">🟠</span> Kimi
+            </div>
+          </div>
+        </div>
+        <button class="icon-btn" onclick="minimizeDrawer()" title="最小化">—</button>
+        <button class="icon-btn" onclick="closeDrawer()" title="关闭">✕</button>
+      </div>
+    </div>
+
+    <!-- 滚动内容区 -->
+    <div class="drawer-body" id="drawerBody">
+      <!-- 信息参数区 -->
+      <div class="info-section">
+        <div class="section-title"> 信息参数</div>
+        <div class="info-tags">
+          <span class="info-tag"><span class="tag-label">赛事：</span>澳首超-坎培拉奥林匹克 VS 堪培拉白头鹰</span>
+          <span class="info-tag"><span class="tag-label">作者：</span>张三</span>
+          <span class="info-tag"><span class="tag-label">方案：</span>胜平负分析</span>
+        </div>
+        <div class="info-row">
+          <div class="info-field" style="flex:2;">
+            <label>历史战绩</label>
+            <input type="text" id="historyRecord" placeholder="请输入该作者近10场历史战绩，如：7胜2平1负" value="">
+          </div>
+          <div class="info-field" style="flex:1;">
+            <label>主播风格</label>
+            <select id="styleSelect">
+              <option value="comprehensive" selected>综合分析型</option>
+              <option value="aggressive">激进型</option>
+              <option value="conservative">稳健型</option>
+              <option value="data">数据型</option>
+              <option value="emotional">情感型</option>
+            </select>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-field" style="flex:1;">
+            <label>产品定义说明</label>
+            <textarea id="productDesc" rows="3" placeholder="请描述产品的定位、目标用户、核心卖点等，帮助 AI 更好地理解内容方向" style="resize:vertical;min-height:60px;max-height:150px;"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- 偏好总结面板 -->
+      <div class="pref-panel" id="prefPanel">
+        <div class="pref-progress" id="prefProgress" style="width:100%;"></div>
+        <div class="pref-header" onclick="togglePref()">
+          <span class="pref-title">📋 历史对话偏好总结</span>
+          <div class="pref-actions">
+            <button onclick="event.stopPropagation();togglePref();" id="prefToggleBtn" title="展开/收起">展开</button>
+            <button onclick="event.stopPropagation();closePref();" title="关闭">✕</button>
+          </div>
+        </div>
+        <div class="pref-body" id="prefBody">
+          <textarea id="prefText" rows="3">上次用户偏好简洁的分析风格，侧重数据支撑，不太喜欢冗长的背景铺垫，希望直接给出核心推荐和分析。</textarea>
+        </div>
+      </div>
+
+      <!-- 对话区 -->
+      <div class="chat-area" id="chatArea">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">🤖</div>
+          <div class="empty-title">AI 内容生成助手</div>
+          <div class="empty-desc">请输入历史战绩和主播风格，然后在下方输入框描述你想要的方案。</div>
+          <div class="empty-hints">
+            <span> "帮我生成一份胜平负分析方案"</span>
+            <span>💡 "侧重近期状态，风格简洁"</span>
+            <span>💡 "用数据对比的方式展示"</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 输入区 -->
+    <div class="input-section">
+      <div class="round-counter" id="roundCounter">0 / 10 轮</div>
+      <div class="input-row">
+        <textarea id="userInput" rows="1" placeholder="描述你想要的方案风格或具体要求..." onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">发送</button>
+      </div>
+    </div>
+
+    <!-- 底部操作区 -->
+    <div class="footer-actions">
+      <button class="footer-btn adopt" id="adoptBtn" disabled onclick="adoptContent()">✓ 采纳</button>
+      <button class="footer-btn regenerate" id="regenerateBtn" disabled onclick="showRegenerateConfirm()">↻ 重新生成</button>
+      <button class="footer-btn cancel" onclick="closeDrawer()">✕ 取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 确认弹窗 ===== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle">确认操作</div>
+    <div class="modal-desc" id="modalDesc">确定要执行此操作吗？</div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn-confirm" id="modalConfirmBtn" onclick="confirmModal()">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 状态管理 =====
+let state = {
+  drawerOpen: false,
+  messages: [],
+  roundCount: 0,
+  maxRounds: 10,
+  isGenerating: false,
+  currentModel: 'qwen',
+  prefPanelExpanded: false,
+  prefPanelVisible: true,
+  prefTimer: null,
+  prefProgressTimer: null,
+  hasContent: false,
+  latestContent: ''
+};
+
+const modelConfig = {
+  qwen: { icon: '', name: 'Qwen' },
+  deepseek: { icon: '🟢', name: 'DeepSeek' },
+  glm: { icon: '🟣', name: 'GLM' },
+  kimi: { icon: '🟠', name: 'Kimi' }
+};
+
+const aiResponses = [
+  {
+    title: '澳首超 赛事方案',
+    content: `<h3> 澳首超 赛事方案</h3>
+<p><strong>对阵：</strong>坎培拉奥林匹克 VS 堪培拉白头鹰</p>
+<p><strong>时间：</strong>2026-07-11 12:30</p>
+<p><strong>方案类型：</strong>胜平负分析</p>
+
+<h3>核心推荐：胜</h3>
+<table>
+<tr><th>选项</th><th>赔率</th><th>信心指数</th></tr>
+<tr><td>胜</td><td>2.10</td><td>★★★★☆</td></tr>
+<tr><td>平</td><td>3.40</td><td>★★☆☆☆</td></tr>
+<tr><td>负</td><td>3.20</td><td>★★☆☆☆</td></tr>
+</table>
+
+<p><strong>分析要点：</strong></p>
+<p>坎培拉奥林匹克近期状态出色，主场胜率高达 75%。堪培拉白头鹰客场防守存在漏洞，近 5 个客场丢 9 球。</p>
+<p><strong>推荐理由：</strong>主队近 6 场比赛 5 胜 1 平，进攻端火力稳定。客队客场成绩仅为 2 胜 1 平 2 负，防守端场均失 1.8 球。</p>`
+  },
+  {
+    title: '调整后的方案',
+    content: `<h3>🏆 澳首超 赛事方案（调整后）</h3>
+<p><strong>对阵：</strong>坎培拉奥林匹克 VS 堪培拉白头鹰</p>
+
+<h3>核心推荐：让球胜（-0.5）</h3>
+<table>
+<tr><th>选项</th><th>赔率</th><th>信心指数</th><th>数据支撑</th></tr>
+<tr><td>让球胜</td><td>1.95</td><td>★★★★★</td><td>主队主场胜率 75%</td></tr>
+<tr><td>让球平</td><td>3.60</td><td>★☆☆☆☆</td><td>平局概率仅 18%</td></tr>
+<tr><td>让球负</td><td>3.80</td><td>★☆☆☆☆</td><td>客队客场胜率仅 30%</td></tr>
+</table>
+
+<p><strong>激进角度分析：</strong></p>
+<p>从数据对比来看，主队在控球率（62% vs 45%）、射门次数（14.2 vs 8.6）、角球数（6.1 vs 3.8）三项核心指标上均占据明显优势。</p>
+<p>建议重点关注上半场进球数（大 1.5），主队开场压迫式打法明显。</p>`
+  }
+];
+
+// ===== 抽屉控制 =====
+function openDrawer() {
+  state.drawerOpen = true;
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('overlay').classList.add('visible');
+  document.getElementById('editorBg').classList.add('blurred');
+
+  // 启动偏好总结 5 秒倒计时
+  startPrefTimer();
+}
+
+function closeDrawer() {
+  state.drawerOpen = false;
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('overlay').classList.remove('visible');
+  document.getElementById('editorBg').classList.remove('blurred');
+  clearTimeout(state.prefTimer);
+  clearInterval(state.prefProgressTimer);
+}
+
+function minimizeDrawer() {
+  // 简化：直接关闭
+  closeDrawer();
+}
+
+// ===== 模型选择 =====
+function toggleModelDropdown(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('modelDropdown');
+  dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+}
+
+function selectModel(e, model) {
+  e.stopPropagation();
+  if (model === state.currentModel) {
+    document.getElementById('modelDropdown').style.display = 'none';
+    return;
+  }
+  document.getElementById('modelDropdown').style.display = 'none';
+
+  // 显示确认弹窗
+  showModal(
+    '切换模型确认',
+    `切换到 ${modelConfig[model].name} 将清空当前对话记录，是否继续？`,
+    () => {
+      state.currentModel = model;
+      document.getElementById('modelIcon').textContent = modelConfig[model].icon;
+      document.getElementById('modelName').textContent = modelConfig[model].name;
+      // 更新选中状态
+      document.querySelectorAll('.model-option').forEach(el => {
+        el.classList.toggle('active', el.dataset.model === model);
+      });
+      // 清空对话
+      clearChat();
+    },
+    true
+  );
+}
+
+// 点击外部关闭下拉
+document.addEventListener('click', () => {
+  document.getElementById('modelDropdown').style.display = 'none';
+});
+
+// ===== 偏好总结 =====
+function startPrefTimer() {
+  const panel = document.getElementById('prefPanel');
+  const progress = document.getElementById('prefProgress');
+  panel.classList.remove('hidden', 'collapsed');
+
+  let elapsed = 0;
+  const total = 5000;
+  const step = 50;
+
+  clearInterval(state.prefProgressTimer);
+  state.prefProgressTimer = setInterval(() => {
+    elapsed += step;
+    const pct = 100 - (elapsed / total * 100);
+    progress.style.width = pct + '%';
+    if (elapsed >= total) {
+      clearInterval(state.prefProgressTimer);
+      collapsePref();
+    }
+  }, step);
+
+  state.prefTimer = setTimeout(() => {
+    collapsePref();
+  }, total);
+}
+
+function togglePref() {
+  const panel = document.getElementById('prefPanel');
+  const body = document.getElementById('prefBody');
+  const btn = document.getElementById('prefToggleBtn');
+  const progress = document.getElementById('prefProgress');
+
+  if (panel.classList.contains('collapsed')) {
+    panel.classList.remove('collapsed');
+    btn.textContent = '收起';
+    clearTimeout(state.prefTimer);
+    progress.style.width = '100%';
+  } else {
+    collapsePref();
+  }
+}
+
+function collapsePref() {
+  const panel = document.getElementById('prefPanel');
+  const btn = document.getElementById('prefToggleBtn');
+  const progress = document.getElementById('prefProgress');
+  panel.classList.add('collapsed');
+  btn.textContent = '展开';
+  clearInterval(state.prefProgressTimer);
+  progress.style.width = '100%';
+}
+
+function closePref() {
+  const panel = document.getElementById('prefPanel');
+  panel.classList.add('hidden');
+  clearTimeout(state.prefTimer);
+  clearInterval(state.prefProgressTimer);
+  state.prefPanelVisible = false;
+}
+
+// ===== 聊天 =====
+function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text || state.isGenerating) return;
+  if (state.roundCount >= state.maxRounds) return;
+
+  // 隐藏空状态
+  document.getElementById('emptyState').style.display = 'none';
+
+  // 添加用户消息
+  addMessage('user', text);
+  input.value = '';
+  input.style.height = 'auto';
+  state.roundCount++;
+  updateRoundCounter();
+
+  // AI 生成
+  startGenerating();
+}
+
+function addMessage(type, content) {
+  const chatArea = document.getElementById('chatArea');
+  const msg = document.createElement('div');
+  msg.className = `message ${type}`;
+
+  const avatar = type === 'ai' ? '🤖' : '';
+  const sender = type === 'ai' ? 'AI 助手' : '用户（你）';
+
+  msg.innerHTML = `
+    <div class="avatar">${avatar}</div>
+    <div class="bubble">
+      <div class="sender">${sender}</div>
+      <div class="content">${type === 'ai' ? content : escapeHtml(content)}</div>
+    </div>
+  `;
+  chatArea.appendChild(msg);
+  chatArea.scrollTop = chatArea.scrollHeight;
+  state.messages.push({ type, content });
+}
+
+function addTypingIndicator() {
+  const chatArea = document.getElementById('chatArea');
+  const msg = document.createElement('div');
+  msg.className = 'message ai';
+  msg.id = 'typingMsg';
+  msg.innerHTML = `
+    <div class="avatar">🤖</div>
+    <div class="bubble">
+      <div class="sender">AI 助手 · 生成中...</div>
+      <div class="typing-indicator">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  `;
+  chatArea.appendChild(msg);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  const el = document.getElementById('typingMsg');
+  if (el) el.remove();
+}
+
+function startGenerating() {
+  state.isGenerating = true;
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('userInput').disabled = true;
+  document.getElementById('userInput').placeholder = 'AI 正在生成中...';
+  addTypingIndicator();
+
+  // 模拟 AI 生成（2 秒）
+  setTimeout(() => {
+    removeTypingIndicator();
+    const resp = state.roundCount === 1 ? aiResponses[0] : aiResponses[1];
+    addMessage('ai', resp.content);
+    state.latestContent = resp.content;
+    state.hasContent = true;
+
+    state.isGenerating = false;
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('userInput').disabled = false;
+    document.getElementById('userInput').placeholder = '描述你想要的方案风格或具体要求...';
+    document.getElementById('adoptBtn').disabled = false;
+    document.getElementById('regenerateBtn').disabled = false;
+
+    if (state.roundCount >= state.maxRounds) {
+      document.getElementById('userInput').disabled = true;
+      document.getElementById('sendBtn').disabled = true;
+      document.getElementById('userInput').placeholder = '已达 10 轮对话上限，请采纳当前方案或重新生成';
+    }
+  }, 2000);
+}
+
+function clearChat() {
+  const chatArea = document.getElementById('chatArea');
+  chatArea.innerHTML = '';
+  state.messages = [];
+  state.roundCount = 0;
+  state.hasContent = false;
+  state.latestContent = '';
+  updateRoundCounter();
+  document.getElementById('adoptBtn').disabled = true;
+  document.getElementById('regenerateBtn').disabled = true;
+
+  // 重新显示空状态
+  const emptyState = document.createElement('div');
+  emptyState.className = 'empty-state';
+  emptyState.id = 'emptyState';
+  emptyState.innerHTML = `
+    <div class="empty-icon"></div>
+    <div class="empty-title">AI 内容生成助手</div>
+    <div class="empty-desc">请输入历史战绩和主播风格，然后在下方输入框描述你想要的方案。</div>
+    <div class="empty-hints">
+      <span>💡 "帮我生成一份胜平负分析方案"</span>
+      <span>💡 "侧重近期状态，风格简洁"</span>
+      <span>💡 "用数据对比的方式展示"</span>
+    </div>
+  `;
+  chatArea.appendChild(emptyState);
+}
+
+function updateRoundCounter() {
+  const el = document.getElementById('roundCounter');
+  el.textContent = `${state.roundCount} / ${state.maxRounds} 轮`;
+  el.className = state.roundCount >= 9 ? 'round-counter warning' : 'round-counter';
+}
+
+// ===== 底部操作 =====
+function adoptContent() {
+  if (!state.hasContent) return;
+  showModal(
+    '确认采纳',
+    '将覆盖当前正文内容，是否继续？',
+    () => {
+      // 回填内容到编辑器
+      const editorContent = document.getElementById('editorContent');
+      editorContent.innerHTML = state.latestContent.replace(/<h3>/g, '<strong>').replace(/<\/h3>/g, '</strong><br>').replace(/<p>/g, '').replace(/<\/p>/g, '<br>').replace(/<table>.*?<\/table>/gs, '[表格内容]').replace(/<tr>.*?<\/tr>/gs, '').replace(/<th>/g, '').replace(/<\/th>/g, ' | ').replace(/<td>/g, '').replace(/<\/td>/g, ' | ').replace(/<br>/g, '');
+      editorContent.style.color = '#333';
+      editorContent.style.fontSize = '13px';
+
+      closeDrawer();
+      showToast('✓ 方案内容已采纳并回填到编辑器');
+    },
+    false
+  );
+}
+
+function showRegenerateConfirm() {
+  showModal(
+    '确认重新生成',
+    '将清空当前所有对话记录，重新开始生成。信息参数区的内容将保留。',
+    () => {
+      clearChat();
+    },
+    true
+  );
+}
+
+// ===== 弹窗 =====
+let modalCallback = null;
+
+function showModal(title, desc, callback, isDanger) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalDesc').textContent = desc;
+  const btn = document.getElementById('modalConfirmBtn');
+  btn.className = isDanger ? 'btn-danger' : 'btn-confirm';
+  btn.textContent = '确定';
+  modalCallback = callback;
+  document.getElementById('modalOverlay').classList.add('visible');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('visible');
+  modalCallback = null;
+}
+
+function confirmModal() {
+  if (modalCallback) modalCallback();
+  closeModal();
+}
+
+// ===== Toast =====
+function showToast(msg) {
+  const toast = document.createElement('div');
+  toast.className = 'adopt-toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
+
+// ===== 工具函数 =====
+function escapeHtml(text) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function handleKeyDown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+</script>
+</body>
+</html>

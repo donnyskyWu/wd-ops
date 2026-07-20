@@ -99,17 +99,17 @@ class M10ApiCollectorExecDouyinListIT extends OaITBase {
     }
 
     @Test
-    @DisplayName("M10 P2: adapter 同步 stub follower-list 落库")
+    @DisplayName("M10 P2: adapter 兼容 DOUYIN_FOLLOWER_LIST 转调粉丝总数")
     void adapterSyncDouyinFollowerListStub() {
         unifiedCollectorAdapter.bindAccount(DOUYIN_ACCOUNT_ID);
 
         int count = unifiedCollectorAdapter.executeDouyinFollowerListCollect(DOUYIN_ACCOUNT_ID);
-        assertEquals(2, count);
+        assertEquals(1, count);
 
         Long stored = douyinFollowerMapper.selectCount(new LambdaQueryWrapper<DouyinFollowerDO>()
                 .eq(DouyinFollowerDO::getTenantId, TENANT_1)
                 .eq(DouyinFollowerDO::getAccountId, DOUYIN_ACCOUNT_ID));
-        assertEquals(2L, stored);
+        assertEquals(0L, stored);
     }
 
     @Test
@@ -163,14 +163,14 @@ class M10ApiCollectorExecDouyinListIT extends OaITBase {
     }
 
     @Test
-    @DisplayName("M10 P2: CollectExecutionService 路由 DOUYIN_FOLLOWER_LIST")
+    @DisplayName("M10 P2: CollectExecutionService 路由 DOUYIN_FOLLOWER_LIST 至粉丝总数")
     void executionServiceRoutesDouyinFollowerList() {
         unifiedCollectorAdapter.bindAccount(DOUYIN_ACCOUNT_ID);
 
         CollectTaskDO task = douyinTask("DOUYIN_FOLLOWER_LIST");
         CollectExecutionResult result = collectExecutionService.execute(task);
         assertTrue(result.isSuccess());
-        assertEquals(2, result.getRecordCount());
+        assertEquals(1, result.getRecordCount());
     }
 
     @Test

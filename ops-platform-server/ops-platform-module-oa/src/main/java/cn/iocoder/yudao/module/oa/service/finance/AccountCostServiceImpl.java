@@ -12,6 +12,9 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.finance.AccountCostDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.finance.AccountCostMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.account.WechatOfficialAccountResolver;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport.AccountScopeMode;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +37,8 @@ public class AccountCostServiceImpl implements AccountCostService {
 
     private final AccountCostMapper accountCostMapper;
     private final AccountMapper accountMapper;
+    private final WechatOfficialAccountResolver wechatOfficialAccountResolver;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public PageResult<AccountCostVO> list(Long accountId, String costType, LocalDate startDate, LocalDate endDate,
@@ -46,6 +51,7 @@ public class AccountCostServiceImpl implements AccountCostService {
                 .ge(startDate != null, AccountCostDO::getPayDate, startDate)
                 .le(endDate != null, AccountCostDO::getPayDate, endDate)
                 .orderByDesc(AccountCostDO::getPayDate);
+        opsDataScopeSupport.applyAccountIdIn(wrapper, AccountCostDO::getAccountId, AccountScopeMode.MEMBER_GROUPS);
         Page<AccountCostDO> page = accountCostMapper.selectPage(
                 new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize), wrapper);
         Map<Long, String> accountNames = loadAccountNames(
@@ -119,14 +125,7 @@ public class AccountCostServiceImpl implements AccountCostService {
     }
 
     private AccountDO requireAccount(Long accountId) {
-        AccountDO account = accountMapper.selectById(accountId);
-        if (account == null) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
-        }
-        if (!Objects.equals(account.getTenantId(), requireTenantId())) {
-            throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
-        }
-        return account;
+        return wechatOfficialAccountResolver.requireTenantAccount(accountId, requireTenantId());
     }
 
     private void assertAmount(BigDecimal amount) {
@@ -139,8 +138,17 @@ public class AccountCostServiceImpl implements AccountCostService {
         if (accountIds == null || accountIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        return accountMapper.selectBatchIds(accountIds).stream()
+        Long tenantId = requireTenantId();
+        Map<Long, String> names = accountMapper.selectBatchIds(accountIds).stream()
                 .collect(Collectors.toMap(AccountDO::getId, AccountDO::getAccountName, (a, b) -> a));
+        for (Long accountId : accountIds) {
+            if (names.containsKey(accountId)) {
+                continue;
+            }
+            wechatOfficialAccountResolver.resolveReadableAccount(accountId, tenantId)
+                    .ifPresent(account -> names.put(accountId, account.getAccountName()));
+        }
+        return names;
     }
 
     private AccountCostVO toVO(AccountCostDO row, String accountName) {

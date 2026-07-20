@@ -59,6 +59,18 @@ public interface FootballOAuth2TokenMapper {
     List<FootballSystemRoleDO> selectRolesByUserId(@Param("userId") Long userId);
 
     @Select("""
+            SELECT DISTINCT u.id
+            FROM system_users u
+            INNER JOIN system_user_role ur ON ur.user_id = u.id AND ur.deleted = 0
+            INNER JOIN system_role r ON r.id = ur.role_id AND r.deleted = 0 AND r.status = 0
+            WHERE r.code = #{roleCode}
+              AND u.tenant_id = #{tenantId}
+              AND u.deleted = 0
+              AND u.status = 0
+            """)
+    List<Long> selectUserIdsByRoleCode(@Param("tenantId") Long tenantId, @Param("roleCode") String roleCode);
+
+    @Select("""
             SELECT DISTINCT m.permission
             FROM system_menu m
             INNER JOIN system_role_menu rm ON rm.menu_id = m.id AND rm.deleted = 0

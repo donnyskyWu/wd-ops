@@ -167,7 +167,10 @@ public class CollectExecutionService {
     }
 
     private CollectExecutionResult executeWechatMpApiForDataType(CollectTaskDO task, String dataType) {
-        String effective = StrUtil.blankToDefault(dataType, DATA_TYPE_MP_FOLLOWER_LIST);
+        String effective = StrUtil.blankToDefault(dataType, DATA_TYPE_MP_FOLLOWER_STATS);
+        if (DATA_TYPE_MP_FOLLOWER_LIST.equals(effective)) {
+            return executeUnifiedCollect(task, unifiedCollectorAdapter::executeWechatMpFollowerStatsCollect);
+        }
         if (DATA_TYPE_MP_FOLLOWER_STATS.equals(effective)) {
             return executeUnifiedCollect(task, unifiedCollectorAdapter::executeWechatMpFollowerStatsCollect);
         }
@@ -180,7 +183,7 @@ public class CollectExecutionService {
         if (DATA_TYPE_MP_ARTICLE_CONTENT.equals(effective)) {
             return executeUnifiedCollect(task, unifiedCollectorAdapter::executeWechatMpArticleContentCollect);
         }
-        return executeUnifiedCollect(task, unifiedCollectorAdapter::executeWechatMpFollowerCollect);
+        return executeUnifiedCollect(task, unifiedCollectorAdapter::executeWechatMpFollowerStatsCollect);
     }
 
     private CollectExecutionResult executeDouyinOpenApi(CollectTaskDO task) {
@@ -190,7 +193,7 @@ public class CollectExecutionService {
     private CollectExecutionResult executeDouyinOpenApiForDataType(CollectTaskDO task, String dataType) {
         String effective = CollectPlatformDefaults.normalizeSentinel(dataType);
         if (DATA_TYPE_DOUYIN_FOLLOWER_LIST.equals(effective)) {
-            return executeUnifiedCollect(task, unifiedCollectorAdapter::executeDouyinFollowerListCollect);
+            return executeUnifiedCollect(task, unifiedCollectorAdapter::executeDouyinFollowerStatsCollect);
         }
         if (DATA_TYPE_DOUYIN_VIDEO_LIST.equals(effective)) {
             return executeUnifiedCollect(task, unifiedCollectorAdapter::executeDouyinVideoListCollect);

@@ -6,7 +6,7 @@
         <el-row :gutter="16" class="search-row">
           <el-col :xs="24" :sm="12" :lg="6">
             <el-form-item label="IP组">
-              <IpGroupTreeSelect v-model="searchForm.ipGroupId" />
+              <IpGroupTreeSelect v-model="searchForm.ipGroupId" scope="accessible" clearable />
             </el-form-item>
           </el-col>
           <el-col :xs="24" :sm="12" :lg="6">
@@ -65,6 +65,14 @@
         </el-row>
       </el-form>
     </div>
+
+    <el-alert
+      type="info"
+      :title="DATA_SCOPE_FILTER_HINT"
+      show-icon
+      :closable="false"
+      style="margin-bottom: 12px"
+    />
 
     <!-- 统计卡片（等高对齐） -->
     <el-row :gutter="16" class="stats-cards">
@@ -147,6 +155,7 @@ import DictSelect from '@/components/DictSelect.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import { normalizePlatform, normalizeTimeDimension } from '@/utils/enum-alias'
 import { exportToExcel, formatDateTime } from '@/utils'
+import { DATA_SCOPE_FILTER_HINT } from '@/utils/data-scope'
 
 const activeViewTab = ref<'trend' | 'list'>('trend')
 

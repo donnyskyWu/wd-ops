@@ -93,23 +93,17 @@ class M10ApiCollectorExecS05IT extends OaITBase {
     }
 
     @Test
-    @DisplayName("M10-API-S-05: adapter 同步 stub follower-list 落库")
+    @DisplayName("M10-API-S-05: adapter 兼容 MP_FOLLOWER_LIST 转调粉丝总数")
     void adapterSyncFollowersStub() {
         unifiedCollectorAdapter.bindAccount(SEED_ACCOUNT_ID);
 
         int count = unifiedCollectorAdapter.executeWechatMpFollowerCollect(SEED_ACCOUNT_ID);
-        assertEquals(2, count);
+        assertEquals(1, count);
 
         Long stored = wechatMpFollowerMapper.selectCount(new LambdaQueryWrapper<WechatMpFollowerDO>()
                 .eq(WechatMpFollowerDO::getTenantId, TENANT_1)
                 .eq(WechatMpFollowerDO::getAccountId, SEED_ACCOUNT_ID));
-        assertEquals(2L, stored);
-
-        WechatMpFollowerDO first = wechatMpFollowerMapper.selectOne(new LambdaQueryWrapper<WechatMpFollowerDO>()
-                .eq(WechatMpFollowerDO::getOpenid, "oStubFollower001"));
-        assertEquals("Stub粉丝A", first.getNickname());
-        assertEquals("https://example.com/a.png", first.getAvatar());
-        assertEquals("uStub001", first.getUnionid());
+        assertEquals(0L, stored);
     }
 
     @Test
@@ -127,11 +121,11 @@ class M10ApiCollectorExecS05IT extends OaITBase {
         CollectExecutionResult result = collectExecutionService.execute(task);
         assertTrue(result.isSuccess());
         assertTrue(result.isMultiType());
-        assertEquals(9, result.getRecordCount());
+        assertEquals(8, result.getRecordCount());
     }
 
     @Test
-    @DisplayName("M10-API-S-05: 任务 run 写入 SUCCESS 日志与粉丝快照")
+    @DisplayName("M10-API-S-05: 任务 run 写入 SUCCESS 日志（不再落库粉丝明细）")
     void taskRunPersistsFollowers() throws Exception {
         unifiedCollectorAdapter.bindAccount(SEED_ACCOUNT_ID);
         Long taskId = createTask("公众号粉丝采集S05");
@@ -153,11 +147,11 @@ class M10ApiCollectorExecS05IT extends OaITBase {
                         .header("X-Tenant-Id", TENANT)
                         .param("taskId", String.valueOf(taskId)))
                 .andExpect(jsonPath("$.data.list[0].status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.list[0].recordCount").value(10));
+                .andExpect(jsonPath("$.data.list[0].recordCount").value(8));
 
         Long stored = wechatMpFollowerMapper.selectCount(new LambdaQueryWrapper<WechatMpFollowerDO>()
                 .eq(WechatMpFollowerDO::getAccountId, SEED_ACCOUNT_ID));
-        assertEquals(2L, stored);
+        assertEquals(0L, stored);
     }
 
     @Test

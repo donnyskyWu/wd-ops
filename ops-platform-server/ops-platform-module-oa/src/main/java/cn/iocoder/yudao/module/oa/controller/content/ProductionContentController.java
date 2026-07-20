@@ -18,10 +18,12 @@ import cn.iocoder.yudao.module.oa.api.dto.content.ContentGenerateResultVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentReviewConfigVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentReviewReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentScriptRefVO;
+import cn.iocoder.yudao.module.oa.api.dto.content.FootballSchemeVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentVO;
 import cn.iocoder.yudao.module.oa.service.content.ProductionContentService;
+import cn.iocoder.yudao.module.oa.service.content.FootballArticleBridgeService;
 import cn.iocoder.yudao.module.oa.service.content.WechatLayoutTemplateService;
 import cn.iocoder.yudao.module.oa.service.content.ContentPublishService;
 import cn.iocoder.yudao.module.oa.service.content.TypesettingService;
@@ -47,6 +49,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductionContentController {
 
     private final ProductionContentService productionContentService;
+    private final FootballArticleBridgeService footballArticleBridgeService;
     private final WechatLayoutTemplateService layoutTemplateService;
     private final ContentPublishService contentPublishService;
     private final TypesettingService typesettingService;
@@ -105,6 +108,8 @@ public class ProductionContentController {
         return CommonResult.success(productionContentService.listAiPromptOptions(contentType, documentType));
     }
 
+    /** @deprecated 请使用 {@code POST /oa/ai-content/generate} 多轮对话生成（ADR-053 S-15） */
+    @Deprecated
     @PostMapping("/ai-generate")
     public CommonResult<ContentAiGenerateResultVO> aiGenerate(@Valid @RequestBody ContentAiGenerateReq req) {
         return CommonResult.success(productionContentService.aiGenerate(req));
@@ -137,6 +142,26 @@ public class ProductionContentController {
     @GetMapping("/review-config")
     public CommonResult<ContentReviewConfigVO> getReviewConfig() {
         return CommonResult.success(productionContentService.getReviewConfig());
+    }
+
+    @GetMapping("/{id}/football-scheme")
+    public CommonResult<FootballSchemeVO> getFootballScheme(@PathVariable Long id) {
+        return CommonResult.success(footballArticleBridgeService.getFootballScheme(id));
+    }
+
+    @PostMapping("/{id}/sync-football-scheme")
+    public CommonResult<FootballSchemeVO> syncFootballScheme(@PathVariable Long id) {
+        return CommonResult.success(footballArticleBridgeService.retrySync(id));
+    }
+
+    @PostMapping("/{id}/shelf-on")
+    public CommonResult<FootballSchemeVO> shelfOn(@PathVariable Long id) {
+        return CommonResult.success(footballArticleBridgeService.shelfOn(id));
+    }
+
+    @PostMapping("/{id}/shelf-off")
+    public CommonResult<FootballSchemeVO> shelfOff(@PathVariable Long id) {
+        return CommonResult.success(footballArticleBridgeService.shelfOff(id));
     }
 
     @GetMapping("/{id}/publish-options")

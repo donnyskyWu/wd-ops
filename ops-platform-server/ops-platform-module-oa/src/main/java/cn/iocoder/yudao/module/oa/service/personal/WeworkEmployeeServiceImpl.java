@@ -12,7 +12,10 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.personal.WeworkAccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.personal.WeworkEmployeeDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.WeworkAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.WeworkEmployeeMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -60,7 +63,8 @@ public class WeworkEmployeeServiceImpl implements WeworkEmployeeService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-wework-employee", action = "create")
+    @LogRecord(type = M4_WEWORK_EMPLOYEE_TYPE, subType = M4_WEWORK_EMPLOYEE_CREATE_SUB_TYPE, bizNo = "{{#employee.id}}",
+            success = M4_WEWORK_EMPLOYEE_CREATE_SUCCESS)
     public Long create(WeworkEmployeeCreateReq req) {
         Long tenantId = requireTenantId();
         assertWeworkAccountInTenant(req.getWeworkAccountId(), tenantId);
@@ -80,6 +84,7 @@ public class WeworkEmployeeServiceImpl implements WeworkEmployeeService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         weworkEmployeeMapper.insert(entity);
+        LogRecordContext.putVariable("employee", entity);
         if (req.getLinkedPersonalWechatId() != null) {
             linkService.syncLink(req.getLinkedPersonalWechatId(), entity.getId());
         }
@@ -88,9 +93,11 @@ public class WeworkEmployeeServiceImpl implements WeworkEmployeeService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-wework-employee", action = "update")
+    @LogRecord(type = M4_WEWORK_EMPLOYEE_TYPE, subType = M4_WEWORK_EMPLOYEE_UPDATE_SUB_TYPE, bizNo = "{{#employee.id}}",
+            success = M4_WEWORK_EMPLOYEE_UPDATE_SUCCESS)
     public void update(WeworkEmployeeUpdateReq req) {
         WeworkEmployeeDO existing = getRequiredInTenant(req.getId());
+        LogRecordContext.putVariable("employee", existing);
         Long tenantId = requireTenantId();
         if (!req.getWeworkUserId().equals(existing.getWeworkUserId())) {
             assertWeworkUserIdUnique(tenantId, existing.getWeworkAccountId(), req.getWeworkUserId(), req.getId());
@@ -115,9 +122,11 @@ public class WeworkEmployeeServiceImpl implements WeworkEmployeeService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-wework-employee", action = "delete")
+    @LogRecord(type = M4_WEWORK_EMPLOYEE_TYPE, subType = M4_WEWORK_EMPLOYEE_DELETE_SUB_TYPE, bizNo = "{{#employee.id}}",
+            success = M4_WEWORK_EMPLOYEE_DELETE_SUCCESS)
     public void delete(Long id) {
-        getRequiredInTenant(id);
+        WeworkEmployeeDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("employee", existing);
         linkService.clearLinkByEmployeeId(id);
         weworkEmployeeMapper.deleteById(id);
     }

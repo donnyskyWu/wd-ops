@@ -13,8 +13,10 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.operations.FollowerDailyDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
-import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,7 @@ public class FollowerAnalysisServiceImpl implements FollowerAnalysisService {
     private final FollowerDailyMapper followerDailyMapper;
     private final AccountMapper accountMapper;
     private final IpGroupMapper ipGroupMapper;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public PageResult<FollowerAnalysisVO> list(LocalDate startDate, LocalDate endDate, Long ipGroupId,
@@ -181,13 +184,21 @@ public class FollowerAnalysisServiceImpl implements FollowerAnalysisService {
             if (account == null || !Objects.equals(account.getTenantId(), tenantId)) {
                 return Collections.emptySet();
             }
+            try {
+                opsDataScopeSupport.assertAccountReadable(account);
+            } catch (ServiceException ex) {
+                return Collections.emptySet();
+            }
             return Set.of(accountId);
+        }
+        Set<Long> scopedGroups = opsDataScopeSupport.narrowIpGroupIds(ipGroupId);
+        if (scopedGroups != null && scopedGroups.size() == 1 && scopedGroups.contains(-1L)) {
+            return Collections.emptySet();
         }
         LambdaQueryWrapper<AccountDO> wrapper = new LambdaQueryWrapper<AccountDO>()
                 .eq(AccountDO::getTenantId, tenantId)
-                .eq(ipGroupId != null, AccountDO::getIpGroupId, ipGroupId)
+                .in(scopedGroups != null, AccountDO::getIpGroupId, scopedGroups)
                 .eq(platformType != null, AccountDO::getPlatformType, platformType);
-        DataScopeSupport.applyIpGroupScope(wrapper, AccountDO::getIpGroupId);
         return accountMapper.selectList(wrapper).stream().map(AccountDO::getId).collect(Collectors.toSet());
     }
 
@@ -240,7 +251,8 @@ public class FollowerAnalysisServiceImpl implements FollowerAnalysisService {
     }
 
     @Override
-    @AuditLog(module = "M1-follower-analysis", action = "export")
+    @LogRecord(type = M1_FOLLOWER_ANALYSIS_TYPE, subType = M1_FOLLOWER_ANALYSIS_EXPORT_SUB_TYPE,
+            bizNo = BIZ_NO_NONE, success = M1_FOLLOWER_ANALYSIS_EXPORT_SUCCESS)
     public byte[] exportCsv(LocalDate startDate, LocalDate endDate, Long ipGroupId,
                             Long accountId, String platformType, String dimension) {
         Long tenantId = requireTenantId();

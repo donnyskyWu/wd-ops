@@ -11,6 +11,16 @@ public class ProductionContentVO {
     private Long id;
     private String title;
     private String body;
+    /** 付费内容（ADR-054） */
+    private String paidBody;
+    /** 免费内容（ADR-054） */
+    private String freeBody;
+    /** Football author_article.status（只读，ADR-054） */
+    private Integer shelfStatus;
+    /** Football author_article.id（只读，ADR-054） */
+    private Long authorArticleId;
+    /** Football 同步失败原因（只读） */
+    private String footballSyncError;
     private String bodyFormat;
     private Object layoutJson;
     private String layoutHtml;
@@ -31,6 +41,7 @@ public class ProductionContentVO {
     private String competitionId;
     private String competitionName;
     private String documentType;
+    private List<String> schemeTypes;
     private Long ipGroupId;
     private String ipGroupName;
     private Long authorId;

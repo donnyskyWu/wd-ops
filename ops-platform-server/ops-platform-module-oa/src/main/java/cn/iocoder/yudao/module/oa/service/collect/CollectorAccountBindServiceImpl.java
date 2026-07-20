@@ -7,9 +7,9 @@ import cn.iocoder.yudao.module.oa.api.dto.collect.CollectorAccountBindRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.collect.CollectorAccountBindSaveReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.CollectorAccountBindDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.CollectorAccountBindMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.account.WechatOfficialAccountResolver;
 import cn.iocoder.yudao.module.oa.service.config.ConfigTenantSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
@@ -26,12 +26,12 @@ public class CollectorAccountBindServiceImpl implements CollectorAccountBindServ
     private static final String DEFAULT_BIND_STATUS = "PENDING";
 
     private final CollectorAccountBindMapper collectorAccountBindMapper;
-    private final AccountMapper accountMapper;
+    private final WechatOfficialAccountResolver wechatOfficialAccountResolver;
 
     @Override
     public CollectorAccountBindRespVO getByOaAccountId(Long oaAccountId) {
         Long tenantId = ConfigTenantSupport.requireTenantId();
-        ConfigTenantSupport.assertAccountInTenant(accountMapper, oaAccountId);
+        wechatOfficialAccountResolver.assertTenantAccount(oaAccountId, tenantId);
         CollectorAccountBindDO entity = collectorAccountBindMapper.selectOne(
                 new LambdaQueryWrapper<CollectorAccountBindDO>()
                         .eq(CollectorAccountBindDO::getTenantId, tenantId)
@@ -44,10 +44,7 @@ public class CollectorAccountBindServiceImpl implements CollectorAccountBindServ
     @AuditLog(module = "M10-collector-bind", action = "save")
     public Long saveOrUpdate(CollectorAccountBindSaveReq req) {
         Long tenantId = ConfigTenantSupport.requireTenantId();
-        AccountDO account = accountMapper.selectById(req.getOaAccountId());
-        if (account == null || !tenantId.equals(account.getTenantId())) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "账号不存在");
-        }
+        AccountDO account = wechatOfficialAccountResolver.requireTenantAccount(req.getOaAccountId(), tenantId);
         if (!Objects.equals(req.getPlatformType(), account.getPlatformType())) {
             throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "平台类型与账号不一致");
         }
@@ -97,7 +94,7 @@ public class CollectorAccountBindServiceImpl implements CollectorAccountBindServ
     @Transactional
     public void updateConnStatus(Long oaAccountId, String connStatus, LocalDateTime healthCheckAt) {
         Long tenantId = ConfigTenantSupport.requireTenantId();
-        ConfigTenantSupport.assertAccountInTenant(accountMapper, oaAccountId);
+        wechatOfficialAccountResolver.assertTenantAccount(oaAccountId, tenantId);
         CollectorAccountBindDO existing = findByOaAccountId(tenantId, oaAccountId);
         if (existing == null) {
             return;

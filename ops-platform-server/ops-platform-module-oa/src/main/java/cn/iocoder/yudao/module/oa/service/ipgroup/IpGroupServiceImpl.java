@@ -19,19 +19,28 @@ import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupStatsVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupTreeVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupUpdateReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.author.AuthorUserDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.author.OaAuthorExtDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupAnchorRelDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupMemberDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.author.OaAuthorExtMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupAnchorRelMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMemberMapper;
 import cn.iocoder.yudao.module.oa.dal.dataobject.dict.SysDictDataDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.dict.SysDictDataMapper;
+import cn.iocoder.yudao.module.oa.service.dict.DictService;
 import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.service.impl.DiffParseFunction;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import cn.iocoder.yudao.module.oa.service.author.AuthorResolveSupport;
 import cn.iocoder.yudao.module.oa.service.author.MemberAuthorReadService;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
+import cn.iocoder.yudao.module.oa.enums.IpGroupRoleCodes;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -42,6 +51,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,22 +65,33 @@ public class IpGroupServiceImpl implements IpGroupService {
 
     private final IpGroupMapper ipGroupMapper;
     private final IpGroupMemberMapper ipGroupMemberMapper;
-    private final SysDictDataMapper sysDictDataMapper;
+    private final DictService dictService;
     private final IpGroupAnchorRelMapper ipGroupAnchorRelMapper;
+    private final OaAuthorExtMapper oaAuthorExtMapper;
     private final AccountMapper accountMapper;
     private final FootballSystemUserValidator footballSystemUserValidator;
     private final AuthorResolveSupport authorResolveSupport;
     private final MemberAuthorReadService memberAuthorReadService;
+    private final IpGroupAccessSupport ipGroupAccessSupport;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public List<IpGroupTreeVO> getTree() {
+        opsDataScopeSupport.assertIpGroupManagementListAccess();
         Long tenantId = requireTenantId();
+        Set<Long> scopeIds = opsDataScopeSupport.resolveIpGroupManagementScopeIds();
+        if (scopeIds != null && scopeIds.size() == 1 && scopeIds.contains(-1L)) {
+            return Collections.emptyList();
+        }
         List<IpGroupDO> all = ipGroupMapper.selectList(new LambdaQueryWrapper<IpGroupDO>()
                 .eq(IpGroupDO::getTenantId, tenantId)
                 .orderByAsc(IpGroupDO::getSortOrder)
                 .orderByAsc(IpGroupDO::getId));
         if (all.isEmpty()) {
             return Collections.emptyList();
+        }
+        if (scopeIds != null) {
+            return buildTreeForScopeIds(all, scopeIds);
         }
 
         Map<Long, String> nameMap = all.stream()
@@ -90,10 +112,130 @@ public class IpGroupServiceImpl implements IpGroupService {
     }
 
     @Override
+    public List<IpGroupListVO> listLedByCurrentUser() {
+        Long tenantId = requireTenantId();
+        Set<Long> userIds = ipGroupAccessSupport.resolveMembershipUserIds(tenantId);
+        if (userIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Long, IpGroupDO> ledGroups = new java.util.LinkedHashMap<>();
+        ipGroupMapper.selectList(new LambdaQueryWrapper<IpGroupDO>()
+                        .eq(IpGroupDO::getTenantId, tenantId)
+                        .eq(IpGroupDO::getGroupType, 2)
+                        .eq(IpGroupDO::getStatus, 1)
+                        .in(IpGroupDO::getLeaderUserId, userIds)
+                        .orderByAsc(IpGroupDO::getSortOrder)
+                        .orderByAsc(IpGroupDO::getId))
+                .forEach(group -> ledGroups.put(group.getId(), group));
+
+        ipGroupMemberMapper.selectList(new LambdaQueryWrapper<IpGroupMemberDO>()
+                        .eq(IpGroupMemberDO::getTenantId, tenantId)
+                        .in(IpGroupMemberDO::getUserId, userIds)
+                        .eq(IpGroupMemberDO::getIsLeader, 1))
+                .forEach(member -> {
+                    if (ledGroups.containsKey(member.getIpGroupId())) {
+                        return;
+                    }
+                    IpGroupDO group = ipGroupMapper.selectById(member.getIpGroupId());
+                    if (group != null && Objects.equals(group.getTenantId(), tenantId)
+                            && Objects.equals(group.getGroupType(), 2)
+                            && Objects.equals(group.getStatus(), 1)) {
+                        ledGroups.put(group.getId(), group);
+                    }
+                });
+
+        if (ledGroups.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<IpGroupDO> groups = new java.util.ArrayList<>(ledGroups.values());
+        Map<Long, String> leaderNameMap = loadLeaderNames(groups);
+        return groups.stream().map(group -> {
+            IpGroupListVO vo = new IpGroupListVO();
+            vo.setId(group.getId());
+            vo.setGroupName(group.getGroupName());
+            vo.setGroupType(group.getGroupType());
+            vo.setParentId(group.getParentId());
+            vo.setLeaderName(group.getLeaderUserId() == null ? null : leaderNameMap.get(group.getLeaderUserId()));
+            vo.setStatus(group.getStatus());
+            vo.setLevel(group.getLevel());
+            vo.setCreateTime(group.getCreateTime());
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Long> listLeaderCandidateUserIds() {
+        Long tenantId = requireTenantId();
+        return footballSystemUserValidator.listPresentableUserIdsByRoleCode(
+                tenantId, IpGroupRoleCodes.IP_GROUP_LEADER);
+    }
+
+    @Override
+    public List<IpGroupTreeVO> getAccessibleTree() {
+        if (ipGroupAccessSupport.hasUnrestrictedIpGroupAccess()) {
+            return getTree();
+        }
+        Long tenantId = requireTenantId();
+        Set<Long> accessibleIds = ipGroupAccessSupport.resolveAccessibleIpGroupIds(tenantId);
+        if (accessibleIds == null || accessibleIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<IpGroupDO> all = ipGroupMapper.selectList(new LambdaQueryWrapper<IpGroupDO>()
+                .eq(IpGroupDO::getTenantId, tenantId)
+                .orderByAsc(IpGroupDO::getSortOrder)
+                .orderByAsc(IpGroupDO::getId));
+        if (all.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Long, IpGroupDO> allMap = all.stream()
+                .collect(Collectors.toMap(IpGroupDO::getId, g -> g, (a, b) -> a, LinkedHashMap::new));
+        Set<Long> visibleIds = new LinkedHashSet<>();
+        for (Long accessibleId : accessibleIds) {
+            Long cursor = accessibleId;
+            for (int depth = 0; depth < 100 && cursor != null; depth++) {
+                visibleIds.add(cursor);
+                IpGroupDO node = allMap.get(cursor);
+                cursor = node == null ? null : node.getParentId();
+            }
+        }
+
+        List<IpGroupDO> filtered = all.stream()
+                .filter(g -> visibleIds.contains(g.getId()))
+                .collect(Collectors.toList());
+        if (filtered.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Long, String> nameMap = filtered.stream()
+                .collect(Collectors.toMap(IpGroupDO::getId, IpGroupDO::getGroupName, (a, b) -> a));
+        Map<Long, String> leaderNameMap = loadLeaderNames(filtered);
+        Map<Long, Integer> memberCounts = countMembersByGroup(tenantId);
+        Map<Long, Integer> accountCounts = countAccounts(tenantId);
+        Map<Long, Integer> anchorCounts = countAnchorsByGroup(tenantId);
+        Map<Long, List<IpGroupDO>> childrenMap = filtered.stream()
+                .filter(g -> g.getParentId() != null && visibleIds.contains(g.getParentId()))
+                .collect(Collectors.groupingBy(IpGroupDO::getParentId));
+
+        return filtered.stream()
+                .filter(g -> g.getParentId() == null || !visibleIds.contains(g.getParentId()))
+                .map(root -> toTreeNode(root, nameMap, leaderNameMap, memberCounts, accountCounts, anchorCounts, childrenMap))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public PageResult<IpGroupListVO> listPage(
             String groupName, Integer groupType, Integer status,
             Integer pageNum, Integer pageSize) {
+        opsDataScopeSupport.assertIpGroupManagementListAccess();
         Long tenantId = requireTenantId();
+        Set<Long> scopeIds = opsDataScopeSupport.resolveIpGroupManagementScopeIds();
+        if (scopeIds != null && scopeIds.size() == 1 && scopeIds.contains(-1L)) {
+            return PageResult.empty();
+        }
         LambdaQueryWrapper<IpGroupDO> wrapper = new LambdaQueryWrapper<IpGroupDO>()
                 .eq(IpGroupDO::getTenantId, tenantId)
                 .like(StrUtil.isNotBlank(groupName), IpGroupDO::getGroupName, groupName)
@@ -101,6 +243,9 @@ public class IpGroupServiceImpl implements IpGroupService {
                 .eq(status != null, IpGroupDO::getStatus, status)
                 .orderByAsc(IpGroupDO::getSortOrder)
                 .orderByDesc(IpGroupDO::getId);
+        if (scopeIds != null) {
+            wrapper.in(IpGroupDO::getId, scopeIds);
+        }
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<IpGroupDO> page = ipGroupMapper.selectPage(
                 new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(
                         pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize),
@@ -153,8 +298,9 @@ public class IpGroupServiceImpl implements IpGroupService {
         vo.setGroupType(entity.getGroupType());
         vo.setParentId(entity.getParentId());
         vo.setParentName(parentName);
-        vo.setLeaderId(entity.getLeaderUserId());
-        vo.setLeaderName(entity.getLeaderUserId() == null ? null : leaderNameMap.get(entity.getLeaderUserId()));
+        Long leaderUserId = entity.getLeaderUserId();
+        vo.setLeaderId(leaderUserId == null ? null : footballSystemUserValidator.resolvePresentableUserId(leaderUserId));
+        vo.setLeaderName(leaderUserId == null ? null : leaderNameMap.get(leaderUserId));
         vo.setSortOrder(entity.getSortOrder());
         vo.setStatus(entity.getStatus());
         vo.setLevel(entity.getLevel());
@@ -215,7 +361,8 @@ public class IpGroupServiceImpl implements IpGroupService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-ip-group", action = "create")
+    @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_CREATE_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
+            success = M1_IP_GROUP_CREATE_SUCCESS)
     public Long create(IpGroupCreateReq req) {
         Long tenantId = requireTenantId();
         validateGroupName(req.getGroupName());
@@ -242,14 +389,18 @@ public class IpGroupServiceImpl implements IpGroupService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         ipGroupMapper.insert(entity);
+        LogRecordContext.putVariable("ipGroup", entity);
         return entity.getId();
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-ip-group", action = "update")
+    @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_UPDATE_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
+            success = M1_IP_GROUP_UPDATE_SUCCESS)
     public void update(IpGroupUpdateReq req) {
         IpGroupDO existing = requireGroup(req.getId());
+        LogRecordContext.putVariable(DiffParseFunction.OLD_OBJECT, toUpdateReq(existing));
+        LogRecordContext.putVariable("ipGroup", existing);
         // P-GATE-UNMOCK S-E: parentId 修改支持（spec 漏字段，已补 IpGroupUpdateReq.parentId）
         // 仅小组可改 parentId；防自引用与子孙引用（防死循环）
         boolean parentIdChanged = false;
@@ -303,9 +454,11 @@ public class IpGroupServiceImpl implements IpGroupService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-ip-group", action = "update-status")
+    @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_UPDATE_STATUS_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
+            success = M1_IP_GROUP_UPDATE_STATUS_SUCCESS)
     public void updateStatus(Long id, Integer status) {
         IpGroupDO existing = requireGroup(id);
+        LogRecordContext.putVariable("ipGroup", existing);
         existing.setStatus(status);
         existing.setUpdater(TenantContextHolder.getUsername());
         existing.setUpdateTime(LocalDateTime.now());
@@ -314,9 +467,11 @@ public class IpGroupServiceImpl implements IpGroupService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-ip-group", action = "delete")
+    @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_DELETE_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
+            success = M1_IP_GROUP_DELETE_SUCCESS)
     public void delete(Long id) {
         IpGroupDO entity = requireGroup(id);
+        LogRecordContext.putVariable("ipGroup", entity);
         assertDeletable(entity);
         ipGroupMapper.deleteById(id);
     }
@@ -333,14 +488,22 @@ public class IpGroupServiceImpl implements IpGroupService {
         }
         Set<Long> userIds = members.stream().map(IpGroupMemberDO::getUserId).collect(Collectors.toSet());
         Map<Long, String> userNames = footballSystemUserValidator.loadNicknames(userIds);
-        return members.stream().map(m -> toMemberVO(m, userNames.get(m.getUserId()))).collect(Collectors.toList());
+        return members.stream().map(m -> {
+            Long presentableUserId = footballSystemUserValidator.resolvePresentableUserId(m.getUserId());
+            String userName = footballSystemUserValidator.resolveMemberDisplayName(m.getUserId(), userNames.get(m.getUserId()));
+            IpGroupMemberVO vo = toMemberVO(m, userName);
+            vo.setUserId(presentableUserId);
+            return vo;
+        }).collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-ip-group", action = "add-member")
+    @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_ADD_MEMBER_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
+            success = M1_IP_GROUP_ADD_MEMBER_SUCCESS)
     public void addMember(Long groupId, IpGroupMemberCreateReq req) {
         IpGroupDO entity = requireGroup(groupId);
+        LogRecordContext.putVariable("ipGroup", entity);
         assertMemberGroupType(entity);
         assertUserExists(entity.getTenantId(), req.getUserId());
         assertMemberNotExists(entity.getTenantId(), groupId, req.getUserId());
@@ -361,8 +524,11 @@ public class IpGroupServiceImpl implements IpGroupService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-ip-group", action = "update-member")
+    @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_UPDATE_MEMBER_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
+            success = M1_IP_GROUP_UPDATE_MEMBER_SUCCESS)
     public void updateMember(Long groupId, Long memberId, IpGroupMemberUpdateReq req) {
+        IpGroupDO entity = requireGroup(groupId);
+        LogRecordContext.putVariable("ipGroup", entity);
         IpGroupMemberDO member = requireMember(groupId, memberId);
         if (req.getPosition() != null) {
             member.setPosition(req.getPosition());
@@ -377,17 +543,22 @@ public class IpGroupServiceImpl implements IpGroupService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-ip-group", action = "delete-member")
+    @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_DELETE_MEMBER_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
+            success = M1_IP_GROUP_DELETE_MEMBER_SUCCESS)
     public void deleteMember(Long groupId, Long memberId) {
+        IpGroupDO entity = requireGroup(groupId);
+        LogRecordContext.putVariable("ipGroup", entity);
         requireMember(groupId, memberId);
         ipGroupMemberMapper.deleteById(memberId);
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-ip-group", action = "bind-accounts")
+    @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_BIND_ACCOUNTS_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
+            success = M1_IP_GROUP_BIND_ACCOUNTS_SUCCESS)
     public void bindAccounts(Long groupId, IpGroupAccountBindReq req) {
         IpGroupDO entity = requireGroup(groupId);
+        LogRecordContext.putVariable("ipGroup", entity);
         assertAccountBindGroupType(entity);
         Long tenantId = entity.getTenantId();
         for (Long accountId : req.getAccountIds()) {
@@ -408,9 +579,11 @@ public class IpGroupServiceImpl implements IpGroupService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-ip-group", action = "unbind-account")
+    @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_UNBIND_ACCOUNT_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
+            success = M1_IP_GROUP_UNBIND_ACCOUNT_SUCCESS)
     public void unbindAccount(Long groupId, Long accountId) {
         IpGroupDO entity = requireGroup(groupId);
+        LogRecordContext.putVariable("ipGroup", entity);
         AccountDO account = accountMapper.selectById(accountId);
         if (account == null || !Objects.equals(account.getTenantId(), entity.getTenantId())) {
             throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
@@ -438,16 +611,23 @@ public class IpGroupServiceImpl implements IpGroupService {
             return Collections.emptyList();
         }
         Set<Long> authorUserIds = rels.stream().map(IpGroupAnchorRelDO::getAnchorUserId).collect(Collectors.toSet());
-        Map<Long, String> authorNames = memberAuthorReadService.loadNicknames(authorUserIds);
+        Map<Long, AuthorUserDO> authors = memberAuthorReadService.loadByIds(authorUserIds);
+        IpGroupDO group = entity;
+        String groupLevel = group.getLevel();
         return rels.stream().map(rel -> {
             IpGroupAnchorVO vo = new IpGroupAnchorVO();
             vo.setRelId(rel.getId());
             vo.setAnchorUserId(rel.getAnchorUserId());
             vo.setAuthorId(rel.getAnchorUserId());
-            String name = authorNames.get(rel.getAnchorUserId());
+            AuthorUserDO author = authors.get(rel.getAnchorUserId());
+            String name = author != null ? author.getNickname() : null;
             vo.setAnchorUserName(name);
             vo.setAuthorName(name);
             vo.setAnchorType(rel.getAnchorType());
+            if (author != null) {
+                vo.setAuthorLevel(author.getAuthorLevel());
+            }
+            vo.setIpGroupLevel(groupLevel);
             vo.setBoundAt(rel.getCreateTime());
             return vo;
         }).collect(Collectors.toList());
@@ -455,13 +635,15 @@ public class IpGroupServiceImpl implements IpGroupService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-ip-group", action = "bind-anchors")
+    @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_BIND_ANCHORS_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
+            success = M1_IP_GROUP_BIND_ANCHORS_SUCCESS)
     public void bindAnchors(Long groupId, IpGroupAnchorBindReq req) {
         IpGroupDO entity = requireGroup(groupId);
+        LogRecordContext.putVariable("ipGroup", entity);
         Long tenantId = entity.getTenantId();
-        String anchorType = StrUtil.blankToDefault(req.getAnchorType(), "VIDEO");
         for (Long anchorUserId : req.getAnchorUserIds()) {
             assertAuthorExists(tenantId, anchorUserId);
+            String anchorType = StrUtil.blankToDefault(req.getAnchorType(), resolveAuthorAnchorType(anchorUserId));
             long exists = ipGroupAnchorRelMapper.selectCount(new LambdaQueryWrapper<IpGroupAnchorRelDO>()
                     .eq(IpGroupAnchorRelDO::getTenantId, tenantId)
                     .eq(IpGroupAnchorRelDO::getIpGroupId, groupId)
@@ -484,9 +666,11 @@ public class IpGroupServiceImpl implements IpGroupService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-ip-group", action = "unbind-anchor")
+    @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_UNBIND_ANCHOR_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
+            success = M1_IP_GROUP_UNBIND_ANCHOR_SUCCESS)
     public void unbindAnchor(Long groupId, Long anchorUserId) {
         IpGroupDO entity = requireGroup(groupId);
+        LogRecordContext.putVariable("ipGroup", entity);
         IpGroupAnchorRelDO rel = ipGroupAnchorRelMapper.selectOne(new LambdaQueryWrapper<IpGroupAnchorRelDO>()
                 .eq(IpGroupAnchorRelDO::getTenantId, entity.getTenantId())
                 .eq(IpGroupAnchorRelDO::getIpGroupId, groupId)
@@ -519,12 +703,12 @@ public class IpGroupServiceImpl implements IpGroupService {
         if (StrUtil.isBlank(position)) {
             return "成员";
         }
-        SysDictDataDO dict = sysDictDataMapper.selectOne(new LambdaQueryWrapper<SysDictDataDO>()
-                .eq(SysDictDataDO::getDictType, "dict_position")
-                .eq(SysDictDataDO::getDictValue, position)
-                .eq(SysDictDataDO::getStatus, "ENABLED")
-                .last("LIMIT 1"));
-        return dict != null && StrUtil.isNotBlank(dict.getLabel()) ? dict.getLabel() : position;
+        return dictService.listByType("dict_position").stream()
+                .filter(row -> position.equals(row.getDictValue()))
+                .map(SysDictDataDO::getLabel)
+                .filter(StrUtil::isNotBlank)
+                .findFirst()
+                .orElse(position);
     }
 
     private void validateGroupName(String groupName) {
@@ -575,10 +759,21 @@ public class IpGroupServiceImpl implements IpGroupService {
 
     private void assertLeaderExists(Long tenantId, Long leaderUserId) {
         assertUserExists(tenantId, leaderUserId);
+        footballSystemUserValidator.assertHasRoleCode(
+                leaderUserId, tenantId, IpGroupRoleCodes.IP_GROUP_LEADER,
+                OaErrorCodes.IP_GROUP_LEADER_ROLE_REQUIRED);
     }
 
     private void assertUserExists(Long tenantId, Long userId) {
         footballSystemUserValidator.assertInTenant(userId, tenantId, OaErrorCodes.IP_GROUP_LEADER_NOT_FOUND.getMsg());
+    }
+
+    private String resolveAuthorAnchorType(Long authorUserId) {
+        OaAuthorExtDO ext = oaAuthorExtMapper.selectById(authorUserId);
+        if (ext != null && StrUtil.isNotBlank(ext.getAuthorType())) {
+            return ext.getAuthorType();
+        }
+        return "VIDEO";
     }
 
     private void assertAuthorExists(Long tenantId, Long authorUserId) {
@@ -801,7 +996,12 @@ public class IpGroupServiceImpl implements IpGroupService {
         if (leaderIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        return footballSystemUserValidator.loadNicknames(leaderIds);
+        Map<Long, String> batchNames = footballSystemUserValidator.loadNicknames(leaderIds);
+        Map<Long, String> names = new HashMap<>();
+        for (Long leaderId : leaderIds) {
+            names.put(leaderId, footballSystemUserValidator.resolveMemberDisplayName(leaderId, batchNames.get(leaderId)));
+        }
+        return names;
     }
 
     private IpGroupDO requireGroup(Long id) {
@@ -812,7 +1012,43 @@ public class IpGroupServiceImpl implements IpGroupService {
         if (!Objects.equals(entity.getTenantId(), requireTenantId())) {
             throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
         }
+        opsDataScopeSupport.assertIpGroupLedReadable(entity.getId());
         return entity;
+    }
+
+    /** 6159 IP 组长树：含管辖组及其祖先链 */
+    private List<IpGroupTreeVO> buildTreeForScopeIds(List<IpGroupDO> all, Set<Long> scopeIds) {
+        Map<Long, IpGroupDO> allMap = all.stream()
+                .collect(Collectors.toMap(IpGroupDO::getId, g -> g, (a, b) -> a, LinkedHashMap::new));
+        Set<Long> visibleIds = new LinkedHashSet<>();
+        for (Long scopeId : scopeIds) {
+            Long cursor = scopeId;
+            for (int depth = 0; depth < 100 && cursor != null; depth++) {
+                visibleIds.add(cursor);
+                IpGroupDO node = allMap.get(cursor);
+                cursor = node == null ? null : node.getParentId();
+            }
+        }
+        List<IpGroupDO> filtered = all.stream()
+                .filter(g -> visibleIds.contains(g.getId()))
+                .collect(Collectors.toList());
+        if (filtered.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<Long, String> nameMap = filtered.stream()
+                .collect(Collectors.toMap(IpGroupDO::getId, IpGroupDO::getGroupName, (a, b) -> a));
+        Map<Long, String> leaderNameMap = loadLeaderNames(filtered);
+        Long tenantId = requireTenantId();
+        Map<Long, Integer> memberCounts = countMembersByGroup(tenantId);
+        Map<Long, Integer> accountCounts = countAccounts(tenantId);
+        Map<Long, Integer> anchorCounts = countAnchorsByGroup(tenantId);
+        Map<Long, List<IpGroupDO>> childrenMap = filtered.stream()
+                .filter(g -> g.getParentId() != null && visibleIds.contains(g.getParentId()))
+                .collect(Collectors.groupingBy(IpGroupDO::getParentId));
+        return filtered.stream()
+                .filter(g -> g.getParentId() == null || !visibleIds.contains(g.getParentId()))
+                .map(root -> toTreeNode(root, nameMap, leaderNameMap, memberCounts, accountCounts, anchorCounts, childrenMap))
+                .collect(Collectors.toList());
     }
 
     private Long requireTenantId() {
@@ -821,5 +1057,18 @@ public class IpGroupServiceImpl implements IpGroupService {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED.getCode(), "缺少租户上下文");
         }
         return tenantId;
+    }
+
+    private static IpGroupUpdateReq toUpdateReq(IpGroupDO entity) {
+        IpGroupUpdateReq req = new IpGroupUpdateReq();
+        req.setId(entity.getId());
+        req.setGroupName(entity.getGroupName());
+        req.setParentId(entity.getParentId());
+        req.setLeaderUserId(entity.getLeaderUserId());
+        req.setSortOrder(entity.getSortOrder());
+        req.setStatus(entity.getStatus());
+        req.setLevel(entity.getLevel());
+        req.setRemark(entity.getRemark());
+        return req;
     }
 }

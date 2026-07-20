@@ -13,7 +13,10 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.phone.PhoneDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.realname.RealnameDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.phone.PhoneMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.realname.RealnameMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -76,7 +79,8 @@ public class PhoneServiceImpl implements PhoneService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-phone", action = "create")
+    @LogRecord(type = M4_PHONE_TYPE, subType = M4_PHONE_CREATE_SUB_TYPE, bizNo = "{{#phone.id}}",
+            success = M4_PHONE_CREATE_SUCCESS)
     public Long create(PhoneCreateReq req) {
         Long tenantId = requireTenantId();
         assertRealnameInTenant(req.getRealnameId(), tenantId);
@@ -109,14 +113,17 @@ public class PhoneServiceImpl implements PhoneService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         phoneMapper.insert(entity);
+        LogRecordContext.putVariable("phone", entity);
         return entity.getId();
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-phone", action = "update")
+    @LogRecord(type = M4_PHONE_TYPE, subType = M4_PHONE_UPDATE_SUB_TYPE, bizNo = "{{#phone.id}}",
+            success = M4_PHONE_UPDATE_SUCCESS)
     public void update(PhoneUpdateReq req) {
         PhoneDO existing = getRequiredInTenant(req.getId());
+        LogRecordContext.putVariable("phone", existing);
         if (req.getRealnameId() != null) {
             assertRealnameInTenant(req.getRealnameId(), existing.getTenantId());
             existing.setRealnameId(req.getRealnameId());
@@ -179,9 +186,11 @@ public class PhoneServiceImpl implements PhoneService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-phone", action = "delete")
+    @LogRecord(type = M4_PHONE_TYPE, subType = M4_PHONE_DELETE_SUB_TYPE, bizNo = "{{#phone.id}}",
+            success = M4_PHONE_DELETE_SUCCESS)
     public void delete(Long id) {
         PhoneDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("phone", existing);
         if (existing.getAccountBoundCount() != null && existing.getAccountBoundCount() > 0) {
             throw new ServiceException(OaErrorCodes.ENTITY_ALREADY_BOUND);
         }

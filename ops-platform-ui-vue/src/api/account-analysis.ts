@@ -1,5 +1,6 @@
 /**
  * 账号分析 - API（GATE-S3 真实 API）
+ * ipGroupId：可选，后端已按成员 IP 组强制过滤；前端仅缩小范围
  */
 import { request } from '@/utils/request'
 import type {

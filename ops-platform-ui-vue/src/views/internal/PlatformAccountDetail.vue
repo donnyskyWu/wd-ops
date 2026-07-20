@@ -4,7 +4,11 @@
   路径: /account/platform/:id
 -->
 <template>
-  <div class="pa-detail-page" v-loading="loading">
+  <div
+    class="pa-detail-page"
+    :class="{ 'pa-detail-page--embedded': embedded }"
+    v-loading="loading"
+  >
 
     <template v-if="detail">
       <el-card shadow="never">
@@ -28,7 +32,8 @@
             </p>
           </div>
           <div>
-            <el-button @click="router.back()">返回</el-button>
+            <el-button v-if="embedded" @click="emit('cancelled')">关闭</el-button>
+            <el-button v-else @click="router.back()">返回</el-button>
             <el-button type="primary" @click="editMode = !editMode">
               {{ editMode ? '取消编辑' : '编辑' }}
             </el-button>
@@ -292,7 +297,7 @@
               v-loading="mpFollowerLoading"
               border
               stripe
-              empty-text="暂无粉丝数据，请先在「采集」Tab 执行 MP_FOLLOWER_LIST 采集任务"
+              empty-text="暂无粉丝数据，粉丝明细由 Football 公众号粉丝库（mp_user）维护"
             >
               <el-table-column label="头像" width="72" align="center">
                 <template #default="{ row }">
@@ -311,8 +316,7 @@
               <el-table-column prop="syncedAt" label="同步时间" width="170" />
             </el-table>
             <div v-if="!mpFollowerLoading && mpFollowers.length === 0" class="mp-follower-empty-hint">
-              <span>暂无粉丝数据。</span>
-              <el-button link type="primary" @click="activeTab = 'collect'">前往采集 Tab 执行粉丝列表采集</el-button>
+              <span>暂无粉丝数据，请在 Football 粉丝管理中维护。</span>
             </div>
             <el-pagination
               v-if="mpFollowerPagination.total > 0"
@@ -324,49 +328,6 @@
               layout="total, sizes, prev, pager, next"
               @update:current-page="(val) => { mpFollowerPagination.pageNo = val; loadMpFollowers() }"
               @update:page-size="(val) => { mpFollowerPagination.pageSize = val; mpFollowerPagination.pageNo = 1; loadMpFollowers() }"
-            />
-          </ContentWrap>
-        </el-tab-pane>
-
-        <el-tab-pane v-if="showDouyin" label="粉丝列表" name="douyin-followers" lazy>
-          <ContentWrap title="粉丝列表">
-            <el-table
-              :data="douyinFollowers"
-              v-loading="douyinFollowerLoading"
-              border
-              stripe
-              empty-text="暂无粉丝数据，请先在「采集」Tab 执行 DOUYIN_FOLLOWER_LIST 采集任务"
-            >
-              <el-table-column label="头像" width="72" align="center">
-                <template #default="{ row }">
-                  <FollowerAvatar :src="row.avatar" :nickname="row.nickname" :size="36" />
-                </template>
-              </el-table-column>
-              <el-table-column prop="nickname" label="昵称" min-width="140" show-overflow-tooltip>
-                <template #default="{ row }">{{ row.nickname || '-' }}</template>
-              </el-table-column>
-              <el-table-column prop="followerId" label="粉丝 ID" min-width="180" show-overflow-tooltip>
-                <template #default="{ row }">
-                  <span :title="row.followerId">{{ truncateOpenid(row.followerId) }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="followedAt" label="关注时间" width="170" />
-              <el-table-column prop="syncedAt" label="同步时间" width="170" />
-            </el-table>
-            <div v-if="!douyinFollowerLoading && douyinFollowers.length === 0" class="mp-follower-empty-hint">
-              <span>暂无粉丝数据。</span>
-              <el-button link type="primary" @click="activeTab = 'collect'">前往采集 Tab 执行粉丝列表采集</el-button>
-            </div>
-            <el-pagination
-              v-if="douyinFollowerPagination.total > 0"
-              style="margin-top: 16px; justify-content: flex-end"
-              :current-page="douyinFollowerPagination.pageNo"
-              :page-size="douyinFollowerPagination.pageSize"
-              :total="douyinFollowerPagination.total"
-              :page-sizes="[10, 20, 50]"
-              layout="total, sizes, prev, pager, next"
-              @update:current-page="(val) => { douyinFollowerPagination.pageNo = val; loadDouyinFollowers() }"
-              @update:page-size="(val) => { douyinFollowerPagination.pageSize = val; douyinFollowerPagination.pageNo = 1; loadDouyinFollowers() }"
             />
           </ContentWrap>
         </el-tab-pane>
@@ -450,10 +411,8 @@ import {
   updatePlatformAccountFanGroup,
   deletePlatformAccountFanGroup,
   getWechatMpFollowers,
-  getDouyinFollowers,
   type FanGroupVO,
   type MpFollowerVO,
-  type DouyinFollowerVO,
 } from '@/api/account'
 import {
   getWechatCertRenewals,
@@ -477,13 +436,29 @@ const COLLECTOR_PLATFORMS = [
   'BILIBILI',
 ] as const
 
+const props = defineProps<{
+  embedded?: boolean
+  accountId?: number
+  initialTab?: string
+}>()
+
+const emit = defineEmits<{
+  cancelled: []
+  saved: []
+}>()
+
 const route = useRoute()
 const router = useRouter()
+
+const resolvedAccountId = computed(() => {
+  if (props.embedded && props.accountId) return props.accountId
+  const id = Number(route.params.id)
+  return Number.isNaN(id) ? undefined : id
+})
 const TAB_QUERY_MAP: Record<string, string> = {
   collect: 'collect',
   followers: 'mp-followers',
   'mp-followers': 'mp-followers',
-  'douyin-followers': 'douyin-followers',
 }
 const activeTab = ref(TAB_QUERY_MAP[route.query.tab as string] || 'basic')
 const loading = ref(false)
@@ -524,18 +499,14 @@ const showWechatOfficial = computed(() => {
   return platform === 'WECHAT_OFFICIAL'
 })
 
-const showDouyin = computed(() => {
-  const platform = detail.value?.platformType || detail.value?.platformName
-  return platform === 'DOUYIN'
-})
-
 const supportsCollect = computed(() => {
   const platform = detail.value?.platformType || detail.value?.platformName
   return COLLECTOR_PLATFORMS.includes(platform as (typeof COLLECTOR_PLATFORMS)[number])
 })
 
-const applyTabFromRoute = () => {
-  const mapped = TAB_QUERY_MAP[route.query.tab as string]
+const applyInitialTab = () => {
+  const tabSource = props.embedded ? props.initialTab : (route.query.tab as string)
+  const mapped = TAB_QUERY_MAP[tabSource as string]
   if (!mapped || !detail.value) return
   if (mapped === 'collect' && !supportsCollect.value) {
     activeTab.value = 'basic'
@@ -572,10 +543,6 @@ const mpFollowers = ref<MpFollowerVO[]>([])
 const mpFollowerLoading = ref(false)
 const mpFollowerPagination = reactive({ pageNo: 1, pageSize: 20, total: 0 })
 
-const douyinFollowers = ref<DouyinFollowerVO[]>([])
-const douyinFollowerLoading = ref(false)
-const douyinFollowerPagination = reactive({ pageNo: 1, pageSize: 20, total: 0 })
-
 const truncateOpenid = (openid?: string) => {
   if (!openid) return '-'
   if (openid.length <= 16) return openid
@@ -610,43 +577,32 @@ const loadMpFollowers = async () => {
   }
 }
 
-const loadDouyinFollowers = async () => {
-  if (!detail.value?.id || !showDouyin.value) {
-    douyinFollowers.value = []
-    douyinFollowerPagination.total = 0
-    return
-  }
-  douyinFollowerLoading.value = true
-  try {
-    const res = await getDouyinFollowers(detail.value.id, {
-      pageNo: douyinFollowerPagination.pageNo,
-      pageSize: douyinFollowerPagination.pageSize,
-    })
-    douyinFollowers.value = res.list || []
-    douyinFollowerPagination.total = res.total ?? 0
-  } catch (e: any) {
-    douyinFollowers.value = []
-    douyinFollowerPagination.total = 0
-    const msg = e?.message || ''
-    if (msg.includes('403') || msg.includes('无权限')) {
-      ElMessage.warning('无权限查看粉丝列表，请联系管理员')
-    } else if (msg) {
-      ElMessage.error(msg)
-    }
-  } finally {
-    douyinFollowerLoading.value = false
-  }
-}
-
 watch(activeTab, (tab) => {
   if (tab === 'mp-followers') {
     loadMpFollowers()
-  } else if (tab === 'douyin-followers') {
-    loadDouyinFollowers()
   }
 })
 
-watch(() => route.query.tab, () => applyTabFromRoute())
+watch(() => route.query.tab, () => {
+  if (!props.embedded) applyInitialTab()
+})
+
+watch(
+  () => props.initialTab,
+  () => {
+    if (props.embedded) applyInitialTab()
+  },
+)
+
+watch(
+  () => props.accountId,
+  (id) => {
+    if (!props.embedded || !id) return
+    activeTab.value = 'basic'
+    editMode.value = false
+    loadDetail()
+  },
+)
 
 const initFollowerChart = (dates: string[] = [], vals: number[] = []) => {
   if (!followerChartRef.value) return
@@ -818,10 +774,11 @@ const removeFanGroup = async (row: FanGroupVO) => {
 }
 
 const loadDetail = async () => {
+  const id = resolvedAccountId.value
+  if (!id) return
   loading.value = true
   loadError.value = ''
   try {
-    const id = Number(route.params.id)
     const a: any = await getPlatformAccountDetail(id)
     detail.value = {
       ...a,
@@ -879,7 +836,7 @@ const loadDetail = async () => {
     }
     await loadFanGroups()
     await loadRenewals()
-    applyTabFromRoute()
+    applyInitialTab()
   } catch (e: any) {
     detail.value = null
     loadError.value = e?.message?.includes('403') || e?.message?.includes('无权限')
@@ -930,6 +887,7 @@ const submit = async () => {
     await loadDetail()
     editMode.value = false
     ElMessage.success('保存成功')
+    if (props.embedded) emit('saved')
   } catch (err: unknown) {
     if (isAccountBindingConflict(err)) {
       const ok = await promptAccountForceReplace(err, (reason) => submitWithForceReplace(true, reason))
@@ -937,6 +895,7 @@ const submit = async () => {
         await loadDetail()
         editMode.value = false
         ElMessage.success('保存成功（已强制替换）')
+        if (props.embedded) emit('saved')
       }
     }
   } finally {
@@ -944,11 +903,14 @@ const submit = async () => {
   }
 }
 
-onMounted(loadDetail)
+onMounted(() => {
+  if (resolvedAccountId.value) loadDetail()
+})
 </script>
 
 <style scoped>
 .pa-detail-page { padding: 20px; }
+.pa-detail-page--embedded { padding: 0; }
 .header { display: flex; justify-content: space-between; align-items: flex-start; }
 .meta { color: #909399; font-size: 13px; margin: 8px 0 0 0; }
 .fan-group-toolbar { margin-bottom: 12px; }

@@ -38,4 +38,12 @@ public class CommonResult<T> implements Serializable {
     public boolean isSuccess() {
         return code != null && code == CODE_SUCCESS;
     }
+
+    @JsonIgnore
+    public void checkError() {
+        if (!isSuccess()) {
+            throw new cn.iocoder.yudao.framework.common.exception.ServiceException(
+                    code != null ? code : 500, msg != null ? msg : "RPC 调用失败");
+        }
+    }
 }

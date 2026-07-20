@@ -11,7 +11,7 @@
             </el-button>
           </template>
         </TableSearch>
-        <el-table :data="filteredDouyinList" v-loading="loading" stripe>
+        <el-table :data="filteredDouyinList" v-loading="loading" stripe :empty-text="DATA_SCOPE_EMPTY_TEXT">
           <el-table-column prop="rank" label="排名" width="80" align="center"><template #default="{ row }"><el-tag :type="row.rank <= 3 ? 'danger' : ''">{{ row.rank }}</el-tag></template></el-table-column>
           <el-table-column prop="accountName" label="账号名称" min-width="180" />
           <el-table-column prop="platform" label="平台" width="120" />
@@ -33,7 +33,7 @@
             </el-button>
           </template>
         </TableSearch>
-        <el-table :data="filteredWechatList" v-loading="loading" stripe>
+        <el-table :data="filteredWechatList" v-loading="loading" stripe :empty-text="DATA_SCOPE_EMPTY_TEXT">
           <el-table-column prop="rank" label="排名" width="80" align="center"><template #default="{ row }"><el-tag :type="row.rank <= 3 ? 'danger' : ''">{{ row.rank }}</el-tag></template></el-table-column>
           <el-table-column prop="accountName" label="账号名称" min-width="180" />
           <el-table-column prop="platform" label="平台" width="120" />
@@ -55,7 +55,7 @@
             </el-button>
           </template>
         </TableSearch>
-        <el-table :data="filteredChannelsList" v-loading="loading" stripe>
+        <el-table :data="filteredChannelsList" v-loading="loading" stripe :empty-text="DATA_SCOPE_EMPTY_TEXT">
           <el-table-column prop="rank" label="排名" width="80" align="center"><template #default="{ row }"><el-tag :type="row.rank <= 3 ? 'danger' : ''">{{ row.rank }}</el-tag></template></el-table-column>
           <el-table-column prop="accountName" label="账号名称" min-width="180" />
           <el-table-column prop="platform" label="平台" width="120" />
@@ -92,6 +92,7 @@ import TableSearch from '@/components/TableSearch.vue'
 import { getHighFollowerAccountList } from '@/api/monitor'
 import { exportToExcel } from '@/utils'
 import { buildMonitorQuery, mapFollowerAccount, pickMonitorAccountPage, type MonitorAccountRow } from '@/utils/monitor-map'
+import { DATA_SCOPE_EMPTY_TEXT } from '@/utils/data-scope'
 
 const activeTab = ref('douyin')
 const loading = ref(false)

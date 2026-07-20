@@ -28,7 +28,6 @@
             <span>运营管理</span>
           </template>
           <el-menu-item index="/ip-group">IP组管理</el-menu-item>
-          <el-menu-item index="/author">作者管理</el-menu-item>
           <el-menu-item index="/account-analysis">账号分析</el-menu-item>
           <el-menu-item index="/fans-analysis">粉丝分析</el-menu-item>
           <el-menu-item index="/internal-content">内部作品分析</el-menu-item>
@@ -152,9 +151,6 @@
             <span>系统管理</span>
           </template>
           <el-menu-item index="/system-param">系统参数</el-menu-item>
-          <el-menu-item index="/system-dict">字典配置</el-menu-item>
-          <el-menu-item index="/system-log/operation">操作日志</el-menu-item>
-          <el-menu-item index="/system-log/login">登录日志</el-menu-item>
           <el-menu-item index="/system-message">消息管理</el-menu-item>
         </el-sub-menu>
       </el-menu>

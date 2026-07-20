@@ -10,7 +10,10 @@ import cn.iocoder.yudao.module.oa.api.dto.personal.WeworkRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.personal.WeworkUpdateReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.personal.WeworkAccountDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.WeworkAccountMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -58,7 +61,8 @@ public class WeworkAccountServiceImpl implements WeworkAccountService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-wework", action = "create")
+    @LogRecord(type = M4_WEWORK_TYPE, subType = M4_WEWORK_CREATE_SUB_TYPE, bizNo = "{{#weworkAccount.id}}",
+            success = M4_WEWORK_CREATE_SUCCESS)
     public Long create(WeworkCreateReq req) {
         Long tenantId = requireTenantId();
         assertCorpAgentUnique(tenantId, req.getCorpId(), req.getAgentId(), null);
@@ -75,14 +79,17 @@ public class WeworkAccountServiceImpl implements WeworkAccountService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         weworkAccountMapper.insert(entity);
+        LogRecordContext.putVariable("weworkAccount", entity);
         return entity.getId();
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-wework", action = "update")
+    @LogRecord(type = M4_WEWORK_TYPE, subType = M4_WEWORK_UPDATE_SUB_TYPE, bizNo = "{{#weworkAccount.id}}",
+            success = M4_WEWORK_UPDATE_SUCCESS)
     public void update(WeworkUpdateReq req) {
         WeworkAccountDO existing = getRequiredInTenant(req.getId());
+        LogRecordContext.putVariable("weworkAccount", existing);
         Long tenantId = requireTenantId();
         String corpId = StrUtil.blankToDefault(req.getCorpId(), existing.getCorpId());
         String agentId = StrUtil.blankToDefault(req.getAgentId(), existing.getAgentId());
@@ -107,9 +114,11 @@ public class WeworkAccountServiceImpl implements WeworkAccountService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-wework", action = "delete")
+    @LogRecord(type = M4_WEWORK_TYPE, subType = M4_WEWORK_DELETE_SUB_TYPE, bizNo = "{{#weworkAccount.id}}",
+            success = M4_WEWORK_DELETE_SUCCESS)
     public void delete(Long id) {
-        getRequiredInTenant(id);
+        WeworkAccountDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("weworkAccount", existing);
         weworkAccountMapper.deleteById(id);
     }
 

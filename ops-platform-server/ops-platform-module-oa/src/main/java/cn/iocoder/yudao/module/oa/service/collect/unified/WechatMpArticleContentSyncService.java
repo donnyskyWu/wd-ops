@@ -8,9 +8,9 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.CollectorAccountBindDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.WechatMpArticleDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.CollectorAccountBindMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.WechatMpArticleMapper;
+import cn.iocoder.yudao.module.oa.service.account.WechatOfficialAccountResolver;
 import cn.iocoder.yudao.module.oa.service.config.ConfigTenantSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,7 @@ public class WechatMpArticleContentSyncService {
 
     private static final String BIND_STATUS_BOUND = "BOUND";
 
-    private final AccountMapper accountMapper;
+    private final WechatOfficialAccountResolver wechatOfficialAccountResolver;
     private final CollectorAccountBindMapper collectorAccountBindMapper;
     private final WechatMpArticleMapper wechatMpArticleMapper;
     private final WechatMpArticleSyncService wechatMpArticleSyncService;
@@ -39,8 +39,7 @@ public class WechatMpArticleContentSyncService {
     public int syncArticleContent(Long oaAccountId) {
         Long tenantId = ConfigTenantSupport.requireTenantId();
         CollectorAccountBindDO bind = requireBoundCollector(oaAccountId, tenantId);
-        AccountDO account = accountMapper.selectById(oaAccountId);
-        account = ConfigTenantSupport.getRequiredInTenant(account);
+        AccountDO account = wechatOfficialAccountResolver.requireTenantAccount(oaAccountId, tenantId);
         boolean officialOnly = WechatMpOfficialCredentialSupport.supportsOfficialApi(account);
 
         List<WechatMpArticleDO> articles = wechatMpArticleMapper.selectList(

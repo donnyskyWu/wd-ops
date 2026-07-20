@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P-FT-007 推送审计 Drawer DRW-PUSH-AUDIT</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+  <div class="app-layout" style="filter: blur(1px); opacity: .6; pointer-events: none;">
+    <aside class="sidebar"><div class="sidebar-logo">Football Admin</div></aside>
+    <div class="main-wrap"><header class="topbar"><div class="breadcrumb">系统管理 / 消息中心</div></header></div>
+  </div>
+
+  <div class="overlay">
+    <aside class="drawer w800">
+      <div class="drawer-header">
+        <h3>推送审计</h3>
+        <button class="drawer-close" onclick="location.href='notify-dingtalk-push.html'">×</button>
+      </div>
+
+      <div class="drawer-body" style="padding-top:12px;">
+        <div class="filter-bar" style="padding:0 0 12px;border:none;">
+          <div class="filter-item"><label>规则名称</label><input class="input" placeholder="请输入"></div>
+          <div class="filter-item"><label>状态</label>
+            <select class="select"><option>全部</option><option>成功</option><option>部分成功</option><option>失败</option></select>
+          </div>
+          <div class="filter-item"><label>时间范围</label>
+            <input class="input" style="width:300px;" value="2026-07-01 ~ 2026-07-16" readonly>
+          </div>
+          <button class="btn btn-primary btn-sm">查询</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>执行时间</th>
+                <th>规则名称</th>
+                <th>触发方式</th>
+                <th>通道</th>
+                <th>目标</th>
+                <th>成功</th>
+                <th>失败</th>
+                <th>跳过</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>2026-07-16 09:00:03</td>
+                <td>晨会日报提醒</td>
+                <td>定时</td>
+                <td>工作通知</td>
+                <td>12</td><td>12</td><td>0</td><td>0</td>
+                <td><span class="tag tag-success">成功</span></td>
+                <td><button class="btn btn-link btn-sm">查看详情</button></td>
+              </tr>
+              <tr>
+                <td>2026-07-16 08:45:22</td>
+                <td>晨会日报提醒</td>
+                <td>测试</td>
+                <td>工作通知</td>
+                <td>1</td><td>1</td><td>0</td><td>0</td>
+                <td><span class="tag tag-success">成功</span></td>
+                <td><button class="btn btn-link btn-sm">查看详情</button></td>
+              </tr>
+              <tr>
+                <td>2026-07-15 18:00:01</td>
+                <td>运维群广播</td>
+                <td>定时</td>
+                <td>Webhook</td>
+                <td>1</td><td>0</td><td>1</td><td>0</td>
+                <td><span class="tag tag-danger">失败</span></td>
+                <td><button class="btn btn-link btn-sm">查看详情</button></td>
+              </tr>
+              <tr>
+                <td>2026-07-14 09:00:05</td>
+                <td>周报汇总</td>
+                <td>定时</td>
+                <td>双通道</td>
+                <td>8</td><td>6</td><td>0</td><td>2</td>
+                <td><span class="tag tag-warning">部分成功</span></td>
+                <td><button class="btn btn-link btn-sm">查看详情</button></td>
+              </tr>
+              <tr>
+                <td>2026-07-14 09:00:05</td>
+                <td>周报汇总</td>
+                <td>定时</td>
+                <td>Webhook</td>
+                <td>1</td><td>1</td><td>0</td><td>0</td>
+                <td><span class="tag tag-success">成功</span></td>
+                <td><button class="btn btn-link btn-sm">查看详情</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          共 5 条
+          <span class="page-btn">‹</span>
+          <span class="page-btn active">1</span>
+          <span class="page-btn">›</span>
+        </div>
+
+        <!-- 详情预览 -->
+        <div class="detail-panel">
+          <div class="detail-panel-header">详情预览 — 2026-07-14 09:00:05 · 周报汇总 · 部分成功</div>
+          <div class="detail-panel-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div>
+                <div style="font-size:13px;font-weight:500;margin-bottom:8px;">Request（脱敏）</div>
+                <div class="json-block">{
+  "ruleId": 1003,
+  "ruleName": "周报汇总",
+  "channel": "WORK_NOTIFY",
+  "msgType": "MARKDOWN",
+  "targetUsers": ["manager001", "dev002", "..."],
+  "content": "[周报] 2026-07-14 请各位提交...",
+  "agentId": "123***789"
+}</div>
+              </div>
+              <div>
+                <div style="font-size:13px;font-weight:500;margin-bottom:8px;">Response（脱敏）</div>
+                <div class="json-block">{
+  "errcode": 0,
+  "errmsg": "ok",
+  "task_id": 9876543210,
+  "successCount": 6,
+  "failCount": 0,
+  "skipCount": 2,
+  "skipReasons": [
+    "用户 dev009 未绑定钉钉账号"
+  ]
+}</div>
+              </div>
+            </div>
+            <div style="margin-top:12px;font-size:12px;color:var(--el-text-secondary);">
+              跳过说明：目标用户未绑定钉钉账号，已跳过（审计可见）
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="drawer-footer">
+        <button class="btn" onclick="location.href='notify-dingtalk-push.html'">关闭</button>
+      </div>
+    </aside>
+  </div>
+
+  <div class="proto-badge"><a href="index.html">← 原型索引</a> · P-FT-007 · 800px</div>
+</body>
+</html>

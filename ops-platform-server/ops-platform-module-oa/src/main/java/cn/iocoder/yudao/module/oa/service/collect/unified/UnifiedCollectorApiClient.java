@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.oa.service.collect.unified;
 
+import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
@@ -441,10 +442,13 @@ public class UnifiedCollectorApiClient {
         if (properties.isStub()) {
             return true;
         }
-        HttpResponse response = HttpRequest.get(normalizeBaseUrl() + "/livez")
-                .timeout(properties.getTimeoutMs())
-                .execute();
-        return response.getStatus() >= 200 && response.getStatus() < 300;
+        try {
+            HttpResponse response = executeRequest(HttpRequest.get(normalizeBaseUrl() + "/livez")
+                    .timeout(properties.getTimeoutMs()));
+            return response.getStatus() >= 200 && response.getStatus() < 300;
+        } catch (UnifiedCollectorApiException ex) {
+            return false;
+        }
     }
 
     private UnifiedCollectorImportResult stubImport(String platform) {
@@ -876,11 +880,10 @@ public class UnifiedCollectorApiClient {
     }
 
     private JSONObject postJsonWithTimeout(String path, JSONObject body, int timeoutMs) {
-        HttpResponse response = authorized(HttpRequest.post(normalizeBaseUrl() + path)
+        HttpResponse response = executeRequest(HttpRequest.post(normalizeBaseUrl() + path)
                 .timeout(timeoutMs)
                 .header("Content-Type", "application/json")
-                .body(body.toString()))
-                .execute();
+                .body(body.toString()));
         return parseEnvelope(response);
     }
 
@@ -934,15 +937,31 @@ public class UnifiedCollectorApiClient {
         if (StrUtil.isNotBlank(collectorAccountId)) {
             request.header("X-Account-Id", collectorAccountId);
         }
-        HttpResponse response = authorized(request).execute();
+        HttpResponse response = executeRequest(request);
         return parseEnvelope(response);
     }
 
     private void delete(String path) {
-        HttpResponse response = authorized(HttpRequest.delete(normalizeBaseUrl() + path)
-                .timeout(properties.getTimeoutMs()))
-                .execute();
+        HttpResponse response = executeRequest(HttpRequest.delete(normalizeBaseUrl() + path)
+                .timeout(properties.getTimeoutMs()));
         parseEnvelope(response);
+    }
+
+    private HttpResponse executeRequest(HttpRequest request) {
+        try {
+            return authorized(request).execute();
+        } catch (IORuntimeException ex) {
+            throw toConnectionException(ex);
+        }
+    }
+
+    private UnifiedCollectorApiException toConnectionException(IORuntimeException ex) {
+        String detail = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
+        String message = "Collector 服务不可达，请确认 unify-collector-api 已启动（:8000）";
+        if (StrUtil.isNotBlank(detail)) {
+            message = message + "：" + detail;
+        }
+        return new UnifiedCollectorApiException("DISCONNECTED", message);
     }
 
     private HttpRequest authorized(HttpRequest request) {

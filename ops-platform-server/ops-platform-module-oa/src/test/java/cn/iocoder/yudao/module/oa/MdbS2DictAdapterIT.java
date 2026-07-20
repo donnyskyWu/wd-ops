@@ -41,7 +41,23 @@ class MdbS2DictAdapterIT {
     private FootballSystemDictDataMapper footballSystemDictDataMapper;
 
     @Test
-    @DisplayName("S2-03: platform dict admin list reads system DB (total >= 500)")
+    @DisplayName("S2-03: default admin list reads wd business dict_* (total >= 300)")
+    void businessDictAdminListDefault() throws Exception {
+        assumeLocalMysql();
+        Assumptions.assumeTrue(mockMvc != null);
+
+        mockMvc.perform(get("/admin-api/oa/system/dict/list")
+                        .header("Authorization", AUTH)
+                        .header("X-Tenant-Id", TENANT)
+                        .param("pageNo", "1")
+                        .param("pageSize", "10"))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.total").value(org.hamcrest.Matchers.greaterThanOrEqualTo(300)))
+                .andExpect(jsonPath("$.data.list[0].dictType").value(org.hamcrest.Matchers.startsWith("dict_")));
+    }
+
+    @Test
+    @DisplayName("S2-03: platform dict admin list via non-dict_ type filter reads system DB")
     void platformDictAdminListFromSystem() throws Exception {
         assumeLocalMysql();
         Assumptions.assumeTrue(mockMvc != null && systemDictAdapter != null);
@@ -52,10 +68,11 @@ class MdbS2DictAdapterIT {
         mockMvc.perform(get("/admin-api/oa/system/dict/list")
                         .header("Authorization", AUTH)
                         .header("X-Tenant-Id", TENANT)
+                        .param("dictType", "system_user_sex")
                         .param("pageNo", "1")
                         .param("pageSize", "10"))
                 .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.data.total").value(org.hamcrest.Matchers.greaterThanOrEqualTo(500)));
+                .andExpect(jsonPath("$.data.total").value(org.hamcrest.Matchers.greaterThanOrEqualTo(2)));
     }
 
     @Test

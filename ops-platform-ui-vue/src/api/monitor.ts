@@ -1,5 +1,6 @@
 /**
  * M7 作品监测 - API接口封装
+ * ipGroupId：可选，仅用于在登录用户数据权限范围内进一步缩小结果集
  */
 import { request } from '@/utils/request'
 

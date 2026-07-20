@@ -13,18 +13,25 @@ import cn.iocoder.yudao.module.oa.api.dto.perf.PerfRecordItemDetailVO;
 import cn.iocoder.yudao.module.oa.api.dto.perf.PerfRecordVO;
 import cn.iocoder.yudao.module.oa.api.dto.perf.ScoreStandardDTO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.dict.SysDictDataDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupMemberDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.MetricDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfItemRecordDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfRecordDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfTemplateDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfTemplateItemDO;
+import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMemberMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.MetricMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfItemRecordMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfRecordMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateItemMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.dict.DictService;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +58,8 @@ public class PerfRecordServiceImpl implements PerfRecordService {
     private static final DateTimeFormatter DISPLAY_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final PerfRecordMapper perfRecordMapper;
+    private final IpGroupMapper ipGroupMapper;
+    private final IpGroupMemberMapper ipGroupMemberMapper;
     private final PerfTemplateMapper perfTemplateMapper;
     private final PerfItemRecordMapper perfItemRecordMapper;
     private final PerfTemplateService perfTemplateService;
@@ -58,6 +67,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
     private final MetricMapper metricMapper;
     private final FootballSystemUserValidator footballSystemUserValidator;
     private final PerfMetricValueResolver perfMetricValueResolver;
+    private final DictService dictService;
 
     @Override
     public PageResult<PerfRecordVO> list(Long ipGroupId, Long targetUserId, String periodType, String status,
@@ -73,8 +83,10 @@ public class PerfRecordServiceImpl implements PerfRecordService {
         Page<PerfRecordDO> page = perfRecordMapper.selectPage(
                 new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize), wrapper);
         Map<Long, String> userNames = loadUserNames(page.getRecords());
+        Map<Long, String> positions = loadPositions(page.getRecords());
+        Map<Long, String> ipGroupNames = loadIpGroupNames(page.getRecords());
         return new PageResult<>(page.getRecords().stream()
-                .map(record -> toVO(record, userNames))
+                .map(record -> toVO(record, userNames, positions, ipGroupNames))
                 .collect(Collectors.toList()), page.getTotal());
     }
 
@@ -83,6 +95,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
     @AuditLog(module = "M3-perf", action = "create-record")
     public Long create(PerfRecordCreateReq req) {
         Long tenantId = requireTenantId();
+        assertIpGroupExists(req.getIpGroupId(), tenantId);
         footballSystemUserValidator.assertEnabledInTenant(req.getTargetUserId(), tenantId, "被考核人不存在");
         SysUserDO user = footballSystemUserValidator.findLegacyUser(req.getTargetUserId());
         long duplicate = perfRecordMapper.selectCount(new LambdaQueryWrapper<PerfRecordDO>()
@@ -99,7 +112,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
         entity.setTenantId(tenantId);
         entity.setTemplateId(template.getId());
         entity.setTargetUserId(req.getTargetUserId());
-        entity.setIpGroupId(user != null ? user.getIpGroupId() : null);
+        entity.setIpGroupId(req.getIpGroupId());
         entity.setPeriodType(req.getPeriodType());
         entity.setPeriodStart(req.getPeriodStart());
         entity.setPeriodEnd(req.getPeriodEnd());
@@ -190,7 +203,6 @@ public class PerfRecordServiceImpl implements PerfRecordService {
     @Override
     public PerfRecordDetailVO detail(Long id) {
         PerfRecordDO record = requireRecord(id);
-        SysUserDO user = footballSystemUserValidator.findLegacyUser(record.getTargetUserId());
         PerfTemplateDO template = perfTemplateMapper.selectById(record.getTemplateId());
         List<PerfItemRecordDO> itemRecords = perfItemRecordMapper.selectList(
                 new LambdaQueryWrapper<PerfItemRecordDO>()
@@ -210,7 +222,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
         vo.setTemplateId(record.getTemplateId());
         vo.setTargetUserName(footballSystemUserValidator.resolveDisplayName(record.getTargetUserId()));
         vo.setTemplateName(template != null ? template.getTemplateName() : null);
-        vo.setPosition(user != null ? user.getPosition() : null);
+        vo.setPosition(resolveRecordPosition(record));
         vo.setPeriodType(record.getPeriodType());
         vo.setPeriodStart(record.getPeriodStart());
         vo.setPeriodEnd(record.getPeriodEnd());
@@ -278,21 +290,128 @@ public class PerfRecordServiceImpl implements PerfRecordService {
         return perfMetricValueResolver.resolve(metric, record);
     }
 
-    private PerfRecordVO toVO(PerfRecordDO record, Map<Long, String> userNames) {
+    private PerfRecordVO toVO(PerfRecordDO record, Map<Long, String> userNames, Map<Long, String> positions,
+                              Map<Long, String> ipGroupNames) {
         PerfRecordVO vo = new PerfRecordVO();
         vo.setId(record.getId());
         vo.setTargetUserId(record.getTargetUserId());
         vo.setTargetUserName(userNames.get(record.getTargetUserId()));
+        vo.setPosition(positions.get(record.getId()));
         vo.setTemplateId(record.getTemplateId());
         vo.setIpGroupId(record.getIpGroupId());
+        vo.setIpGroupName(record.getIpGroupId() == null ? null : ipGroupNames.get(record.getIpGroupId()));
         vo.setPeriodType(record.getPeriodType());
         vo.setPeriodStart(record.getPeriodStart());
         vo.setPeriodEnd(record.getPeriodEnd());
         vo.setTotalScore(record.getTotalScore());
         vo.setGrade(record.getGrade());
         vo.setStatus(record.getStatus());
+        // 考核人 = 创建人（creator 存的是 username，直接展示）
+        vo.setEvaluatorName(record.getCreator());
         vo.setCreateTime(record.getCreateTime());
         return vo;
+    }
+
+    private void assertIpGroupExists(Long ipGroupId, Long tenantId) {
+        if (ipGroupId == null) {
+            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "IP组不存在");
+        }
+        IpGroupDO group = ipGroupMapper.selectById(ipGroupId);
+        if (group == null || !Objects.equals(group.getTenantId(), tenantId)) {
+            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "IP组不存在");
+        }
+    }
+
+    private Map<Long, String> loadIpGroupNames(List<PerfRecordDO> records) {
+        List<Long> groupIds = records.stream()
+                .map(PerfRecordDO::getIpGroupId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (groupIds.isEmpty()) {
+            return Map.of();
+        }
+        return ipGroupMapper.selectBatchIds(groupIds).stream()
+                .filter(group -> Objects.equals(group.getTenantId(), requireTenantId()))
+                .collect(Collectors.toMap(IpGroupDO::getId, IpGroupDO::getGroupName, (a, b) -> a));
+    }
+
+    private Map<Long, String> loadPositions(List<PerfRecordDO> records) {
+        if (records == null || records.isEmpty()) {
+            return Map.of();
+        }
+        Long tenantId = requireTenantId();
+        List<Long> groupIds = records.stream()
+                .map(PerfRecordDO::getIpGroupId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<String, String> memberPositionByGroupUser = new java.util.HashMap<>();
+        if (!groupIds.isEmpty()) {
+            List<IpGroupMemberDO> members = ipGroupMemberMapper.selectList(new LambdaQueryWrapper<IpGroupMemberDO>()
+                    .eq(IpGroupMemberDO::getTenantId, tenantId)
+                    .in(IpGroupMemberDO::getIpGroupId, groupIds));
+            for (IpGroupMemberDO member : members) {
+                String label = resolvePositionLabel(member.getPosition());
+                if (StrUtil.isBlank(label)) {
+                    continue;
+                }
+                memberPositionByGroupUser.put(member.getIpGroupId() + ":" + member.getUserId(), label);
+                Long presentableUserId = footballSystemUserValidator.resolvePresentableUserId(member.getUserId());
+                if (presentableUserId != null) {
+                    memberPositionByGroupUser.put(member.getIpGroupId() + ":" + presentableUserId, label);
+                }
+            }
+        }
+        Map<Long, String> result = new java.util.HashMap<>();
+        for (PerfRecordDO record : records) {
+            String position = null;
+            if (record.getIpGroupId() != null) {
+                position = memberPositionByGroupUser.get(record.getIpGroupId() + ":" + record.getTargetUserId());
+            }
+            if (StrUtil.isBlank(position)) {
+                position = resolvePositionLabel(footballSystemUserValidator.resolveLegacyPosition(record.getTargetUserId()));
+            }
+            if (StrUtil.isNotBlank(position)) {
+                result.put(record.getId(), position);
+            }
+        }
+        return result;
+    }
+
+    private String resolveRecordPosition(PerfRecordDO record) {
+        if (record == null) {
+            return null;
+        }
+        if (record.getIpGroupId() != null) {
+            Long tenantId = requireTenantId();
+            List<IpGroupMemberDO> members = ipGroupMemberMapper.selectList(new LambdaQueryWrapper<IpGroupMemberDO>()
+                    .eq(IpGroupMemberDO::getTenantId, tenantId)
+                    .eq(IpGroupMemberDO::getIpGroupId, record.getIpGroupId()));
+            for (IpGroupMemberDO member : members) {
+                Long presentableUserId = footballSystemUserValidator.resolvePresentableUserId(member.getUserId());
+                if (Objects.equals(member.getUserId(), record.getTargetUserId())
+                        || Objects.equals(presentableUserId, record.getTargetUserId())) {
+                    String label = resolvePositionLabel(member.getPosition());
+                    if (StrUtil.isNotBlank(label)) {
+                        return label;
+                    }
+                }
+            }
+        }
+        return resolvePositionLabel(footballSystemUserValidator.resolveLegacyPosition(record.getTargetUserId()));
+    }
+
+    private String resolvePositionLabel(String position) {
+        if (StrUtil.isBlank(position)) {
+            return null;
+        }
+        return dictService.listByType("dict_position").stream()
+                .filter(dict -> position.equals(dict.getDictValue()))
+                .map(SysDictDataDO::getLabel)
+                .filter(StrUtil::isNotBlank)
+                .findFirst()
+                .orElse(position);
     }
 
     private Map<Long, MetricDO> loadMetrics(List<PerfItemRecordDO> itemRecords) {

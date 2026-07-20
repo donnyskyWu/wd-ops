@@ -1,10 +1,6 @@
 package cn.iocoder.yudao.module.oa.service.content;
 
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpResponse;
-import cn.hutool.json.JSONArray;
-import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
@@ -19,10 +15,10 @@ import cn.iocoder.yudao.module.oa.api.dto.content.ContentReviewReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentReviewStepVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentScriptRefVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ContentTransferKnowledgeResultVO;
+import cn.iocoder.yudao.module.oa.api.dto.content.FootballSchemeVO;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.content.ProductionContentVO;
-import cn.iocoder.yudao.module.oa.config.AiGenerateProperties;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.config.AiModelConfigDO;
@@ -52,7 +48,6 @@ import cn.iocoder.yudao.module.oa.dal.mysql.plan.ContentPlanStepMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.service.notification.NotificationService;
-import cn.iocoder.yudao.module.oa.util.AesUtil;
 import cn.iocoder.yudao.module.oa.util.LayoutJsonHelper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -96,8 +91,8 @@ public class ProductionContentServiceImpl implements ProductionContentService {
     private final ContentReviewConfigService contentReviewConfigService;
     private final NotificationService notificationService;
     private final FootballSystemUserValidator footballSystemUserValidator;
-    private final AesUtil aesUtil;
-    private final AiGenerateProperties aiGenerateProperties;
+    private final AiLlmInvokeSupport aiLlmInvokeSupport;
+    private final FootballArticleBridgeService footballArticleBridgeService;
 
     private static final String CONTENT_TYPE_ARTICLE = "ARTICLE";
     private static final String CONTENT_TYPE_SHORT_VIDEO = "SHORT_VIDEO";
@@ -149,6 +144,10 @@ public class ProductionContentServiceImpl implements ProductionContentService {
             if (!contentReviewConfigService.hasLevel2ListAccess(userId)) {
                 return PageResult.empty();
             }
+        } else if ("PENDING_FINAL_REVIEW".equals(status)) {
+            if (!contentReviewConfigService.hasLevel2ListAccess(userId)) {
+                return PageResult.empty();
+            }
         }
 
         LambdaQueryWrapper<ProductionContentDO> wrapper = new LambdaQueryWrapper<ProductionContentDO>()
@@ -161,20 +160,20 @@ public class ProductionContentServiceImpl implements ProductionContentService {
                 .eq(aiGenerated != null, ProductionContentDO::getAiGenerated, aiGenerated)
                 .orderByDesc(ProductionContentDO::getId);
 
-        if ("PENDING_FIRST_REVIEW".equals(status)
-                && !contentReviewConfigService.hasLevel1FullAccess(userId)) {
-            List<Long> ledGroupIds = contentReviewConfigService.listIpGroupIdsLedByUser(userId);
-            if (ledGroupIds.isEmpty()) {
-                return PageResult.empty();
-            }
-            wrapper.in(ProductionContentDO::getIpGroupId, ledGroupIds);
-        }
-
         contentDataScopeSupport.applyListScope(wrapper, tenantId, status);
 
         Page<ProductionContentDO> page = productionContentMapper.selectPage(
                 new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize), wrapper);
-        return new PageResult<>(toVOList(page.getRecords()), page.getTotal());
+
+        List<ProductionContentDO> records = page.getRecords();
+        if (isReviewQueueStatus(status) && userId != null) {
+            String stage = resolveReviewStageForStatus(status);
+            records = records.stream()
+                    .filter(c -> contentReviewConfigService.canReview(userId, c, stage))
+                    .toList();
+        }
+
+        return new PageResult<>(toVOList(records), page.getTotal());
     }
 
     @Override
@@ -192,9 +191,11 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         entity.setTenantId(tenantId);
         entity.setTitle(req.getTitle().trim());
         entity.setBody(StrUtil.blankToDefault(resolved.body(), ""));
+        applyPaidFreeBodyFields(entity, req.getPaidBody(), req.getFreeBody(), resolved.body(), req.getLayoutHtml());
         applyLayoutFields(entity, req.getBodyFormat(), req.getLayoutJson(), req.getLayoutHtml(), req.getLayoutTemplateId());
+        syncPaidBodyFromLayout(entity);
         entity.setCoverImage(req.getCoverImage());
-        entity.setCreatorUserId(req.getCreatorUserId());
+        entity.setCreatorUserId(resolveCreatorUserId(req.getCreatorUserId()));
         entity.setAccountId(resolved.accountId());
         entity.setPlatformType(resolved.platformType());
         entity.setPlatformTypesJson(ContentJsonHelper.toPlatformTypesJson(resolved.platformTypes()));
@@ -203,6 +204,7 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         entity.setStatus("DRAFT");
         entity.setAiGenerated(req.getAiGenerated() == null ? 0 : req.getAiGenerated());
         entity.setDocumentType(resolved.documentType());
+        entity.setSchemeType(SchemeTypeHelper.toStored(req.getSchemeTypes()));
         entity.setIpGroupId(resolved.ipGroupId());
         entity.setAuthorId(resolved.authorId());
         entity.setGeneratedVideoUrl(req.getGeneratedVideoUrl());
@@ -222,6 +224,7 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         productionContentMapper.insert(entity);
+        footballArticleBridgeService.syncDraftOnCreate(entity);
         return entity.getId();
     }
 
@@ -239,10 +242,14 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         if (req.getBody() != null) {
             existing.setBody(req.getBody());
         }
+        if (req.getPaidBody() != null || req.getFreeBody() != null) {
+            applyPaidFreeBodyFields(existing, req.getPaidBody(), req.getFreeBody(), req.getBody(), req.getLayoutHtml());
+        }
         if (req.getBodyFormat() != null || req.getLayoutJson() != null || req.getLayoutHtml() != null
                 || req.getLayoutTemplateId() != null) {
             applyLayoutFields(existing, req.getBodyFormat(), req.getLayoutJson(), req.getLayoutHtml(),
                     req.getLayoutTemplateId());
+            syncPaidBodyFromLayout(existing);
         }
         if (req.getCoverImage() != null) {
             existing.setCoverImage(req.getCoverImage());
@@ -279,6 +286,9 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         if (req.getDocumentType() != null) {
             existing.setDocumentType(req.getDocumentType());
         }
+        if (req.getSchemeTypes() != null) {
+            existing.setSchemeType(SchemeTypeHelper.toStored(req.getSchemeTypes()));
+        }
         if (existing.getTaskId() != null) {
             TaskDO task = requireTaskInTenant(existing.getTaskId(), existing.getTenantId());
             if (task.getIpGroupId() != null) {
@@ -313,6 +323,7 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         existing.setUpdater(TenantContextHolder.getUsername());
         existing.setUpdateTime(LocalDateTime.now());
         productionContentMapper.updateById(existing);
+        footballArticleBridgeService.syncOnUpdate(existing);
     }
 
     @Override
@@ -708,13 +719,24 @@ public class ProductionContentServiceImpl implements ProductionContentService {
                 .filter(r -> stage.equals(r.getStage()) && "REJECT".equals(r.getAction()))
                 .reduce((a, b) -> b)
                 .orElse(null);
-        if (reject != null && (approve == null || !reject.getCreateTime().isAfter(approve.getCreateTime()))) {
+        if (reject != null && (approve == null || !reject.getCreateTime().isAfter(approve.getCreateTime()))
+                && !hasResubmittedAfterReject(records, stage, reject)) {
             step.setStepStatus("REJECTED");
             fillFromRecord(step, reject, stage);
         } else if (approve != null) {
             step.setStepStatus("COMPLETED");
             fillFromRecord(step, approve, stage);
         }
+    }
+
+    private boolean hasResubmittedAfterReject(List<ReviewRecordDO> records, String stage, ReviewRecordDO reject) {
+        if (reject == null || reject.getCreateTime() == null) {
+            return false;
+        }
+        return records.stream().anyMatch(r -> stage.equals(r.getStage())
+                && "SUBMIT".equals(r.getAction())
+                && r.getCreateTime() != null
+                && r.getCreateTime().isAfter(reject.getCreateTime()));
     }
 
     private ReviewRecordDO findRecordByAction(List<ReviewRecordDO> records, String action) {
@@ -745,7 +767,7 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         step.setCompletedAt(record.getCreateTime());
         step.setComment(record.getComment());
         if (record.getReviewerId() != null) {
-            String userName = footballSystemUserValidator.resolveDisplayName(record.getReviewerId());
+            String userName = footballSystemUserValidator.resolveMemberDisplayName(record.getReviewerId(), null);
             if (StrUtil.isNotBlank(userName)) {
                 step.setReviewerName(userName);
                 String roleCode = contentReviewConfigService.resolveStageRoleCode(stage);
@@ -805,6 +827,8 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         vo.setId(entity.getId());
         vo.setTitle(entity.getTitle());
         vo.setBody(entity.getBody());
+        vo.setPaidBody(entity.getPaidBody());
+        vo.setFreeBody(entity.getFreeBody());
         vo.setBodyFormat(entity.getBodyFormat());
         if (StrUtil.isNotBlank(entity.getLayoutJson())) {
             vo.setLayoutJson(JSONUtil.parse(entity.getLayoutJson()));
@@ -847,6 +871,7 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         vo.setCompetitionId(entity.getCompetitionId());
         vo.setCompetitionName(entity.getCompetitionName());
         vo.setDocumentType(entity.getDocumentType());
+        vo.setSchemeTypes(SchemeTypeHelper.fromStored(entity.getSchemeType()));
         vo.setIpGroupId(entity.getIpGroupId());
         if (entity.getIpGroupId() != null) {
             if (ipGroupNameMap != null) {
@@ -867,7 +892,45 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         vo.setTransferredToKnowledge(entity.getTransferredToKnowledge() == null ? 0 : entity.getTransferredToKnowledge());
         vo.setKnowledgeId(entity.getKnowledgeId());
         vo.setCreateTime(entity.getCreateTime());
+        enrichFootballFields(vo, entity.getId());
         return vo;
+    }
+
+    private void enrichFootballFields(ProductionContentVO vo, Long contentId) {
+        FootballSchemeVO scheme = footballArticleBridgeService.getFootballScheme(contentId);
+        if (scheme == null) {
+            return;
+        }
+        vo.setAuthorArticleId(scheme.getAuthorArticleId());
+        vo.setShelfStatus(scheme.getShelfStatus());
+        vo.setFootballSyncError(scheme.getFootballSyncError());
+    }
+
+    private void applyPaidFreeBodyFields(ProductionContentDO entity, String paidBody, String freeBody,
+                                         String fallbackBody, String layoutHtml) {
+        if (paidBody != null) {
+            entity.setPaidBody(paidBody);
+        } else if (entity.getPaidBody() == null) {
+            if (StrUtil.isNotBlank(layoutHtml)) {
+                entity.setPaidBody(layoutHtml);
+            } else if (StrUtil.isNotBlank(fallbackBody)) {
+                entity.setPaidBody(fallbackBody);
+            } else if (StrUtil.isNotBlank(entity.getLayoutHtml())) {
+                entity.setPaidBody(entity.getLayoutHtml());
+            } else if (StrUtil.isNotBlank(entity.getBody())) {
+                entity.setPaidBody(entity.getBody());
+            }
+        }
+        if (freeBody != null) {
+            entity.setFreeBody(freeBody);
+        }
+    }
+
+    private void syncPaidBodyFromLayout(ProductionContentDO entity) {
+        if (entity.getPaidBody() == null && "LAYOUT".equals(entity.getBodyFormat())
+                && StrUtil.isNotBlank(entity.getLayoutHtml())) {
+            entity.setPaidBody(entity.getLayoutHtml());
+        }
     }
 
     private String resolveKnowledgeContent(ProductionContentDO content) {
@@ -1204,7 +1267,7 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         result.setTitle(StrUtil.blankToDefault(req.getContentType(), "AI 内容"));
         if ("CONNECTED".equals(model.getConnStatus()) && StrUtil.isNotBlank(model.getApiEndpoint())) {
             result.setMock(false);
-            result.setContent(generateViaModelEndpoint(model, filledPrompt));
+            result.setContent(aiLlmInvokeSupport.singleUserPrompt(model, filledPrompt));
             result.setMessage("AI 生成完成（模型 " + model.getModelName() + "）");
         } else {
             result.setMock(true);
@@ -1361,97 +1424,6 @@ public class ProductionContentServiceImpl implements ProductionContentService {
                 + "（BLK-M2-005：外部模型连通后将返回真实生成结果）";
     }
 
-    private String generateViaModelEndpoint(AiModelConfigDO model, String filledPrompt) {
-        String endpoint = resolveChatCompletionsUrl(model.getApiEndpoint());
-        int timeoutMs = resolveLlmTimeoutMs(model);
-        String apiKey = StrUtil.isNotBlank(model.getApiKeyEncrypted())
-                ? aesUtil.decrypt(model.getApiKeyEncrypted()) : "";
-
-        JSONObject body = new JSONObject();
-        body.set("model", StrUtil.blankToDefault(model.getModelId(), model.getModelName()));
-        body.set("max_tokens", model.getMaxTokens() == null ? 2048 : model.getMaxTokens());
-        if (model.getTemperature() != null) {
-            body.set("temperature", model.getTemperature());
-        }
-        if (model.getTopP() != null) {
-            body.set("top_p", model.getTopP());
-        }
-        JSONArray messages = new JSONArray();
-        JSONObject userMsg = new JSONObject();
-        userMsg.set("role", "user");
-        userMsg.set("content", filledPrompt);
-        messages.add(userMsg);
-        body.set("messages", messages);
-
-        log.info("AI generate calling model endpoint: model={}, url={}, timeoutMs={}",
-                model.getModelName(), endpoint, timeoutMs);
-        try {
-            HttpRequest request = HttpRequest.post(endpoint)
-                    .header("Content-Type", "application/json")
-                    .timeout(timeoutMs)
-                    .body(body.toString());
-            if (StrUtil.isNotBlank(apiKey)) {
-                request.header("Authorization", "Bearer " + apiKey);
-            }
-
-            HttpResponse response = request.execute();
-            if (!response.isOk()) {
-                log.warn("AI model HTTP {}: {}", response.getStatus(), response.body());
-                throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
-                        "AI 模型调用失败（HTTP " + response.getStatus() + "）");
-            }
-
-            JSONObject respJson = JSONUtil.parseObj(response.body());
-            JSONObject error = respJson.getJSONObject("error");
-            if (error != null) {
-                throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
-                        "AI 模型返回错误：" + StrUtil.blankToDefault(error.getStr("message"), error.toString()));
-            }
-            JSONArray choices = respJson.getJSONArray("choices");
-            if (choices == null || choices.isEmpty()) {
-                throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "AI 模型未返回有效内容");
-            }
-            JSONObject message = choices.getJSONObject(0).getJSONObject("message");
-            String content = message != null ? message.getStr("content") : null;
-            if (StrUtil.isBlank(content)) {
-                content = choices.getJSONObject(0).getStr("text");
-            }
-            if (StrUtil.isBlank(content)) {
-                throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "AI 模型返回空正文");
-            }
-            return content.trim();
-        } catch (ServiceException ex) {
-            throw ex;
-        } catch (Exception ex) {
-            log.warn("AI model call failed: model={}, url={}, timeoutMs={}, msg={}",
-                    model.getModelName(), endpoint, timeoutMs, ex.getMessage(), ex);
-            String detail = StrUtil.blankToDefault(ex.getMessage(), "外部服务不可用");
-            if (detail.toLowerCase().contains("timed out") || detail.toLowerCase().contains("timeout")) {
-                throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
-                        "AI 模型调用超时（已等待 " + (timeoutMs / 1000) + " 秒），请稍后重试或调大模型超时配置");
-            }
-            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
-                    "AI 模型调用失败：" + detail);
-        }
-    }
-
-    private int resolveLlmTimeoutMs(AiModelConfigDO model) {
-        int floorSec = aiGenerateProperties.getLlmTimeoutSeconds();
-        int modelSec = model.getTimeout() != null ? model.getTimeout() : floorSec;
-        return Math.max(modelSec, floorSec) * 1000;
-    }
-
-    private String resolveChatCompletionsUrl(String apiEndpoint) {
-        String url = StrUtil.removeSuffix(StrUtil.trim(apiEndpoint), "/");
-        if (url.endsWith("/chat/completions")) {
-            return url;
-        }
-        if (url.endsWith("/v1")) {
-            return url + "/chat/completions";
-        }
-        return url + "/v1/chat/completions";
-    }
-
     private void alignContentWithTask(ProductionContentDO content) {
         if (content.getTaskId() == null) {
             return;
@@ -1549,6 +1521,18 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         return tenantId;
     }
 
+    /** Login user SSOT; ignore mismatched client-sent creator ids (Football/wd id drift). */
+    private Long resolveCreatorUserId(Long requestedCreatorUserId) {
+        Long loginUserId = TenantContextHolder.getUserId();
+        if (loginUserId != null) {
+            return loginUserId;
+        }
+        if (requestedCreatorUserId == null) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "缺少创作者用户");
+        }
+        return requestedCreatorUserId;
+    }
+
     /** DRAFT/REJECTED always editable; task-linked COMPLETED may re-enter review after edit. */
     private boolean isEditableStatus(ProductionContentDO content) {
         String status = content.getStatus();
@@ -1565,6 +1549,21 @@ public class ProductionContentServiceImpl implements ProductionContentService {
 
     private boolean isSubmittableStatus(String status) {
         return "DRAFT".equals(status) || "REJECTED".equals(status);
+    }
+
+    private boolean isReviewQueueStatus(String status) {
+        return "PENDING_FIRST_REVIEW".equals(status)
+                || "PENDING_SECOND_REVIEW".equals(status)
+                || "PENDING_FINAL_REVIEW".equals(status);
+    }
+
+    private String resolveReviewStageForStatus(String status) {
+        return switch (status) {
+            case "PENDING_FIRST_REVIEW" -> "FIRST_REVIEW";
+            case "PENDING_SECOND_REVIEW" -> "SECOND_REVIEW";
+            case "PENDING_FINAL_REVIEW" -> "FINAL_REVIEW";
+            default -> null;
+        };
     }
 
     private void applyLayoutFields(ProductionContentDO entity, String bodyFormat, Object layoutJson,

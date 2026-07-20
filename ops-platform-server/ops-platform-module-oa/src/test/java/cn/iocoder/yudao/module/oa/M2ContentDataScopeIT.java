@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 /**
- * 内容管理列表数据范围：非 ALL 权限用户仅可见 creator_user_id=本人或 task.assignee_id=本人的内容。
+ * 内容管理列表数据范围：非 admin 仅可见 creator_user_id=本人的内容（6117 P1 收窄）。
  */
 @AutoConfigureMockMvc
 class M2ContentDataScopeIT extends OaITBase {

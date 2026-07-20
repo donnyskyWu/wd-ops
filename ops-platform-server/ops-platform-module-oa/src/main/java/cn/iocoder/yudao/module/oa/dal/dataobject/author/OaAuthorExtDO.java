@@ -11,7 +11,9 @@ import java.time.LocalDateTime;
 /**
  * 作者 Ops 扩展（ADR-051）。
  * <p>
- * SSOT 为 shenyu-member.author_user；本表 PK = author_user_id，存 IP 组、作者类型、主推公号等运营维度。
+ * SSOT 为 shenyu-member.author_user；本表 PK = author_user_id，存作者类型、主推公号等运营维度。
+ * <p>
+ * {@link #ipGroupId} 列保留兼容读路径，<strong>作者 IP 组归属 SSOT 为 {@code oa_ip_group_anchor_rel}</strong>（ADR-055）。
  * </p>
  */
 @Data

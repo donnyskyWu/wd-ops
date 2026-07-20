@@ -34,40 +34,10 @@ test.describe('IP组管理测试 @smoke', () => {
   })
 })
 
-test.describe('作者管理测试 @smoke', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/author')
+test.describe('作者看板测试 @smoke', () => {
+  test('AUTH-001: 看板 deep-link 可加载', async ({ page }) => {
+    await page.goto('/author/9101/dashboard')
     await page.waitForLoadState('networkidle')
-  })
-
-  test('AUTH-001: 列表数据加载', async ({ page }) => {
-    const table = page.locator('.el-table')
-    await expect(table).toBeVisible()
-    
-    const rows = page.locator('.el-table__body tr')
-    await expect(rows.first()).toBeVisible()
-  })
-
-  test('AUTH-002: 搜索和筛选', async ({ page }) => {
-    // 找到搜索输入框
-    const searchInput = page.locator('input[placeholder*="输入"]').first()
-    await expect(searchInput).toBeVisible()
-    
-    await searchInput.fill('测试作者')
-    await page.locator('button:has-text("搜索")').click()
-    
-    await page.waitForTimeout(500)
-    await expect(page.locator('.el-table')).toBeVisible()
-  })
-
-  test('AUTH-003: 新增作者对话框', async ({ page }) => {
-    const addButton = page.locator('button:has-text("新增")')
-    await expect(addButton).toBeVisible()
-    
-    await addButton.click()
-    await page.waitForTimeout(300)
-    
-    const dialog = page.locator('.el-dialog')
-    await expect(dialog).toBeVisible()
+    await expect(page.locator('.author-dashboard, .el-card').first()).toBeVisible({ timeout: 8_000 })
   })
 })

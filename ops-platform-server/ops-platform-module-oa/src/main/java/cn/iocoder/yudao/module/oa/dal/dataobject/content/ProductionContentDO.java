@@ -12,6 +12,10 @@ public class ProductionContentDO extends TenantBaseDO {
 
     private String title;
     private String body;
+    /** 付费内容（sync → author_article.content，ADR-054） */
+    private String paidBody;
+    /** 免费内容（sync → author_article.free_content，ADR-054） */
+    private String freeBody;
     /** dict_content_body_format: PLAIN / LAYOUT */
     private String bodyFormat;
     /** 富版式 JSON（bodyFormat=LAYOUT 时 SSOT） */
@@ -39,6 +43,8 @@ public class ProductionContentDO extends TenantBaseDO {
     private String competitionName;
     /** 文档类型（ARTICLE 时必填，dict_document_type） */
     private String documentType;
+    /** 赛事方案类型（dict_scheme_type，与 document_type 独立） */
+    private String schemeType;
     private Long ipGroupId;
     private Long authorId;
     /** AI 生成视频 URL（BLK-M2-010 占位） */

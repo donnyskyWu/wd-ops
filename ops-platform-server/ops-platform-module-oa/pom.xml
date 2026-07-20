@@ -26,6 +26,8 @@
              Ops stays on Boot 3.2.5 → use Spring Cloud 2023.0.x; same Nacos client version. -->
         <spring-cloud.version>2023.0.4</spring-cloud.version>
         <spring-cloud-alibaba.version>2023.0.3.3</spring-cloud-alibaba.version>
+        <!-- Align with Football football-dependencies bizlog-sdk -->
+        <bizlog-sdk.version>3.0.6</bizlog-sdk.version>
     </properties>
 
     <dependencyManagement>
@@ -44,6 +46,62 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- AL-05: pin OpenFeign stack to 4.1.x (Boot 3.2.5 + Spring Cloud 2023.0.4); 4.3.x requires Boot 3.5.x -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-starter-openfeign</artifactId>
+                <version>4.1.3</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+                <version>4.1.4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-starter</artifactId>
+                <version>4.1.4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-openfeign-core</artifactId>
+                <version>4.1.3</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-commons</artifactId>
+                <version>4.1.4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-loadbalancer</artifactId>
+                <version>4.1.4</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.openfeign</groupId>
+                <artifactId>feign-core</artifactId>
+                <version>13.2.1</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.openfeign</groupId>
+                <artifactId>feign-slf4j</artifactId>
+                <version>13.2.1</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.openfeign</groupId>
+                <artifactId>feign-form</artifactId>
+                <version>3.8.0</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.openfeign</groupId>
+                <artifactId>feign-form-spring</artifactId>
+                <version>3.8.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.stoyanr</groupId>
+                <artifactId>evictor</artifactId>
+                <version>1.0.0</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -51,6 +109,26 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <!-- AL-05: @LogRecord write path → Feign OperateLogCommonApi → system-server -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.mouzt</groupId>
+            <artifactId>bizlog-sdk</artifactId>
+            <version>${bizlog-sdk.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- Nacos service discovery (Football integration S1-A); active with profile dev-nacos -->
         <dependency>

@@ -16,5 +16,9 @@ public class IpGroupAnchorVO {
     /** API 兼容别名：作者昵称 */
     private String authorName;
     private String anchorType;
+    /** member author_user.author_level：0=作者 1=专家 */
+    private Integer authorLevel;
+    /** 作者所属 IP 组等级 dict_ip_group_level */
+    private String ipGroupLevel;
     private LocalDateTime boundAt;
 }

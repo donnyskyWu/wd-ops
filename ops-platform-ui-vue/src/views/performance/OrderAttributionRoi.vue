@@ -21,7 +21,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="IP 组">
-          <IpGroupTreeSelect v-model="filter.ipGroupId" />
+          <IpGroupTreeSelect v-model="filter.ipGroupId" scope="accessible" clearable />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="loadData">查询</el-button>

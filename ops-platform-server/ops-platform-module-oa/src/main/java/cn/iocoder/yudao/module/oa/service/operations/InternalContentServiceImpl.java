@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.oa.api.dto.operations.ContentTrendDetailVO;
 import cn.iocoder.yudao.module.oa.api.dto.operations.ContentTrendPointVO;
 import cn.iocoder.yudao.module.oa.api.dto.operations.ImportContentDataReq;
 import cn.iocoder.yudao.module.oa.api.dto.operations.ImportReviewReq;
+import cn.iocoder.yudao.module.oa.api.dto.account.AccountRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.operations.InternalContentVO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.analytics.ContentDailyDO;
@@ -21,9 +22,15 @@ import cn.iocoder.yudao.module.oa.dal.mysql.analytics.ContentDailyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentDataImportMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
+import cn.iocoder.yudao.module.oa.service.account.PlatformAccountService;
+import cn.iocoder.yudao.module.oa.service.account.WechatOfficialAccountResolver;
 import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataMergeSupport;
 import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataQueryService;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +41,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,6 +50,8 @@ public class InternalContentServiceImpl implements InternalContentService {
 
     private static final int REVIEW_PENDING = 0;
     private static final int REVIEW_APPROVED = 1;
+    private static final String PLATFORM_WECHAT_OFFICIAL = "WECHAT_OFFICIAL";
+    private static final int ALL_PLATFORM_FETCH_CAP = 5000;
 
     private final ContentMapper contentMapper;
     private final ContentDataImportMapper contentDataImportMapper;
@@ -49,6 +59,9 @@ public class InternalContentServiceImpl implements InternalContentService {
     private final SysUserMapper sysUserMapper;
     private final ContentDailyMapper contentDailyMapper;
     private final CollectedDataQueryService collectedDataQueryService;
+    private final PlatformAccountService platformAccountService;
+    private final WechatOfficialAccountResolver wechatOfficialAccountResolver;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public PageResult<InternalContentVO> list(String platformType, String dataSource, String contentType,
@@ -56,15 +69,10 @@ public class InternalContentServiceImpl implements InternalContentService {
                                               LocalDate startDate, LocalDate endDate,
                                               Integer page, Integer size) {
         Long tenantId = requireTenantId();
-        // S-R7-B1：ipGroupId 通过 oa_account 关联过滤（content 自身无 ipGroupId 字段）
-        // 取出该 ipGroupId 下的所有 accountId 子集
+        // S-R7-B1：ipGroupId 通过 oa_account / mp_account+oa_account_ext 关联过滤
         java.util.Set<Long> accountIdsFilter = null;
         if (ipGroupId != null) {
-            LambdaQueryWrapper<AccountDO> accWrapper = new LambdaQueryWrapper<AccountDO>()
-                    .eq(AccountDO::getTenantId, tenantId)
-                    .eq(AccountDO::getIpGroupId, ipGroupId);
-            accountIdsFilter = accountMapper.selectList(accWrapper).stream()
-                    .map(AccountDO::getId).collect(Collectors.toSet());
+            accountIdsFilter = resolveCollectAccountIds(tenantId, ipGroupId, null);
             if (accountIdsFilter.isEmpty()) {
                 return PageResult.empty();
             }
@@ -90,11 +98,9 @@ public class InternalContentServiceImpl implements InternalContentService {
         wrapper.orderByDesc(ContentDO::getPublishTime);
         List<InternalContentVO> legacy = contentMapper.selectList(wrapper).stream()
                 .map(this::toInternalVO).collect(Collectors.toList());
-        java.util.Set<Long> accountIdSet = accountIdsFilter != null ? accountIdsFilter
-                : accountMapper.selectList(new LambdaQueryWrapper<AccountDO>()
-                        .eq(AccountDO::getTenantId, tenantId)
-                        .eq(StrUtil.isNotBlank(platformType), AccountDO::getPlatformType, platformType))
-                .stream().map(AccountDO::getId).collect(Collectors.toSet());
+        java.util.Set<Long> accountIdSet = accountIdsFilter != null
+                ? accountIdsFilter
+                : resolveCollectAccountIds(tenantId, null, platformType);
         PageResult<InternalContentVO> collected = collectedDataQueryService.pageInternalContents(
                 tenantId, accountIdSet, platformType, contentType, keyword, startDate, endDate, 1, Integer.MAX_VALUE);
         PageResult<InternalContentVO> merged = CollectedDataMergeSupport.mergeInternalAndPage(
@@ -115,20 +121,67 @@ public class InternalContentServiceImpl implements InternalContentService {
                 ? java.util.Collections.emptyMap()
                 : accountMapper.selectBatchIds(accountIds).stream()
                 .collect(Collectors.toMap(AccountDO::getId, a -> a, (a, b) -> a));
+        Long tenantId = requireTenantId();
         for (InternalContentVO vo : rows) {
             if (vo.getAccountName() != null || vo.getAccountId() == null) {
                 continue;
             }
             AccountDO account = accountMap.get(vo.getAccountId());
+            if (account == null) {
+                account = wechatOfficialAccountResolver.resolveReadableAccount(vo.getAccountId(), tenantId)
+                        .orElse(null);
+            }
             if (account != null) {
                 vo.setAccountName(account.getAccountName());
             }
         }
     }
 
+    /**
+     * 采集表 account_id 与采集任务一致：公众号为 mp_account.id（SSOT），非仅 oa_account.id。
+     */
+    private java.util.Set<Long> resolveCollectAccountIds(Long tenantId, Long ipGroupId, String platformType) {
+        java.util.Set<Long> ids = new java.util.HashSet<>();
+        Set<Long> scopedGroups = opsDataScopeSupport.narrowIpGroupIds(ipGroupId);
+        if (scopedGroups != null && scopedGroups.size() == 1 && scopedGroups.contains(-1L)) {
+            return ids;
+        }
+        LambdaQueryWrapper<AccountDO> wrapper = new LambdaQueryWrapper<AccountDO>()
+                .eq(AccountDO::getTenantId, tenantId)
+                .in(scopedGroups != null, AccountDO::getIpGroupId, scopedGroups)
+                .eq(StrUtil.isNotBlank(platformType), AccountDO::getPlatformType, platformType);
+        ids.addAll(accountMapper.selectList(wrapper).stream()
+                .map(AccountDO::getId)
+                .collect(Collectors.toSet()));
+        if (shouldIncludeMpAccounts(platformType)) {
+            ids.addAll(listWechatOfficialAccountIds(ipGroupId));
+        }
+        return ids;
+    }
+
+    private boolean shouldIncludeMpAccounts(String platformType) {
+        return StrUtil.isBlank(platformType)
+                || "ALL".equalsIgnoreCase(platformType)
+                || PLATFORM_WECHAT_OFFICIAL.equals(platformType);
+    }
+
+    private java.util.Set<Long> listWechatOfficialAccountIds(Long ipGroupId) {
+        try {
+            PageResult<AccountRespVO> page = platformAccountService.list(
+                    PLATFORM_WECHAT_OFFICIAL, null, null, null, null, 1, ALL_PLATFORM_FETCH_CAP);
+            return page.getList().stream()
+                    .filter(vo -> ipGroupId == null || Objects.equals(vo.getIpGroupId(), ipGroupId))
+                    .map(AccountRespVO::getId)
+                    .collect(Collectors.toSet());
+        } catch (Exception ignored) {
+            return java.util.Collections.emptySet();
+        }
+    }
+
     @Override
     @Transactional
-    @AuditLog(module = "M1-internal-content", action = "import-submit")
+    @LogRecord(type = M1_INTERNAL_CONTENT_TYPE, subType = M1_INTERNAL_CONTENT_IMPORT_SUBMIT_SUB_TYPE,
+            bizNo = "{{#importRecord.id}}", success = M1_INTERNAL_CONTENT_IMPORT_SUBMIT_SUCCESS)
     public Long submitImport(ImportContentDataReq req) {
         Long tenantId = requireTenantId();
         validateStatDate(req.getStatDate());
@@ -156,6 +209,7 @@ public class InternalContentServiceImpl implements InternalContentService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         contentDataImportMapper.insert(entity);
+        LogRecordContext.putVariable("importRecord", entity);
         return entity.getId();
     }
 
@@ -173,9 +227,11 @@ public class InternalContentServiceImpl implements InternalContentService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-internal-content", action = "import-review")
+    @LogRecord(type = M1_INTERNAL_CONTENT_TYPE, subType = M1_INTERNAL_CONTENT_IMPORT_REVIEW_SUB_TYPE,
+            bizNo = "{{#importRecord.id}}", success = M1_INTERNAL_CONTENT_IMPORT_REVIEW_SUCCESS)
     public void reviewImport(Long id, ImportReviewReq req) {
         ContentDataImportDO existing = requireImport(id);
+        LogRecordContext.putVariable("importRecord", existing);
         if (existing.getReviewStatus() != null && existing.getReviewStatus() == REVIEW_APPROVED) {
             throw new ServiceException(OaErrorCodes.IMPORT_REVIEW_LOCKED);
         }

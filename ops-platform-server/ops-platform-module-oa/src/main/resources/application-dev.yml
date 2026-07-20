@@ -11,10 +11,15 @@ spring:
         enabled: false
         register-enabled: false
   datasource:
-    url: jdbc:mysql://101.37.161.136:3306/wd?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-    username: shenyu
-    password: "Zhangwu+123456"
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    dynamic:
+      primary: master
+      strict: false
+      datasource:
+        master:
+          url: jdbc:mysql://101.37.161.136:3306/wd?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+          username: shenyu
+          password: "Zhangwu+123456"
+          driver-class-name: com.mysql.cj.jdbc.Driver
   flyway:
     enabled: true
     baseline-on-migrate: true

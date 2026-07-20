@@ -188,6 +188,7 @@ class M4CrossTenantIT extends OaITBase {
                                   "externalAccountId": "wx_xt_%s",
                                   "companyId": %d,
                                   "realnameId": %d,
+                                  "ipGroupId": 9001,
                                   "status": "NORMAL"
                                 }
                                 """, uniqueTag.replace("-", ""), assets.companyId(), assets.realnameId())))

@@ -4,12 +4,22 @@ import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.oa.dal.dataobject.author.AuthorUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.author.OaAuthorExtDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupAnchorRelDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.author.OaAuthorExtMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupAnchorRelMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 跨库作者解析（author_user_id 语义，ADR-051 §4.4）。
@@ -19,6 +29,7 @@ import java.util.Objects;
 public class AuthorResolveSupport {
 
     private final OaAuthorExtMapper oaAuthorExtMapper;
+    private final IpGroupAnchorRelMapper ipGroupAnchorRelMapper;
     private final MemberAuthorReadService memberAuthorReadService;
 
     public AuthorUserDO requireAuthorUser(Long authorUserId, Long tenantId) {
@@ -30,20 +41,42 @@ public class AuthorResolveSupport {
         if (user.getStatus() != null && user.getStatus() == 1) {
             throw new ServiceException(OaErrorCodes.ENTITY_DISABLED);
         }
-        OaAuthorExtDO ext = oaAuthorExtMapper.selectById(authorUserId);
-        if (ipGroupId != null && (ext == null || !Objects.equals(ext.getIpGroupId(), ipGroupId))) {
+        if (ipGroupId != null && !isAuthorBoundToIpGroup(authorUserId, ipGroupId, tenantId)) {
             throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "作者不属于所选 IP 组");
         }
     }
 
     public Long findFirstAuthorUserId(Long ipGroupId, Long tenantId) {
-        OaAuthorExtDO ext = oaAuthorExtMapper.selectOne(new LambdaQueryWrapper<OaAuthorExtDO>()
-                .eq(OaAuthorExtDO::getTenantId, tenantId)
-                .eq(OaAuthorExtDO::getIpGroupId, ipGroupId)
-                .eq(OaAuthorExtDO::getStatus, 1)
-                .orderByAsc(OaAuthorExtDO::getAuthorUserId)
-                .last("LIMIT 1"));
-        return ext != null ? ext.getAuthorUserId() : null;
+        List<IpGroupAnchorRelDO> rels = ipGroupAnchorRelMapper.selectList(new LambdaQueryWrapper<IpGroupAnchorRelDO>()
+                .eq(IpGroupAnchorRelDO::getTenantId, tenantId)
+                .eq(IpGroupAnchorRelDO::getIpGroupId, ipGroupId)
+                .orderByAsc(IpGroupAnchorRelDO::getId));
+        for (IpGroupAnchorRelDO rel : rels) {
+            AuthorUserDO author = memberAuthorReadService.loadByIds(List.of(rel.getAnchorUserId()))
+                    .get(rel.getAnchorUserId());
+            if (author != null && Objects.equals(author.getTenantId(), tenantId) && isActiveAuthor(author)) {
+                return rel.getAnchorUserId();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * IP 组下可选作者 SSOT：{@code oa_ip_group_anchor_rel}（与 IP 组管理「关联作者」一致）。
+     */
+    public boolean isAuthorBoundToIpGroup(Long authorUserId, Long ipGroupId, Long tenantId) {
+        if (authorUserId == null || ipGroupId == null) {
+            return false;
+        }
+        Long count = ipGroupAnchorRelMapper.selectCount(new LambdaQueryWrapper<IpGroupAnchorRelDO>()
+                .eq(IpGroupAnchorRelDO::getTenantId, tenantId)
+                .eq(IpGroupAnchorRelDO::getIpGroupId, ipGroupId)
+                .eq(IpGroupAnchorRelDO::getAnchorUserId, authorUserId));
+        return count != null && count > 0;
+    }
+
+    private boolean isActiveAuthor(AuthorUserDO author) {
+        return author.getStatus() == null || author.getStatus() == 0;
     }
 
     public Long getPrimaryMpAccountId(Long authorUserId) {
@@ -56,16 +89,57 @@ public class AuthorResolveSupport {
     }
 
     /**
-     * Active author count for dashboard metrics (member SSOT + ext ip_group filter).
+     * 作者展示用 IP 组：取 {@code oa_ip_group_anchor_rel} 中最早绑定的一条（ADR-055）。
      */
-    public long countActiveAuthors(Long tenantId, java.util.Collection<Long> ipGroupIds) {
-        boolean scoped = ipGroupIds != null && !ipGroupIds.isEmpty();
-        if (scoped) {
-            return oaAuthorExtMapper.selectCount(new LambdaQueryWrapper<OaAuthorExtDO>()
-                    .eq(OaAuthorExtDO::getTenantId, tenantId)
-                    .eq(OaAuthorExtDO::getStatus, 1)
-                    .in(OaAuthorExtDO::getIpGroupId, ipGroupIds));
+    public Long resolveDisplayIpGroupId(Long authorUserId, Long tenantId) {
+        if (authorUserId == null) {
+            return null;
         }
-        return memberAuthorReadService.countActiveAuthors(tenantId);
+        IpGroupAnchorRelDO rel = ipGroupAnchorRelMapper.selectOne(new LambdaQueryWrapper<IpGroupAnchorRelDO>()
+                .eq(IpGroupAnchorRelDO::getTenantId, tenantId)
+                .eq(IpGroupAnchorRelDO::getAnchorUserId, authorUserId)
+                .orderByAsc(IpGroupAnchorRelDO::getId)
+                .last("LIMIT 1"));
+        return rel != null ? rel.getIpGroupId() : null;
+    }
+
+    /**
+     * 批量解析作者展示 IP 组（每个作者取最早 anchor_rel）。
+     */
+    public Map<Long, Long> loadDisplayIpGroupIdByAuthor(Long tenantId, Collection<Long> authorUserIds) {
+        if (authorUserIds == null || authorUserIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<IpGroupAnchorRelDO> rels = ipGroupAnchorRelMapper.selectList(new LambdaQueryWrapper<IpGroupAnchorRelDO>()
+                .eq(IpGroupAnchorRelDO::getTenantId, tenantId)
+                .in(IpGroupAnchorRelDO::getAnchorUserId, authorUserIds)
+                .orderByAsc(IpGroupAnchorRelDO::getId));
+        Map<Long, Long> map = new LinkedHashMap<>();
+        for (IpGroupAnchorRelDO rel : rels) {
+            map.putIfAbsent(rel.getAnchorUserId(), rel.getIpGroupId());
+        }
+        return map;
+    }
+
+    /**
+     * Active author count for dashboard metrics (ADR-055: anchor_rel SSOT when scoped by IP group).
+     */
+    public long countActiveAuthors(Long tenantId, Collection<Long> ipGroupIds) {
+        boolean scoped = ipGroupIds != null && !ipGroupIds.isEmpty();
+        if (!scoped) {
+            return memberAuthorReadService.countActiveAuthors(tenantId);
+        }
+        List<IpGroupAnchorRelDO> rels = ipGroupAnchorRelMapper.selectList(new LambdaQueryWrapper<IpGroupAnchorRelDO>()
+                .eq(IpGroupAnchorRelDO::getTenantId, tenantId)
+                .in(IpGroupAnchorRelDO::getIpGroupId, ipGroupIds));
+        Set<Long> authorUserIds = rels.stream()
+                .map(IpGroupAnchorRelDO::getAnchorUserId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (authorUserIds.isEmpty()) {
+            return 0L;
+        }
+        return memberAuthorReadService.loadByIds(authorUserIds).values().stream()
+                .filter(this::isActiveAuthor)
+                .count();
     }
 }

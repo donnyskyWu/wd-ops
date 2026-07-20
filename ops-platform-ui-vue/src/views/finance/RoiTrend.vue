@@ -21,7 +21,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="IP 组">
-          <IpGroupTreeSelect v-model="filter.ipGroupId" />
+          <IpGroupTreeSelect v-model="filter.ipGroupId" scope="accessible" clearable />
         </el-form-item>
         <el-form-item label="粒度">
           <el-radio-group v-model="filter.granularity">

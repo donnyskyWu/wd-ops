@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.author.AuthorUserMapper">
+
+    <!-- 根据赛事类型查询（去重作者） -->
+    <select id="getMatchRanking" resultType="football.module.member.controller.app.author.vo.AuthorInfoRespVO">
+        SELECT
+        au.id AS authorId,
+        au.nickname AS authorName,
+        au.avatar_url AS avatarUrl,
+        au.total_articles AS totalArticles,
+        au.hit_rate AS hitRate,
+        au.recent_articles AS recentArticles,
+        au.recent_hits AS recentHits,
+        au.consecutive_hits AS consecutiveHits,
+        au.on_sale_num AS onSaleNum,
+        au.fans AS fans
+        FROM
+        author_user au
+        WHERE
+        au.status = 0
+        AND au.id IN (
+        SELECT DISTINCT aam.author_id
+        FROM author_article_match aam
+        WHERE aam.deleted=0
+        <if test="hasOnSale != null and hasOnSale">
+            AND au.on_sale_num > 0
+        </if>
+        <choose>
+            <when test="classId != null">
+                and aam.class_id = #{classId}
+            </when>
+            <otherwise>
+                aam.class_id = -1
+            </otherwise>
+        </choose>
+        )
+        ORDER BY au.recent_hits DESC
+        LIMIT 100
+    </select>
+
+    <!-- 私域作者结果映射（AuthorUserDO），处理 adept_at 的 Jackson 序列化 -->
+    <resultMap id="PrivateAuthorUserMap" type="football.module.member.dal.dataobject.author.AuthorUserDO">
+        <id column="id" property="id"/>
+        <result column="nickname" property="nickname"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="hit_rate" property="hitRate"/>
+        <result column="total_articles" property="totalArticles"/>
+        <result column="recent_articles" property="recentArticles"/>
+        <result column="recent_hits" property="recentHits"/>
+        <result column="consecutive_hits" property="consecutiveHits"/>
+        <result column="performance_show" property="performanceShow"/>
+        <result column="author_source" property="authorSource"/>
+        <result column="private_status" property="privateStatus"/>
+        <result column="status" property="status"/>
+        <result column="adept_at" property="adeptAt" javaType="java.util.List"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+    </resultMap>
+
+    <!-- 查询用户关注的开启私域的作者列表；关联 member_user_follow 表，按私域状态、启用状态、设备可见性过滤 -->
+    <select id="selectPrivateAuthorsByFollow" resultMap="PrivateAuthorUserMap">
+        SELECT
+            au.id,
+            au.nickname,
+            au.avatar_url,
+            au.hit_rate,
+            au.total_articles,
+            au.recent_articles,
+            au.recent_hits,
+            au.consecutive_hits,
+            au.performance_show,
+            au.author_source,
+            au.private_status,
+            au.status,
+            au.adept_at
+        FROM member_user_follow fs
+        INNER JOIN author_user au ON au.id = fs.target_id AND au.status = 0
+        <where>
+            fs.status = 0
+            AND fs.user_id = #{userId}
+            AND fs.target_type = #{targetType}
+            AND au.private_status = 1
+            <if test="deviceType != null and deviceType != ''">
+                AND JSON_CONTAINS(au.device_types, CONCAT('"', #{deviceType}, '"'))
+            </if>
+        </where>
+        ORDER BY fs.id DESC
+    </select>
+
+    <update id="decrementFans">
+        UPDATE author_user
+        SET fans = fans - 1
+        WHERE fans > 0
+        AND
+        <choose>
+            <when test="authorIds != null and authorIds.size() == 1">
+                id = #{authorIds[0]}
+            </when>
+            <when test="authorIds != null and authorIds.size() > 1">
+                id IN
+                <foreach collection="authorIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </when>
+            <otherwise>
+                1 = 0
+            </otherwise>
+        </choose>
+    </update>
+
+    <update id="incrementFans">
+        UPDATE author_user
+        SET fans = fans + 1
+        WHERE
+        <choose>
+            <when test="authorIds != null and authorIds.size() == 1">
+                id = #{authorIds[0]}
+            </when>
+            <when test="authorIds != null and authorIds.size() > 1">
+                id IN
+                <foreach collection="authorIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </when>
+            <!-- 空集合：不更新任何记录 -->
+            <otherwise>
+                1 = 0
+            </otherwise>
+        </choose>
+    </update>
+
+
+    <!-- 更新单个作者方案相关统计数据 -->
+    <update id="updateArticleCountByAuthorId">
+        UPDATE author_user u
+            JOIN (
+            SELECT
+            author_id,
+            COUNT (CASE WHEN win_result = 0 AND status = 1 AND publish_time &lt; NOW() AND order_deadline &gt; NOW() THEN 1 END) AS on_sale_cnt,
+            COUNT (*) AS total_cnt
+            FROM author_article
+            WHERE author_id = #{authorId} and deleted = 0
+            GROUP BY author_id
+            ) a
+        ON u.id = a.author_id
+            SET
+                u.on_sale_num = a.on_sale_cnt, u.total_articles = a.total_cnt
+        WHERE u.id = #{authorId}
+    </update>
+
+
+    <update id="updateAuthorPerformance">
+        UPDATE author_user
+        SET hit_rate         = #{hitRate},
+            recent_articles  = #{recentArticles},
+            recent_hits      = #{recentHits},
+            consecutive_hits = #{consecutiveHits},
+            rtp= #{rtp}
+        WHERE id = #{id}
+    </update>
+</mapper>

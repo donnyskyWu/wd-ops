@@ -277,58 +277,6 @@
       </template>
     </el-dialog>
 
-    <el-drawer direction="rtl" append-to-body v-model="detailVisible" title="计划详情" size="960px">
-      <template v-if="detailData">
-        <el-divider content-position="left">计划信息</el-divider>
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="计划名称" :span="2">{{ detailData.planName }}</el-descriptions-item>
-          <el-descriptions-item label="SOP 模板">{{ detailData.templateName }}</el-descriptions-item>
-          <el-descriptions-item label="IP 组">{{ detailData.ipGroupName }}</el-descriptions-item>
-          <el-descriptions-item label="日期">{{ detailData.startDate }} ~ {{ detailData.endDate }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <DictLabel dict-type="dict_plan_status" :value="detailData.status" />
-          </el-descriptions-item>
-          <el-descriptions-item label="进度">{{ detailData.progress ?? 0 }}%</el-descriptions-item>
-          <el-descriptions-item label="赛事" :span="2">
-            {{ detailData.competitions?.map((c) => c.competitionName).join('、') || '--' }}
-          </el-descriptions-item>
-          <el-descriptions-item label="描述" :span="2">{{ detailData.description || '--' }}</el-descriptions-item>
-        </el-descriptions>
-
-        <el-divider content-position="left">生成的任务记录</el-divider>
-        <el-table :data="detailData.tasks || []" border size="small" empty-text="暂无任务（保存草稿后生成）">
-          <el-table-column prop="nodeName" label="节点" min-width="120" />
-          <el-table-column label="赛事" min-width="200" show-overflow-tooltip>
-            <template #default="{ row }">
-              {{ row.competitionName || row.competitionId || '—' }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="assigneeName" label="执行人" width="100" />
-          <el-table-column label="执行岗位" width="100">
-            <template #default="{ row }">
-              <DictLabel
-                dict-type="dict_position"
-                :value="row.executorRole"
-                :fallback="row.executorRoleText || row.executorRole || '—'"
-              />
-            </template>
-          </el-table-column>
-          <el-table-column prop="status" label="状态" width="110" align="center">
-            <template #default="{ row }">
-              <DictLabel dict-type="dict_sop_node_status" :value="row.status" />
-            </template>
-          </el-table-column>
-          <el-table-column label="开始时间" width="170">
-            <template #default="{ row }">{{ formatDateTime(row.scheduledStart) }}</template>
-          </el-table-column>
-          <el-table-column label="结束时间" width="170">
-            <template #default="{ row }">{{ formatDateTime(row.scheduledEnd) }}</template>
-          </el-table-column>
-          <el-table-column prop="slaDeadline" label="SLA 截止" width="170" />
-        </el-table>
-      </template>
-    </el-drawer>
-
     <MatchSelectDialog
       v-model:visible="matchDialogVisible"
       multiple
@@ -336,6 +284,18 @@
       :exclude-ids="allSelectedMatchIds"
       @confirm="handleMatchConfirm"
     />
+
+    <el-drawer
+      direction="rtl"
+      append-to-body
+      v-model="detailDrawerVisible"
+      :title="detailDrawerTitle"
+      size="80%"
+      destroy-on-close
+      class="plan-detail-drawer"
+    >
+      <PlanDetailPanel v-if="viewingPlanId" :plan-id="viewingPlanId" />
+    </el-drawer>
   </div>
 </template>
 
@@ -343,6 +303,7 @@
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import PlanDetailPanel from './detail.vue'
 import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
@@ -352,7 +313,6 @@ import MatchSelectDialog from '@/components/selectors/MatchSelectDialog.vue'
 import { getSopTemplateList, getSopNodeList } from '@/api/sop'
 import { toCompetitionId, toCompetitionName, type MatchVO } from '@/api/match'
 import { getIpGroupDetail, getIpGroupMembers } from '@/api/ip-group'
-import { formatDateTime } from '@/utils/index'
 import {
   buildIpGroupContext,
   buildStepsFromTasks,
@@ -390,6 +350,9 @@ interface StepFormRow {
 }
 
 const loading = ref(false)
+const detailDrawerVisible = ref(false)
+const viewingPlanId = ref<number | null>(null)
+const detailDrawerTitle = ref('计划详情')
 const submitting = ref(false)
 const planList = ref<ContentPlanVO[]>([])
 const total = ref(0)
@@ -406,8 +369,6 @@ const searchForm = reactive({ pageNo: 1, pageSize: 20, planName: undefined as st
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增计划')
 const editingPlanId = ref<number | null>(null)
-const detailVisible = ref(false)
-const detailData = ref<ContentPlanVO | null>(null)
 const formRef = ref<any>()
 const formData = reactive({
   planName: '',
@@ -762,9 +723,10 @@ const handleSubmit = async () => {
   }
 }
 
-const handleView = async (row: ContentPlanVO) => {
-  detailData.value = await getContentPlan(row.id)
-  detailVisible.value = true
+const handleView = (row: ContentPlanVO) => {
+  detailDrawerTitle.value = `计划详情 - ${row.planName}`
+  viewingPlanId.value = row.id
+  detailDrawerVisible.value = true
 }
 
 const handleStart = async (row: ContentPlanVO) => {
@@ -846,5 +808,11 @@ onMounted(async () => {
   .fallback-tag { margin-top: 4px; }
   .pagination { margin-top: 16px; display: flex; justify-content: flex-end; }
   :deep(.el-divider__text) { font-weight: 600; color: #303133; }
+}
+</style>
+
+<style lang="scss">
+.plan-detail-drawer.el-drawer {
+  min-width: 720px;
 }
 </style>

@@ -16,7 +16,6 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.dict.SysDictDataDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.MetricDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfTemplateDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfTemplateItemDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.dict.SysDictDataMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.MetricMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateItemMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateMapper;
@@ -43,7 +42,6 @@ public class PerfTemplateServiceImpl implements PerfTemplateService {
     private final PerfTemplateMapper perfTemplateMapper;
     private final PerfTemplateItemMapper perfTemplateItemMapper;
     private final MetricMapper metricMapper;
-    private final SysDictDataMapper sysDictDataMapper;
     private final DictService dictService;
 
     @Override
@@ -243,10 +241,7 @@ public class PerfTemplateServiceImpl implements PerfTemplateService {
     }
 
     private Map<String, String> loadPositionLabels() {
-        return sysDictDataMapper.selectList(new LambdaQueryWrapper<SysDictDataDO>()
-                        .eq(SysDictDataDO::getDictType, "dict_position")
-                        .eq(SysDictDataDO::getStatus, "ENABLED"))
-                .stream()
+        return dictService.listByType("dict_position").stream()
                 .collect(Collectors.toMap(SysDictDataDO::getDictValue, SysDictDataDO::getLabel, (a, b) -> a));
     }
 

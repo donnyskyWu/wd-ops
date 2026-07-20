@@ -49,6 +49,13 @@ function getUserPermissions(): string[] {
 }
 
 /**
+ * 判断当前用户是否拥有指定权限（供业务逻辑复用，不仅限于 v-hasPermi）
+ */
+export function hasUserPermission(permission: string | string[]): boolean {
+  return hasPermission(permission)
+}
+
+/**
  * 判断是否有权限
  * 
  * @param permission 权限标识

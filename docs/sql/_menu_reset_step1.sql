@@ -1,0 +1,11 @@
+﻿SET NAMES utf8mb4;
+DROP TABLE IF EXISTS system_menu_backup_20260716;
+DROP TABLE IF EXISTS system_role_menu_backup_20260716;
+CREATE TABLE system_menu_backup_20260716 AS SELECT * FROM system_menu;
+CREATE TABLE system_role_menu_backup_20260716 AS SELECT * FROM system_role_menu;
+SELECT 'backup_menu' AS step, COUNT(*) AS cnt FROM system_menu_backup_20260716;
+SELECT 'backup_role_menu' AS step, COUNT(*) AS cnt FROM system_role_menu_backup_20260716;
+DELETE FROM system_role_menu;
+DELETE FROM system_menu;
+SELECT 'after_delete_menu' AS step, COUNT(*) AS cnt FROM system_menu;
+SELECT 'after_delete_role_menu' AS step, COUNT(*) AS cnt FROM system_role_menu;

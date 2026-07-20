@@ -1,16 +1,15 @@
 package cn.iocoder.yudao.module.oa;
 
-import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @AutoConfigureMockMvc
@@ -23,9 +22,9 @@ class M1AuthorS04IT extends OaITBase {
     private MockMvc mockMvc;
 
     @Test
-    @DisplayName("M1-S-04: 新建作者")
-    void createAuthor() throws Exception {
-        MvcResult result = mockMvc.perform(post("/admin-api/oa/author/create")
+    @DisplayName("M1-S-04: POST /oa/author/create 已废弃 (410)")
+    void createAuthorDeprecated() throws Exception {
+        mockMvc.perform(post("/admin-api/oa/author/create")
                         .header("Authorization", ADMIN)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -37,16 +36,31 @@ class M1AuthorS04IT extends OaITBase {
                                   "status": 1
                                 }
                                 """))
-                .andExpect(jsonPath("$.code").value(0))
-                .andReturn();
+                .andExpect(jsonPath("$.code").value(410));
+    }
 
-        Long authorId = JsonPath.parse(result.getResponse().getContentAsString()).read("$.data", Long.class);
+    @Test
+    @DisplayName("M1-S-04: PUT /oa/author-ext 写运营扩展")
+    void updateAuthorExt() throws Exception {
+        mockMvc.perform(put("/admin-api/oa/author-ext/9101")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "authorType": "SHORT_VIDEO",
+                                  "status": 1,
+                                  "remark": "IT-ext-update"
+                                }
+                                """))
+                .andExpect(jsonPath("$.code").value(0));
 
-        mockMvc.perform(get("/admin-api/oa/author/" + authorId + "/dashboard")
+        mockMvc.perform(get("/admin-api/oa/author-ext/9101")
                         .header("Authorization", ADMIN)
                         .header("X-Tenant-Id", TENANT))
                 .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.data.authorName").value("IT-作者测试"));
+                .andExpect(jsonPath("$.data.authorUserId").value(9101))
+                .andExpect(jsonPath("$.data.remark").value("IT-ext-update"));
     }
 
     @Test
@@ -80,34 +94,31 @@ class M1AuthorS04IT extends OaITBase {
     }
 
     @Test
-    @DisplayName("M1-S-04: 作者 IP 组必须小组 (1101)")
-    void authorIpGroupMustSmall() throws Exception {
-        mockMvc.perform(post("/admin-api/oa/author/create")
+    @DisplayName("M1-S-04: author-ext 禁止写入 IP 组 (1105 ADR-055)")
+    void authorExtIpGroupManagedInIpGroup() throws Exception {
+        mockMvc.perform(put("/admin-api/oa/author-ext/9101")
                         .header("Authorization", ADMIN)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "authorName": "IT-非法大组作者",
-                                  "ipGroupId": 9000,
+                                  "ipGroupId": 9001,
                                   "authorType": "SHORT_VIDEO",
                                   "status": 1
                                 }
                                 """))
-                .andExpect(jsonPath("$.code").value(1101));
+                .andExpect(jsonPath("$.code").value(1105));
     }
 
     @Test
     @DisplayName("M1-S-04: 主推号类型校验 (1102)")
     void primaryAccountTypeInvalid() throws Exception {
-        mockMvc.perform(post("/admin-api/oa/author/create")
+        mockMvc.perform(put("/admin-api/oa/author-ext/9101")
                         .header("Authorization", ADMIN)
                         .header("X-Tenant-Id", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "authorName": "IT-非法主推号",
-                                  "ipGroupId": 9001,
                                   "authorType": "SHORT_VIDEO",
                                   "primaryAccountId": 9006,
                                   "status": 1

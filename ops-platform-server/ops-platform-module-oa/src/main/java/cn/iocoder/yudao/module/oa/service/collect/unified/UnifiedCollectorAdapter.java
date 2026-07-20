@@ -6,12 +6,13 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.oa.api.dto.collect.CollectorAccountBindRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.collect.CollectorAccountBindSaveReq;
 import cn.iocoder.yudao.module.oa.api.dto.collect.CollectorAccountBindTestConnectionRespVO;
+import cn.iocoder.yudao.module.oa.config.UnifiedCollectorProperties;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.CollectorAccountBindDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.CollectorAccountBindMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.service.collect.CollectorAccountBindService;
+import cn.iocoder.yudao.module.oa.service.account.WechatOfficialAccountResolver;
 import cn.iocoder.yudao.module.oa.service.config.ConfigTenantSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,8 @@ public class UnifiedCollectorAdapter {
     private static final String BIND_STATUS_BOUND = "BOUND";
     private static final String BIND_STATUS_FAILED = "FAILED";
 
-    private final AccountMapper accountMapper;
+    private final WechatOfficialAccountResolver wechatOfficialAccountResolver;
+    private final UnifiedCollectorProperties unifiedCollectorProperties;
     private final CollectorAccountBindMapper collectorAccountBindMapper;
     private final CollectorAccountBindService collectorAccountBindService;
     private final CollectorCredentialBuilder credentialBuilder;
@@ -108,7 +110,8 @@ public class UnifiedCollectorAdapter {
     }
 
     public CollectorAccountBindRespVO getBind(Long oaAccountId) {
-        ConfigTenantSupport.assertAccountInTenant(accountMapper, oaAccountId);
+        Long tenantId = ConfigTenantSupport.requireTenantId();
+        wechatOfficialAccountResolver.assertTenantAccount(oaAccountId, tenantId);
         return collectorAccountBindService.getByOaAccountId(oaAccountId);
     }
 
@@ -262,8 +265,22 @@ public class UnifiedCollectorAdapter {
             throw ex;
         } catch (Exception ex) {
             persistFailedBind(account, "DISCONNECTED");
-            throw new ServiceException(2022, "Collector 绑定失败: " + ex.getMessage());
+            throw new ServiceException(2022, formatBindFailure(ex));
         }
+    }
+
+    private String formatBindFailure(Exception ex) {
+        String detail = ex.getMessage();
+        if (StrUtil.isBlank(detail)) {
+            return "Collector 绑定失败：采集服务无响应";
+        }
+        String lower = detail.toLowerCase();
+        if (lower.contains("connection refused") || lower.contains("connectexception")
+                || lower.contains("connect timed out") || lower.contains("unknown host")) {
+            return "采集服务未启动或不可达（" + unifiedCollectorProperties.getBaseUrl()
+                    + "），请启动 unify-collector-api（端口 8000）后重试";
+        }
+        return "Collector 绑定失败: " + detail;
     }
 
     private void persistFailedBind(AccountDO account, String connStatus) {
@@ -309,8 +326,7 @@ public class UnifiedCollectorAdapter {
     }
 
     private AccountDO requireAccount(Long oaAccountId) {
-        AccountDO account = accountMapper.selectById(oaAccountId);
-        return ConfigTenantSupport.getRequiredInTenant(account);
+        return wechatOfficialAccountResolver.requireTenantAccount(oaAccountId, ConfigTenantSupport.requireTenantId());
     }
 
     /** 已认证公众号 + AppID/AppSecret 采集前自动绑定 Collector（无需手动 Cookie 绑定）。 */

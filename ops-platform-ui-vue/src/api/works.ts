@@ -1,5 +1,6 @@
 /**
  * 作品分析 - API接口封装
+ * ipGroupId：可选，后端已按成员 IP 组强制过滤；前端仅缩小范围
  */
 
 import { request } from '@/utils/request'

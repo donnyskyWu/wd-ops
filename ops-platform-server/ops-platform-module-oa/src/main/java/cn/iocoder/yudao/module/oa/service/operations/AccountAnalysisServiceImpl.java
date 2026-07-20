@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.oa.api.dto.account.AccountRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.operations.AccountAnalysisVO;
 import cn.iocoder.yudao.module.oa.api.dto.operations.ContentAnalysisVO;
 import cn.iocoder.yudao.module.oa.api.dto.operations.FollowerAnalysisVO;
@@ -19,10 +20,13 @@ import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
 import cn.iocoder.yudao.module.oa.dal.dataobject.personal.PersonalWechatAccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.personal.PersonalWechatDailyStatsDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.PersonalWechatAccountMapper;
+import cn.iocoder.yudao.module.oa.service.account.PlatformAccountService;
+import cn.iocoder.yudao.module.oa.service.account.WechatOfficialAccountResolver;
 import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataMergeSupport;
 import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataQueryService;
 import cn.iocoder.yudao.module.oa.service.personal.PersonalWechatCollectStatusService;
 import cn.iocoder.yudao.module.oa.service.personal.PersonalWechatDailyStatsService;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -31,9 +35,11 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,15 +47,20 @@ import java.util.stream.Collectors;
 public class AccountAnalysisServiceImpl implements AccountAnalysisService {
 
     private static final String PLATFORM_PERSONAL_WECHAT = "WECHAT_PERSONAL";
+    private static final String PLATFORM_WECHAT_OFFICIAL = "WECHAT_OFFICIAL";
+    private static final int ALL_PLATFORM_FETCH_CAP = 5000;
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ISO_LOCAL_DATE;
 
     private final AccountMapper accountMapper;
+    private final PlatformAccountService platformAccountService;
+    private final WechatOfficialAccountResolver wechatOfficialAccountResolver;
     private final IpGroupMapper ipGroupMapper;
     private final FollowerDailyMapper followerDailyMapper;
     private final ContentMapper contentMapper;
     private final PersonalWechatAccountMapper personalWechatAccountMapper;
     private final PersonalWechatDailyStatsService personalWechatDailyStatsService;
     private final CollectedDataQueryService collectedDataQueryService;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public PageResult<AccountAnalysisVO> list(String platform, Long ipGroupId, String keyword,
@@ -62,6 +73,9 @@ public class AccountAnalysisServiceImpl implements AccountAnalysisService {
                                               Integer pageNo, Integer pageSize, LocalDate statDate) {
         if (PLATFORM_PERSONAL_WECHAT.equals(platform)) {
             return listPersonalWechat(keyword, pageNo, pageSize, statDate);
+        }
+        if (isAllPlatform(platform) || PLATFORM_WECHAT_OFFICIAL.equals(platform)) {
+            return listFromPlatformAccount(platform, ipGroupId, keyword, pageNo, pageSize);
         }
         Long tenantId = requireTenantId();
         LambdaQueryWrapper<AccountDO> wrapper = new LambdaQueryWrapper<AccountDO>()
@@ -77,6 +91,86 @@ public class AccountAnalysisServiceImpl implements AccountAnalysisService {
                 new Page<>(pageNo == null ? 1 : pageNo, pageSize == null ? 20 : pageSize), wrapper);
         List<AccountAnalysisVO> list = page.getRecords().stream().map(this::toVO).collect(Collectors.toList());
         return new PageResult<>(list, page.getTotal());
+    }
+
+    /**
+     * 公众号账号存于 mp_account（M4 SSOT），与平台账号管理同源；ALL 亦走 PlatformAccountService 合并逻辑。
+     */
+    private PageResult<AccountAnalysisVO> listFromPlatformAccount(String platform, Long ipGroupId, String keyword,
+                                                                    Integer pageNo, Integer pageSize) {
+        String platformType = isAllPlatform(platform) ? "ALL" : platform;
+        int pn = pageNo == null ? 1 : pageNo;
+        int ps = pageSize == null ? 20 : pageSize;
+
+        if (ipGroupId != null) {
+            PageResult<AccountRespVO> all = platformAccountService.list(
+                    platformType, keyword, null, null, null, 1, ALL_PLATFORM_FETCH_CAP);
+            List<AccountAnalysisVO> filtered = all.getList().stream()
+                    .filter(vo -> Objects.equals(vo.getIpGroupId(), ipGroupId))
+                    .map(this::toAnalysisFromPlatformAccount)
+                    .collect(Collectors.toList());
+            return paginateInMemory(filtered, pn, ps);
+        }
+
+        PageResult<AccountRespVO> page = platformAccountService.list(
+                platformType, keyword, null, null, null, pn, ps);
+        List<AccountAnalysisVO> list = page.getList().stream()
+                .map(this::toAnalysisFromPlatformAccount)
+                .collect(Collectors.toList());
+        return new PageResult<>(list, page.getTotal());
+    }
+
+    private boolean isAllPlatform(String platform) {
+        return StrUtil.isBlank(platform) || "ALL".equalsIgnoreCase(platform);
+    }
+
+    private AccountDO requireReadableAccount(Long accountId, Long tenantId) {
+        AccountDO account = accountMapper.selectById(accountId);
+        if (account != null && Objects.equals(account.getTenantId(), tenantId)) {
+            opsDataScopeSupport.assertAccountReadable(account);
+            return account;
+        }
+        account = wechatOfficialAccountResolver.resolveReadableAccount(accountId, tenantId)
+                .orElseThrow(() -> new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "账号不存在"));
+        opsDataScopeSupport.assertAccountReadable(account);
+        return account;
+    }
+
+    private PageResult<AccountAnalysisVO> paginateInMemory(List<AccountAnalysisVO> all, int pageNo, int pageSize) {
+        long total = all.size();
+        int from = Math.max(0, (pageNo - 1) * pageSize);
+        if (from >= all.size()) {
+            return new PageResult<>(new ArrayList<>(), total);
+        }
+        int to = Math.min(from + pageSize, all.size());
+        return new PageResult<>(all.subList(from, to), total);
+    }
+
+    private AccountAnalysisVO toAnalysisFromPlatformAccount(AccountRespVO src) {
+        if (PLATFORM_WECHAT_OFFICIAL.equals(src.getPlatformType())) {
+            return wechatOfficialAccountResolver.resolveReadableAccount(src.getId(), requireTenantId())
+                    .map(this::toVO)
+                    .orElseGet(() -> mapBasicFromResp(src));
+        }
+        AccountDO account = accountMapper.selectById(src.getId());
+        if (account != null) {
+            return toVO(account);
+        }
+        return mapBasicFromResp(src);
+    }
+
+    private AccountAnalysisVO mapBasicFromResp(AccountRespVO src) {
+        AccountAnalysisVO vo = new AccountAnalysisVO();
+        vo.setAccountId(src.getId());
+        vo.setAccountName(src.getAccountName());
+        vo.setPlatformType(src.getPlatformType());
+        vo.setIpGroupId(src.getIpGroupId());
+        vo.setIpGroupName(src.getIpGroupName());
+        vo.setAccountType(src.getAccountType());
+        vo.setStatus(src.getStatus());
+        vo.setFollowerCount(src.getFollowerCount() != null ? src.getFollowerCount() : 0L);
+        vo.setContentCount(src.getWorkCount() != null ? src.getWorkCount() : 0);
+        return vo;
     }
 
     private PageResult<AccountAnalysisVO> listPersonalWechat(String keyword, Integer pageNo,
@@ -136,10 +230,7 @@ public class AccountAnalysisServiceImpl implements AccountAnalysisService {
     @Override
     public List<FollowerAnalysisVO> listAccountFollowers(Long accountId, LocalDate startDate, LocalDate endDate) {
         Long tenantId = requireTenantId();
-        AccountDO account = accountMapper.selectById(accountId);
-        if (account == null || !account.getTenantId().equals(tenantId)) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "账号不存在");
-        }
+        AccountDO account = requireReadableAccount(accountId, tenantId);
         String ipGroupName = null;
         if (account.getIpGroupId() != null) {
             IpGroupDO g = ipGroupMapper.selectById(account.getIpGroupId());
@@ -152,7 +243,6 @@ public class AccountAnalysisServiceImpl implements AccountAnalysisService {
                 .ge(startDate != null, FollowerDailyDO::getStatDate, startDate)
                 .le(endDate != null, FollowerDailyDO::getStatDate, endDate)
                 .orderByDesc(FollowerDailyDO::getStatDate);
-        DataScopeSupport.applyIpGroupScope(wrapper, FollowerDailyDO::getAccountId);
         List<FollowerAnalysisVO> legacy = followerDailyMapper.selectList(wrapper).stream().map(d -> {
             FollowerAnalysisVO vo = new FollowerAnalysisVO();
             vo.setStatDate(d.getStatDate());
@@ -176,15 +266,11 @@ public class AccountAnalysisServiceImpl implements AccountAnalysisService {
     @Override
     public PageResult<ContentAnalysisVO> listAccountContents(Long accountId, Integer pageNo, Integer pageSize) {
         Long tenantId = requireTenantId();
-        AccountDO account = accountMapper.selectById(accountId);
-        if (account == null || !account.getTenantId().equals(tenantId)) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "账号不存在");
-        }
+        AccountDO account = requireReadableAccount(accountId, tenantId);
         LambdaQueryWrapper<ContentDO> wrapper = new LambdaQueryWrapper<ContentDO>()
                 .eq(ContentDO::getTenantId, tenantId)
                 .eq(ContentDO::getAccountId, accountId)
                 .orderByDesc(ContentDO::getPublishTime);
-        DataScopeSupport.applyIpGroupScope(wrapper, ContentDO::getAccountId);
         List<ContentAnalysisVO> legacy = contentMapper.selectList(wrapper).stream()
                 .map(this::toContentVO).collect(Collectors.toList());
         if (!collectedDataQueryService.supportsPlatform(account.getPlatformType())) {
@@ -214,10 +300,7 @@ public class AccountAnalysisServiceImpl implements AccountAnalysisService {
     @Override
     public List<Map<String, Object>> accountContentTrend(Long accountId, LocalDate startDate, LocalDate endDate) {
         Long tenantId = requireTenantId();
-        AccountDO account = accountMapper.selectById(accountId);
-        if (account == null || !account.getTenantId().equals(tenantId)) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "账号不存在");
-        }
+        AccountDO account = requireReadableAccount(accountId, tenantId);
         LocalDate end = endDate != null ? endDate : LocalDate.now();
         LocalDate start = startDate != null ? startDate : end.minusDays(29);
         LambdaQueryWrapper<ContentDO> wrapper = new LambdaQueryWrapper<ContentDO>()

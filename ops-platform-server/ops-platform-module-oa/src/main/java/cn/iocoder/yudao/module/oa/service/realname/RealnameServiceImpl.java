@@ -12,7 +12,11 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.company.CompanyDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.realname.RealnameDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.company.CompanyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.realname.RealnameMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.service.impl.DiffParseFunction;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import cn.iocoder.yudao.module.oa.util.ImageKeyHelper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -57,7 +61,8 @@ public class RealnameServiceImpl implements RealnameService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-realname", action = "create")
+    @LogRecord(type = M4_REALNAME_TYPE, subType = M4_REALNAME_CREATE_SUB_TYPE, bizNo = "{{#realname.id}}",
+            success = M4_REALNAME_CREATE_SUCCESS)
     public Long create(RealnameCreateReq req) {
         Long tenantId = requireTenantId();
         assertCompanyInTenant(req.getCompanyId(), tenantId);
@@ -80,14 +85,18 @@ public class RealnameServiceImpl implements RealnameService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         realnameMapper.insert(entity);
+        LogRecordContext.putVariable("realname", entity);
         return entity.getId();
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-realname", action = "update")
+    @LogRecord(type = M4_REALNAME_TYPE, subType = M4_REALNAME_UPDATE_SUB_TYPE, bizNo = "{{#realname.id}}",
+            success = M4_REALNAME_UPDATE_SUCCESS)
     public void update(RealnameUpdateReq req) {
         RealnameDO existing = getRequiredInTenant(req.getId());
+        LogRecordContext.putVariable(DiffParseFunction.OLD_OBJECT, toUpdateReq(existing));
+        LogRecordContext.putVariable("realname", existing);
         if (req.getCompanyId() != null) {
             assertCompanyInTenant(req.getCompanyId(), existing.getTenantId());
             existing.setCompanyId(req.getCompanyId());
@@ -134,9 +143,11 @@ public class RealnameServiceImpl implements RealnameService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-realname", action = "delete")
+    @LogRecord(type = M4_REALNAME_TYPE, subType = M4_REALNAME_DELETE_SUB_TYPE, bizNo = "{{#realname.id}}",
+            success = M4_REALNAME_DELETE_SUCCESS)
     public void delete(Long id) {
         RealnameDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("realname", existing);
         if (existing.getAccountBoundCount() != null && existing.getAccountBoundCount() > 0) {
             throw new ServiceException(OaErrorCodes.ENTITY_ALREADY_BOUND);
         }
@@ -251,5 +262,19 @@ public class RealnameServiceImpl implements RealnameService {
         } catch (Exception ex) {
             return "****";
         }
+    }
+
+    private static RealnameUpdateReq toUpdateReq(RealnameDO entity) {
+        RealnameUpdateReq req = new RealnameUpdateReq();
+        req.setId(entity.getId());
+        req.setCompanyId(entity.getCompanyId());
+        req.setRealName(entity.getRealName());
+        req.setIdType(entity.getIdType());
+        req.setWechat(entity.getWechat());
+        req.setGender(entity.getGender());
+        req.setStatus(entity.getStatus());
+        req.setIdCardFrontKey(entity.getIdCardFrontKey());
+        req.setIdCardBackKey(entity.getIdCardBackKey());
+        return req;
     }
 }

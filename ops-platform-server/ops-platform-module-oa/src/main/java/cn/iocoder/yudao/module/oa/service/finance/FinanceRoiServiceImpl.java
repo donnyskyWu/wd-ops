@@ -16,6 +16,8 @@ import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.OrderAttributionMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.service.support.OaTenantSupport;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport.AccountScopeMode;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -40,6 +42,7 @@ public class FinanceRoiServiceImpl implements FinanceRoiService {
     private final AccountCostMapper accountCostMapper;
     private final AccountMapper accountMapper;
     private final IpGroupMapper ipGroupMapper;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public FinanceRoiAnalysisVO analysis(LocalDate startDate, LocalDate endDate, Long ipGroupId, Long accountId, String dimension) {
@@ -142,20 +145,28 @@ public class FinanceRoiServiceImpl implements FinanceRoiService {
 
     private List<OrderAttributionDO> queryAttributions(Long tenantId, LocalDate start, LocalDate end,
                                                        Long ipGroupId, Long accountId) {
-        return orderAttributionMapper.selectList(new LambdaQueryWrapper<OrderAttributionDO>()
+        Set<Long> scopedGroups = opsDataScopeSupport.narrowIpGroupIds(ipGroupId);
+        if (scopedGroups != null && scopedGroups.size() == 1 && scopedGroups.contains(-1L)) {
+            return List.of();
+        }
+        LambdaQueryWrapper<OrderAttributionDO> wrapper = new LambdaQueryWrapper<OrderAttributionDO>()
                 .eq(OrderAttributionDO::getTenantId, tenantId)
-                .eq(ipGroupId != null, OrderAttributionDO::getIpGroupId, ipGroupId)
+                .in(scopedGroups != null, OrderAttributionDO::getIpGroupId, scopedGroups)
                 .eq(accountId != null, OrderAttributionDO::getAccountId, accountId)
                 .ge(OrderAttributionDO::getStatDate, start)
-                .le(OrderAttributionDO::getStatDate, end));
+                .le(OrderAttributionDO::getStatDate, end);
+        opsDataScopeSupport.applyAccountIdIn(wrapper, OrderAttributionDO::getAccountId, AccountScopeMode.MEMBER_GROUPS);
+        return orderAttributionMapper.selectList(wrapper);
     }
 
     private List<AccountCostDO> queryCosts(Long tenantId, LocalDate start, LocalDate end, Long accountId) {
-        return accountCostMapper.selectList(new LambdaQueryWrapper<AccountCostDO>()
+        LambdaQueryWrapper<AccountCostDO> wrapper = new LambdaQueryWrapper<AccountCostDO>()
                 .eq(AccountCostDO::getTenantId, tenantId)
                 .eq(accountId != null, AccountCostDO::getAccountId, accountId)
                 .ge(AccountCostDO::getPayDate, start)
-                .le(AccountCostDO::getPayDate, end));
+                .le(AccountCostDO::getPayDate, end);
+        opsDataScopeSupport.applyAccountIdIn(wrapper, AccountCostDO::getAccountId, AccountScopeMode.MEMBER_GROUPS);
+        return accountCostMapper.selectList(wrapper);
     }
 
     private BigDecimal sumRevenue(List<OrderAttributionDO> attrs) {

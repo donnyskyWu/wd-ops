@@ -1,6 +1,7 @@
 /**
  * 粉丝分析 - API (P-GATE-UNMOCK-R S-R2-C, S-R6 重构)
  * 路径对齐后端：/admin-api/oa/follower-analysis/* (spec §4.4)
+ * ipGroupId：可选，后端已按成员 IP 组强制过滤；前端仅缩小范围
  */
 import { request } from '@/utils/request'
 import type { FollowerQuery, FollowerStats } from '@/types/follower'

@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.oa.api.dto.analytics.FunnelVO;
 import cn.iocoder.yudao.module.oa.api.dto.analytics.MetricPreviewReq;
 import cn.iocoder.yudao.module.oa.api.dto.analytics.MetricPreviewVO;
 import cn.iocoder.yudao.module.oa.api.dto.perf.ExportJobVO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.analytics.FunnelDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.analytics.FunnelStepDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.bridging.PrivateDomainConversionBridgeDO;
@@ -17,6 +18,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.collect.AochuangFriendDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.operations.ContentDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.operations.FollowerDailyDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.perf.MetricDO;
+import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.analytics.FunnelMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.analytics.FunnelStepMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.bridging.PrivateDomainConversionBridgeMapper;
@@ -25,6 +27,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.MetricMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import cn.iocoder.yudao.module.oa.service.support.OaTenantSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -35,10 +38,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -58,13 +63,18 @@ public class FunnelServiceImpl implements FunnelService {
     private final AnalyticsMetricService analyticsMetricService;
     private final AochuangFriendMapper aochuangFriendMapper;
     private final PrivateDomainConversionBridgeMapper bridgeMapper;
+    private final AccountMapper accountMapper;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public PageResult<FunnelVO> list(Integer pageNum, Integer pageSize) {
         Long tenantId = requireTenantId();
+        LambdaQueryWrapper<FunnelDO> wrapper = new LambdaQueryWrapper<FunnelDO>()
+                .eq(FunnelDO::getTenantId, tenantId)
+                .orderByDesc(FunnelDO::getId);
+        opsDataScopeSupport.applySelfCreator(wrapper, FunnelDO::getCreator);
         Page<FunnelDO> page = funnelMapper.selectPage(
-                new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize),
-                new LambdaQueryWrapper<FunnelDO>().eq(FunnelDO::getTenantId, tenantId).orderByDesc(FunnelDO::getId));
+                new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize), wrapper);
         return new PageResult<>(page.getRecords().stream().map(this::toVO).collect(Collectors.toList()), page.getTotal());
     }
 
@@ -101,7 +111,7 @@ public class FunnelServiceImpl implements FunnelService {
                 .eq(FunnelStepDO::getFunnelId, id)
                 .orderByAsc(FunnelStepDO::getStepOrder));
         Long tenantId = funnel.getTenantId();
-        List<ContentDO> contents = queryContents(tenantId, startDate, endDate, platformType);
+        List<ContentDO> contents = queryContents(tenantId, startDate, endDate, platformType, ipGroupId);
 
         FunnelDataVO vo = new FunnelDataVO();
         vo.setFunnelId(id);
@@ -132,9 +142,29 @@ public class FunnelServiceImpl implements FunnelService {
         return OaTenantSupport.stubExportJob();
     }
 
-    private List<ContentDO> queryContents(Long tenantId, LocalDate startDate, LocalDate endDate, String platformType) {
+    private List<ContentDO> queryContents(Long tenantId, LocalDate startDate, LocalDate endDate,
+                                        String platformType, Long ipGroupId) {
         LambdaQueryWrapper<ContentDO> wrapper = new LambdaQueryWrapper<ContentDO>()
                 .eq(ContentDO::getTenantId, tenantId);
+        opsDataScopeSupport.applyAccountIdIn(wrapper, ContentDO::getAccountId,
+                OpsDataScopeSupport.AccountScopeMode.MEMBER_GROUPS);
+        if (ipGroupId != null) {
+            Set<Long> groupIds = opsDataScopeSupport.narrowIpGroupIds(ipGroupId);
+            if (groupIds != null && !groupIds.isEmpty()) {
+                Set<Long> accountIds = accountMapper.selectList(new LambdaQueryWrapper<AccountDO>()
+                                .eq(AccountDO::getTenantId, tenantId)
+                                .in(AccountDO::getIpGroupId, groupIds)
+                                .select(AccountDO::getId))
+                        .stream()
+                        .map(AccountDO::getId)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+                if (accountIds.isEmpty()) {
+                    wrapper.eq(ContentDO::getAccountId, -1L);
+                } else {
+                    wrapper.in(ContentDO::getAccountId, accountIds);
+                }
+            }
+        }
         if (platformType != null && !platformType.isBlank()) {
             wrapper.eq(ContentDO::getPlatformType, platformType);
         }
@@ -254,6 +284,7 @@ public class FunnelServiceImpl implements FunnelService {
         if (!Objects.equals(entity.getTenantId(), requireTenantId())) {
             throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
         }
+        opsDataScopeSupport.assertSelfCreator(entity.getCreator());
         return entity;
     }
 

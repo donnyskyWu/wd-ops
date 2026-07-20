@@ -8,6 +8,7 @@ import type {
   PageResult,
   CreateContentReq,
   ReviewActionReq,
+  FootballSchemeVO,
 } from '@/types/content'
 
 export function getContentList(params: ContentQuery): Promise<PageResult<ContentListItem>> {
@@ -173,6 +174,26 @@ export function transferContentToKnowledge(id: number) {
   })
 }
 
+/** ADR-054：读取 Football 发布方案（上架态 + 桥接信息） */
+export function fetchFootballScheme(id: number): Promise<FootballSchemeVO> {
+  return request.get({ url: `/oa/content/${id}/football-scheme` })
+}
+
+/** ADR-054：幂等同步 OPS 内容至 author_article 草稿 */
+export function syncFootballScheme(id: number): Promise<FootballSchemeVO> {
+  return request.post({ url: `/oa/content/${id}/sync-football-scheme` })
+}
+
+/** ADR-054：Football 方案上架（author_article.status=1） */
+export function shelfOn(id: number): Promise<FootballSchemeVO> {
+  return request.post({ url: `/oa/content/${id}/shelf-on` })
+}
+
+/** ADR-054：Football 方案下架（author_article.status=0） */
+export function shelfOff(id: number): Promise<FootballSchemeVO> {
+  return request.post({ url: `/oa/content/${id}/shelf-off` })
+}
+
 export default {
   getContentList,
   createContent,
@@ -194,4 +215,8 @@ export default {
   publishContentDraft,
   formalPublishContent,
   transferContentToKnowledge,
+  fetchFootballScheme,
+  syncFootballScheme,
+  shelfOn,
+  shelfOff,
 }

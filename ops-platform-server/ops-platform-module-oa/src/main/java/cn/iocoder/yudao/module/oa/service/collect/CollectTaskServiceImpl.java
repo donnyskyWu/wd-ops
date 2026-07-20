@@ -13,8 +13,8 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.collect.CollectTaskDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.personal.PersonalWechatAccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.personal.WeworkAccountDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.account.MpAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.PersonalWechatAccountMapper;
+import cn.iocoder.yudao.module.oa.service.account.MpAccountDataService;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.WeworkAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.CollectTaskMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
@@ -54,7 +54,7 @@ public class CollectTaskServiceImpl implements CollectTaskService {
 
     private final CollectTaskMapper collectTaskMapper;
     private final AccountMapper accountMapper;
-    private final MpAccountMapper mpAccountMapper;
+    private final MpAccountDataService mpAccountDataService;
     private final PersonalWechatAccountMapper personalWechatAccountMapper;
     private final WeworkAccountMapper weworkAccountMapper;
     private final AesUtil aesUtil;
@@ -250,10 +250,7 @@ public class CollectTaskServiceImpl implements CollectTaskService {
             return;
         }
         if (PLATFORM_WECHAT_OFFICIAL.equals(platformType)) {
-            MpAccountDO mp = mpAccountMapper.selectById(accountId);
-            if (mp == null || !requireTenantId().equals(mp.getTenantId())) {
-                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
-            }
+            mpAccountDataService.requireById(accountId, requireTenantId());
             return;
         }
         ConfigTenantSupport.assertAccountInTenant(accountMapper, accountId);
@@ -334,7 +331,7 @@ public class CollectTaskServiceImpl implements CollectTaskService {
             return null;
         }
         if (PLATFORM_WECHAT_OFFICIAL.equals(entity.getPlatformType())) {
-            MpAccountDO mp = mpAccountMapper.selectById(entity.getAccountId());
+            MpAccountDO mp = mpAccountDataService.selectById(entity.getAccountId());
             if (mp != null && ConfigTenantSupport.requireTenantId().equals(mp.getTenantId())) {
                 return mp.getName();
             }
@@ -355,7 +352,7 @@ public class CollectTaskServiceImpl implements CollectTaskService {
             return resolveAccountName(entity);
         }
         if (PLATFORM_WECHAT_OFFICIAL.equals(entity.getPlatformType())) {
-            MpAccountDO mp = mpAccountMapper.selectById(entity.getAccountId());
+            MpAccountDO mp = mpAccountDataService.selectById(entity.getAccountId());
             return mp != null ? mp.getName() : resolveAccountName(entity);
         }
         AccountDO account = accountById.get(entity.getAccountId());

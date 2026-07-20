@@ -36,13 +36,15 @@ import cn.iocoder.yudao.module.oa.dal.mysql.plan.ContentPlanStepMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.SopNodeMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.SopTemplateMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import cn.iocoder.yudao.module.oa.service.author.AuthorResolveSupport;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.service.sop.TaskService;
 import cn.iocoder.yudao.module.oa.service.notification.NotificationService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.starter.annotation.LogRecord;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -58,6 +60,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 
 @Service
 @RequiredArgsConstructor
@@ -87,6 +91,7 @@ public class ContentPlanServiceImpl implements ContentPlanService {
     private final NotificationService notificationService;
     private final PlanTaskGeneratorService planTaskGeneratorService;
     private final AuthorResolveSupport authorResolveSupport;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public PageResult<ContentPlanRespVO> list(String planName, String status, Integer pageNo, Integer pageSize) {
@@ -96,6 +101,7 @@ public class ContentPlanServiceImpl implements ContentPlanService {
                 .like(StrUtil.isNotBlank(planName), ContentPlanDO::getPlanName, planName)
                 .eq(StrUtil.isNotBlank(status), ContentPlanDO::getStatus, status)
                 .orderByDesc(ContentPlanDO::getId);
+        opsDataScopeSupport.applySelfCreator(wrapper, ContentPlanDO::getCreator);
         Page<ContentPlanDO> page = contentPlanMapper.selectPage(
                 new Page<>(pageNo == null ? 1 : pageNo, pageSize == null ? 20 : pageSize), wrapper);
         List<ContentPlanRespVO> list = page.getRecords().stream()
@@ -112,7 +118,8 @@ public class ContentPlanServiceImpl implements ContentPlanService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-plan", action = "create")
+    @LogRecord(type = M2_PLAN_TYPE, subType = M2_PLAN_CREATE_SUB_TYPE, bizNo = "{{#plan.id}}",
+            success = M2_PLAN_CREATE_SUCCESS)
     public Long create(ContentPlanCreateReq req) {
         Long tenantId = requireTenantId();
         assertTemplateInTenant(req.getTemplateId(), tenantId);
@@ -146,6 +153,7 @@ public class ContentPlanServiceImpl implements ContentPlanService {
         plan.setCreateTime(LocalDateTime.now());
         plan.setUpdateTime(LocalDateTime.now());
         contentPlanMapper.insert(plan);
+        LogRecordContext.putVariable("plan", plan);
 
         saveCompetitions(plan.getId(), tenantId, req.getCompetitions());
         saveStepsAndTasks(plan, effectiveSteps, req.getTasks(), nodeMap, competitionNameMap, tenantId);
@@ -154,9 +162,11 @@ public class ContentPlanServiceImpl implements ContentPlanService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-plan", action = "update")
+    @LogRecord(type = M2_PLAN_TYPE, subType = M2_PLAN_UPDATE_SUB_TYPE, bizNo = "{{#req.id}}",
+            success = M2_PLAN_UPDATE_SUCCESS)
     public void update(ContentPlanUpdateReq req) {
         ContentPlanDO plan = requirePlan(req.getId());
+        LogRecordContext.putVariable("plan", plan);
         if (!STATUS_DRAFT.equals(plan.getStatus())) {
             throw new ServiceException(OaErrorCodes.TASK_STATUS_INVALID.getCode(), "仅草稿计划可编辑");
         }
@@ -189,9 +199,11 @@ public class ContentPlanServiceImpl implements ContentPlanService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-plan", action = "start")
+    @LogRecord(type = M2_PLAN_TYPE, subType = M2_PLAN_START_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_PLAN_START_SUCCESS)
     public void start(Long id) {
         ContentPlanDO plan = requirePlan(id);
+        LogRecordContext.putVariable("plan", plan);
         if (!STATUS_DRAFT.equals(plan.getStatus())) {
             throw new ServiceException(OaErrorCodes.TASK_STATUS_INVALID.getCode(), "仅草稿计划可启动");
         }
@@ -217,9 +229,11 @@ public class ContentPlanServiceImpl implements ContentPlanService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-plan", action = "terminate-submit")
+    @LogRecord(type = M2_PLAN_TYPE, subType = M2_PLAN_TERMINATE_SUBMIT_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_PLAN_TERMINATE_SUBMIT_SUCCESS)
     public void submitTerminate(Long id, ContentPlanTerminateReq req) {
         ContentPlanDO plan = requirePlan(id);
+        LogRecordContext.putVariable("plan", plan);
         if (!STATUS_IN_PROGRESS.equals(plan.getStatus())) {
             throw new ServiceException(OaErrorCodes.TASK_STATUS_INVALID.getCode(), "仅进行中的计划可提交终止");
         }
@@ -234,10 +248,12 @@ public class ContentPlanServiceImpl implements ContentPlanService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-plan", action = "terminate-approve")
+    @LogRecord(type = M2_PLAN_TYPE, subType = M2_PLAN_TERMINATE_APPROVE_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_PLAN_TERMINATE_APPROVE_SUCCESS)
     public void approveTerminate(Long id) {
         requireOpsLeader();
         ContentPlanDO plan = requirePlan(id);
+        LogRecordContext.putVariable("plan", plan);
         if (!STATUS_TERMINATE_PENDING.equals(plan.getStatus())) {
             throw new ServiceException(OaErrorCodes.TASK_STATUS_INVALID.getCode(), "计划不在终止审批中");
         }
@@ -256,10 +272,12 @@ public class ContentPlanServiceImpl implements ContentPlanService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-plan", action = "terminate-reject")
+    @LogRecord(type = M2_PLAN_TYPE, subType = M2_PLAN_TERMINATE_REJECT_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_PLAN_TERMINATE_REJECT_SUCCESS)
     public void rejectTerminate(Long id) {
         requireOpsLeader();
         ContentPlanDO plan = requirePlan(id);
+        LogRecordContext.putVariable("plan", plan);
         if (!STATUS_TERMINATE_PENDING.equals(plan.getStatus())) {
             throw new ServiceException(OaErrorCodes.TASK_STATUS_INVALID.getCode(), "计划不在终止审批中");
         }
@@ -271,9 +289,11 @@ public class ContentPlanServiceImpl implements ContentPlanService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-plan", action = "delete")
+    @LogRecord(type = M2_PLAN_TYPE, subType = M2_PLAN_DELETE_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_PLAN_DELETE_SUCCESS)
     public void delete(Long id) {
         ContentPlanDO plan = requirePlan(id);
+        LogRecordContext.putVariable("plan", plan);
         if (!STATUS_DRAFT.equals(plan.getStatus())) {
             throw new ServiceException(OaErrorCodes.TASK_STATUS_INVALID.getCode(), "仅草稿计划可删除");
         }
@@ -654,6 +674,7 @@ public class ContentPlanServiceImpl implements ContentPlanService {
         if (!requireTenantId().equals(plan.getTenantId())) {
             throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
         }
+        opsDataScopeSupport.assertSelfCreator(plan.getCreator());
         return plan;
     }
 

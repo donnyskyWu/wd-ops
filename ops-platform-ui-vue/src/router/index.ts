@@ -48,8 +48,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/author',
         name: 'Author',
-        component: () => import('@/views/operations/Author.vue'),
-        meta: { title: '作者管理' }
+        component: () => import('@/views/operations/AuthorRedirect.vue'),
+        meta: { title: '作者信息', hideInMenu: true, deprecated: true }
       },
       {
         path: '/account-analysis',
@@ -83,7 +83,7 @@ const routes: RouteRecordRaw[] = [
         path: '/author/:id/dashboard',
         name: 'AuthorDashboard',
         component: () => import('@/views/operations/AuthorDashboard.vue'),
-        meta: { title: '作者看板' }
+        meta: { title: '作者看板', hideInMenu: true }
       },
       {
         path: '/efficiency',
@@ -309,7 +309,7 @@ const routes: RouteRecordRaw[] = [
         path: '/platform-account/:id',
         name: 'PlatformAccountDetail',
         component: () => import('@/views/internal/PlatformAccountDetail.vue'),
-        meta: { title: '平台账号详情' }
+        meta: { title: '平台账号详情', hideInMenu: true }
       },
       // 内部管理 - 个人账号管理
       {
@@ -600,27 +600,6 @@ const routes: RouteRecordRaw[] = [
         name: 'SystemParam',
         component: () => import('@/views/system/ParamManage.vue'),
         meta: { title: '系统参数' }
-      },
-      // 系统管理 - 字典配置
-      {
-        path: '/system-dict',
-        name: 'SystemDict',
-        component: () => import('@/views/system/DictManage.vue'),
-        meta: { title: '字典配置' }
-      },
-      // 系统管理 - 操作日志
-      {
-        path: '/system-log/operation',
-        name: 'SystemLogOperation',
-        component: () => import('@/views/system/LogManage.vue'),
-        meta: { title: '操作日志' }
-      },
-      // 系统管理 - 登录日志
-      {
-        path: '/system-log/login',
-        name: 'SystemLogLogin',
-        component: () => import('@/views/system/LoginLog.vue'),
-        meta: { title: '登录日志' }
       },
       // 系统管理 - 消息管理
       {

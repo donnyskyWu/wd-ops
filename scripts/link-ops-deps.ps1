@@ -1,5 +1,6 @@
-# Link Ops runtime deps from ops-platform-ui-vue into football-front/node_modules.
+﻿# Link Ops runtime deps from ops-platform-ui-vue into football-front/node_modules.
 # ADR-047: additive integration; avoids broken pnpm workspace install.
+# Prefer declaring Ops deps in apps/web-ele/package.json via pnpm catalog (see @element-plus/icons-vue, markdown-it, echarts, tiptap, xlsx).
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
 $OpsNm = Join-Path $Root 'ops-platform-ui-vue\node_modules'
@@ -9,12 +10,9 @@ if (-not (Test-Path $OpsNm)) {
     Write-Error "Missing $OpsNm — run npm/pnpm install in ops-platform-ui-vue first."
 }
 
+# Legacy junction fallbacks only (not imported in web-ele or covered by catalog deps).
 $packages = @(
-    'echarts',
-    'vue-echarts',
-    'xlsx',
-    '@logicflow',
-    '@tiptap'
+    'vue-echarts'
 )
 
 function Link-Package($name) {
@@ -35,11 +33,5 @@ function Link-Package($name) {
 }
 
 foreach ($p in $packages) { Link-Package $p }
-
-# logicflow extension deps (peer packages under @logicflow)
-$logicflowExtras = @('@logicflow/core', '@logicflow/extension', '@logicflow/vue-node-registry')
-foreach ($p in $logicflowExtras) {
-    if ($p -like '@logicflow/*') { continue } # covered by @logicflow junction
-}
 
 Write-Host "Done. Restart Vite dev server if running."

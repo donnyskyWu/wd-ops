@@ -26,7 +26,10 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.phone.PhoneDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.config.AoCreateAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.PersonalWechatAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.phone.PhoneMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import cn.iocoder.yudao.module.oa.service.collect.aochuang.DeviceSyncService;
 import cn.iocoder.yudao.module.oa.service.collect.aochuang.FriendSyncService;
 import cn.iocoder.yudao.module.oa.service.collect.aochuang.MessageSyncService;
@@ -86,7 +89,8 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-personal-wechat", action = "create")
+    @LogRecord(type = M4_PERSONAL_WECHAT_TYPE, subType = M4_PERSONAL_WECHAT_CREATE_SUB_TYPE,
+            bizNo = "{{#personalWechat.id}}", success = M4_PERSONAL_WECHAT_CREATE_SUCCESS)
     public Long create(PersonalWechatCreateReq req) {
         Long tenantId = requireTenantId();
         assertWechatIdUnique(tenantId, req.getWechatId(), null);
@@ -106,6 +110,7 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         personalWechatAccountMapper.insert(entity);
+        LogRecordContext.putVariable("personalWechat", entity);
         if (req.getLinkedWeworkEmployeeId() != null) {
             linkService.syncLink(entity.getId(), req.getLinkedWeworkEmployeeId());
         }
@@ -114,9 +119,11 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-personal-wechat", action = "update")
+    @LogRecord(type = M4_PERSONAL_WECHAT_TYPE, subType = M4_PERSONAL_WECHAT_UPDATE_SUB_TYPE,
+            bizNo = "{{#personalWechat.id}}", success = M4_PERSONAL_WECHAT_UPDATE_SUCCESS)
     public void update(PersonalWechatUpdateReq req) {
         PersonalWechatAccountDO existing = getRequiredInTenant(req.getId());
+        LogRecordContext.putVariable("personalWechat", existing);
         Long tenantId = requireTenantId();
         if (StrUtil.isNotBlank(req.getWechatId()) && !req.getWechatId().equals(existing.getWechatId())) {
             assertWechatIdUnique(tenantId, req.getWechatId(), req.getId());
@@ -147,17 +154,21 @@ public class PersonalWechatAccountServiceImpl implements PersonalWechatAccountSe
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-personal-wechat", action = "delete")
+    @LogRecord(type = M4_PERSONAL_WECHAT_TYPE, subType = M4_PERSONAL_WECHAT_DELETE_SUB_TYPE,
+            bizNo = "{{#personalWechat.id}}", success = M4_PERSONAL_WECHAT_DELETE_SUCCESS)
     public void delete(Long id) {
-        getRequiredInTenant(id);
+        PersonalWechatAccountDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("personalWechat", existing);
         personalWechatAccountMapper.deleteById(id);
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-personal-wechat", action = "api-config")
+    @LogRecord(type = M4_PERSONAL_WECHAT_TYPE, subType = M4_PERSONAL_WECHAT_API_CONFIG_SUB_TYPE,
+            bizNo = "{{#personalWechat.id}}", success = M4_PERSONAL_WECHAT_API_CONFIG_SUCCESS)
     public void saveApiConfig(PersonalWechatApiConfigReq req) {
         PersonalWechatAccountDO existing = getRequiredInTenant(req.getId());
+        LogRecordContext.putVariable("personalWechat", existing);
         if (StrUtil.isNotBlank(req.getApiUrl())) {
             existing.setApiUrlEncrypted(aesUtil.encrypt(req.getApiUrl()));
         }

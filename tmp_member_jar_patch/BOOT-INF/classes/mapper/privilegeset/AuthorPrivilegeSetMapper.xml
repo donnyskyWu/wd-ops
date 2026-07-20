@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.privilegeset.AuthorPrivilegeSetMapper">
+
+    <sql id="BaseFilter">
+        aps.deleted = 0
+        AND (aps.parent_id IS NULL OR aps.parent_id = 0)
+        <if test="reqVO.authorId != null">
+            AND aps.author_id = #{reqVO.authorId}
+        </if>
+        <if test="reqVO.authorName != null and reqVO.authorName != ''">
+            AND au.nickname LIKE CONCAT('%', #{reqVO.authorName}, '%')
+        </if>
+        <if test="reqVO.name != null and reqVO.name != ''">
+            AND aps.name LIKE CONCAT('%', #{reqVO.name}, '%')
+        </if>
+        <if test="reqVO.startTime != null and reqVO.startTime != ''">
+            AND aps.create_time &gt;= CONCAT(#{reqVO.startTime}, ' 00:00:00')
+        </if>
+        <if test="reqVO.endTime != null and reqVO.endTime != ''">
+            AND aps.create_time &lt;= CONCAT(#{reqVO.endTime}, ' 23:59:59')
+        </if>
+        <if test="reqVO.authorIds != null and reqVO.authorIds.size() > 0">
+            AND aps.author_id IN
+            <foreach collection="reqVO.authorIds" item="item" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="getAuthorPrivilegeSetPage"
+            resultType="football.module.member.controller.admin.privilegeset.vo.AuthorPrivilegeSetPageRespVO">
+        SELECT
+            aps.id,
+            aps.author_id AS authorId,
+            au.nickname AS nickname,
+            aps.name,
+            aps.price,
+            IFNULL(pi.privilege_num, 0) AS privilegeNum,
+            aps.is_buy AS isBuy,
+            aps.create_time AS createTime,
+            0 AS pvNum,
+            0 AS pvUserNum,
+            0 AS buyCount,
+            0 AS income,
+            0 AS fastBuy,
+            aps.tags
+        FROM author_privilege_set aps
+        LEFT JOIN author_user au ON au.id = aps.author_id
+        LEFT JOIN (
+            SELECT privilege_id, COUNT(1) AS privilege_num
+            FROM author_privilege_item
+            WHERE deleted = 0
+            GROUP BY privilege_id
+        ) pi ON pi.privilege_id = aps.id
+        WHERE
+            <include refid="BaseFilter"/>
+        ORDER BY aps.id DESC
+    </select>
+
+    <select id="getList"
+            resultType="football.module.member.controller.admin.privilegeset.vo.AuthorPrivilegeSetPageRespVO">
+        SELECT
+            aps.id,
+            aps.author_id AS authorId,
+            au.nickname AS nickname,
+            aps.name,
+            aps.price,
+            IFNULL(pi.privilege_num, 0) AS privilegeNum,
+            aps.is_buy AS isBuy,
+            aps.create_time AS createTime,
+            0 AS pvNum,
+            0 AS pvUserNum,
+            0 AS buyCount,
+            0 AS income,
+            0 AS fastBuy,
+            aps.tags
+        FROM author_privilege_set aps
+        LEFT JOIN author_user au ON au.id = aps.author_id
+        LEFT JOIN (
+            SELECT privilege_id, COUNT(1) AS privilege_num
+            FROM author_privilege_item
+            WHERE deleted = 0
+            GROUP BY privilege_id
+        ) pi ON pi.privilege_id = aps.id
+        WHERE aps.deleted = 0
+          AND aps.author_id = #{reqVO.authorId}
+          AND aps.parent_id IS NOT NULL
+          AND aps.parent_id &gt; 0
+        ORDER BY aps.id DESC
+    </select>
+
+    <select id="getPrivilegePushList"
+            resultType="football.module.member.dal.dataobject.privilegeset.AuthorPrivilegeSetDO">
+        SELECT
+            aps.id,
+            aps.author_id AS authorId,
+            aps.type,
+            aps.days,
+            aps.price,
+            aps.parent_id AS parentId,
+            aps.is_discount AS isDiscount,
+            aps.is_buy AS isBuy,
+            aps.buy_num AS buyNum,
+            aps.date,
+            aps.num,
+            aps.article_price AS articlePrice,
+            aps.name,
+            aps.content,
+            aps.deleted,
+            aps.tags
+        FROM (
+            SELECT privilege_id
+            FROM privilege_push_config
+            WHERE consume_status IN (0, 1, 2)
+              AND push_time BETWEEN CONCAT(#{time}, ':00') AND CONCAT(#{time}, ':59')
+            GROUP BY privilege_id
+        ) apc
+        JOIN author_privilege_set aps ON aps.id = apc.privilege_id
+        WHERE aps.deleted = 0
+    </select>
+
+    <select id="getPrivilegeArticleCount" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM author_privilege_item
+        WHERE privilege_id = #{id}
+          AND deleted = 0
+    </select>
+
+    <select id="getPrivilegeArticleList"
+            resultType="football.module.member.controller.app.auth.vo.AppPrivilegeArticleInfoRespVO">
+        SELECT
+            aa.id,
+            aa.title,
+            aa.intro,
+            aa.create_time AS createTime,
+            aa.price
+        FROM author_privilege_item api
+        JOIN author_article aa ON aa.id = api.article_id
+        WHERE api.privilege_id = #{id}
+          AND api.deleted = 0
+        ORDER BY aa.id DESC
+    </select>
+
+    <select id="getAppAuthorPrivilegeSetPage"
+            resultType="football.module.member.controller.app.author.vo.AppPrivilegeSetPageRespVO">
+        SELECT
+            aps.id,
+            aps.name,
+            aps.price,
+            aps.is_buy AS isBuy,
+            0 AS pvCount,
+            0 AS buyCount,
+            0 AS amount,
+            aps.type,
+            aps.days,
+            aps.content,
+            0 AS top
+        FROM author_privilege_set aps
+        WHERE aps.deleted = 0
+          AND aps.author_id = #{reqVO.authorId}
+          AND (aps.parent_id IS NULL OR aps.parent_id = 0)
+          <if test="reqVO.tag != null">
+              AND FIND_IN_SET(#{reqVO.tag}, aps.tags)
+          </if>
+        ORDER BY aps.id DESC
+    </select>
+
+    <select id="selectPrivilegeArticle"
+            resultType="football.module.member.controller.app.auth.vo.AppPrivilegeArticleInfoRespVO">
+        SELECT
+            aa.id,
+            aa.title,
+            aa.intro,
+            aa.create_time AS createTime,
+            aa.price
+        FROM author_article aa
+        <if test="reqVO.privilegeId != null">
+            INNER JOIN author_privilege_item api ON api.article_id = aa.id
+              AND api.privilege_id = #{reqVO.privilegeId}
+              AND api.deleted = 0
+        </if>
+        WHERE 1 = 1
+          <if test="reqVO.authorId != null">
+              AND aa.author_id = #{reqVO.authorId}
+          </if>
+        ORDER BY aa.id DESC
+    </select>
+
+    <select id="getDiscountPrivilegeList"
+            resultType="football.module.member.controller.app.author.vo.AppAuthorDiscountListRespVO">
+        SELECT
+            aps.id,
+            aps.author_id AS authorId,
+            aps.days,
+            aps.buy_num AS buyNum,
+            0 AS buyCount,
+            aps.price,
+            aps.create_time AS createTime
+        FROM author_privilege_set aps
+        WHERE aps.deleted = 0
+          AND aps.author_id = #{authorId}
+          AND aps.parent_id = #{parentId}
+          AND aps.is_discount = 1
+          AND aps.is_buy = 0
+        ORDER BY aps.id ASC
+    </select>
+
+    <select id="selectStatistic"
+            resultType="football.module.member.controller.admin.privilegeset.vo.PrivilegeStatisticRespVO">
+        SELECT
+            COUNT(1) AS privilegeNum,
+            COUNT(DISTINCT aps.author_id) AS authorNum
+        FROM author_privilege_set aps
+        LEFT JOIN author_user au ON au.id = aps.author_id
+        WHERE
+            <include refid="BaseFilter"/>
+    </select>
+
+</mapper>

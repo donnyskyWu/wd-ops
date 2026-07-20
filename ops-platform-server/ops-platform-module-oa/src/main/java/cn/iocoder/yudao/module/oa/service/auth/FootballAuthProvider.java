@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.framework.auth.AuthProvider;
 import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUser;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class FootballAuthProvider implements AuthProvider {
     private final FootballOAuth2MasterTokenMapper footballOAuth2MasterTokenMapper;
     private final SysUserTokenMapper sysUserTokenMapper;
     private final FootballOAuth2TokenRedisReader tokenRedisReader;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public Optional<LoginUser> authenticate(HttpServletRequest request, String token, Long headerTenantId) {
@@ -63,6 +65,12 @@ public class FootballAuthProvider implements AuthProvider {
         }
         mergeOaPermissions(user.getUsername(), user.getTenantId(), authorities);
 
+        String dataScope = resolveDataScope(roles);
+        Set<Long> memberIds = opsDataScopeSupport.resolveMemberIpGroupIds(
+                user.getId(), user.getUsername(), user.getTenantId());
+        Set<Long> ledIds = opsDataScopeSupport.resolveLedIpGroupIds(
+                user.getId(), user.getUsername(), user.getTenantId());
+
         LoginUser loginUser = LoginUser.builder()
                 .userId(user.getId())
                 .tenantId(user.getTenantId())
@@ -70,10 +78,20 @@ public class FootballAuthProvider implements AuthProvider {
                 .nickname(user.getNickname())
                 .email(user.getEmail())
                 .authorities(authorities)
-                .dataScope(resolveDataScope(roles))
-                .ipGroupId(null)
+                .dataScope(dataScope)
+                .ipGroupId(resolveCompatIpGroupId(memberIds, null))
+                .memberIpGroupIds(memberIds.isEmpty() ? null : memberIds)
+                .ledIpGroupIds(ledIds.isEmpty() ? null : ledIds)
+                .ipGroupLeader(!ledIds.isEmpty())
                 .build();
         return Optional.of(loginUser);
+    }
+
+    private Long resolveCompatIpGroupId(Set<Long> memberIds, Long legacyIpGroupId) {
+        if (memberIds != null && memberIds.size() == 1) {
+            return memberIds.iterator().next();
+        }
+        return legacyIpGroupId;
     }
 
     /**

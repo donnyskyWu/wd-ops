@@ -80,6 +80,7 @@ class M4AccountS06IT extends OaITBase {
                                   "externalAccountId": "wx_a06_dup",
                                   "companyId": %d,
                                   "realnameId": %d,
+                                  "ipGroupId": 9001,
                                   "status": "NORMAL"
                                 }
                                 """, assets.companyId(), assets.realnameId())))
@@ -103,6 +104,7 @@ class M4AccountS06IT extends OaITBase {
                                   "companyId": %d,
                                   "realnameId": %d,
                                   "phoneId": %d,
+                                  "ipGroupId": 9001,
                                   "status": "NORMAL"
                                 }
                                 """, assets.companyId(), assets.realnameId(), assets.phoneId())))
@@ -186,6 +188,7 @@ class M4AccountS06IT extends OaITBase {
                                   "realnameId": %d,
                                   "phoneId": %d,
                                   "simCardId": %d,
+                                  "ipGroupId": 9001,
                                   "status": "NORMAL"
                                 }
                                 """, accountName, externalId, assets.companyId(), assets.realnameId(),

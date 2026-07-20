@@ -5,7 +5,7 @@
       <div class="toolbar">
         <el-form :inline="true" class="toolbar-form">
           <el-form-item label="IP 组筛选">
-            <IpGroupTreeSelect v-model="filters.ipGroupId" placeholder="全部" clearable style="width: 220px" />
+            <IpGroupTreeSelect v-model="filters.ipGroupId" scope="accessible" clearable style="width: 220px" />
           </el-form-item>
           <el-form-item label="日期范围">
             <el-date-picker

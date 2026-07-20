@@ -8,7 +8,6 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.dict.DictDataRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.dict.DictTypeRespVO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.dict.SysDictDataDO;
-import cn.iocoder.yudao.module.oa.dal.dataobject.dict.SysDictTypeDO;
 import cn.iocoder.yudao.module.oa.service.dict.DictService;
 import cn.iocoder.yudao.module.oa.service.system.SystemDictService;
 import lombok.RequiredArgsConstructor;
@@ -57,8 +56,7 @@ public class DictController {
 
     @GetMapping("/types")
     public CommonResult<PageResult<DictTypeRespVO>> types() {
-        List<SysDictTypeDO> rows = dictService.listAllTypes();
-        List<DictTypeRespVO> list = rows.stream()
+        List<DictTypeRespVO> list = dictService.listAllTypes().stream()
                 .map(t -> {
                     DictTypeRespVO vo = new DictTypeRespVO();
                     vo.setType(t.getType());

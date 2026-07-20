@@ -30,7 +30,6 @@ export const UAT_GAP_PAGES: UatGapPage[] = [
 
   // 运营管理 (ip-group in UAT 5/5)
   { group: '运营管理', path: '/account-analysis', title: '账号分析', apiPattern: /\/account-analysis/ },
-  { group: '运营管理', path: '/author', title: '作者管理', apiPattern: /\/author\/list/ },
   { group: '运营管理', path: '/efficiency', title: '人效盘点', apiPattern: /\/efficiency/ },
   { group: '运营管理', path: '/fans-analysis', title: '粉丝分析', apiPattern: /\/fans-analysis/ },
   { group: '运营管理', path: '/internal-content', title: '内部作品分析', apiPattern: /\/internal-content/ },

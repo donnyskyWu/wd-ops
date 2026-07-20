@@ -9,9 +9,9 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.CollectorAccountBindDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.WechatMpArticleDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.CollectorAccountBindMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.WechatMpArticleMapper;
+import cn.iocoder.yudao.module.oa.service.account.WechatOfficialAccountResolver;
 import cn.iocoder.yudao.module.oa.service.config.ConfigTenantSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +36,7 @@ public class WechatMpArticleStatsSyncService {
     private static final LocalDate STATS_DATA_SINCE = LocalDate.of(2025, 11, 1);
     private static final int OFFICIAL_STATS_LOOKBACK_DAYS = 30;
 
-    private final AccountMapper accountMapper;
+    private final WechatOfficialAccountResolver wechatOfficialAccountResolver;
     private final CollectorAccountBindMapper collectorAccountBindMapper;
     private final WechatMpArticleMapper wechatMpArticleMapper;
     private final WechatMpArticleSyncService wechatMpArticleSyncService;
@@ -46,8 +46,7 @@ public class WechatMpArticleStatsSyncService {
     public int syncArticleStats(Long oaAccountId) {
         Long tenantId = ConfigTenantSupport.requireTenantId();
         CollectorAccountBindDO bind = requireBoundCollector(oaAccountId, tenantId);
-        AccountDO account = accountMapper.selectById(oaAccountId);
-        account = ConfigTenantSupport.getRequiredInTenant(account);
+        AccountDO account = wechatOfficialAccountResolver.requireTenantAccount(oaAccountId, tenantId);
         boolean officialApi = WechatMpOfficialCredentialSupport.supportsOfficialApi(account);
 
         List<WechatMpArticleDO> articles = loadArticles(tenantId, oaAccountId);

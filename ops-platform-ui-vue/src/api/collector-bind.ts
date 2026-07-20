@@ -62,10 +62,16 @@ export function batchImportCollectorAccounts(): Promise<CollectorBatchBindImport
 
 export interface CollectorQrLoginStartResult {
   sessionId: string
-  qrcodeBase64: string
+  qrcodeBase64?: string
+  qrcodeUrl?: string
   status?: string
   message?: string
   expiresInSeconds?: number
+  /** 兼容 snake_case 透传 */
+  session_id?: string
+  qrcode_base64?: string
+  qrcode_url?: string
+  expires_in_seconds?: number
 }
 
 export interface CollectorQrLoginPollResult {

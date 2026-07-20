@@ -14,6 +14,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.perf.PerfTemplateItemDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.MetricMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateItemMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import cn.iocoder.yudao.module.oa.service.support.DashboardSqlParamBinder;
 import cn.iocoder.yudao.module.oa.service.support.SqlSafetySupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -36,6 +37,7 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
     private final MetricMapper metricMapper;
     private final PerfTemplateItemMapper perfTemplateItemMapper;
     private final JdbcTemplate jdbcTemplate;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public PageResult<MetricVO> list(String metricType, Integer pageNum, Integer pageSize) {
@@ -44,6 +46,7 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
                 .eq(MetricDO::getTenantId, tenantId)
                 .eq(metricType != null, MetricDO::getCategory, metricType)
                 .orderByDesc(MetricDO::getId);
+        opsDataScopeSupport.applySelfCreator(wrapper, MetricDO::getCreator);
         Page<MetricDO> page = metricMapper.selectPage(
                 new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize), wrapper);
         return new PageResult<>(page.getRecords().stream().map(this::toVO).collect(Collectors.toList()), page.getTotal());
@@ -146,6 +149,7 @@ public class AnalyticsMetricServiceImpl implements AnalyticsMetricService {
         if (!Objects.equals(entity.getTenantId(), requireTenantId())) {
             throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
         }
+        opsDataScopeSupport.assertSelfCreator(entity.getCreator());
         return entity;
     }
 

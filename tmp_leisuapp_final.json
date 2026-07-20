@@ -1,0 +1,150 @@
+{
+  "account": {
+    "nickname": "雷速体育APP",
+    "alias": "leisuapp",
+    "fakeid": "Mzg5ODkzNDc2NQ==",
+    "service_type": 1,
+    "round_head_img": "http://mmbiz.qpic.cn/mmbiz_png/6UylibE9r5Mt7rWiatdhcItQOk0Pic0JfTVTQ2qTzUiaS6wQHPXNpzxGgMVFziaiaPXIpBZVPZcFMnK5BsGMPEok3w2A/0?wx_fmt=png"
+  },
+  "collector": {
+    "running": true,
+    "port": 8000,
+    "session_account_id": "acc_wechat_mp_440f02d51e2c8441"
+  },
+  "official_api": {
+    "search_account": "success",
+    "user_articles_total": 0,
+    "user_articles": [],
+    "session_status": "有效（searchbiz 成功，非 cookie 过期）"
+  },
+  "errors_and_limits": [
+    "公众号后台 /cgi-bin/appmsg list_ex 对 fakeid=Mzg5ODkzNDc2NQ== 返回 app_msg_cnt=0",
+    "article-download 未能批量执行：搜狗跳转链接需验证码，无法获得 mp.weixin.qq.com 直链",
+    "Brave 搜索 HTTP 429；Bing 检索未解析到可用直链",
+    "阅读/点赞等 stats：他人公众号不可用官方图文分析接口"
+  ],
+  "discovery_source": "搜狗微信搜索 type=2（Playwright 渲染）+ 按发布时间取前10条",
+  "articles_count": 10,
+  "articles": [
+    {
+      "title": "速自查!71款App违规被通报!",
+      "digest": "《雷速体育》(微信小程序)、《零零享租机》(支付宝小程序)、《梦想驾》(抖音小程序)、《泡泡玛特》(微信小程序)、《热...",
+      "create_time": "2026-4-1",
+      "cover": "",
+      "sogou_link": "https://weixin.sogou.com/link?url=dn9a_-gY295K0Rci_xozVXfdMkSQTLW6cwJThYulHEtVjXrGTiVgS-uWX6u8fIhvdMuLAsoo1FneOBlvIbXr6VqXa8Fplpd98tIrC2FDhiaJENyn9AoAnMYFlU1wWoBnjG3NiCmJKvDOxcviwqvyaUzH22grYrcLuvdM53ysNvAByXn5qZVn0gZ2VQ6IG3ZRSqyPHZjKR3nCQIO4EWp_69hKiWpOCp55l1ZL0_DqvK6CoT4G9jm7iYGYZQitKW5JuF5HC6yawTiq3X8EKMKOIA..&type=2&query=%E9%9B%B7%E9%80%9F%E4%BD%93%E8%82%B2APP&token=4344D7FDFE97CF68C8CE9EAEEFE030EFC8CCCFAD6A5356CB",
+      "url": "",
+      "content_text_preview": "《雷速体育》(微信小程序)、《零零享租机》(支付宝小程序)、《梦想驾》(抖音小程序)、《泡泡玛特》(微信小程序)、《热...",
+      "download_success": false,
+      "download_error": "sogou_link_captcha_blocked",
+      "stats": null
+    },
+    {
+      "title": "雷速体育、雷速网、雷速即时比分",
+      "digest": "雷速体育雷霆体育官网雷速体育电脑版雷速体育官网首页入口雷速体育app下载官网雷速体育app下载雷速体育比分即时比分雷速体育...",
+      "create_time": "2026-3-10",
+      "cover": "https://mmbiz.qpic.cn/sz_mmbiz_jpg/SQlxHOZMDwzuicAkLsskxHDT7RdpuGTZRCgV1nXuudMYoDhnMWrH68LicCh18EuQLSlSzPZpcgp16cvKYicNPfIJg/0?wx_fmt=jpeg",
+      "sogou_link": "https://weixin.sogou.com/link?url=dn9a_-gY295K0Rci_xozVXfdMkSQTLW6cwJThYulHEtVjXrGTiVgS-uWX6u8fIhvocPsuApHD7XeOBlvIbXr6VqXa8Fplpd9kLH36ik3XhYdQgb-Mgqz4v6J-8yGRvr-JuDglZi-Z7jSOUXXEvl3mLZLBOZj-mT3rRH-ebKeG3FkQVlkZdpfoi4VUwOxTArVfi6yIiyzOmT0V1ZWc_Zxwdp06s6vL_3ut937QhqMuidKtKnNlwECav3qoupmBwJtL7TnNh3YyVLI3OTRHYU2og..&type=2&query=%E9%9B%B7%E9%80%9F%E4%BD%93%E8%82%B2APP&token=4344C13FE78FD87ED1D787B7F735B141D1FA9F3E6A5356C7",
+      "url": "",
+      "content_text_preview": "雷速体育雷霆体育官网雷速体育电脑版雷速体育官网首页入口雷速体育app下载官网雷速体育app下载雷速体育比分即时比分雷速体育...",
+      "download_success": false,
+      "download_error": "sogou_link_captcha_blocked",
+      "stats": null
+    },
+    {
+      "title": "拉奥体育、拉奥体育app",
+      "digest": "拉奥足球app官方下载拉澳足球拉奥足球计算器拉奥足球下载拉奥足球app下载安装拉奥足球和雷速体育哪个好拉澳足球app特奥足球规...",
+      "create_time": "2026-3-9",
+      "cover": "",
+      "sogou_link": "https://weixin.sogou.com/link?url=dn9a_-gY295K0Rci_xozVXfdMkSQTLW6cwJThYulHEtVjXrGTiVgS-uWX6u8fIhvocPsuApHD7XeOBlvIbXr6VqXa8Fplpd95kGVcXosYfBrh41bMxvZLUZJ81DOUoSOTbh-tKML3PV2zptb9_mG5DHJDZVdanw6tMdYTvAQpYty4Tex4wstD3jMbNfi1wcMYghOQlIiMyJ5FIM_k57UsR9hFCFyq4JRwCPJKvgwd3liS8hjet_cuIwWL3rNvLJgp0fkrQWUvcFFkDr8IT4KYw..&type=2&query=%E9%9B%B7%E9%80%9F%E4%BD%93%E8%82%B2APP&token=4344C13FE78FD87ED1D787B7F735B141D1FA9F3E6A5356C7",
+      "url": "",
+      "content_text_preview": "拉奥足球app官方下载拉澳足球拉奥足球计算器拉奥足球下载拉奥足球app下载安装拉奥足球和雷速体育哪个好拉澳足球app特奥足球规...",
+      "download_success": false,
+      "download_error": "sogou_link_captcha_blocked",
+      "stats": null
+    },
+    {
+      "title": "雷速即时比分、雷速体育、雷速网",
+      "digest": "官网雷速体育官网首页入口雷速体育app下载官网雷速体育app下载雷速体育比分即时比分雷速体育官网雷速体育怎么赚钱雷速体育官...",
+      "create_time": "2026-3-6",
+      "cover": "https://mmbiz.qpic.cn/sz_mmbiz_jpg/yXlMGro8va02cZn6D7qnicyc5RDqhmLgPK1OArz5TDf8FGVticxBdPpPqeSDC1tdF9mA9UAaEybdmh2wNW7AuGicQ/0?wx_fmt=jpeg",
+      "sogou_link": "https://weixin.sogou.com/link?url=dn9a_-gY295K0Rci_xozVXfdMkSQTLW6cwJThYulHEtVjXrGTiVgS-uWX6u8fIhvocPsuApHD7XeOBlvIbXr6VqXa8Fplpd9kLH36ik3XhYdQgb-Mgqz4v6J-8yGRvr-JuDglZi-Z7jSOUXXEvl3mKZySWQpz5idq_fyxjCocRkT_m95c1BXFnOjL96S5__lQeyoNSbeWJ0KPBuKQ3iiNGOY5mSE_Tfmnp3jUV-2_cXaIkWa8wj1MVD5tR4-D9Gphg7xFum2ENd5Nu7CnoSqqg..&type=2&query=%E9%9B%B7%E9%80%9F%E4%BD%93%E8%82%B2APP&token=4344C13FE78FD87ED1D787B7F735B141D1FA9F3E6A5356C7",
+      "url": "",
+      "content_text_preview": "官网雷速体育官网首页入口雷速体育app下载官网雷速体育app下载雷速体育比分即时比分雷速体育官网雷速体育怎么赚钱雷速体育官...",
+      "download_success": false,
+      "download_error": "sogou_link_captcha_blocked",
+      "stats": null
+    },
+    {
+      "title": "雷速APP、雷速体育",
+      "digest": "雷速app电脑版雷速app官网下载雷讯app下载雷速体育app下载雷速app登录器雷速app官方下载雷速app下载官网雷速app官方下载安...",
+      "create_time": "2026-2-27",
+      "cover": "https://mmbiz.qpic.cn/sz_mmbiz_jpg/yXlMGro8va0ia8LzZ1ZX9NQWN2G7kOo8h8vYttcN2koQYHIxBVZYibSMRPWkJmC3HUEOPbZn1A2bVKHmeKCX9N5A/0?wx_fmt=jpeg",
+      "sogou_link": "https://weixin.sogou.com/link?url=dn9a_-gY295K0Rci_xozVXfdMkSQTLW6cwJThYulHEtVjXrGTiVgS-uWX6u8fIhvocPsuApHD7XeOBlvIbXr6VqXa8Fplpd9mkHGG_Qw34Y0ArALBq8EqL5ero0gPMjYwBMs7D1_ZyRDyDp_w7zMfTLAyh6DhQkiwaql3CocZ2EZ_7maguCFc6Z6jEQvhK9hDC-ZgQnJqq3jVf1Z8uhvJ8i8v-y8RZCCk0a21TGksModCcsU3dzrT1BoQ86a6fyxdlaPcD3M6gMSYTqT4eyLmA..&type=2&query=%E9%9B%B7%E9%80%9F%E4%BD%93%E8%82%B2APP&token=4344C13FE78FD87ED1D787B7F735B141D1FA9F3E6A5356C7",
+      "url": "",
+      "content_text_preview": "雷速app电脑版雷速app官网下载雷讯app下载雷速体育app下载雷速app登录器雷速app官方下载雷速app下载官网雷速app官方下载安...",
+      "download_success": false,
+      "download_error": "sogou_link_captcha_blocked",
+      "stats": null
+    },
+    {
+      "title": "雷速体育app、雷速比分网页版",
+      "digest": "雷速雷速app官网下载雷速网页版雷速体育在线官网雷速app官网下载安装雷速体育雷速体育官网首页入口雷速比分雷速体育官网雷速...",
+      "create_time": "2026-2-26",
+      "cover": "https://mmbiz.qpic.cn/sz_mmbiz_jpg/SQlxHOZMDwzuicAkLsskxHDT7RdpuGTZRCgV1nXuudMYoDhnMWrH68LicCh18EuQLSlSzPZpcgp16cvKYicNPfIJg/0?wx_fmt=jpeg",
+      "sogou_link": "https://weixin.sogou.com/link?url=dn9a_-gY295K0Rci_xozVXfdMkSQTLW6cwJThYulHEtVjXrGTiVgS-uWX6u8fIhvocPsuApHD7XeOBlvIbXr6VqXa8Fplpd95kGVcXosYfBrh41bMxvZLUZJ81DOUoSOTbh-tKML3PV2zptb9_mG5BCR_z0QkJcdZFt6BuwSGIGhp6kkuyNBmzMJrNGyCaeUElZvqnpXUV3DOhCn3INVSniqc5i2yr58TUu7O3bMq_H-GUmHF6WpfcpJashZYR3mZnGPnhnL3O_m0CtGSSkZQQ..&type=2&query=%E9%9B%B7%E9%80%9F%E4%BD%93%E8%82%B2APP&token=4344C13FE78FD87ED1D787B7F735B141D1FA9F3E6A5356C7",
+      "url": "",
+      "content_text_preview": "雷速雷速app官网下载雷速网页版雷速体育在线官网雷速app官网下载安装雷速体育雷速体育官网首页入口雷速比分雷速体育官网雷速...",
+      "download_success": false,
+      "download_error": "sogou_link_captcha_blocked",
+      "stats": null
+    },
+    {
+      "title": "体育迷如何下载安装并使用雷速体育app?超全教程与注意事项来了!",
+      "digest": "雷速体育app下载想下载雷速体育app 这软件可太实用了 对体育迷来说就是宝藏 它覆盖全球超3000种体育赛事 足球 篮球 网球 电竞等...",
+      "create_time": "2026-2-8",
+      "cover": "https://mmbiz.qpic.cn/sz_mmbiz_jpg/gbD9txeD0nb53ibZ8hic4bOf8bGmibZRwYHMKibicHMK6N2px8P3q5YGLYjqKibUIVHNSJt0PtibYJjx0ia5iakxq2gbMMNicUpYRY4sQJurWyThhpoDg/0?wx_fmt=jpeg",
+      "sogou_link": "https://weixin.sogou.com/link?url=dn9a_-gY295K0Rci_xozVXfdMkSQTLW6cwJThYulHEtVjXrGTiVgS-uWX6u8fIhvocPsuApHD7XeOBlvIbXr6VqXa8Fplpd9VQZhmB_9VqnwjiXsPULzc_lZGEOcXCAEzDaHfQZPz3n_ZcYJz0bCBTE03DLCSErUIqmcCqGkf9FxYzb4H5BccZCypn1i_JWxZBXHVDK3han0lzzBP8RpuPweRQZUP7lHIpvQf2YPSijubBX9TAr4UMOhroI5z6Yv3MNoJClp28YYJSSFPgfogQ..&type=2&query=%E9%9B%B7%E9%80%9F%E4%BD%93%E8%82%B2APP&token=4344C13FE78FD87ED1D787B7F735B141D1FA9F3E6A5356C7",
+      "url": "",
+      "content_text_preview": "雷速体育app下载想下载雷速体育app 这软件可太实用了 对体育迷来说就是宝藏 它覆盖全球超3000种体育赛事 足球 篮球 网球 电竞等...",
+      "download_success": false,
+      "download_error": "sogou_link_captcha_blocked",
+      "stats": null
+    },
+    {
+      "title": "新赛季!雷速体育成为延边龙鼎官方合作伙伴",
+      "digest": "3月11日,延边龙鼎足球俱乐部官方发布,新赛季,雷速体育正式成为中甲球队延边龙鼎胸前广告赞助商,双方将在未来展开深度合作...",
+      "create_time": "2024-3-12",
+      "cover": "https://mmbiz.qpic.cn/mmbiz_jpg/sKibe2DO9wswldBYpwN1CmpKaw81UUwLibNiaNHZfEwFxweZdaVtcOyj5jmdnYzNkia7ujUfjH7REoh4grFecPTibUK5f0Tk9vO5yJb8gX3yia82A/0?wx_fmt=jpeg",
+      "sogou_link": "https://weixin.sogou.com/link?url=dn9a_-gY295K0Rci_xozVXfdMkSQTLW6cwJThYulHEtVjXrGTiVgS-uWX6u8fIhvdMuLAsoo1FneOBlvIbXr6VqXa8Fplpd9uV-3Yh-wLZPgZNU8XM5yK3c1VyuuT0CcX36si4XjDNH6CjEVEF-2rm0gLcfZnu3PpAxB0_YP9xrmeXnXf9bGAySXZwel4Ck1X2gN-mT3fHPwVS5t6pgiX5f3bhwwDOLc3C-P6ozyR_svia9efzBMEC_622Kx6w_wL_6icvTdxvBQL0Hr9Gyd3Q..&type=2&query=%E9%9B%B7%E9%80%9F%E4%BD%93%E8%82%B2APP&token=4344D7FDFE97CF68C8CE9EAEEFE030EFC8CCCFAD6A5356CB",
+      "url": "",
+      "content_text_preview": "3月11日,延边龙鼎足球俱乐部官方发布,新赛季,雷速体育正式成为中甲球队延边龙鼎胸前广告赞助商,双方将在未来展开深度合作...",
+      "download_success": false,
+      "download_error": "sogou_link_captcha_blocked",
+      "stats": null
+    },
+    {
+      "title": "雷速体育荣获第十届体育大生意年度最佳体育平台大奖",
+      "digest": "旗下雷速体育在国内众多优秀体育APP的竞争中脱颖而出,荣获年度最佳体育平台大奖.雷速体育自23年4月起,进行了资讯层面的改...",
+      "create_time": "2024-1-8",
+      "cover": "",
+      "sogou_link": "https://weixin.sogou.com/link?url=dn9a_-gY295K0Rci_xozVXfdMkSQTLW6cwJThYulHEtVjXrGTiVgS-uWX6u8fIhvdMuLAsoo1FneOBlvIbXr6VqXa8Fplpd9-MwF-e5MfkvbpiZA796yQLwLC6Jufu8uK9YHTFvfAZ6Cxr6HJDvvgjwXuwjf9zIZJNlG0kdett2rYtLjJEqIaUIwgmYTjIr_3BCmb-T6iT50ZupDh-Bi_XTmc7nSZRYLy0zGqfsIVS7eh-l6xi7EAf0FrYYnvIurjMovE_4_nNpQL0Hr9Gyd3Q..&type=2&query=%E9%9B%B7%E9%80%9F%E4%BD%93%E8%82%B2APP&token=4344D7FDFE97CF68C8CE9EAEEFE030EFC8CCCFAD6A5356CB",
+      "url": "",
+      "content_text_preview": "旗下雷速体育在国内众多优秀体育APP的竞争中脱颖而出,荣获年度最佳体育平台大奖.雷速体育自23年4月起,进行了资讯层面的改...",
+      "download_success": false,
+      "download_error": "sogou_link_captcha_blocked",
+      "stats": null
+    },
+    {
+      "title": "“雷速体育杯”第六届“全国高校体育解说员、主持人大赛” 公告",
+      "digest": "通过“雷速体育APP”首页“高校体育解说员大赛”报名入口提交信息和上传参赛视频,(上传后台将于12月8日开始启动,12月15日...",
+      "create_time": "2023-11-29",
+      "cover": "",
+      "sogou_link": "https://weixin.sogou.com/link?url=dn9a_-gY295K0Rci_xozVXfdMkSQTLW6cwJThYulHEtVjXrGTiVgS-uWX6u8fIhvdMuLAsoo1FneOBlvIbXr6VqXa8Fplpd90Y2-AU5MngPIE1dAR6OwvWC8NTLDsP7lGdQHXdXkxOYy03zMqFzyyu_fypA60CCN-Dnc-2fNCBusNpWXihUAK6PEa4awvejuesVJJCA6gowu3nSj31NTwhPaZyRqgaQLZ0pqWo_ohcf_8jAQrAuAveTf1WQKJBwPS5IurND0jut5Nu7CnoSqqg..&type=2&query=%E9%9B%B7%E9%80%9F%E4%BD%93%E8%82%B2APP&token=4344D7FDFE97CF68C8CE9EAEEFE030EFC8CCCFAD6A5356CB",
+      "url": "",
+      "content_text_preview": "通过“雷速体育APP”首页“高校体育解说员大赛”报名入口提交信息和上传参赛视频,(上传后台将于12月8日开始启动,12月15日...",
+      "download_success": false,
+      "download_error": "sogou_link_captcha_blocked",
+      "stats": null
+    }
+  ]
+}

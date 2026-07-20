@@ -25,7 +25,6 @@ export const ALL_ROUTES: RouteEntry[] = [
 
   // M1 运营管理
   { module: 'M1', path: '/ip-group', title: 'IP组管理' },
-  { module: 'M1', path: '/author', title: '作者管理' },
   { module: 'M1', path: '/account-analysis', title: '账号分析' },
   { module: 'M1', path: '/fans-analysis', title: '粉丝分析' },
   { module: 'M1', path: '/internal-content', title: '内部作品分析' },
@@ -116,9 +115,6 @@ export const ALL_ROUTES: RouteEntry[] = [
   { module: 'M9', path: '/system-role', title: '角色权限' },
   { module: 'M9', path: '/system-tenant', title: '租户管理' },
   { module: 'M9', path: '/system-param', title: '系统参数' },
-  { module: 'M9', path: '/system-dict', title: '字典配置' },
-  { module: 'M9', path: '/system-log/operation', title: '操作日志' },
-  { module: 'M9', path: '/system-log/login', title: '登录日志' },
   { module: 'M9', path: '/system-message', title: '消息管理' },
 
   // M10 数据采集

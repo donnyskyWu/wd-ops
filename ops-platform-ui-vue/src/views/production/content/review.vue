@@ -277,7 +277,7 @@ const doReview = async (row: any, action: 'APPROVE' | 'REJECT', reviewComment = 
     action,
     stage: STAGE_API[activeStage.value],
     comment: reviewComment,
-  } as any)
+  })
   ElMessage.success(action === 'APPROVE' ? '审核通过' : '审核驳回')
   detailVisible.value = false
   loadData()
@@ -287,7 +287,10 @@ const handleApprove = async (row: any) => {
   try {
     await ElMessageBox.confirm(`确认通过【${row.title}】？`, '提示', { type: 'success' })
     await doReview(row, 'APPROVE')
-  } catch {}
+  } catch (error: any) {
+    if (error === 'cancel' || error === 'close') return
+    ElMessage.error(error?.message || '审核操作失败，请重试')
+  }
 }
 const handleReject = async (row: any) => {
   try {
@@ -297,7 +300,10 @@ const handleReject = async (row: any) => {
       inputValidator: (v) => !!v?.trim() || '请填写审核意见',
     })
     await doReview(row, 'REJECT', value.trim())
-  } catch {}
+  } catch (error: any) {
+    if (error === 'cancel' || error === 'close') return
+    ElMessage.error(error?.message || '驳回失败，请重试')
+  }
 }
 const submitReview = async (action: 'APPROVED' | 'REJECTED') => {
   if (!comment.value.trim()) {

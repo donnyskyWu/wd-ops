@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P-FT-002 部门管理（增量）— 钉钉同步</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">Football Admin</div>
+      <nav class="sidebar-menu">
+        <div class="menu-group">系统管理</div>
+        <a class="menu-item" href="user-manage-dingtalk.html">用户管理</a>
+        <a class="menu-item active" href="dept-manage-dingtalk.html">部门管理</a>
+        <a class="menu-item" href="notify-dingtalk-push.html">消息中心</a>
+      </nav>
+    </aside>
+    <div class="main-wrap">
+      <header class="topbar">
+        <div class="breadcrumb">系统管理 / <span>部门管理</span></div>
+      </header>
+      <main class="page-content">
+        <div class="page-card">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <strong style="font-size:16px;">部门管理</strong>
+            </div>
+            <div class="toolbar-right">
+              <!-- BTN-DINGTALK-SYNC-CONFIG -->
+              <a class="btn" href="dingtalk-sync-config-drawer.html">钉钉同步配置</a>
+              <!-- BTN-SYNC-DEPT-NOW -->
+              <button class="btn btn-primary">立即同步部门</button>
+              <button class="btn btn-primary">+ 新增</button>
+            </div>
+          </div>
+
+          <!-- 连接状态条（UX §4.1） -->
+          <div class="alert alert-success" style="margin: 12px 16px 0;">
+            ✓ 钉钉已连接 · 最近验证：2026-07-16 09:30:22
+            <span class="tag tag-success" style="margin-left:8px;">已连接</span>
+          </div>
+
+          <div class="table-wrap" style="padding: 0 16px 16px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>部门名称</th>
+                  <th>排序</th>
+                  <th>负责人</th>
+                  <th>钉钉部门 ID</th>
+                  <th>来源</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>📁 总公司</td>
+                  <td>0</td>
+                  <td>张三</td>
+                  <td>1</td>
+                  <td><span class="tag tag-primary">钉钉</span></td>
+                  <td><span class="tag tag-success">正常</span></td>
+                  <td class="table-actions">
+                    <button class="btn btn-link btn-sm">编辑</button>
+                    <button class="btn btn-link btn-sm">新增子部门</button>
+                    <button class="btn btn-link btn-sm" style="color:var(--el-color-danger);">删除</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-left:28px;">📁 研发部门</td>
+                  <td>1</td>
+                  <td>李四</td>
+                  <td>372893042</td>
+                  <td><span class="tag tag-primary">钉钉</span></td>
+                  <td><span class="tag tag-success">正常</span></td>
+                  <td class="table-actions">
+                    <button class="btn btn-link btn-sm">编辑</button>
+                    <button class="btn btn-link btn-sm">新增子部门</button>
+                    <button class="btn btn-link btn-sm" style="color:var(--el-color-danger);">删除</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-left:52px;">📁 前端组</td>
+                  <td>1</td>
+                  <td>王五</td>
+                  <td>372893043</td>
+                  <td><span class="tag tag-primary">钉钉</span></td>
+                  <td><span class="tag tag-success">正常</span></td>
+                  <td class="table-actions">
+                    <button class="btn btn-link btn-sm">编辑</button>
+                    <button class="btn btn-link btn-sm">新增子部门</button>
+                    <button class="btn btn-link btn-sm" style="color:var(--el-color-danger);">删除</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-left:52px;">📁 后端组</td>
+                  <td>2</td>
+                  <td>赵六</td>
+                  <td>372893044</td>
+                  <td><span class="tag tag-primary">钉钉</span></td>
+                  <td><span class="tag tag-success">正常</span></td>
+                  <td class="table-actions">
+                    <button class="btn btn-link btn-sm">编辑</button>
+                    <button class="btn btn-link btn-sm">新增子部门</button>
+                    <button class="btn btn-link btn-sm" style="color:var(--el-color-danger);">删除</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-left:28px;">📁 市场部门</td>
+                  <td>2</td>
+                  <td>钱七</td>
+                  <td>372893050</td>
+                  <td><span class="tag tag-primary">钉钉</span></td>
+                  <td><span class="tag tag-success">正常</span></td>
+                  <td class="table-actions">
+                    <button class="btn btn-link btn-sm">编辑</button>
+                    <button class="btn btn-link btn-sm">新增子部门</button>
+                    <button class="btn btn-link btn-sm" style="color:var(--el-color-danger);">删除</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-left:28px;">📁 本地项目组</td>
+                  <td>3</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td><span class="tag tag-info">本地</span></td>
+                  <td><span class="tag tag-success">正常</span></td>
+                  <td class="table-actions">
+                    <button class="btn btn-link btn-sm">编辑</button>
+                    <button class="btn btn-link btn-sm">新增子部门</button>
+                    <button class="btn btn-link btn-sm" style="color:var(--el-color-danger);">删除</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;padding:12px 16px;background:#fff;border:1px dashed var(--el-border-color);border-radius:4px;font-size:12px;color:var(--el-text-secondary);">
+          <strong>原型说明：</strong>「钉钉同步配置」打开 <a href="dingtalk-sync-config-drawer.html">DRW-DINGTALK-SYNC</a>（默认 Tab「连接配置」）。
+          「立即同步部门」触发确认流（全量/增量）。部门页额外提供 <a href="dingtalk-sync-config-drawer.html">同步策略</a> Tab 入口。
+        </div>
+      </main>
+    </div>
+  </div>
+  <div class="proto-badge"><a href="index.html">← 原型索引</a> · P-FT-002</div>
+</body>
+</html>

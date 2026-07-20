@@ -1,0 +1,101 @@
+﻿=== search_accounts ===
+{
+  "total": 4,
+  "list": [
+    {
+      "fakeid": "Mzg5ODkzNDc2NQ==",
+      "nickname": "雷速体育APP",
+      "alias": "leisuapp",
+      "round_head_img": "http://mmbiz.qpic.cn/mmbiz_png/6UylibE9r5Mt7rWiatdhcItQOk0Pic0JfTVTQ2qTzUiaS6wQHPXNpzxGgMVFziaiaPXIpBZVPZcFMnK5BsGMPEok3w2A/0?wx_fmt=png",
+      "service_type": 1
+    },
+    {
+      "fakeid": "Mzk3NTU0MjY2MA==",
+      "nickname": "雷速快车+",
+      "alias": "",
+      "round_head_img": "http://mmbiz.qpic.cn/sz_mmbiz_png/32u5DTDZ44MauDeTsvpag1jAr2CH5JGz9XbOBfn6u5qkZF0vpco3LJH8RkA8GmvUd1WKdIp32CibIEatc54KWZQ/0?wx_fmt=png",
+      "service_type": 2
+    },
+    {
+      "fakeid": "MzU2NDgzNTE1Ng==",
+      "nickname": "荣成雷速",
+      "alias": "leisudz",
+      "round_head_img": "http://mmbiz.qpic.cn/mmbiz_png/3KaGQ1PqsAyIh4XcJI9PcT8de2kDYMzHAedEsSwpsUuFNOANAVQ3EibKgcKtsgNTIaehAtYuj71ohhGvjngs7AA/0?wx_fmt=png",
+      "service_type": 2
+    },
+    {
+      "fakeid": "MzA5ODczNzAwMA==",
+      "nickname": "雷速停",
+      "alias": "leilongzhineng",
+      "round_head_img": "http://mmbiz.qpic.cn/mmbiz_png/hohVIhXH57noWGbogZeOdKiaAoKbB5de4lrwLw52FIECKT8ia4bXeJQrpxqEiajAWf2tQUvWMoQibIDxmRdwJRIGyA/0?wx_fmt=png",
+      "service_type": 1
+    }
+  ]
+}
+=== target === {"fakeid": "Mzg5ODkzNDc2NQ==", "nickname": "雷速体育APP", "alias": "leisuapp", "round_head_img": "http://mmbiz.qpic.cn/mmbiz_png/6UylibE9r5Mt7rWiatdhcItQOk0Pic0JfTVTQ2qTzUiaS6wQHPXNpzxGgMVFziaiaPXIpBZVPZcFMnK5BsGMPEok3w2A/0?wx_fmt=png", "service_type": 1}
+=== discover authenticated ===
+{
+  "query": "雷速体育APP",
+  "count": 0,
+  "selected_account": {
+    "nickname": "雷速体育APP",
+    "alias": "leisuapp",
+    "fakeid": "Mzg5ODkzNDc2NQ==",
+    "match_type": "exact",
+    "identity_source": "searchbiz"
+  },
+  "results": [],
+  "warning": "公众号已命中，但没有返回历史文章。",
+  "known_hit_url": "",
+  "stop_reason": "exhausted",
+  "discovery_source": "authenticated",
+  "identity_source": "searchbiz"
+}
+.\.venv\Scripts\python.exe : Traceback (most recent call last):
+所在位置 C:\Users\donny\AppData\Local\Temp\ps-script-4cd099e6-d54d-4482-850e-e2c83a2a370d.ps1:113 字符: 140
++ ... ector-api"; .\.venv\Scripts\python.exe "d:\self\sy\运营数据平台\202606\wd\t ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "d:\self\sy\运营数据平台\202606\wd\unify-collector-api\platforms\wechat_mp\scraper.py", line 661, in search_wechat_art
+icles_brave
+    with urlopen(request, timeout=20) as response:
+         ~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donny\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donny\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py", line 493, in open
+    response = meth(req, response)
+  File "C:\Users\donny\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "C:\Users\donny\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\donny\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py", line 464, in _call_chain
+    result = func(*args)
+  File "C:\Users\donny\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 429: Too Many Requests
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "d:\self\sy\运营数据平台\202606\wd\tmp_leisu_discover.py", line 23, in <module>
+    search = discover_articles_by_account_search(
+        "雷速体育APP",
+    ...<2 lines>...
+        allow_fuzzy=False,
+    )
+  File "d:\self\sy\运营数据平台\202606\wd\unify-collector-api\platforms\wechat_mp\scraper.py", line 715, in discover_articles
+_by_account_search
+    articles = search_wechat_articles_brave(
+        query,
+        fetch_count=fetch_count,
+        variants=variants or [query, f"{query} 公众号", f"{query} 微信公众号"],
+    )
+  File "d:\self\sy\运营数据平台\202606\wd\unify-collector-api\platforms\wechat_mp\scraper.py", line 665, in search_wechat_art
+icles_brave
+    raise RuntimeError("Brave 搜索触发频率限制，请稍后重试。") from exc
+RuntimeError: Brave 搜索触发频率限制，请稍后重试。

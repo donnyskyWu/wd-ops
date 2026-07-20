@@ -51,8 +51,18 @@ public class MemberAuthorReadService {
         if (authorUserIds == null || authorUserIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        return authorUserMapper.selectBatchIds(authorUserIds).stream()
+        return loadByIds(authorUserIds).values().stream()
                 .collect(Collectors.toMap(AuthorUserDO::getId, AuthorUserDO::getNickname, (a, b) -> a));
+    }
+
+    @DS("member")
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public Map<Long, AuthorUserDO> loadByIds(Collection<Long> authorUserIds) {
+        if (authorUserIds == null || authorUserIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return authorUserMapper.selectBatchIds(authorUserIds).stream()
+                .collect(Collectors.toMap(AuthorUserDO::getId, u -> u, (a, b) -> a));
     }
 
     @DS("member")

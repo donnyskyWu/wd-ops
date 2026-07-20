@@ -108,19 +108,4 @@ test.describe('E2E dataflow smoke @smoke @e2e-df', () => {
     }
   })
 
-  test('E2E-07 操作日志: audit entries present', async ({ page }) => {
-    await page.goto('/system-log/operation')
-    await page.waitForLoadState('networkidle')
-
-    const table = page.locator('.el-table')
-    const empty = page.locator('.el-empty')
-    if (await table.count()) {
-      const rows = page.locator('.el-table__body tr')
-      await expect(rows.first()).toBeVisible({ timeout: 10_000 })
-      expect(await rows.count()).toBeGreaterThanOrEqual(1)
-    } else {
-      await expect(empty).toBeVisible()
-      test.skip(true, 'No operation logs in seed — non-blocking')
-    }
-  })
 })

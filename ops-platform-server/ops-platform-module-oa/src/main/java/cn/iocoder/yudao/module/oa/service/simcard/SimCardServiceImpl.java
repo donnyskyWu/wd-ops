@@ -17,7 +17,10 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.simcard.SimCardDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.phone.PhoneMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.simcard.SimCardMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -77,7 +80,8 @@ public class SimCardServiceImpl implements SimCardService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-simcard", action = "create")
+    @LogRecord(type = M4_SIMCARD_TYPE, subType = M4_SIMCARD_CREATE_SUB_TYPE, bizNo = "{{#simCard.id}}",
+            success = M4_SIMCARD_CREATE_SUCCESS)
     public Long create(SimCardCreateReq req) {
         Long tenantId = requireTenantId();
         assertUserInTenant(req.getAssignedUserId(), tenantId);
@@ -104,14 +108,17 @@ public class SimCardServiceImpl implements SimCardService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         simCardMapper.insert(entity);
+        LogRecordContext.putVariable("simCard", entity);
         return entity.getId();
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-simcard", action = "update")
+    @LogRecord(type = M4_SIMCARD_TYPE, subType = M4_SIMCARD_UPDATE_SUB_TYPE, bizNo = "{{#simCard.id}}",
+            success = M4_SIMCARD_UPDATE_SUCCESS)
     public void update(SimCardUpdateReq req) {
         SimCardDO existing = getRequiredInTenant(req.getId());
+        LogRecordContext.putVariable("simCard", existing);
         if (req.getPhoneId() != null || StrUtil.isNotBlank(req.getPhoneNumber())) {
             String phoneNumber = resolvePhoneNumber(existing.getTenantId(), req.getPhoneId(), req.getPhoneNumber());
             assertPhoneNumberUnique(existing.getTenantId(), phoneNumber, existing.getId());
@@ -151,9 +158,11 @@ public class SimCardServiceImpl implements SimCardService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-simcard", action = "delete")
+    @LogRecord(type = M4_SIMCARD_TYPE, subType = M4_SIMCARD_DELETE_SUB_TYPE, bizNo = "{{#simCard.id}}",
+            success = M4_SIMCARD_DELETE_SUCCESS)
     public void delete(Long id) {
         SimCardDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("simCard", existing);
         if (existing.getAccountBoundCount() != null && existing.getAccountBoundCount() > 0) {
             throw new ServiceException(OaErrorCodes.ENTITY_ALREADY_BOUND);
         }

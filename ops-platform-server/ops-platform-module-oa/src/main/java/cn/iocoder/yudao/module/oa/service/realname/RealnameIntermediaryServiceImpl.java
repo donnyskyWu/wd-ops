@@ -11,7 +11,10 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.realname.RealnameDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.realname.RealnameIntermediaryDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.realname.RealnameIntermediaryMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.realname.RealnameMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUser;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
@@ -47,7 +50,8 @@ public class RealnameIntermediaryServiceImpl implements RealnameIntermediaryServ
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-intermediary", action = "create")
+    @LogRecord(type = M4_INTERMEDIARY_TYPE, subType = M4_INTERMEDIARY_CREATE_SUB_TYPE, bizNo = "{{#intermediary.id}}",
+            success = M4_INTERMEDIARY_CREATE_SUCCESS)
     public Long create(Long realnameId, IntermediaryCreateReq req) {
         RealnameDO realname = getRealnameInTenant(realnameId);
         RealnameIntermediaryDO entity = new RealnameIntermediaryDO();
@@ -66,14 +70,17 @@ public class RealnameIntermediaryServiceImpl implements RealnameIntermediaryServ
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         intermediaryMapper.insert(entity);
+        LogRecordContext.putVariable("intermediary", entity);
         return entity.getId();
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-intermediary", action = "update")
+    @LogRecord(type = M4_INTERMEDIARY_TYPE, subType = M4_INTERMEDIARY_UPDATE_SUB_TYPE, bizNo = "{{#intermediary.id}}",
+            success = M4_INTERMEDIARY_UPDATE_SUCCESS)
     public void update(IntermediaryUpdateReq req) {
         RealnameIntermediaryDO existing = getRequiredInTenant(req.getId());
+        LogRecordContext.putVariable("intermediary", existing);
         if (StrUtil.isNotBlank(req.getIntermediaryName())) {
             existing.setIntermediaryName(req.getIntermediaryName());
         }
@@ -99,9 +106,11 @@ public class RealnameIntermediaryServiceImpl implements RealnameIntermediaryServ
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-intermediary", action = "delete")
+    @LogRecord(type = M4_INTERMEDIARY_TYPE, subType = M4_INTERMEDIARY_DELETE_SUB_TYPE, bizNo = "{{#intermediary.id}}",
+            success = M4_INTERMEDIARY_DELETE_SUCCESS)
     public void delete(Long id) {
-        getRequiredInTenant(id);
+        RealnameIntermediaryDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("intermediary", existing);
         intermediaryMapper.deleteById(id);
     }
 

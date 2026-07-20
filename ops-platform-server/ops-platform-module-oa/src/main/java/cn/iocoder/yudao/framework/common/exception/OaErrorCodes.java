@@ -29,11 +29,18 @@ public final class OaErrorCodes {
     public static final ErrorCode IP_GROUP_MEMBER_HAS_TASK = ErrorCode.of(1006, "成员存在关联任务，无法删除");
     public static final ErrorCode IP_GROUP_ACCOUNT_BOUND = ErrorCode.of(1007, "账号已属于其他 IP 组");
     public static final ErrorCode IP_GROUP_ACCOUNT_SMALL_ONLY = ErrorCode.of(1008, "账号仅可关联到小组");
+    /** 选定组长未持有内置角色 ip_group_leader（关联校验，对齐 1500 语义） */
+    public static final ErrorCode IP_GROUP_LEADER_ROLE_REQUIRED = ErrorCode.of(1500, "所选用户须具备 IP组长 角色");
 
     public static final ErrorCode AUTHOR_IP_GROUP_MUST_SMALL = ErrorCode.of(1101, "作者 IP 组必须选择小组");
     public static final ErrorCode AUTHOR_PRIMARY_TYPE_INVALID = ErrorCode.of(1102, "主推号类型必须为 OFFICIAL_ACCOUNT");
     public static final ErrorCode AUTHOR_PRIMARY_BOUND = ErrorCode.of(1103, "该主推号已被其他作者绑定");
     public static final ErrorCode AUTHOR_HAS_TASK = ErrorCode.of(1104, "作者存在未完成任务，无法删除");
+    /** ADR-055：作者 IP 组归属 SSOT 为 IP 组管理「关联作者」，禁止经 author-ext 写入 */
+    public static final ErrorCode AUTHOR_IP_GROUP_MANAGED_IN_IP_GROUP = ErrorCode.of(1105,
+            "作者 IP 组归属请在 IP 组管理中维护");
+    public static final ErrorCode AUTHOR_CRUD_DEPRECATED = ErrorCode.of(410,
+            "作者基础 CRUD 已迁移至 Football 作者信息，请使用 member 作者管理；运营扩展请调 PUT /oa/author-ext/{id}");
 
     public static final ErrorCode OPS_ANCHOR_OVERLAP = ErrorCode.of(1201, "运营→主播关联存在重叠日期段");
 
@@ -91,6 +98,8 @@ public final class OaErrorCodes {
     /** M9 字典管理 */
     public static final ErrorCode DICT_TYPE_DUPLICATE = ErrorCode.of(2027, "字典 type 重复");
     public static final ErrorCode DICT_VALUE_DUPLICATE = ErrorCode.of(2028, "字典 value 重复");
+    public static final ErrorCode DICT_CRUD_DEPRECATED = ErrorCode.of(410,
+            "字典 CRUD 已迁移至 Football 系统管理 → 字典管理（菜单 105），OPS 仅保留只读接口");
 
     /** M11 字典 */
     public static final ErrorCode DICT_TYPE_NOT_FOUND = ErrorCode.of(2020, "字典 type 不存在");

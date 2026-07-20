@@ -1,0 +1,22 @@
+﻿{
+    "code":  0,
+    "message":  "success",
+    "data":  {
+                 "keyword":  "leisuapp",
+                 "accounts":  [
+                                  {
+                                      "fakeid":  "Mzg5ODkzNDc2NQ==",
+                                      "nickname":  "é·éä½è²APP",
+                                      "alias":  "leisuapp",
+                                      "round_head_img":  "http://mmbiz.qpic.cn/mmbiz_png/6UylibE9r5Mt7rWiatdhcItQOk0Pic0JfTVTQ2qTzUiaS6wQHPXNpzxGgMVFziaiaPXIpBZVPZcFMnK5BsGMPEok3w2A/0?wx_fmt=png",
+                                      "service_type":  1
+                                  }
+                              ],
+                 "total":  0,
+                 "articles":  [
+
+                              ]
+             },
+    "request_id":  "req_6830ca49c81f",
+    "timestamp":  1783845955759
+}

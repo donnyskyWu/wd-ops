@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P-FT-004 同步日志 Dialog DLG-SYNC-LOG</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body style="background: var(--el-bg-page);">
+  <div class="overlay" style="position:fixed;">
+    <div class="dialog w800">
+      <div class="dialog-header">
+        <h3>钉钉同步日志</h3>
+        <button class="drawer-close" onclick="location.href='user-manage-dingtalk.html'">×</button>
+      </div>
+
+      <div class="dialog-body">
+        <!-- 筛选区 -->
+        <div class="filter-bar" style="padding:0 0 16px;border:none;">
+          <div class="filter-item">
+            <label>同步类型</label>
+            <select class="select"><option>全部</option><option>部门</option><option>用户</option></select>
+          </div>
+          <div class="filter-item">
+            <label>状态</label>
+            <select class="select">
+              <option>全部</option><option>进行中</option><option>成功</option><option>部分成功</option><option>失败</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label>时间范围</label>
+            <input class="input" style="width:340px;" value="2026-07-01 00:00  ~  2026-07-16 23:59" readonly>
+          </div>
+          <button class="btn btn-primary btn-sm">查询</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>开始时间</th>
+                <th>类型</th>
+                <th>模式</th>
+                <th>触发</th>
+                <th>状态</th>
+                <th>统计（新增/更新/跳过/失败）</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>2026-07-16 14:32:05</td>
+                <td>用户</td>
+                <td>增量</td>
+                <td>手动</td>
+                <td><span class="tag tag-primary">进行中</span></td>
+                <td>—</td>
+                <td class="table-actions"><button class="btn btn-link btn-sm">明细</button></td>
+              </tr>
+              <tr>
+                <td>2026-07-16 02:30:00</td>
+                <td>用户</td>
+                <td>增量</td>
+                <td>定时</td>
+                <td><span class="tag tag-success">成功</span></td>
+                <td>2 / 5 / 0 / 0</td>
+                <td class="table-actions"><button class="btn btn-link btn-sm">明细</button></td>
+              </tr>
+              <tr>
+                <td>2026-07-16 02:00:00</td>
+                <td>部门</td>
+                <td>增量</td>
+                <td>定时</td>
+                <td><span class="tag tag-success">成功</span></td>
+                <td>0 / 1 / 0 / 0</td>
+                <td class="table-actions"><button class="btn btn-link btn-sm">明细</button></td>
+              </tr>
+              <tr>
+                <td>2026-07-15 14:20:18</td>
+                <td>用户</td>
+                <td>全量</td>
+                <td>手动</td>
+                <td><span class="tag tag-warning">部分成功</span></td>
+                <td>1 / 3 / 2 / 1</td>
+                <td class="table-actions">
+                  <button class="btn btn-link btn-sm">明细</button>
+                  <button class="btn btn-link btn-sm" style="color:var(--el-color-primary);">重试</button>
+                </td>
+              </tr>
+              <tr>
+                <td>2026-07-15 10:05:42</td>
+                <td>部门</td>
+                <td>全量</td>
+                <td>手动</td>
+                <td><span class="tag tag-danger">失败</span></td>
+                <td>0 / 0 / 0 / 3</td>
+                <td class="table-actions">
+                  <button class="btn btn-link btn-sm">明细</button>
+                  <button class="btn btn-link btn-sm" style="color:var(--el-color-primary);">重试</button>
+                </td>
+              </tr>
+              <tr>
+                <td>2026-07-14 02:30:00</td>
+                <td>用户</td>
+                <td>增量</td>
+                <td>重试</td>
+                <td><span class="tag tag-success">成功</span></td>
+                <td>0 / 0 / 12 / 0</td>
+                <td class="table-actions"><button class="btn btn-link btn-sm">明细</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          共 6 条
+          <span class="page-btn">‹</span>
+          <span class="page-btn active">1</span>
+          <span class="page-btn">›</span>
+        </div>
+
+        <!-- 明细 Drawer 预览（嵌套展示） -->
+        <div style="margin-top:20px;border:1px solid var(--el-border-color-light);border-radius:4px;">
+          <div style="padding:12px 16px;background:#fafafa;border-bottom:1px solid var(--el-border-color-light);font-weight:500;">
+            明细 Drawer 预览（点击「明细」展开 · 720px）
+          </div>
+          <div style="padding:12px 16px;">
+            <div style="font-size:13px;color:var(--el-text-secondary);margin-bottom:8px;">
+              同步批次 #1042 · 用户 · 全量 · 2026-07-15 14:20:18 · 部分成功
+            </div>
+            <table>
+              <thead>
+                <tr><th>钉钉 ID</th><th>类型</th><th>动作</th><th>原因</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>dev005</td><td>用户</td><td><span class="tag tag-success">CREATE</span></td><td>新用户已创建</td></tr>
+                <tr><td>dev006</td><td>用户</td><td><span class="tag tag-primary">UPDATE</span></td><td>昵称、部门已更新</td></tr>
+                <tr><td>local_match</td><td>用户</td><td><span class="tag tag-warning">SKIP</span></td><td>冲突策略=本地优先，跳过覆盖</td></tr>
+                <tr><td>invalid001</td><td>用户</td><td><span class="tag tag-danger">FAIL</span></td><td>部门映射失败：ding_dept_id 未找到</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button class="btn" onclick="location.href='user-manage-dingtalk.html'">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="proto-badge"><a href="index.html">← 原型索引</a> · P-FT-004 · 800px</div>
+</body>
+</html>

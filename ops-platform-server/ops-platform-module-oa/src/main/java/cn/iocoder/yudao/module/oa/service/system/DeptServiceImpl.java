@@ -16,13 +16,15 @@ import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysDeptMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysRoleMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserRoleMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.framework.dingtalk.DingTalkClient;
 import cn.iocoder.yudao.module.oa.framework.dingtalk.DingTalkClient.DingDeptNode;
 import cn.iocoder.yudao.module.oa.framework.dingtalk.DingTalkClient.DingUserDetail;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.service.impl.DiffParseFunction;
+import com.mzt.logapi.starter.annotation.LogRecord;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 
 @Slf4j
 @Service
@@ -74,7 +78,8 @@ public class DeptServiceImpl implements DeptService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-dept", action = "create")
+    @LogRecord(type = M9_DEPT_TYPE, subType = M9_DEPT_CREATE_SUB_TYPE, bizNo = "{{#dept.id}}",
+            success = M9_DEPT_CREATE_SUCCESS)
     public Long create(DeptCreateReq req) {
         Long tenantId = requireTenantId();
         if (req.getParentId() != null) {
@@ -91,15 +96,19 @@ public class DeptServiceImpl implements DeptService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysDeptMapper.insert(entity);
+        LogRecordContext.putVariable("dept", entity);
         return entity.getId();
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-dept", action = "update")
+    @LogRecord(type = M9_DEPT_TYPE, subType = M9_DEPT_UPDATE_SUB_TYPE, bizNo = "{{#req.id}}",
+            success = M9_DEPT_UPDATE_SUCCESS)
     public void update(DeptUpdateReq req) {
         Long tenantId = requireTenantId();
         SysDeptDO existing = assertDeptInTenant(req.getId(), tenantId);
+        LogRecordContext.putVariable(DiffParseFunction.OLD_OBJECT, toUpdateReq(existing));
+        LogRecordContext.putVariable("dept", existing);
         if (req.getParentId() != null) {
             if (req.getParentId().equals(req.getId())) {
                 throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "上级部门不能是自身");
@@ -123,10 +132,12 @@ public class DeptServiceImpl implements DeptService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-dept", action = "delete")
+    @LogRecord(type = M9_DEPT_TYPE, subType = M9_DEPT_DELETE_SUB_TYPE, bizNo = "{{#id}}",
+            success = M9_DEPT_DELETE_SUCCESS)
     public void delete(Long id) {
         Long tenantId = requireTenantId();
-        assertDeptInTenant(id, tenantId);
+        SysDeptDO dept = assertDeptInTenant(id, tenantId);
+        LogRecordContext.putVariable("dept", dept);
         long childCount = sysDeptMapper.selectCount(new LambdaQueryWrapper<SysDeptDO>()
                 .eq(SysDeptDO::getTenantId, tenantId)
                 .eq(SysDeptDO::getParentId, id));
@@ -144,7 +155,8 @@ public class DeptServiceImpl implements DeptService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-dept", action = "sync-dingtalk")
+    @LogRecord(type = M9_DEPT_TYPE, subType = M9_DEPT_SYNC_DINGTALK_SUB_TYPE, bizNo = BIZ_NO_NONE,
+            success = M9_DEPT_SYNC_DINGTALK_SUCCESS)
     public DingTalkSyncResultVO syncDepartmentsFromDingTalk() {
         dingTalkClient.assertConfigured();
         Long tenantId = requireTenantId();
@@ -158,7 +170,8 @@ public class DeptServiceImpl implements DeptService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-dept", action = "sync-dingtalk-users")
+    @LogRecord(type = M9_DEPT_TYPE, subType = M9_DEPT_SYNC_DINGTALK_USERS_SUB_TYPE, bizNo = BIZ_NO_NONE,
+            success = M9_DEPT_SYNC_DINGTALK_USERS_SUCCESS)
     public DingTalkSyncResultVO syncUsersFromDingTalk() {
         dingTalkClient.assertConfigured();
         Long tenantId = requireTenantId();
@@ -381,5 +394,15 @@ public class DeptServiceImpl implements DeptService {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED);
         }
         return tenantId;
+    }
+
+    private static DeptUpdateReq toUpdateReq(SysDeptDO entity) {
+        DeptUpdateReq req = new DeptUpdateReq();
+        req.setId(entity.getId());
+        req.setParentId(entity.getParentId());
+        req.setName(entity.getName());
+        req.setSort(entity.getSort());
+        req.setStatus(entity.getStatus());
+        return req;
     }
 }

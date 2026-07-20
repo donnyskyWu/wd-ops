@@ -31,9 +31,13 @@ import cn.iocoder.yudao.module.oa.dal.mysql.sop.SopReviewMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
 import cn.iocoder.yudao.module.oa.service.author.AuthorResolveSupport;
 import cn.iocoder.yudao.module.oa.service.file.LocalFileStorageService;
+import cn.iocoder.yudao.module.oa.service.ipgroup.IpGroupAccessSupport;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.starter.annotation.LogRecord;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -46,7 +50,10 @@ import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 
 @Service
 @RequiredArgsConstructor
@@ -64,6 +71,8 @@ public class TaskServiceImpl implements TaskService {
     private final LocalFileStorageService localFileStorageService;
     private final SysDictDataMapper sysDictDataMapper;
     private final AuthorResolveSupport authorResolveSupport;
+    private final IpGroupAccessSupport ipGroupAccessSupport;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     private static final String NODE_TYPE_CONTENT_GENERATION = "CONTENT_GENERATION";
 
@@ -71,15 +80,21 @@ public class TaskServiceImpl implements TaskService {
     public PageResult<TaskVO> list(Long ipGroupId, String status, Long executorId,
                                    LocalDate startDate, LocalDate endDate, Integer pageNum, Integer pageSize) {
         Long tenantId = requireTenantId();
-        LambdaQueryWrapper<TaskDO> wrapper = new LambdaQueryWrapper<TaskDO>()
-                .eq(TaskDO::getTenantId, tenantId)
-                .eq(TaskDO::getVisibleInList, 1)
-                .eq(ipGroupId != null, TaskDO::getIpGroupId, ipGroupId)
-                .eq(StrUtil.isNotBlank(status), TaskDO::getStatus, status)
-                .eq(executorId != null, TaskDO::getAssigneeId, executorId)
-                .ge(startDate != null, TaskDO::getCreateTime, startDate == null ? null : startDate.atStartOfDay())
-                .le(endDate != null, TaskDO::getCreateTime, endDate == null ? null : endDate.atTime(LocalTime.MAX))
-                .orderByDesc(TaskDO::getId);
+        LambdaQueryWrapper<TaskDO> wrapper = buildListWrapper(tenantId, ipGroupId, status, startDate, endDate);
+        if (executorId != null) {
+            Set<Long> executorIds = ipGroupAccessSupport.resolveEquivalentUserIds(executorId, tenantId);
+            if (!opsDataScopeSupport.isSystemAdmin(LoginUserContext.get())) {
+                Set<Long> selfIds = ipGroupAccessSupport.resolveMembershipUserIds(tenantId);
+                executorIds.retainAll(selfIds);
+            }
+            if (executorIds.isEmpty()) {
+                wrapper.eq(TaskDO::getAssigneeId, -1L);
+            } else {
+                wrapper.in(TaskDO::getAssigneeId, executorIds);
+            }
+        } else {
+            opsDataScopeSupport.applyAssigneeIn(wrapper, TaskDO::getAssigneeId);
+        }
         Page<TaskDO> page = taskMapper.selectPage(
                 new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize), wrapper);
         return new PageResult<>(page.getRecords().stream().map(this::toVO).collect(Collectors.toList()), page.getTotal());
@@ -87,11 +102,28 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public PageResult<TaskVO> myTasks(Integer pageNum, Integer pageSize) {
-        Long userId = TenantContextHolder.getUserId();
-        if (userId == null) {
-            throw new ServiceException(OaErrorCodes.UNAUTHORIZED);
+        Long tenantId = requireTenantId();
+        Set<Long> userIds = ipGroupAccessSupport.resolveMembershipUserIds(tenantId);
+        if (userIds.isEmpty()) {
+            return new PageResult<>(Collections.emptyList(), 0L);
         }
-        return list(null, null, userId, null, null, pageNum, pageSize);
+        LambdaQueryWrapper<TaskDO> wrapper = buildListWrapper(tenantId, null, null, null, null)
+                .in(TaskDO::getAssigneeId, userIds);
+        Page<TaskDO> page = taskMapper.selectPage(
+                new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize), wrapper);
+        return new PageResult<>(page.getRecords().stream().map(this::toVO).collect(Collectors.toList()), page.getTotal());
+    }
+
+    private LambdaQueryWrapper<TaskDO> buildListWrapper(Long tenantId, Long ipGroupId, String status,
+                                                        LocalDate startDate, LocalDate endDate) {
+        return new LambdaQueryWrapper<TaskDO>()
+                .eq(TaskDO::getTenantId, tenantId)
+                .eq(TaskDO::getVisibleInList, 1)
+                .eq(ipGroupId != null, TaskDO::getIpGroupId, ipGroupId)
+                .eq(StrUtil.isNotBlank(status), TaskDO::getStatus, status)
+                .ge(startDate != null, TaskDO::getCreateTime, startDate == null ? null : startDate.atStartOfDay())
+                .le(endDate != null, TaskDO::getCreateTime, endDate == null ? null : endDate.atTime(LocalTime.MAX))
+                .orderByDesc(TaskDO::getId);
     }
 
     @Override
@@ -106,7 +138,8 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-task", action = "create")
+    @LogRecord(type = M2_TASK_TYPE, subType = M2_TASK_CREATE_SUB_TYPE, bizNo = "{{#task.id}}",
+            success = M2_TASK_CREATE_SUCCESS)
     public Long create(TaskCreateReq req) {
         Long tenantId = requireTenantId();
         sopTemplateService.requireTemplate(req.getTemplateId());
@@ -129,14 +162,17 @@ public class TaskServiceImpl implements TaskService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         taskMapper.insert(entity);
+        LogRecordContext.putVariable("task", entity);
         return entity.getId();
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-task", action = "start")
+    @LogRecord(type = M2_TASK_TYPE, subType = M2_TASK_START_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_TASK_START_SUCCESS)
     public void start(Long id) {
         TaskDO task = requireTask(id);
+        LogRecordContext.putVariable("task", task);
         requireAssignee(task);
         if (!"PENDING".equals(task.getStatus())) {
             throw new ServiceException(OaErrorCodes.TASK_STATUS_INVALID);
@@ -150,9 +186,11 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-task", action = "complete")
+    @LogRecord(type = M2_TASK_TYPE, subType = M2_TASK_COMPLETE_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_TASK_COMPLETE_SUCCESS)
     public void complete(Long id, TaskCompleteReq req) {
         TaskDO task = requireTask(id);
+        LogRecordContext.putVariable("task", task);
         requireAssignee(task);
         if (!"IN_PROGRESS".equals(task.getStatus())) {
             throw new ServiceException(OaErrorCodes.TASK_STATUS_INVALID);
@@ -171,9 +209,11 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-task", action = "submit-review")
+    @LogRecord(type = M2_TASK_TYPE, subType = M2_TASK_SUBMIT_REVIEW_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_TASK_SUBMIT_REVIEW_SUCCESS)
     public void submitReview(Long id) {
         TaskDO task = requireTask(id);
+        LogRecordContext.putVariable("task", task);
         requireAssignee(task);
         if (!"COMPLETED".equals(task.getStatus())) {
             throw new ServiceException(OaErrorCodes.TASK_STATUS_INVALID);
@@ -198,9 +238,11 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-task", action = "execute-get")
+    @LogRecord(type = M2_TASK_TYPE, subType = M2_TASK_EXECUTE_GET_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_TASK_EXECUTE_GET_SUCCESS)
     public TaskExecuteVO getExecuteContext(Long id) {
         TaskDO task = requireTask(id);
+        LogRecordContext.putVariable("task", task);
         requireAssignee(task);
         ensureExecutableStatus(task);
         if ("PENDING".equals(task.getStatus())) {
@@ -215,9 +257,11 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-task", action = "execute-save")
+    @LogRecord(type = M2_TASK_TYPE, subType = M2_TASK_EXECUTE_SAVE_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_TASK_EXECUTE_SAVE_SUCCESS)
     public void saveExecute(Long id, TaskExecuteSaveReq req) {
         TaskDO task = requireTask(id);
+        LogRecordContext.putVariable("task", task);
         requireAssignee(task);
         ensureExecutableStatus(task);
         if (req == null) {
@@ -241,9 +285,11 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-task", action = "execute-upload")
+    @LogRecord(type = M2_TASK_TYPE, subType = M2_TASK_EXECUTE_UPLOAD_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_TASK_EXECUTE_UPLOAD_SUCCESS)
     public TaskAttachmentVO uploadExecuteAttachment(Long id, MultipartFile file) {
         TaskDO task = requireTask(id);
+        LogRecordContext.putVariable("task", task);
         requireAssignee(task);
         ensureExecutableStatus(task);
         return localFileStorageService.storeTaskAttachment(file, task.getTenantId(), task.getId());
@@ -251,9 +297,11 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M2-task", action = "execute-complete")
+    @LogRecord(type = M2_TASK_TYPE, subType = M2_TASK_EXECUTE_COMPLETE_SUB_TYPE, bizNo = "{{#id}}",
+            success = M2_TASK_EXECUTE_COMPLETE_SUCCESS)
     public void executeComplete(Long id) {
         TaskDO task = requireTask(id);
+        LogRecordContext.putVariable("task", task);
         requireAssignee(task);
         if (!"IN_PROGRESS".equals(task.getStatus())) {
             throw new ServiceException(OaErrorCodes.TASK_STATUS_INVALID);
@@ -439,8 +487,8 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private void requireAssignee(TaskDO task) {
-        Long userId = TenantContextHolder.getUserId();
-        if (userId == null || !Objects.equals(userId, task.getAssigneeId())) {
+        Set<Long> userIds = ipGroupAccessSupport.resolveMembershipUserIds(requireTenantId());
+        if (userIds.isEmpty() || task.getAssigneeId() == null || !userIds.contains(task.getAssigneeId())) {
             throw new ServiceException(OaErrorCodes.TASK_ASSIGNEE_MISMATCH);
         }
     }

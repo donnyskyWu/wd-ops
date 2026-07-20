@@ -18,7 +18,10 @@ import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.PersonalWechatAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.WeworkAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.triplerel.TripleRelMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -104,7 +107,8 @@ public class TripleRelServiceImpl implements TripleRelService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-triple-rel", action = "create")
+    @LogRecord(type = M4_TRIPLE_REL_TYPE, subType = M4_TRIPLE_REL_CREATE_SUB_TYPE, bizNo = "{{#tripleRel.id}}",
+            success = M4_TRIPLE_REL_CREATE_SUCCESS)
     public Long create(TripleRelCreateReq req) {
         Long tenantId = requireTenantId();
         validateCreateReq(req, tenantId);
@@ -129,6 +133,7 @@ public class TripleRelServiceImpl implements TripleRelService {
             tripleRelMapper.insert(entity);
             if (firstId == null) {
                 firstId = entity.getId();
+                LogRecordContext.putVariable("tripleRel", entity);
             }
         }
         return firstId;
@@ -136,9 +141,11 @@ public class TripleRelServiceImpl implements TripleRelService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-triple-rel", action = "unbind")
+    @LogRecord(type = M4_TRIPLE_REL_TYPE, subType = M4_TRIPLE_REL_UNBIND_SUB_TYPE, bizNo = "{{#tripleRel.id}}",
+            success = M4_TRIPLE_REL_UNBIND_SUCCESS)
     public void unbind(Long id) {
         TripleRelDO entity = getRequiredInTenant(id);
+        LogRecordContext.putVariable("tripleRel", entity);
         entity.setStatus(0);
         entity.setUpdater(TenantContextHolder.getUsername());
         entity.setUpdateTime(LocalDateTime.now());
@@ -147,9 +154,11 @@ public class TripleRelServiceImpl implements TripleRelService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-triple-rel", action = "rebind")
+    @LogRecord(type = M4_TRIPLE_REL_TYPE, subType = M4_TRIPLE_REL_REBIND_SUB_TYPE, bizNo = "{{#tripleRel.id}}",
+            success = M4_TRIPLE_REL_REBIND_SUCCESS)
     public void rebind(Long id) {
         TripleRelDO entity = getRequiredInTenant(id);
+        LogRecordContext.putVariable("tripleRel", entity);
         entity.setStatus(1);
         entity.setBindTime(LocalDateTime.now());
         entity.setUpdater(TenantContextHolder.getUsername());

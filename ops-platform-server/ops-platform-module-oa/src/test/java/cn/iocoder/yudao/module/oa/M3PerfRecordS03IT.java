@@ -24,6 +24,20 @@ class M3PerfRecordS03IT extends OaITBase {
     private MockMvc mockMvc;
 
     @Test
+    @DisplayName("M3-S-03: 列表返回 IP 组成员岗位")
+    void listRecordPositionFromIpGroupMember() throws Exception {
+        mockMvc.perform(get("/admin-api/oa/perf/record/list")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT)
+                        .param("ipGroupId", "9001")
+                        .param("targetUserId", "1003")
+                        .param("pageNum", "1")
+                        .param("pageSize", "20"))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.list[0].position").value("运营专员"));
+    }
+
+    @Test
     @DisplayName("M3-S-03: 创建考核记录")
     void createRecord() throws Exception {
         mockMvc.perform(post("/admin-api/oa/perf/record/create")
@@ -33,6 +47,7 @@ class M3PerfRecordS03IT extends OaITBase {
                         .content("""
                                 {
                                   "targetUserId": 1003,
+                                  "ipGroupId": 9001,
                                   "periodType": "MONTH",
                                   "periodStart": "2026-04-01",
                                   "periodEnd": "2026-04-30"
@@ -51,6 +66,7 @@ class M3PerfRecordS03IT extends OaITBase {
                         .content("""
                                 {
                                   "targetUserId": 1004,
+                                  "ipGroupId": 9001,
                                   "templateId": 9512,
                                   "periodType": "MONTH",
                                   "periodStart": "2026-07-01",
@@ -70,6 +86,7 @@ class M3PerfRecordS03IT extends OaITBase {
                         .content("""
                                 {
                                   "targetUserId": 1004,
+                                  "ipGroupId": 9001,
                                   "periodType": "MONTH",
                                   "periodStart": "2026-08-01",
                                   "periodEnd": "2026-08-31"
@@ -88,6 +105,7 @@ class M3PerfRecordS03IT extends OaITBase {
                         .content("""
                                 {
                                   "targetUserId": 1003,
+                                  "ipGroupId": 9001,
                                   "periodType": "MONTH",
                                   "periodStart": "2026-05-01",
                                   "periodEnd": "2026-05-31"

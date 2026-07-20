@@ -1,0 +1,15 @@
+﻿{
+  "sessionId": "verify-pref-20260712",
+  "contentId": 6,
+  "authorId": 1,
+  "context": {
+    "matchName": "test match",
+    "authorName": "test author",
+    "schemeType": "HANDICAP",
+    "anchorStyle": "data"
+  },
+  "conversationHistory": [
+    {"role": "user", "content": "请写让球分析，语言口语化一点"},
+    {"role": "assistant", "content": "好的，本场推荐客队受让"}
+  ]
+}

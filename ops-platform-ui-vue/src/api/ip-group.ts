@@ -30,6 +30,28 @@ export function getIpGroupTree(): Promise<IpGroupTreeVO[]> {
 }
 
 /**
+ * 获取当前用户可绑定的 IP 组树（成员组 ∪ 组长组；系统管理员为全树）
+ */
+export function getAccessibleIpGroupTree(): Promise<IpGroupTreeVO[]> {
+  return request.get<IpGroupTreeVO[]>({ url: '/oa/ip-group/accessible-tree' })
+}
+
+/**
+ * 当前用户担任组长的 IP 组（人效盘点组员筛选、IP 组管理入口判定）
+ */
+export function getLedIpGroups(): Promise<IpGroupListVO[]> {
+  return request.get<IpGroupListVO[]>({ url: '/oa/ip-group/led' })
+}
+
+/** 具备内置角色 ip_group_leader（IP组长）的用户 id，供组长 UserSelect 过滤 */
+export function getIpGroupLeaderCandidateIds(): Promise<number[]> {
+  return request.get<number[]>({ url: '/oa/ip-group/leader-candidate-ids' })
+}
+
+/** Football / sys_role 内置角色编码：IP组长 */
+export const IP_GROUP_LEADER_ROLE_CODE = 'ip_group_leader'
+
+/**
  * 分页查询IP组列表
  */
 export function getIpGroupPage(params: IpGroupPageReqVO): Promise<IpGroupPageRespVO> {
@@ -168,6 +190,8 @@ export function unbindIpGroupAnchor(groupId: number, authorId: number): Promise<
 export default {
   // IP组 CRUD
   getIpGroupTree,
+  getAccessibleIpGroupTree,
+  getLedIpGroups,
   getIpGroupPage,
   createIpGroup,
   updateIpGroup,

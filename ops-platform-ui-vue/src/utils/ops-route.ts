@@ -32,15 +32,43 @@ export function opsRouteTo(to: RouteLocationRaw): RouteLocationRaw {
   return to
 }
 
+/** Football 作者信息 SSOT（system_menu 5071） */
+export const FOOTBALL_AUTHOR_INFO = '/author/info'
+
+/** 跳转 Football 作者信息页（离开 OPS 壳） */
+export function navigateToFootballAuthorInfo(): void {
+  if (typeof window === 'undefined') return
+  window.location.hash = `#${FOOTBALL_AUTHOR_INFO}`
+}
+
+/** 是否 Football 原生路由（非 /ops 子应用） */
+export function isFootballNativePath(path: string): boolean {
+  return path === FOOTBALL_AUTHOR_INFO || path.startsWith(`${FOOTBALL_AUTHOR_INFO}/`)
+}
+
 /**
  * Resolve backend /ops/… action URLs for in-app navigation.
  * Standalone shell strips `/ops`; Football shell keeps or adds the prefix.
+ * Football 原生路由（如 /author/info）通过 hash 跳转，返回 dashboard 作 router 占位。
  */
 export function resolveOpsNavUrl(url: string): string {
   if (!url) {
     return isFootballOpsShell() ? '/ops/dashboard' : '/dashboard'
   }
   const [pathOnly, query = ''] = url.split('?')
+
+  if (
+    pathOnly === '/author/info'
+    || pathOnly === '/ops/author'
+    || pathOnly === '/author'
+    || isFootballNativePath(pathOnly)
+  ) {
+    const target = query ? `${FOOTBALL_AUTHOR_INFO}?${query}` : FOOTBALL_AUTHOR_INFO
+    if (typeof window !== 'undefined') {
+      window.location.hash = `#${target}`
+    }
+    return isFootballOpsShell() ? '/ops/dashboard' : '/dashboard'
+  }
 
   if (isFootballOpsShell()) {
     const resolved = opsPath(pathOnly.startsWith('/ops/') ? pathOnly : pathOnly)
@@ -49,7 +77,7 @@ export function resolveOpsNavUrl(url: string): string {
 
   const map: Record<string, string> = {
     '/ops/ip-group': '/ip-group',
-    '/ops/author': '/author',
+    '/ops/author': FOOTBALL_AUTHOR_INFO,
     '/ops/account': '/internal-account',
     '/ops/internal-content': '/internal-content',
     '/ops/sop': '/sop',

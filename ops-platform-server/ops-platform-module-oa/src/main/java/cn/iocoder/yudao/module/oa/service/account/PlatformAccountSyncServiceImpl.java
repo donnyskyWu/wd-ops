@@ -183,6 +183,9 @@ public class PlatformAccountSyncServiceImpl implements PlatformAccountSyncServic
         if (StrUtil.isNotBlank(req.getCookie())) {
             ext.setCookieEncrypted(aesUtil.encrypt(req.getCookie()));
         }
+        if (StrUtil.isNotBlank(req.getMpToken())) {
+            ext.setMpTokenEncrypted(aesUtil.encrypt(req.getMpToken()));
+        }
         ext.setTrademarkName(req.getTrademarkName());
         ext.setQualificationType(req.getQualificationType());
         ext.setUsageStatus(req.getUsageStatus());
@@ -216,6 +219,9 @@ public class PlatformAccountSyncServiceImpl implements PlatformAccountSyncServic
         }
         if (req.getCookie() != null) {
             ext.setCookieEncrypted(StrUtil.isBlank(req.getCookie()) ? null : aesUtil.encrypt(req.getCookie()));
+        }
+        if (req.getMpToken() != null) {
+            ext.setMpTokenEncrypted(StrUtil.isBlank(req.getMpToken()) ? null : aesUtil.encrypt(req.getMpToken()));
         }
         if (req.getTrademarkName() != null) {
             ext.setTrademarkName(req.getTrademarkName());
@@ -254,6 +260,7 @@ public class PlatformAccountSyncServiceImpl implements PlatformAccountSyncServic
             vo.setPhoneId(ext.getPhoneId());
             vo.setSimCardId(ext.getSimCardId());
             vo.setHasCookie(StrUtil.isNotBlank(ext.getCookieEncrypted()));
+            vo.setHasMpToken(StrUtil.isNotBlank(ext.getMpTokenEncrypted()));
             vo.setTrademarkName(ext.getTrademarkName());
             vo.setQualificationType(ext.getQualificationType());
             vo.setUsageStatus(ext.getUsageStatus());

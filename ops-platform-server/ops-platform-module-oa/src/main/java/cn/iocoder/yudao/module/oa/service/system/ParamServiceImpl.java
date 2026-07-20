@@ -10,8 +10,10 @@ import cn.iocoder.yudao.module.oa.api.dto.system.ParamRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.system.ParamUpdateReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.system.SysParamDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.system.SysParamMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.service.impl.DiffParseFunction;
+import com.mzt.logapi.starter.annotation.LogRecord;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 
 @Service
 @RequiredArgsConstructor
@@ -44,7 +48,8 @@ public class ParamServiceImpl implements ParamService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-param", action = "create")
+    @LogRecord(type = M9_PARAM_TYPE, subType = M9_PARAM_CREATE_SUB_TYPE, bizNo = "{{#param.id}}",
+            success = M9_PARAM_CREATE_SUCCESS)
     public Long create(ParamCreateReq req) {
         Long tenantId = requireTenantId();
         assertKeyUnique(tenantId, req.getParamKey(), null);
@@ -61,15 +66,19 @@ public class ParamServiceImpl implements ParamService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysParamMapper.insert(entity);
+        LogRecordContext.putVariable("param", entity);
         return entity.getId();
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-param", action = "update")
+    @LogRecord(type = M9_PARAM_TYPE, subType = M9_PARAM_UPDATE_SUB_TYPE, bizNo = "{{#req.id}}",
+            success = M9_PARAM_UPDATE_SUCCESS)
     public void update(ParamUpdateReq req) {
         SysParamDO existing = requireParam(req.getId());
         assertKeyUnique(existing.getTenantId(), req.getParamKey(), existing.getId());
+        LogRecordContext.putVariable(DiffParseFunction.OLD_OBJECT, toUpdateReq(existing));
+        LogRecordContext.putVariable("param", existing);
         existing.setParamName(req.getParamName().trim());
         existing.setParamKey(req.getParamKey().trim());
         existing.setParamValue(req.getParamValue());
@@ -83,9 +92,11 @@ public class ParamServiceImpl implements ParamService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-param", action = "delete")
+    @LogRecord(type = M9_PARAM_TYPE, subType = M9_PARAM_DELETE_SUB_TYPE, bizNo = "{{#id}}",
+            success = M9_PARAM_DELETE_SUCCESS)
     public void delete(Long id) {
-        requireParam(id);
+        SysParamDO existing = requireParam(id);
+        LogRecordContext.putVariable("param", existing);
         sysParamMapper.deleteById(id);
     }
 
@@ -156,5 +167,17 @@ public class ParamServiceImpl implements ParamService {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED.getCode(), "缺少租户上下文");
         }
         return tenantId;
+    }
+
+    private static ParamUpdateReq toUpdateReq(SysParamDO entity) {
+        ParamUpdateReq req = new ParamUpdateReq();
+        req.setId(entity.getId());
+        req.setParamName(entity.getParamName());
+        req.setParamKey(entity.getParamKey());
+        req.setParamValue(entity.getParamValue());
+        req.setParamType(entity.getParamType());
+        req.setCategory(entity.getCategory());
+        req.setRemark(entity.getRemark());
+        return req;
     }
 }

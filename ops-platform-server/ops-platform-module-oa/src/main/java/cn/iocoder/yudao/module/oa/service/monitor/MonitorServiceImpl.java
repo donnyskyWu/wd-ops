@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.config.ThresholdConfigMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.monitor.ExternalWorkMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,6 +46,7 @@ public class MonitorServiceImpl implements MonitorService {
     private final AccountMapper accountMapper;
     private final FollowerDailyMapper followerDailyMapper;
     private final ThresholdConfigMapper thresholdConfigMapper;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public PageResult<ExternalWorkVO> externalList(String platformType, String contentType, Long ipGroupId, String industry,
@@ -111,10 +114,15 @@ public class MonitorServiceImpl implements MonitorService {
                                                                    boolean highFollower,
                                                                    Integer pageNum, Integer pageSize) {
         Long tenantId = requireTenantId();
-        List<AccountDO> accounts = accountMapper.selectList(new LambdaQueryWrapper<AccountDO>()
+        Set<Long> scopedGroups = opsDataScopeSupport.narrowIpGroupIds(ipGroupId);
+        if (scopedGroups != null && scopedGroups.size() == 1 && scopedGroups.contains(-1L)) {
+            return PageResult.empty();
+        }
+        LambdaQueryWrapper<AccountDO> accountWrapper = new LambdaQueryWrapper<AccountDO>()
                 .eq(AccountDO::getTenantId, tenantId)
                 .eq(StrUtil.isNotBlank(platformType), AccountDO::getPlatformType, platformType)
-                .eq(ipGroupId != null, AccountDO::getIpGroupId, ipGroupId));
+                .in(scopedGroups != null, AccountDO::getIpGroupId, scopedGroups);
+        List<AccountDO> accounts = accountMapper.selectList(accountWrapper);
         if (accounts.isEmpty()) {
             return PageResult.empty();
         }
@@ -188,16 +196,24 @@ public class MonitorServiceImpl implements MonitorService {
     private LambdaQueryWrapper<ExternalWorkDO> buildBaseWrapper(String platformType, String contentType,
                                                               Long ipGroupId, String industry,
                                                               LocalDate startDate, LocalDate endDate) {
-        return new LambdaQueryWrapper<ExternalWorkDO>()
+        LambdaQueryWrapper<ExternalWorkDO> wrapper = new LambdaQueryWrapper<ExternalWorkDO>()
                 .eq(ExternalWorkDO::getTenantId, requireTenantId())
                 .eq(ExternalWorkDO::getIsExternal, 1)
                 .eq(platformType != null, ExternalWorkDO::getPlatformType, platformType)
                 .eq(StrUtil.isNotBlank(contentType), ExternalWorkDO::getContentType, contentType)
-                .eq(ipGroupId != null, ExternalWorkDO::getIpGroupId, ipGroupId)
                 .eq(industry != null, ExternalWorkDO::getIndustry, industry)
                 .ge(startDate != null, ExternalWorkDO::getPublishTime, startDate == null ? null : startDate.atStartOfDay())
                 .le(endDate != null, ExternalWorkDO::getPublishTime, endDate == null ? null : endDate.plusDays(1).atStartOfDay())
                 .orderByDesc(ExternalWorkDO::getPublishTime);
+        Set<Long> scopedGroups = opsDataScopeSupport.narrowIpGroupIds(ipGroupId);
+        if (scopedGroups != null) {
+            if (scopedGroups.size() == 1 && scopedGroups.contains(-1L)) {
+                wrapper.eq(ExternalWorkDO::getIpGroupId, -1L);
+            } else {
+                wrapper.in(ExternalWorkDO::getIpGroupId, scopedGroups);
+            }
+        }
+        return wrapper;
     }
 
     private ExternalWorkVO toVO(ExternalWorkDO row) {

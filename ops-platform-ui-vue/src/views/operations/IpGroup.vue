@@ -2,11 +2,19 @@
   IP 组管理
   改造说明(2026-06-08): 从"树表 + 弹窗"重构为"左树 + 右 5 Tab"
   依据: UX-M1 § 3.1 IP 组管理布局 + API-M1 § 2
-  5 Tab: 基本信息 / 成员管理 / 关联账号 / 关联作者 / 统计
+  4 Tab: 基本信息 / 成员管理 / 关联作者 / 统计
   保护删除: ADR-M1-002 - 成员/账号/作者未迁移不允许删除 IP 组
 -->
 <template>
-  <div class="ip-group-page">
+  <div v-if="accessDenied" class="ip-group-page ip-group-page--denied">
+    <el-empty description="无权限访问 IP 组管理" :image-size="160">
+      <template #description>
+        <p>仅系统管理员或 IP 组组长可访问此页面</p>
+        <p style="color: #909399; font-size: 13px">如需管理 IP 组，请联系管理员分配组长权限</p>
+      </template>
+    </el-empty>
+  </div>
+  <div v-else class="ip-group-page">
     <div class="ip-group-layout">
       <!-- 左侧：IP 组树 -->
       <div class="ip-group-tree-panel">
@@ -149,34 +157,7 @@
               </el-table>
             </el-tab-pane>
 
-            <!-- Tab 3: 关联账号 -->
-            <el-tab-pane label="关联账号" name="account">
-              <div class="tab-actions">
-                <el-button type="primary" @click="handleBindAccount">
-                  <el-icon><Plus /></el-icon>关联账号
-                </el-button>
-                <el-button @click="loadAccounts">刷新</el-button>
-              </div>
-              <el-table v-loading="accountLoading" :data="accountList" border stripe>
-                <el-table-column type="index" label="#" width="60" align="center" />
-                <el-table-column prop="accountName" label="账号名称" min-width="160" />
-                <el-table-column prop="platformName" label="平台" width="120" align="center">
-                  <template #default="{ row }">
-                    <el-tag>{{ row.platformName }}</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="followers" label="粉丝数" width="120" align="right" />
-                <el-table-column prop="contentCount" label="作品数" width="100" align="right" />
-                <el-table-column prop="boundAt" label="绑定时间" width="170" align="center" />
-                <el-table-column label="操作" width="120" fixed="right" align="center">
-                  <template #default="{ row }">
-                    <el-button link type="danger" @click="handleUnbindAccount(row)">解绑</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </el-tab-pane>
-
-            <!-- Tab 4: 关联作者 -->
+            <!-- Tab 3: 关联作者 -->
             <el-tab-pane label="关联作者" name="anchor">
               <div class="tab-actions">
                 <el-button type="primary" @click="handleBindAnchor">
@@ -191,9 +172,15 @@
                     {{ row.authorName || row.anchorUserName || '-' }}
                   </template>
                 </el-table-column>
-                <el-table-column prop="anchorType" label="作者类型" width="140" align="center">
+                <el-table-column label="作者等级" width="120" align="center">
                   <template #default="{ row }">
-                    <DictLabel dict-type="dict_author_type" :value="row.anchorType" :fallback="row.anchorType || '-'" />
+                    <DictLabel
+                      v-if="resolveAuthorLevel(row)"
+                      dict-type="dict_ip_group_level"
+                      :value="resolveAuthorLevel(row)"
+                      :fallback="resolveAuthorLevel(row)"
+                    />
+                    <span v-else>-</span>
                   </template>
                 </el-table-column>
                 <el-table-column prop="boundAt" label="绑定时间" width="170" align="center" />
@@ -205,7 +192,7 @@
               </el-table>
             </el-tab-pane>
 
-            <!-- Tab 5: 统计 -->
+            <!-- Tab 4: 统计 -->
             <el-tab-pane label="统计" name="stats">
               <el-row :gutter="16" v-loading="statsLoading">
                 <el-col :span="6">
@@ -302,7 +289,28 @@
           />
         </el-form-item>
         <el-form-item label="组长" prop="leaderId">
-          <UserSelect v-model="formData.leaderId" placeholder="请选择组长" />
+          <UserSelect
+            v-model="formData.leaderId"
+            :role-code="IP_GROUP_LEADER_ROLE_CODE"
+            placeholder="请选择具备 IP组长 角色的用户"
+          />
+        </el-form-item>
+        <el-form-item label="作者">
+          <el-select
+            v-model="formAuthorId"
+            placeholder="选择作者可自动填充等级"
+            style="width: 100%"
+            filterable
+            clearable
+            :loading="formAuthorOptionsLoading"
+          >
+            <el-option
+              v-for="item in formAuthorOptions"
+              :key="item.id"
+              :label="item.authorName"
+              :value="item.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="等级" prop="level">
           <DictSelect
@@ -352,19 +360,6 @@
       </template>
     </el-dialog>
 
-    <!-- 关联账号 -->
-    <el-dialog v-model="accountDialogVisible" title="关联账号" width="500px">
-      <el-form :model="accountForm" label-width="80px">
-        <el-form-item label="账号" required>
-          <AccountSelect v-model="accountForm.accountId" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="accountDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="accountSubmitting" @click="handleSubmitAccount">确定</el-button>
-      </template>
-    </el-dialog>
-
     <!-- 添加作者 -->
     <el-dialog v-model="anchorDialogVisible" title="添加作者" width="500px">
       <el-form :model="anchorForm" label-width="80px">
@@ -384,14 +379,6 @@
               :value="item.id"
             />
           </el-select>
-        </el-form-item>
-        <el-form-item label="作者类型">
-          <DictSelect
-            v-model="anchorForm.anchorType"
-            dict-type="dict_author_type"
-            placeholder="默认取所选作者类型"
-            clearable
-          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -417,23 +404,22 @@ import {
   getIpGroupMembers,
   addIpGroupMember,
   deleteIpGroupMember,
-  getIpGroupAccounts,
-  bindIpGroupAccounts,
-  unbindIpGroupAccount,
   getIpGroupAnchors,
   bindIpGroupAnchors,
   unbindIpGroupAnchor,
+  IP_GROUP_LEADER_ROLE_CODE,
 } from '@/api/ip-group'
 import { getAuthorPage } from '@/api/author'
 import type { IpGroupTreeVO, IpGroupStatsVO } from '@/types/ip-group'
 import type { AuthorListVO } from '@/types/author'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import UserSelect from '@/components/selectors/UserSelect.vue'
-import AccountSelect from '@/components/selectors/AccountSelect.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
+import { isForbiddenError } from '@/utils/data-scope'
 
 // ============== 左侧树 ==============
+const accessDenied = ref(false)
 const treeRef = ref()
 const treeLoading = ref(false)
 const treeData = ref<IpGroupTreeVO[]>([])
@@ -453,7 +439,13 @@ const loadTree = async () => {
   treeLoading.value = true
   try {
     treeData.value = await getIpGroupTree()
+    accessDenied.value = false
   } catch (e) {
+    if (isForbiddenError(e)) {
+      accessDenied.value = true
+      treeData.value = []
+      return
+    }
     console.error('[IpGroup] 加载 IP 组树失败:', e)
     treeData.value = []
     ElMessage.error('IP 组树加载失败，请稍后重试')
@@ -472,9 +464,6 @@ const statsLoading = ref(false)
 const memberList = ref<any[]>([])
 const memberLoading = ref(false)
 
-const accountList = ref<any[]>([])
-const accountLoading = ref(false)
-
 const anchorList = ref<any[]>([])
 const anchorLoading = ref(false)
 
@@ -488,7 +477,6 @@ const loadAllTabData = () => {
   if (!currentNode.value) return
   loadStats()
   loadMembers()
-  loadAccounts()
   loadAnchors()
 }
 
@@ -517,20 +505,6 @@ const loadMembers = async () => {
     ElMessage.error('成员列表加载失败')
   } finally {
     memberLoading.value = false
-  }
-}
-
-const loadAccounts = async () => {
-  accountLoading.value = true
-  try {
-    const data = await getIpGroupAccounts(currentNode.value.id)
-    accountList.value = data
-  } catch (e) {
-    console.error('[IpGroup] 加载账号失败:', e)
-    accountList.value = []
-    ElMessage.error('账号列表加载失败')
-  } finally {
-    accountLoading.value = false
   }
 }
 
@@ -577,9 +551,51 @@ const formData = reactive({
   status: 1 as 0 | 1,
   remark: '',
 })
+const formAuthorId = ref<number | undefined>()
+const formAuthorOptions = ref<AuthorListVO[]>([])
+const formAuthorOptionsLoading = ref(false)
+
+const resolveLevelFromAuthor = (author?: { ipGroupLevel?: string; authorLevel?: number }): string | undefined => {
+  if (!author) return undefined
+  if (author.ipGroupLevel) return author.ipGroupLevel
+  if (author.authorLevel === 1) return 'S'
+  if (author.authorLevel === 0) return 'C'
+  return undefined
+}
+
+const resolveAuthorLevel = (row: { ipGroupLevel?: string; authorLevel?: number }) =>
+  resolveLevelFromAuthor(row)
+
+const loadFormAuthorOptions = async () => {
+  formAuthorOptionsLoading.value = true
+  try {
+    const page = await getAuthorPage({ status: 1, page: 1, size: 200 })
+    formAuthorOptions.value = page.list
+  } catch (e) {
+    console.error('[IpGroup] 加载作者选项失败:', e)
+    formAuthorOptions.value = []
+  } finally {
+    formAuthorOptionsLoading.value = false
+  }
+}
+
+watch(formAuthorId, (authorId) => {
+  if (!authorId) return
+  const selected = formAuthorOptions.value.find((item) => item.id === authorId)
+  const level = resolveLevelFromAuthor(selected)
+  if (level) {
+    formData.level = level
+  }
+})
 const formRules: FormRules = {
   groupName: [{ required: true, message: '请输入组名', trigger: 'blur' }],
   groupType: [{ required: true, message: '请选择组类型', trigger: 'change' }],
+}
+
+const openFormDialog = async () => {
+  formAuthorId.value = undefined
+  dialogVisible.value = true
+  await loadFormAuthorOptions()
 }
 
 const handleCreateRoot = () => {
@@ -588,7 +604,7 @@ const handleCreateRoot = () => {
     id: undefined, groupName: '', groupType: 1, parentId: undefined,
     leaderId: undefined, level: undefined, sortOrder: 0, status: 1, remark: '',
   })
-  dialogVisible.value = true
+  openFormDialog()
 }
 
 const handleCreateChild = () => {
@@ -597,7 +613,7 @@ const handleCreateChild = () => {
     id: undefined, groupName: '', groupType: 2, parentId: currentNode.value?.id,
     leaderId: undefined, level: undefined, sortOrder: 0, status: 1, remark: '',
   })
-  dialogVisible.value = true
+  openFormDialog()
 }
 
 const handleEdit = async () => {
@@ -617,7 +633,7 @@ const handleEdit = async () => {
       status: detail.status,
       remark: detail.remark || '',
     })
-    dialogVisible.value = true
+    await openFormDialog()
   } catch (e: any) {
     ElMessage.error(e?.message || '加载 IP 组详情失败')
   }
@@ -754,51 +770,13 @@ const handleRemoveMember = async (row: any) => {
   } catch {}
 }
 
-// ============== Tab 3: 关联账号 ==============
-const accountDialogVisible = ref(false)
-const accountSubmitting = ref(false)
-const accountForm = reactive({ accountId: undefined as number | undefined })
-
-const handleBindAccount = () => {
-  accountForm.accountId = undefined
-  accountDialogVisible.value = true
-}
-const handleSubmitAccount = async () => {
-  if (!accountForm.accountId) { ElMessage.warning('请选择账号'); return }
-  accountSubmitting.value = true
-  try {
-    await bindIpGroupAccounts(currentNode.value.id, {
-      accountIds: [accountForm.accountId],
-      accountRole: 'PRIMARY',
-    })
-    ElMessage.success('已关联')
-    accountDialogVisible.value = false
-    await loadAccounts()
-    await loadTree()
-  } catch (e: any) {
-    ElMessage.error(e?.message || '关联失败')
-  } finally {
-    accountSubmitting.value = false
-  }
-}
-const handleUnbindAccount = async (row: any) => {
-  try {
-    await ElMessageBox.confirm(`确认解绑【${row.accountName}】？`, '提示', { type: 'warning' })
-    await unbindIpGroupAccount(currentNode.value.id, row.accountId)
-    ElMessage.success('已解绑')
-    await loadAccounts()
-    await loadTree()
-  } catch {}
-}
-
-// ============== Tab 4: 关联作者 ==============
+// ============== Tab 3: 关联作者 ==============
 const anchorDialogVisible = ref(false)
 const anchorSubmitting = ref(false)
 const authorOptions = ref<AuthorListVO[]>([])
 const authorOptionsLoading = ref(false)
 const anchorForm = reactive({
   authorId: undefined as number | undefined,
-  anchorType: undefined as string | undefined,
 })
 
 const loadAuthorOptions = async () => {
@@ -816,16 +794,8 @@ const loadAuthorOptions = async () => {
   }
 }
 
-watch(() => anchorForm.authorId, (authorId) => {
-  if (!authorId) return
-  const selected = authorOptions.value.find((item) => item.id === authorId)
-  if (selected?.authorType && !anchorForm.anchorType) {
-    anchorForm.anchorType = selected.authorType
-  }
-})
-
 const handleBindAnchor = async () => {
-  Object.assign(anchorForm, { authorId: undefined, anchorType: undefined })
+  Object.assign(anchorForm, { authorId: undefined })
   anchorDialogVisible.value = true
   await loadAuthorOptions()
 }
@@ -835,7 +805,6 @@ const handleSubmitAnchor = async () => {
   try {
     await bindIpGroupAnchors(currentNode.value.id, {
       anchorUserIds: [anchorForm.authorId],
-      anchorType: anchorForm.anchorType,
     })
     ElMessage.success('已添加')
     anchorDialogVisible.value = false
@@ -870,6 +839,12 @@ onMounted(loadTree)
 
 <style scoped>
 .ip-group-page { padding: 16px; height: calc(100vh - 120px); }
+.ip-group-page--denied {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+}
 .ip-group-layout { display: flex; gap: 16px; height: 100%; }
 
 .ip-group-tree-panel {

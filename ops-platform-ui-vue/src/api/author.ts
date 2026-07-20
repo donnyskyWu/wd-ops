@@ -1,17 +1,19 @@
 /**
- * 作者管理 - API（GATE-S3 真实 API）
+ * 作者 API（GATE-S3 真实 API）
+ * 基础 CRUD 已迁移 Football author/info；保留 list/dashboard/ext 供 OPS 扩展面。
  */
 import { request } from '@/utils/request'
 import type {
   AuthorPageReqVO,
   AuthorPageRespVO,
-  AuthorSaveReqVO,
   AuthorDashboardVO,
   OpsUserVO,
   OpsAnchorRelPageReqVO,
   OpsAnchorRelPageRespVO,
   OpsAnchorRelSaveReqVO,
   OpsAnchorStatsVO,
+  AuthorExtVO,
+  AuthorExtUpdateReqVO,
 } from '@/types/author'
 
 export function getAuthorPage(params: AuthorPageReqVO): Promise<AuthorPageRespVO> {
@@ -27,16 +29,27 @@ export type AuthorListQuery = {
   size?: number
 }
 
-export function createAuthor(data: AuthorSaveReqVO): Promise<number> {
-  return request.post({ url: '/oa/author/create', data })
+/** @deprecated 基础 CRUD 已迁移 Football，调用将返回 410 */
+export function createAuthor(_data: unknown): Promise<number> {
+  return request.post({ url: '/oa/author/create', data: _data })
 }
 
-export function updateAuthor(data: AuthorSaveReqVO): Promise<boolean> {
-  return request.put({ url: '/oa/author/update', data })
+/** @deprecated 基础 CRUD 已迁移 Football，调用将返回 410 */
+export function updateAuthor(_data: unknown): Promise<boolean> {
+  return request.put({ url: '/oa/author/update', data: _data })
 }
 
+/** @deprecated 基础 CRUD 已迁移 Football，调用将返回 410 */
 export function deleteAuthor(id: number): Promise<boolean> {
   return request.delete({ url: '/oa/author/delete', params: { id } })
+}
+
+export function getAuthorExt(authorUserId: number): Promise<AuthorExtVO> {
+  return request.get({ url: `/oa/author-ext/${authorUserId}` })
+}
+
+export function updateAuthorExt(authorUserId: number, data: AuthorExtUpdateReqVO): Promise<boolean> {
+  return request.put({ url: `/oa/author-ext/${authorUserId}`, data })
 }
 
 export function getAuthorDashboard(id: number): Promise<AuthorDashboardVO> {
@@ -72,6 +85,8 @@ export default {
   createAuthor,
   updateAuthor,
   deleteAuthor,
+  getAuthorExt,
+  updateAuthorExt,
   getAuthorDashboard,
   getAuthorOpsList,
   getOpsAnchorRelPage,

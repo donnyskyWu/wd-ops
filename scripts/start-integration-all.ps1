@@ -213,7 +213,8 @@ if ($OaProfiles -match "dev-local-multidb") {
     $schemaPatches = @(
         "apply-system-role-menu-user-type.py",
         "apply-system-user-author-table.py",
-        "apply-system-user-data-table.py"
+        "apply-system-user-data-table.py",
+        "apply-member-author-user-columns.py"
     )
     foreach ($patchScript in $schemaPatches) {
         $applyPatch = Join-Path $Root "scripts\integration-config\$patchScript"
@@ -244,6 +245,7 @@ try {
 # 5. Gateway + Football backends
 Write-Host "`n--- Gateway + system stack ---"
 $Overlay = Join-Path $Root "scripts\integration-config\football-integration-overlay.yml"
+$MemberOverlay = Join-Path $Root "scripts\integration-config\member-integration-overlay.yml"
 $GatewayJar = Join-Path $Root "football-backend-saas\football-gateway\target\football-gateway.jar"
 $GatewayOverlay = Join-Path $Root "scripts\integration-config\gateway-integration-local.yaml"
 $MpJar = Join-Path $Root "football-backend-saas\football-module-mp\football-module-mp-server\target\football-module-mp-server.jar"
@@ -270,8 +272,9 @@ Start-IntegrationJar -Title "mp-server" -Port 48086 -Jar $MpJar -LogFile (Join-P
 Start-Sleep -Seconds 8
 
 if ($FullMemberServer) {
+    $memberCfg = if (Test-Path $MemberOverlay) { "$Overlay,$MemberOverlay" } else { $Overlay }
     Start-IntegrationJar -Title "member-server" -Port 48087 -Jar $MemberJar -LogFile (Join-Path $LogDir "member-server-integration.log") `
-        -ActiveProfiles $FootballProfiles -ExtraConfig $Overlay
+        -ActiveProfiles $FootballProfiles -ExtraConfig $memberCfg
 } else {
     if (-not (Test-PortListen -Port 48087)) {
         $mockPy = Join-Path $Root "scripts\integration-config\mock-member-author-server.py"

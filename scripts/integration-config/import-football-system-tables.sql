@@ -1,4 +1,4 @@
-﻿-- Football (ruoyi-vue-pro) system_* subset for wd integration
+-- Football (ruoyi-vue-pro) system_* subset for wd integration
 -- Source: football-backend-saas/sql/mysql/ruoyi-vue-pro.sql
 -- Does NOT touch sys_* / oa_* tables. Idempotent: DROP IF EXISTS per table then recreate+seed.
 

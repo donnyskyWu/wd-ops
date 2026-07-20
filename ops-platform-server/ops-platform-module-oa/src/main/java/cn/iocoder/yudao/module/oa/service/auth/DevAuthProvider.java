@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserTokenMapper;
 import cn.iocoder.yudao.module.oa.framework.auth.AuthProvider;
 import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUser;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 public class DevAuthProvider implements AuthProvider {
 
     private final SysUserTokenMapper sysUserTokenMapper;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public Optional<LoginUser> authenticate(HttpServletRequest request, String token, Long headerTenantId) {
@@ -48,6 +50,11 @@ public class DevAuthProvider implements AuthProvider {
                 .forEach(authorities::add);
         sysUserTokenMapper.selectPermissionCodesByUserId(user.getId()).forEach(authorities::add);
 
+        Set<Long> memberIds = opsDataScopeSupport.resolveMemberIpGroupIds(
+                user.getId(), user.getUsername(), user.getTenantId());
+        Set<Long> ledIds = opsDataScopeSupport.resolveLedIpGroupIds(
+                user.getId(), user.getUsername(), user.getTenantId());
+
         LoginUser loginUser = LoginUser.builder()
                 .userId(user.getId())
                 .tenantId(user.getTenantId())
@@ -56,9 +63,19 @@ public class DevAuthProvider implements AuthProvider {
                 .email(user.getEmail())
                 .authorities(authorities)
                 .dataScope(resolveDataScope(roles))
-                .ipGroupId(user.getIpGroupId())
+                .ipGroupId(resolveCompatIpGroupId(memberIds, user.getIpGroupId()))
+                .memberIpGroupIds(memberIds.isEmpty() ? null : memberIds)
+                .ledIpGroupIds(ledIds.isEmpty() ? null : ledIds)
+                .ipGroupLeader(!ledIds.isEmpty())
                 .build();
         return Optional.of(loginUser);
+    }
+
+    private Long resolveCompatIpGroupId(Set<Long> memberIds, Long legacyIpGroupId) {
+        if (memberIds != null && memberIds.size() == 1) {
+            return memberIds.iterator().next();
+        }
+        return legacyIpGroupId;
     }
 
     private String resolveDataScope(List<SysRoleDO> roles) {

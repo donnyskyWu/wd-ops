@@ -101,12 +101,12 @@ export function resolveAssigneeByRole(
   const warning = role && !ctx.memberPositions.has(role)
     ? `IP 组内无岗位「${role}」成员，已默认 IP 组长`
     : undefined
-  if (ctx.leaderId != null) {
-    return { assigneeId: ctx.leaderId, assigneeFallback: true, positionWarning: warning }
-  }
   const leaderMember = ctx.members.find((m) => m.isLeader)
   if (leaderMember) {
     return { assigneeId: leaderMember.userId, assigneeFallback: true, positionWarning: warning }
+  }
+  if (ctx.leaderId != null) {
+    return { assigneeId: ctx.leaderId, assigneeFallback: true, positionWarning: warning }
   }
   if (ctx.members.length) {
     return { assigneeId: ctx.members[0].userId, assigneeFallback: true, positionWarning: warning }

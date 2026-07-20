@@ -27,9 +27,10 @@ import java.util.Set;
 @Profile("test")
 public class H2FlywaySkipCommentsConfiguration {
 
-    /** MySQL-only migrations after V124 — metadata or cutover; not required for H2 unit/IT baseline. */
+    /** MySQL-only migrations after V124 — metadata, Football system_menu sync, or cutover; not required for H2 IT baseline. */
     private static final Set<String> H2_SKIP_VERSIONS = Set.of(
-            "126", "127", "128", "129", "130", "131", "132", "133"
+            "126", "127", "128", "129", "130", "131", "132", "133",
+            "137", "145", "150"
     );
 
     @Bean

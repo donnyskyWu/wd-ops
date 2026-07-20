@@ -11,3 +11,9 @@ spring:
         namespace: local
         fail-fast: false
         failure-tolerance-enabled: true
+    # AL-05: direct system-server URL for local integration (see football-integration-overlay.yml)
+    openfeign:
+      client:
+        config:
+          system-server:
+            url: http://127.0.0.1:48081

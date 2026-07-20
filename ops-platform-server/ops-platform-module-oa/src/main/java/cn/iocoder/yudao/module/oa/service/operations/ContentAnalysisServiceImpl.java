@@ -15,7 +15,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
 import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataMergeSupport;
 import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataQueryService;
-import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -38,6 +38,7 @@ public class ContentAnalysisServiceImpl implements ContentAnalysisService {
     private final AccountMapper accountMapper;
     private final IpGroupMapper ipGroupMapper;
     private final CollectedDataQueryService collectedDataQueryService;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public PageResult<ContentAnalysisVO> list(LocalDate startDate, LocalDate endDate, Long ipGroupId,
@@ -199,13 +200,21 @@ public class ContentAnalysisServiceImpl implements ContentAnalysisService {
             if (StrUtil.isNotBlank(platformType) && !platformType.equals(account.getPlatformType())) {
                 return Collections.emptySet();
             }
+            try {
+                opsDataScopeSupport.assertAccountReadable(account);
+            } catch (ServiceException ex) {
+                return Collections.emptySet();
+            }
             return Set.of(accountId);
+        }
+        Set<Long> scopedGroups = opsDataScopeSupport.narrowIpGroupIds(ipGroupId);
+        if (scopedGroups != null && scopedGroups.size() == 1 && scopedGroups.contains(-1L)) {
+            return Collections.emptySet();
         }
         LambdaQueryWrapper<AccountDO> wrapper = new LambdaQueryWrapper<AccountDO>()
                 .eq(AccountDO::getTenantId, tenantId)
-                .eq(ipGroupId != null, AccountDO::getIpGroupId, ipGroupId)
+                .in(scopedGroups != null, AccountDO::getIpGroupId, scopedGroups)
                 .eq(StrUtil.isNotBlank(platformType), AccountDO::getPlatformType, platformType);
-        DataScopeSupport.applyIpGroupScope(wrapper, AccountDO::getIpGroupId);
         return accountMapper.selectList(wrapper).stream().map(AccountDO::getId).collect(Collectors.toSet());
     }
 

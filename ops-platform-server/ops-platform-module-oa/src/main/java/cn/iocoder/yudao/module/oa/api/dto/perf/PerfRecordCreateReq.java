@@ -10,6 +10,8 @@ import java.time.LocalDate;
 public class PerfRecordCreateReq {
 
     @NotNull
+    private Long ipGroupId;
+    @NotNull
     private Long targetUserId;
     @NotNull
     @InDict("dict_perf_period")

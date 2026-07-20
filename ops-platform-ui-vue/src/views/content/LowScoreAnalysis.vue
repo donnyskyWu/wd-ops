@@ -18,7 +18,7 @@
       <el-col :span="6"><el-card shadow="hover"><el-statistic title="最低完播率" :value="stats.minScore" suffix="%" /></el-card></el-col>
       <el-col :span="6"><el-card shadow="hover"><el-statistic title="需优化" :value="stats.needOptimize" /></el-card></el-col>
     </el-row>
-    <el-table :data="lowScoreList" v-loading="loading" stripe>
+    <el-table :data="lowScoreList" v-loading="loading" stripe :empty-text="DATA_SCOPE_EMPTY_TEXT">
       <el-table-column prop="title" label="作品标题" min-width="200" />
       <el-table-column prop="contentType" label="类型" width="100" align="center">
         <template #default="{ row }">
@@ -60,6 +60,7 @@ import DictLabel from '@/components/DictLabel.vue'
 import { getLowScoreWorkList } from '@/api/monitor'
 import { exportToExcel } from '@/utils'
 import { mapExternalWork, pickMonitorPage } from '@/utils/monitor-map'
+import { DATA_SCOPE_EMPTY_TEXT } from '@/utils/data-scope'
 
 interface LowScoreRow {
   title: string

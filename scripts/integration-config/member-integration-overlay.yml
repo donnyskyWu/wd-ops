@@ -1,0 +1,15 @@
+# member-server overlay for FullMemberServer local integration.
+# author_user SSOT lives in shenyu-member (not wd). Shared football-integration-overlay.yml
+# points system/mp at wd; member-server must override to shenyu-member or login Feign fails.
+spring:
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://localhost:3306/shenyu-member?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: root
+          password: root
+        slave:
+          url: jdbc:mysql://localhost:3306/shenyu-member?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: root
+          password: root

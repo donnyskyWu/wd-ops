@@ -16,6 +16,10 @@ import cn.iocoder.yudao.module.oa.api.dto.author.AuthorCreateReq;
 
 import cn.iocoder.yudao.module.oa.api.dto.author.AuthorDashboardVO;
 
+import cn.iocoder.yudao.module.oa.api.dto.author.AuthorExtUpdateReq;
+
+import cn.iocoder.yudao.module.oa.api.dto.author.AuthorExtVO;
+
 import cn.iocoder.yudao.module.oa.api.dto.author.AuthorUpdateReq;
 
 import cn.iocoder.yudao.module.oa.api.dto.author.AuthorVO;
@@ -30,6 +34,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.author.AuthorUserDO;
 
 import cn.iocoder.yudao.module.oa.dal.dataobject.author.OaAuthorExtDO;
 
+import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupAnchorRelDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
 
 import cn.iocoder.yudao.module.oa.dal.dataobject.operations.ContentDO;
@@ -46,6 +51,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.author.AuthorUserMapper;
 
 import cn.iocoder.yudao.module.oa.dal.mysql.author.OaAuthorExtMapper;
 
+import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupAnchorRelMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
@@ -54,7 +60,11 @@ import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
 
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.OpsAnchorRelMapper;
 
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.service.impl.DiffParseFunction;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
@@ -112,6 +122,8 @@ public class AuthorServiceImpl implements AuthorService {
 
     private final IpGroupMapper ipGroupMapper;
 
+    private final IpGroupAnchorRelMapper ipGroupAnchorRelMapper;
+
     private final MpAccountMapper mpAccountMapper;
 
     private final SysUserMapper sysUserMapper;
@@ -136,13 +148,15 @@ public class AuthorServiceImpl implements AuthorService {
 
         if (ipGroupId != null) {
 
-            List<OaAuthorExtDO> scoped = oaAuthorExtMapper.selectList(new LambdaQueryWrapper<OaAuthorExtDO>()
+            List<IpGroupAnchorRelDO> scoped = ipGroupAnchorRelMapper.selectList(new LambdaQueryWrapper<IpGroupAnchorRelDO>()
 
-                    .eq(OaAuthorExtDO::getTenantId, tenantId)
+                    .eq(IpGroupAnchorRelDO::getTenantId, tenantId)
 
-                    .eq(OaAuthorExtDO::getIpGroupId, ipGroupId));
+                    .eq(IpGroupAnchorRelDO::getIpGroupId, ipGroupId)
 
-            scopedUserIds = scoped.stream().map(OaAuthorExtDO::getAuthorUserId).collect(Collectors.toSet());
+                    .orderByAsc(IpGroupAnchorRelDO::getId));
+
+            scopedUserIds = scoped.stream().map(IpGroupAnchorRelDO::getAnchorUserId).collect(Collectors.toSet());
 
             if (scopedUserIds.isEmpty()) {
 
@@ -182,11 +196,21 @@ public class AuthorServiceImpl implements AuthorService {
 
         Map<Long, OaAuthorExtDO> extMap = loadExtMap(tenantId, userIds);
 
+        for (Long userId : userIds) {
 
+            if (!extMap.containsKey(userId)) {
+
+                extMap.put(userId, ensureExtRow(userId, tenantId));
+
+            }
+
+        }
+
+        Map<Long, Long> displayIpGroupMap = loadDisplayIpGroupMap(tenantId, userIds, ipGroupId);
 
         List<AuthorVO> list = page.getRecords().stream()
 
-                .map(u -> toVO(u, extMap.get(u.getId())))
+                .map(u -> toVO(u, extMap.get(u.getId()), displayIpGroupMap.get(u.getId())))
 
                 .collect(Collectors.toList());
 
@@ -198,57 +222,11 @@ public class AuthorServiceImpl implements AuthorService {
 
     @Override
 
-    @AuditLog(module = "M1-author", action = "create")
-
+    @LogRecord(type = M1_AUTHOR_TYPE, subType = M1_AUTHOR_CREATE_SUB_TYPE, bizNo = BIZ_NO_NONE,
+            success = M1_AUTHOR_CREATE_SUCCESS)
     public Long create(AuthorCreateReq req) {
 
-        Long tenantId = requireTenantId();
-
-        validateIpGroupSmall(tenantId, req.getIpGroupId());
-
-        if (req.getPrimaryAccountId() != null) {
-
-            validatePrimaryMpAccount(tenantId, req.getPrimaryAccountId(), null);
-
-        }
-
-
-
-        AuthorUserDO user = new AuthorUserDO();
-
-        user.setTenantId(tenantId);
-
-        user.setNickname(req.getAuthorName().trim());
-
-        user.setUserId(req.getUserId());
-
-        user.setStatus(toMemberStatus(req.getStatus() == null ? 1 : req.getStatus()));
-
-        user.setCreator(TenantContextHolder.getUsername());
-
-        user.setUpdater(TenantContextHolder.getUsername());
-
-        user.setCreateTime(LocalDateTime.now());
-
-        user.setUpdateTime(LocalDateTime.now());
-
-        authorUserMapper.insert(user);
-
-
-
-        try {
-
-            oaAuthorExtMapper.insert(buildExt(user.getId(), tenantId, req));
-
-        } catch (Exception ex) {
-
-            markExtError(user.getId(), tenantId, ex.getMessage());
-
-            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "作者扩展写入失败: " + ex.getMessage());
-
-        }
-
-        return user.getId();
+        throw new ServiceException(OaErrorCodes.AUTHOR_CRUD_DEPRECATED);
 
     }
 
@@ -256,65 +234,61 @@ public class AuthorServiceImpl implements AuthorService {
 
     @Override
 
-    @AuditLog(module = "M1-author", action = "update")
-
+    @LogRecord(type = M1_AUTHOR_TYPE, subType = M1_AUTHOR_UPDATE_SUB_TYPE, bizNo = BIZ_NO_NONE,
+            success = M1_AUTHOR_UPDATE_SUCCESS)
     public void update(AuthorUpdateReq req) {
+
+        throw new ServiceException(OaErrorCodes.AUTHOR_CRUD_DEPRECATED);
+
+    }
+
+
+
+    @Override
+
+    @LogRecord(type = M1_AUTHOR_TYPE, subType = M1_AUTHOR_DELETE_SUB_TYPE, bizNo = "{{#id}}",
+            success = M1_AUTHOR_DELETE_SUCCESS)
+    public void delete(Long id) {
+
+        throw new ServiceException(OaErrorCodes.AUTHOR_CRUD_DEPRECATED);
+
+    }
+
+
+
+    @Override
+
+    public AuthorExtVO getExt(Long authorUserId) {
 
         Long tenantId = requireTenantId();
 
-        AuthorUserDO user = authorResolveSupport.requireAuthorUser(req.getId(), tenantId);
+        AuthorUserDO user = authorResolveSupport.requireAuthorUser(authorUserId, tenantId);
 
-        OaAuthorExtDO ext = oaAuthorExtMapper.selectById(req.getId());
+        OaAuthorExtDO ext = ensureExtRow(authorUserId, tenantId);
 
+        return toExtVO(user, ext, authorResolveSupport.resolveDisplayIpGroupId(authorUserId, tenantId));
 
-
-        if (StrUtil.isNotBlank(req.getAuthorName())) {
-
-            user.setNickname(req.getAuthorName().trim());
-
-        }
-
-        if (req.getUserId() != null) {
-
-            user.setUserId(req.getUserId());
-
-        }
-
-        if (req.getStatus() != null) {
-
-            user.setStatus(toMemberStatus(req.getStatus()));
-
-        }
-
-        user.setUpdater(TenantContextHolder.getUsername());
-
-        user.setUpdateTime(LocalDateTime.now());
-
-        authorUserMapper.updateById(user);
+    }
 
 
 
-        if (ext == null) {
+    @Override
 
-            ext = new OaAuthorExtDO();
+    @LogRecord(type = M1_AUTHOR_TYPE, subType = M1_AUTHOR_UPDATE_EXT_SUB_TYPE, bizNo = "{{#authorUserId}}",
+            success = M1_AUTHOR_UPDATE_EXT_SUCCESS)
+    public void updateExt(Long authorUserId, AuthorExtUpdateReq req) {
 
-            ext.setAuthorUserId(req.getId());
+        Long tenantId = requireTenantId();
 
-            ext.setTenantId(tenantId);
+        AuthorUserDO author = authorResolveSupport.requireAuthorUser(authorUserId, tenantId);
+        LogRecordContext.putVariable("author", author);
 
-            ext.setSyncStatus(SYNC_SYNCED);
-
-            ext.setCreator(TenantContextHolder.getUsername());
-
-            ext.setCreateTime(LocalDateTime.now());
-
-        }
+        OaAuthorExtDO ext = ensureExtRow(authorUserId, tenantId);
+        LogRecordContext.putVariable(DiffParseFunction.OLD_OBJECT, toExtUpdateReq(ext));
 
         if (req.getIpGroupId() != null) {
 
-            validateIpGroupSmall(tenantId, req.getIpGroupId());
-
-            ext.setIpGroupId(req.getIpGroupId());
+            throw new ServiceException(OaErrorCodes.AUTHOR_IP_GROUP_MANAGED_IN_IP_GROUP);
 
         }
 
@@ -326,7 +300,7 @@ public class AuthorServiceImpl implements AuthorService {
 
         if (req.getPrimaryAccountId() != null) {
 
-            validatePrimaryMpAccount(tenantId, req.getPrimaryAccountId(), req.getId());
+            validatePrimaryMpAccount(tenantId, req.getPrimaryAccountId(), authorUserId);
 
             ext.setPrimaryMpAccountId(req.getPrimaryAccountId());
 
@@ -352,37 +326,7 @@ public class AuthorServiceImpl implements AuthorService {
 
         ext.setSyncError(null);
 
-        if (oaAuthorExtMapper.selectById(ext.getAuthorUserId()) == null) {
-
-            oaAuthorExtMapper.insert(ext);
-
-        } else {
-
-            oaAuthorExtMapper.updateById(ext);
-
-        }
-
-    }
-
-
-
-    @Override
-
-    @AuditLog(module = "M1-author", action = "delete")
-
-    public void delete(Long id) {
-
-        Long tenantId = requireTenantId();
-
-        authorResolveSupport.requireAuthorUser(id, tenantId);
-
-        OaAuthorExtDO ext = oaAuthorExtMapper.selectById(id);
-
-        if (ext != null) {
-
-            oaAuthorExtMapper.deleteById(id);
-
-        }
+        oaAuthorExtMapper.updateById(ext);
 
     }
 
@@ -396,7 +340,7 @@ public class AuthorServiceImpl implements AuthorService {
 
         AuthorUserDO user = authorResolveSupport.requireAuthorUser(id, tenantId);
 
-        OaAuthorExtDO ext = oaAuthorExtMapper.selectById(id);
+        OaAuthorExtDO ext = ensureExtRow(id, tenantId);
 
 
 
@@ -408,9 +352,11 @@ public class AuthorServiceImpl implements AuthorService {
 
 
 
-        if (ext != null && ext.getIpGroupId() != null) {
+        Long displayIpGroupId = authorResolveSupport.resolveDisplayIpGroupId(id, tenantId);
 
-            IpGroupDO group = ipGroupMapper.selectById(ext.getIpGroupId());
+        if (displayIpGroupId != null) {
+
+            IpGroupDO group = ipGroupMapper.selectById(displayIpGroupId);
 
             if (group != null) {
 
@@ -580,7 +526,7 @@ public class AuthorServiceImpl implements AuthorService {
 
 
 
-    private AuthorVO toVO(AuthorUserDO user, OaAuthorExtDO ext) {
+    private AuthorVO toVO(AuthorUserDO user, OaAuthorExtDO ext, Long displayIpGroupId) {
 
         AuthorVO vo = new AuthorVO();
 
@@ -594,6 +540,8 @@ public class AuthorServiceImpl implements AuthorService {
 
         vo.setUserId(user.getUserId());
 
+        vo.setAuthorLevel(user.getAuthorLevel());
+
         vo.setCreateTime(user.getCreateTime());
 
         vo.setStatus(ext != null && ext.getStatus() != null
@@ -604,25 +552,11 @@ public class AuthorServiceImpl implements AuthorService {
 
         if (ext != null) {
 
-            vo.setIpGroupId(ext.getIpGroupId());
-
             vo.setAuthorType(ext.getAuthorType());
 
             vo.setPrimaryAccountId(ext.getPrimaryMpAccountId());
 
             vo.setRemark(ext.getRemark());
-
-            if (ext.getIpGroupId() != null) {
-
-                IpGroupDO group = ipGroupMapper.selectById(ext.getIpGroupId());
-
-                if (group != null) {
-
-                    vo.setIpGroupName(group.getGroupName());
-
-                }
-
-            }
 
             if (ext.getPrimaryMpAccountId() != null) {
 
@@ -633,6 +567,22 @@ public class AuthorServiceImpl implements AuthorService {
                     vo.setPrimaryAccountName(mp.getName());
 
                 }
+
+            }
+
+        }
+
+        if (displayIpGroupId != null) {
+
+            vo.setIpGroupId(displayIpGroupId);
+
+            IpGroupDO group = ipGroupMapper.selectById(displayIpGroupId);
+
+            if (group != null) {
+
+                vo.setIpGroupName(group.getGroupName());
+
+                vo.setIpGroupLevel(group.getLevel());
 
             }
 
@@ -752,17 +702,108 @@ public class AuthorServiceImpl implements AuthorService {
 
 
 
-    private void validateIpGroupSmall(Long tenantId, Long ipGroupId) {
+    /**
+     * Lazy-create {@code oa_author_ext} when Football 新建作者尚未写入扩展行。
+     */
+    private OaAuthorExtDO ensureExtRow(Long authorUserId, Long tenantId) {
 
-        IpGroupDO group = ipGroupMapper.selectById(ipGroupId);
+        OaAuthorExtDO ext = oaAuthorExtMapper.selectById(authorUserId);
 
-        if (group == null || !Objects.equals(group.getTenantId(), tenantId)
+        if (ext != null) {
 
-                || group.getGroupType() == null || group.getGroupType() != 2) {
-
-            throw new ServiceException(OaErrorCodes.AUTHOR_IP_GROUP_MUST_SMALL);
+            return ext;
 
         }
+
+        ext = new OaAuthorExtDO();
+
+        ext.setAuthorUserId(authorUserId);
+
+        ext.setTenantId(tenantId);
+
+        ext.setStatus(1);
+
+        ext.setSyncStatus(SYNC_SYNCED);
+
+        ext.setCreator(TenantContextHolder.getUsername());
+
+        ext.setUpdater(TenantContextHolder.getUsername());
+
+        ext.setCreateTime(LocalDateTime.now());
+
+        ext.setUpdateTime(LocalDateTime.now());
+
+        oaAuthorExtMapper.insert(ext);
+
+        return ext;
+
+    }
+
+
+
+    private AuthorExtVO toExtVO(AuthorUserDO user, OaAuthorExtDO ext, Long displayIpGroupId) {
+
+        AuthorExtVO vo = new AuthorExtVO();
+
+        vo.setAuthorUserId(user.getId());
+
+        vo.setAuthorName(user.getNickname());
+
+        if (ext != null) {
+
+            vo.setAuthorType(ext.getAuthorType());
+
+            vo.setPrimaryAccountId(ext.getPrimaryMpAccountId());
+
+            vo.setStatus(ext.getStatus());
+
+            vo.setRemark(ext.getRemark());
+
+            if (ext.getPrimaryMpAccountId() != null) {
+
+                MpAccountDO mp = mpAccountMapper.selectById(ext.getPrimaryMpAccountId());
+
+                if (mp != null) {
+
+                    vo.setPrimaryAccountName(mp.getName());
+
+                }
+
+            }
+
+        }
+
+        if (displayIpGroupId != null) {
+
+            vo.setIpGroupId(displayIpGroupId);
+
+            IpGroupDO group = ipGroupMapper.selectById(displayIpGroupId);
+
+            if (group != null) {
+
+                vo.setIpGroupName(group.getGroupName());
+
+            }
+
+        }
+
+        return vo;
+
+    }
+
+
+
+    private Map<Long, Long> loadDisplayIpGroupMap(Long tenantId, List<Long> authorUserIds, Long listFilterIpGroupId) {
+
+        if (listFilterIpGroupId != null) {
+
+            return authorUserIds.stream()
+
+                    .collect(Collectors.toMap(id -> id, id -> listFilterIpGroupId, (a, b) -> a));
+
+        }
+
+        return authorResolveSupport.loadDisplayIpGroupIdByAuthor(tenantId, authorUserIds);
 
     }
 
@@ -834,6 +875,15 @@ public class AuthorServiceImpl implements AuthorService {
 
         return tenantId;
 
+    }
+
+    private static AuthorExtUpdateReq toExtUpdateReq(OaAuthorExtDO ext) {
+        AuthorExtUpdateReq req = new AuthorExtUpdateReq();
+        req.setAuthorType(ext.getAuthorType());
+        req.setPrimaryAccountId(ext.getPrimaryMpAccountId());
+        req.setStatus(ext.getStatus());
+        req.setRemark(ext.getRemark());
+        return req;
     }
 
 }

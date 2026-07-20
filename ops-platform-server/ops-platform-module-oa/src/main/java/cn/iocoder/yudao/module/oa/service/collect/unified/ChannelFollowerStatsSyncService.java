@@ -6,9 +6,9 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.analytics.AccountStatusLogDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.CollectorAccountBindDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.analytics.AccountStatusLogMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.CollectorAccountBindMapper;
+import cn.iocoder.yudao.module.oa.service.account.WechatOfficialAccountResolver;
 import cn.iocoder.yudao.module.oa.service.config.ConfigTenantSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
@@ -31,15 +31,15 @@ public class ChannelFollowerStatsSyncService {
     private static final String BIND_STATUS_BOUND = "BOUND";
     private static final String STATUS_NORMAL = "NORMAL";
 
-    private final AccountMapper accountMapper;
+    private final WechatOfficialAccountResolver wechatOfficialAccountResolver;
     private final CollectorAccountBindMapper collectorAccountBindMapper;
     private final AccountStatusLogMapper accountStatusLogMapper;
     private final UnifiedCollectorApiClient unifiedCollectorApiClient;
 
     @Transactional
     public int syncWechatMpFollowerStats(Long oaAccountId) {
-        AccountDO account = accountMapper.selectById(oaAccountId);
-        account = ConfigTenantSupport.getRequiredInTenant(account);
+        Long tenantId = ConfigTenantSupport.requireTenantId();
+        AccountDO account = wechatOfficialAccountResolver.requireTenantAccount(oaAccountId, tenantId);
         if (WechatMpOfficialCredentialSupport.supportsOfficialApi(account)) {
             return syncWechatMpOfficialFollowerStats(oaAccountId);
         }

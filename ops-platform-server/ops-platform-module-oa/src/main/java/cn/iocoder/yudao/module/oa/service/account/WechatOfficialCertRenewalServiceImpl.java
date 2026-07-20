@@ -11,7 +11,10 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.account.WechatOfficialCertRenew
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.WechatOfficialCertRenewalMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
@@ -59,7 +62,8 @@ public class WechatOfficialCertRenewalServiceImpl implements WechatOfficialCertR
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-wechat-cert-renewal", action = "create")
+    @LogRecord(type = M4_WECHAT_CERT_RENEWAL_TYPE, subType = M4_WECHAT_CERT_RENEWAL_CREATE_SUB_TYPE,
+            bizNo = "{{#renewal.id}}", success = M4_WECHAT_CERT_RENEWAL_CREATE_SUCCESS)
     public Long create(WechatCertRenewalCreateReq req) {
         Long tenantId = requireTenantId();
         AccountDO account = assertWechatOfficialAccount(req.getAccountId(), tenantId);
@@ -78,6 +82,7 @@ public class WechatOfficialCertRenewalServiceImpl implements WechatOfficialCertR
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         renewalMapper.insert(entity);
+        LogRecordContext.putVariable("renewal", entity);
 
         applyRenewalSideEffects(req.getAccountId(), tenantId);
         return entity.getId();
@@ -85,9 +90,11 @@ public class WechatOfficialCertRenewalServiceImpl implements WechatOfficialCertR
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-wechat-cert-renewal", action = "delete")
+    @LogRecord(type = M4_WECHAT_CERT_RENEWAL_TYPE, subType = M4_WECHAT_CERT_RENEWAL_DELETE_SUB_TYPE,
+            bizNo = "{{#renewal.id}}", success = M4_WECHAT_CERT_RENEWAL_DELETE_SUCCESS)
     public void delete(Long id) {
         WechatOfficialCertRenewalDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("renewal", existing);
         renewalMapper.deleteById(existing.getId());
     }
 

@@ -56,4 +56,13 @@ public class MpAccountDataService {
     public void updateById(MpAccountDO mp) {
         mpAccountMapper.updateById(mp);
     }
+
+    @DS("mp")
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public MpAccountDO selectByAppId(Long tenantId, String appId) {
+        return mpAccountMapper.selectOne(new LambdaQueryWrapper<MpAccountDO>()
+                .eq(MpAccountDO::getTenantId, tenantId)
+                .eq(MpAccountDO::getAppId, appId)
+                .last("LIMIT 1"));
+    }
 }

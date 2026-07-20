@@ -15,8 +15,10 @@ import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.OrderAttributionMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
-import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +44,7 @@ public class ProductivityReviewServiceImpl implements ProductivityReviewService 
     private final TaskMapper taskMapper;
     private final OrderAttributionMapper orderAttributionMapper;
     private final ContentMapper contentMapper;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public PageResult<ProductivityReviewVO> list(LocalDate startDate, LocalDate endDate,
@@ -58,7 +61,7 @@ public class ProductivityReviewServiceImpl implements ProductivityReviewService 
                 .eq(position != null && !position.isEmpty(), SysUserDO::getPosition, position)
                 .like(keyword != null && !keyword.isEmpty(), SysUserDO::getNickname, keyword)
                 .orderByAsc(SysUserDO::getId);
-        DataScopeSupport.applyIpGroupScope(userWrapper, SysUserDO::getIpGroupId);
+        opsDataScopeSupport.applyProductivityUserScope(userWrapper, SysUserDO::getId);
         Page<SysUserDO> userPage = sysUserMapper.selectPage(
                 new Page<>(page == null ? 1 : page, size == null ? 20 : size), userWrapper);
         if (userPage.getRecords().isEmpty()) {
@@ -80,6 +83,7 @@ public class ProductivityReviewServiceImpl implements ProductivityReviewService 
     @Override
     public ProductivityReviewDetailVO detail(Long userId, LocalDate startDate, LocalDate endDate) {
         Long tenantId = requireTenantId();
+        opsDataScopeSupport.assertProductivityUserReadable(userId);
         SysUserDO user = sysUserMapper.selectById(userId);
         if (user == null || !user.getTenantId().equals(tenantId)) {
             throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "经办人不存在");
@@ -158,6 +162,7 @@ public class ProductivityReviewServiceImpl implements ProductivityReviewService 
         LambdaQueryWrapper<SysUserDO> wrapper = new LambdaQueryWrapper<SysUserDO>()
                 .eq(SysUserDO::getTenantId, tenantId)
                 .eq(SysUserDO::getIpGroupId, ipGroupId);
+        opsDataScopeSupport.applyProductivityUserScope(wrapper, SysUserDO::getId);
         List<SysUserDO> users = sysUserMapper.selectList(wrapper);
         if (users.isEmpty()) {
             return Collections.emptyList();
@@ -172,7 +177,8 @@ public class ProductivityReviewServiceImpl implements ProductivityReviewService 
     }
 
     @Override
-    @AuditLog(module = "M1-productivity-review", action = "export")
+    @LogRecord(type = M1_PRODUCTIVITY_REVIEW_TYPE, subType = M1_PRODUCTIVITY_REVIEW_EXPORT_SUB_TYPE,
+            bizNo = BIZ_NO_NONE, success = M1_PRODUCTIVITY_REVIEW_EXPORT_SUCCESS)
     public String exportCsv(LocalDate startDate, LocalDate endDate, String timeDimension,
                             Long ipGroupId, Long userId, String position, String keyword) {
         // 简化：直接复用 list 拿全量（不传分页）

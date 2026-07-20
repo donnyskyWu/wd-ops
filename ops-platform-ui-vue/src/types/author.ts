@@ -28,6 +28,10 @@ export interface AuthorListVO {
   authorName: string
   /** 作者类型（字典值 dict_author_type） */
   authorType: string
+  /** member author_user.author_level：0=作者 1=专家 */
+  authorLevel?: number
+  /** 作者所属 IP 组等级 dict_ip_group_level */
+  ipGroupLevel?: string
   /** 作者类型文本（前端可由 dict 渲染） */
   authorTypeText?: string
   /** IP组ID */
@@ -60,6 +64,29 @@ export interface AuthorListVO {
   videoCount?: number
   /** 运营人员姓名列表（详情接口） */
   opsUserNames?: string[]
+}
+
+/**
+ * 作者 Ops 扩展（/oa/author-ext/{id}）
+ */
+export interface AuthorExtVO {
+  authorUserId: number
+  authorName?: string
+  ipGroupId?: number | null
+  ipGroupName?: string | null
+  authorType?: string | null
+  primaryAccountId?: number | null
+  primaryAccountName?: string | null
+  status?: AuthorStatus
+  remark?: string | null
+}
+
+export interface AuthorExtUpdateReqVO {
+  ipGroupId?: number | null
+  authorType?: string | null
+  primaryAccountId?: number | null
+  status?: AuthorStatus
+  remark?: string | null
 }
 
 /**

@@ -69,10 +69,26 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="方案上架" width="110" align="center">
+          <template #default="{ row }">
+            <el-tag
+              v-if="row.footballSyncError"
+              type="danger"
+              size="small"
+              :title="row.footballSyncError"
+            >
+              同步失败
+            </el-tag>
+            <el-tag v-else-if="row.authorArticleId == null" type="info" size="small">未同步</el-tag>
+            <el-tag v-else :type="shelfStatusTagType(row.shelfStatus)" size="small">
+              {{ shelfStatusLabel(row.shelfStatus) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="170" align="center">
           <template #default="{ row }">{{ formatDateTime(row.createTime) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="400" align="center" fixed="right">
+        <el-table-column label="操作" width="480" align="center" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleView(row)">查看</el-button>
             <el-button
@@ -84,7 +100,23 @@
               编辑
             </el-button>
             <el-button
-              v-if="row.status === 'DRAFT'"
+              v-if="canShelfOn(row)"
+              link
+              type="success"
+              @click="handleShelfOn(row)"
+            >
+              上架
+            </el-button>
+            <el-button
+              v-if="canShelfOff(row)"
+              link
+              type="warning"
+              @click="handleShelfOff(row)"
+            >
+              下架
+            </el-button>
+            <el-button
+              v-if="row.status === 'DRAFT' || row.status === 'REJECTED'"
               link
               type="success"
               @click="handleSubmitReview(row)"
@@ -234,6 +266,8 @@ import {
   publishContentDraft,
   formalPublishContent,
   transferContentToKnowledge,
+  shelfOn,
+  shelfOff,
   type ContentPublishPlatformOption,
 } from '@/api/content'
 import TableSearch from '@/components/TableSearch.vue'
@@ -249,6 +283,33 @@ const searchForm = reactive({
   platformType: undefined as string | undefined,
   status: undefined as string | undefined,
 })
+
+const SHELF_STATUS_LABELS: Record<number, string> = {
+  [-1]: '草稿',
+  0: '已下架',
+  1: '已上架',
+  2: '审核中',
+  3: '预约发布',
+  4: '审核不通过',
+}
+
+const shelfStatusLabel = (status?: number) => {
+  if (status == null) return '未同步'
+  return SHELF_STATUS_LABELS[status] || `未知(${status})`
+}
+
+const shelfStatusTagType = (status?: number) => {
+  if (status === 1) return 'success'
+  if (status === 0 || status === 4) return 'danger'
+  if (status === 2 || status === 3) return 'warning'
+  return 'info'
+}
+
+const canShelfOn = (row: { authorArticleId?: number; shelfStatus?: number }) =>
+  !!row.authorArticleId && row.shelfStatus !== 1
+
+const canShelfOff = (row: { authorArticleId?: number; shelfStatus?: number }) =>
+  !!row.authorArticleId && row.shelfStatus === 1
 
 const loading = ref(false)
 const tableData = ref<any[]>([])
@@ -498,6 +559,36 @@ const handleDelete = async (row: { id: number; title: string }) => {
     loadData()
   } catch {
     // 用户取消
+  }
+}
+
+const handleShelfOn = async (row: { id: number; title: string }) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定上架内容「${row.title}」的 Football 发布方案吗？`,
+      '上架',
+      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' },
+    )
+    await shelfOn(row.id)
+    ElMessage.success('已上架')
+    loadData()
+  } catch {
+    // 用户取消或请求失败
+  }
+}
+
+const handleShelfOff = async (row: { id: number; title: string }) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定下架内容「${row.title}」的 Football 发布方案吗？`,
+      '下架',
+      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' },
+    )
+    await shelfOff(row.id)
+    ElMessage.success('已下架')
+    loadData()
+  } catch {
+    // 用户取消或请求失败
   }
 }
 

@@ -12,7 +12,11 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.operations.OpsAnchorRelDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.OpsAnchorRelMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.service.impl.DiffParseFunction;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -51,7 +55,8 @@ public class OpsAnchorServiceImpl implements OpsAnchorService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-ops-anchor", action = "create")
+    @LogRecord(type = M1_OPS_ANCHOR_TYPE, subType = M1_OPS_ANCHOR_CREATE_SUB_TYPE, bizNo = "{{#anchorRel.id}}",
+            success = M1_OPS_ANCHOR_CREATE_SUCCESS)
     public Long create(OpsAnchorCreateReq req) {
         Long tenantId = requireTenantId();
         assertUsersExist(tenantId, req.getOpsUserId(), req.getAnchorUserId());
@@ -69,14 +74,18 @@ public class OpsAnchorServiceImpl implements OpsAnchorService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         opsAnchorRelMapper.insert(entity);
+        LogRecordContext.putVariable("anchorRel", entity);
         return entity.getId();
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-ops-anchor", action = "update")
+    @LogRecord(type = M1_OPS_ANCHOR_TYPE, subType = M1_OPS_ANCHOR_UPDATE_SUB_TYPE, bizNo = "{{#anchorRel.id}}",
+            success = M1_OPS_ANCHOR_UPDATE_SUCCESS)
     public void update(OpsAnchorUpdateReq req) {
         OpsAnchorRelDO existing = requireRel(req.getId());
+        LogRecordContext.putVariable(DiffParseFunction.OLD_OBJECT, toUpdateReq(existing));
+        LogRecordContext.putVariable("anchorRel", existing);
         Long opsUserId = req.getOpsUserId() != null ? req.getOpsUserId() : existing.getOpsUserId();
         Long anchorUserId = req.getAnchorUserId() != null ? req.getAnchorUserId() : existing.getAnchorUserId();
         LocalDate startDate = req.getStartDate() != null ? req.getStartDate() : existing.getStartDate();
@@ -105,9 +114,11 @@ public class OpsAnchorServiceImpl implements OpsAnchorService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M1-ops-anchor", action = "delete")
+    @LogRecord(type = M1_OPS_ANCHOR_TYPE, subType = M1_OPS_ANCHOR_DELETE_SUB_TYPE, bizNo = "{{#anchorRel.id}}",
+            success = M1_OPS_ANCHOR_DELETE_SUCCESS)
     public void delete(Long id) {
-        requireRel(id);
+        OpsAnchorRelDO existing = requireRel(id);
+        LogRecordContext.putVariable("anchorRel", existing);
         opsAnchorRelMapper.deleteById(id);
     }
 
@@ -186,5 +197,16 @@ public class OpsAnchorServiceImpl implements OpsAnchorService {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED.getCode(), "缺少租户上下文");
         }
         return tenantId;
+    }
+
+    private static OpsAnchorUpdateReq toUpdateReq(OpsAnchorRelDO entity) {
+        OpsAnchorUpdateReq req = new OpsAnchorUpdateReq();
+        req.setId(entity.getId());
+        req.setOpsUserId(entity.getOpsUserId());
+        req.setAnchorUserId(entity.getAnchorUserId());
+        req.setIpGroupId(entity.getIpGroupId());
+        req.setStartDate(entity.getStartDate());
+        req.setEndDate(entity.getEndDate());
+        return req;
     }
 }

@@ -5,13 +5,9 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
-import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
-import cn.iocoder.yudao.module.oa.framework.auth.LoginUser;
-import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
-import java.util.Objects;
 
 /**
  * 平台账号读权限（租户 + IP 组数据范围），与 {@link PlatformAccountServiceImpl#get} 一致。
@@ -22,6 +18,7 @@ public class AccountDataScopeChecker {
 
     private final AccountMapper accountMapper;
     private final WechatOfficialAccountResolver wechatOfficialAccountResolver;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     public AccountDO requireReadableAccount(Long accountId) {
         Long tenantId = TenantContextHolder.getTenantId();
@@ -38,20 +35,7 @@ public class AccountDataScopeChecker {
         if (!tenantId.equals(entity.getTenantId())) {
             throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
         }
-        assertAccountReadable(entity);
+        opsDataScopeSupport.assertAccountReadable(entity);
         return entity;
-    }
-
-    private void assertAccountReadable(AccountDO entity) {
-        LoginUser user = LoginUserContext.get();
-        if (user == null || DataScopeSupport.ALL.equals(user.getDataScope())) {
-            return;
-        }
-        if (DataScopeSupport.IP_GROUP.equals(user.getDataScope())) {
-            Long scopeIpGroupId = user.getIpGroupId();
-            if (scopeIpGroupId != null && !Objects.equals(scopeIpGroupId, entity.getIpGroupId())) {
-                throw new ServiceException(OaErrorCodes.FORBIDDEN);
-            }
-        }
     }
 }

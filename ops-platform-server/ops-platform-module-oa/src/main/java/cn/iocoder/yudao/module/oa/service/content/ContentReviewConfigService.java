@@ -5,11 +5,16 @@ import cn.iocoder.yudao.module.oa.api.dto.content.ContentReviewConfigVO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysRoleDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.content.ProductionContentDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.auth.FootballSystemRoleDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupMemberDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.FootballOAuth2MasterTokenMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysRoleMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserTokenMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMemberMapper;
+import cn.iocoder.yudao.module.oa.service.ipgroup.IpGroupAccessSupport;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.service.system.ParamService;
 import cn.hutool.core.util.StrUtil;
@@ -20,12 +25,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +50,9 @@ public class ContentReviewConfigService {
     private final SysUserTokenMapper sysUserTokenMapper;
     private final SysRoleMapper sysRoleMapper;
     private final IpGroupMapper ipGroupMapper;
+    private final IpGroupMemberMapper ipGroupMemberMapper;
+    private final IpGroupAccessSupport ipGroupAccessSupport;
+    private final OpsDataScopeSupport opsDataScopeSupport;
     private final FootballOAuth2MasterTokenMapper footballOAuth2MasterTokenMapper;
     private final FootballSystemUserValidator footballSystemUserValidator;
 
@@ -142,13 +150,11 @@ public class ContentReviewConfigService {
         if (tenantId == null) {
             return Collections.emptyList();
         }
-        return ipGroupMapper.selectList(new LambdaQueryWrapper<IpGroupDO>()
-                        .eq(IpGroupDO::getTenantId, tenantId)
-                        .eq(IpGroupDO::getLeaderUserId, userId)
-                        .eq(IpGroupDO::getStatus, 1))
-                .stream()
-                .map(IpGroupDO::getId)
-                .collect(Collectors.toList());
+        cn.iocoder.yudao.module.oa.framework.auth.LoginUser loginUser =
+                cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext.get();
+        String username = loginUser != null ? loginUser.getUsername() : null;
+        Long effectiveUserId = loginUser != null ? loginUser.getUserId() : userId;
+        return new ArrayList<>(opsDataScopeSupport.resolveLedIpGroupIds(effectiveUserId, username, tenantId));
     }
 
     public boolean canReview(Long userId, ProductionContentDO content, String stage) {
@@ -220,10 +226,7 @@ public class ContentReviewConfigService {
         Map<Long, String> nameMap = footballSystemUserValidator.loadNicknames(userIds);
         List<String> names = new ArrayList<>();
         for (Long userId : userIds) {
-            String name = nameMap.get(userId);
-            if (StrUtil.isBlank(name)) {
-                name = footballSystemUserValidator.resolveDisplayName(userId);
-            }
+            String name = footballSystemUserValidator.resolveMemberDisplayName(userId, nameMap.get(userId));
             if (StrUtil.isNotBlank(name)) {
                 names.add(name);
             }
@@ -292,18 +295,41 @@ public class ContentReviewConfigService {
     }
 
     private boolean hasRole(Long userId, String roleCode) {
-        if (roleCode == null || roleCode.isBlank()) {
+        if (roleCode == null || roleCode.isBlank() || userId == null) {
             return false;
         }
-        return sysUserTokenMapper.selectRolesByUserId(userId).stream()
-                .anyMatch(role -> roleCode.equals(role.getCode()));
+        Long tenantId = TenantContextHolder.getTenantId();
+        Set<Long> candidateUserIds = new LinkedHashSet<>();
+        candidateUserIds.add(userId);
+        if (tenantId != null) {
+            candidateUserIds.addAll(ipGroupAccessSupport.resolveMembershipUserIds(tenantId));
+        }
+        for (Long candidateUserId : candidateUserIds) {
+            if (hasRoleForUserId(candidateUserId, roleCode)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasRoleForUserId(Long userId, String roleCode) {
+        if (sysUserTokenMapper.selectRolesByUserId(userId).stream()
+                .anyMatch(role -> roleCode.equals(role.getCode()))) {
+            return true;
+        }
+        try {
+            List<FootballSystemRoleDO> footballRoles = footballOAuth2MasterTokenMapper.selectRolesByUserId(userId);
+            return footballRoles.stream().anyMatch(role -> roleCode.equals(role.getCode()));
+        } catch (Exception ignored) {
+            // H2 test profile has no Football overlay tables.
+            return false;
+        }
     }
 
     private boolean isIpGroupLeader(Long userId, ProductionContentDO content) {
         if (content.getIpGroupId() == null) {
             return false;
         }
-        IpGroupDO ipGroup = ipGroupMapper.selectById(content.getIpGroupId());
-        return ipGroup != null && Objects.equals(ipGroup.getLeaderUserId(), userId);
+        return listIpGroupIdsLedByUser(userId).contains(content.getIpGroupId());
     }
 }

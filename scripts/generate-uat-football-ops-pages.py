@@ -55,7 +55,6 @@ API_PROBE: dict[str, str] = {
     "/ops/realname": "/admin-api/oa/realname/list",
     "/ops/simcard": "/admin-api/oa/sim-card/list",
     "/ops/account-analysis": "/admin-api/oa/account-analysis/list",
-    "/ops/author": "/admin-api/oa/author/list",
     "/ops/efficiency": "/admin-api/oa/productivity-review/list",
     "/ops/fans-analysis": "/admin-api/oa/follower-analysis/list",
     "/ops/internal-content": "/admin-api/oa/internal-content/list",

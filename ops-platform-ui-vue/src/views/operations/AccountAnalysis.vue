@@ -16,7 +16,7 @@
     <!-- 筛选区 -->
     <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
       <el-form-item v-if="!isPersonalWechatTab" label="IP组">
-        <IpGroupTreeSelect v-model="searchForm.ipGroupId" />
+        <IpGroupTreeSelect v-model="searchForm.ipGroupId" scope="accessible" clearable />
       </el-form-item>
       <el-form-item label="关键词">
         <el-input v-model="searchForm.keyword" placeholder="账号名称/ID" clearable />
@@ -35,6 +35,14 @@
         />
       </el-form-item>
     </TableSearch>
+
+    <el-alert
+      type="info"
+      :title="DATA_SCOPE_FILTER_HINT"
+      show-icon
+      :closable="false"
+      style="margin-bottom: 12px"
+    />
 
     <!-- 工具栏 -->
     <div class="toolbar">
@@ -173,6 +181,7 @@ import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
+import { DATA_SCOPE_FILTER_HINT } from '@/utils/data-scope'
 import { exportToExcel } from '@/utils'
 import { normalizePlatform, normalizeAccountStatus, PLATFORM_LABEL, type PlatformType as DictPlatform } from '@/utils/enum-alias'
 import { opsRouteTo } from '@/utils/ops-route'

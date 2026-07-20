@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Football 钉钉同步与消息推送 — UI 原型索引</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+  <div class="index-page">
+    <h1>Football 钉钉同步与消息推送</h1>
+    <p class="subtitle">UI 原型索引 · v1.0 · 2026-07-16 · 供 Football 前端开发视觉参考</p>
+
+    <div class="index-card">
+      <h2>交付说明</h2>
+      <div class="note-box">
+        <p><strong>用途</strong>：基于 <code>UX-Football-钉钉同步与消息推送.md</code> 的静态 HTML 线框，模拟 Element Plus / Vben Admin 布局与控件文案。</p>
+        <p><strong>技术栈对齐</strong>：Vue 3 + Vben Admin + Element Plus（<code>football-front/apps/web-ele</code>）</p>
+        <p><strong>打开方式</strong>：直接用浏览器打开本页 <code>index.html</code>，或点击下方链接进入各页面原型。</p>
+        <p><strong>注意</strong>：数据为 Mock；交互（抽屉/Dialog）在独立页面中以「已打开」状态展示；实际实现请对照 UX 规格与 PRD AC。</p>
+      </div>
+    </div>
+
+    <div class="index-card">
+      <h2>页面原型（P-FT-001 ~ P-FT-007）</h2>
+      <ul class="page-list">
+        <li>
+          <div>
+            <a href="user-manage-dingtalk.html">P-FT-001 用户管理（增量）</a>
+            <div class="meta">左树右表 · 同步钉钉下拉 · 钉钉配置 · 同步日志 · 钉钉 ID 列</div>
+          </div>
+          <span class="tag tag-primary">#/system/user</span>
+        </li>
+        <li>
+          <div>
+            <a href="dept-manage-dingtalk.html">P-FT-002 部门管理（增量）</a>
+            <div class="meta">部门树表格 · 钉钉部门 ID · 来源 Tag · 钉钉同步配置</div>
+          </div>
+          <span class="tag tag-primary">#/system/dept</span>
+        </li>
+        <li>
+          <div>
+            <a href="dingtalk-sync-config-drawer.html">P-FT-003 钉钉同步配置抽屉 DRW-DINGTALK-SYNC</a>
+            <div class="meta">连接配置 / 同步策略 / 同步日志 Tab · 520px 宽</div>
+          </div>
+          <span class="tag tag-info">Drawer</span>
+        </li>
+        <li>
+          <div>
+            <a href="sync-log-dialog.html">P-FT-004 同步日志 Dialog DLG-SYNC-LOG</a>
+            <div class="meta">筛选 · 日志表格 · 明细 · 重试 · 800px 宽</div>
+          </div>
+          <span class="tag tag-info">Dialog</span>
+        </li>
+        <li>
+          <div>
+            <a href="notify-dingtalk-push.html">P-FT-005 消息中心 — 钉钉推送配置 Tab</a>
+            <div class="meta">站内信 / 钉钉推送配置 Tab · 规则列表 · 新增规则 · 推送审计</div>
+          </div>
+          <span class="tag tag-primary">#/system/notify/message</span>
+        </li>
+        <li>
+          <div>
+            <a href="push-rule-drawer.html">P-FT-006 推送规则编辑 Drawer DRW-PUSH-RULE</a>
+            <div class="meta">基础 / 受众 / 调度 / 通道 / 内容 / 高级 · 600px 宽</div>
+          </div>
+          <span class="tag tag-info">Drawer</span>
+        </li>
+        <li>
+          <div>
+            <a href="push-audit-drawer.html">P-FT-007 推送审计 Drawer DRW-PUSH-AUDIT</a>
+            <div class="meta">执行记录 · 目标/成功/失败/跳过 · 详情 JSON · 800px 宽</div>
+          </div>
+          <span class="tag tag-info">Drawer</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="index-card">
+      <h2>关联 Spec</h2>
+      <ul class="page-list">
+        <li><a href="PRD-Football-钉钉同步与消息推送.md">PRD-Football-钉钉同步与消息推送.md</a><span class="meta">FR / AC / 接口概要</span></li>
+        <li><a href="UX-Football-钉钉同步与消息推送.md">UX-Football-钉钉同步与消息推送.md</a><span class="meta">线框 / 控件 ID / 状态矩阵</span></li>
+        <li><a href="README.md">README.md</a><span class="meta">交付索引与范围边界</span></li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

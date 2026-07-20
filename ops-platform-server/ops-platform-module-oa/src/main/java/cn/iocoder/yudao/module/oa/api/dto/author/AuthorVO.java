@@ -16,6 +16,10 @@ public class AuthorVO {
     private Long ipGroupId;
     private String ipGroupName;
     private String authorType;
+    /** member author_user.author_level：0=作者 1=专家 */
+    private Integer authorLevel;
+    /** 作者所属 IP 组等级 dict_ip_group_level（便于选择器回填） */
+    private String ipGroupLevel;
     private Long primaryAccountId;
     private String primaryAccountName;
     private Long userId;

@@ -6,7 +6,7 @@
           <el-date-picker v-model="queryForm.dateRange" type="daterange" value-format="YYYY-MM-DD" style="width: 240px" />
         </el-form-item>
         <el-form-item label="IP 组">
-          <IpGroupTreeSelect v-model="queryForm.ipGroupId" style="width: 200px" />
+          <IpGroupTreeSelect v-model="queryForm.ipGroupId" scope="accessible" clearable style="width: 200px" />
         </el-form-item>
         <el-form-item label="维度">
           <el-select v-model="queryForm.dimension" style="width: 140px">
@@ -19,6 +19,13 @@
           <el-button type="success" @click="handleExport">导出</el-button>
         </el-form-item>
       </el-form>
+      <el-alert
+        type="info"
+        :title="DATA_SCOPE_FILTER_HINT"
+        :closable="false"
+        show-icon
+        style="margin-top: 8px"
+      />
       <el-alert
         type="info"
         :closable="false"
@@ -108,6 +115,7 @@ import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
 import { getRoiAnalysis, getRoiTrend, getRoiBreakdown, exportRoi } from '@/api/finance'
 import { exportToExcel, unwrapApiData } from '@/utils'
+import { DATA_SCOPE_FILTER_HINT } from '@/utils/data-scope'
 
 interface TrendPoint {
   statDate?: string

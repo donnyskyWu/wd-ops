@@ -25,6 +25,9 @@ public class AuthorUserDO {
 
     private Integer status;
 
+    /** 作者等级：0=作者 1=专家（member.author_user.author_level） */
+    private Integer authorLevel;
+
     private Long tenantId;
 
     private String creator;

@@ -15,6 +15,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.stream.Collectors;
 
@@ -67,6 +68,13 @@ public class GlobalExceptionHandler {
                     .collect(Collectors.joining("; "));
         }
         return CommonResult.error(OaErrorCodes.DICT_VALUE_INVALID.getCode(), message);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public CommonResult<?> handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+        log.warn("[OA] bad request uri={} param={} value={}", request.getRequestURI(),
+                ex.getName(), ex.getValue());
+        return CommonResult.error(OaErrorCodes.BAD_REQUEST.getCode(), "请求参数格式错误");
     }
 
     @ExceptionHandler(Exception.class)

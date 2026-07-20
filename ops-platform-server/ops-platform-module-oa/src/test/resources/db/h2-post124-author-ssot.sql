@@ -1,5 +1,24 @@
 -- H2 test baseline (post-V124): member author_user SSOT + oa_author_ext (ADR-051)
 -- Maps legacy oa_author seed rows to author_user_id = oa_author.id for IT compatibility.
+-- Also seeds sys_role ip_group_leader (V150 skipped on H2 — no system_role overlay).
+
+INSERT INTO sys_role (id, tenant_id, code, name, status, data_scope, remark, creator, updater)
+SELECT 6, 1, 'ip_group_leader', 'IP组长', 'ENABLED', 'SELF',
+       'h2-seed · IP组长', 'h2-seed', 'h2-seed'
+FROM sys_user WHERE id = 1001
+  AND NOT EXISTS (
+    SELECT 1 FROM sys_role r WHERE r.code = 'ip_group_leader' AND r.tenant_id = 1 AND r.deleted = 0
+);
+
+INSERT INTO sys_user_role (user_id, role_id)
+SELECT 1002, r.id FROM sys_role r
+WHERE r.code = 'ip_group_leader' AND r.tenant_id = 1 AND r.deleted = 0
+  AND NOT EXISTS (SELECT 1 FROM sys_user_role ur WHERE ur.user_id = 1002 AND ur.role_id = r.id);
+
+INSERT INTO sys_user_role (user_id, role_id)
+SELECT 1003, r.id FROM sys_role r
+WHERE r.code = 'ip_group_leader' AND r.tenant_id = 1 AND r.deleted = 0
+  AND NOT EXISTS (SELECT 1 FROM sys_user_role ur WHERE ur.user_id = 1003 AND ur.role_id = r.id);
 
 CREATE TABLE IF NOT EXISTS author_user (
     id           BIGINT       NOT NULL PRIMARY KEY,
@@ -49,3 +68,12 @@ SELECT a.id, a.tenant_id, a.ip_group_id, a.author_type, a.primary_account_id,
 FROM oa_author a
 WHERE a.deleted = 0
   AND NOT EXISTS (SELECT 1 FROM oa_author_ext e WHERE e.author_user_id = a.id);
+
+-- IP 组「关联作者」SSOT = oa_ip_group_anchor_rel.anchor_user_id（author_user.id）
+DELETE FROM oa_ip_group_anchor_rel WHERE tenant_id = 1;
+
+INSERT INTO oa_ip_group_anchor_rel (tenant_id, ip_group_id, anchor_user_id, anchor_type, creator, updater, deleted)
+SELECT a.tenant_id, a.ip_group_id, a.id, COALESCE(a.author_type, 'VIDEO'), 'h2-seed', 'h2-seed', 0
+FROM oa_author a
+WHERE a.deleted = 0
+  AND a.ip_group_id IS NOT NULL;

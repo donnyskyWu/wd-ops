@@ -51,9 +51,9 @@ INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6134, '私域桥接', 'oa:collect:bridge:list', 2, 2, 6104, 'collect/private-domain-bridge', 'ep:document', 'ops/collect/private-domain-bridge', 'PrivateDomainBridge', 0, b'1', b'1', b'1', 'integration', 2);
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6135, '数据质量', 'oa:collect:quality:list', 2, 3, 6104, 'collect/quality', 'ep:document', 'ops/collect/quality', 'CollectQuality', 0, b'1', b'1', b'1', 'integration', 2);
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6136, '采集任务', 'oa:collect:task:list', 2, 4, 6104, 'collect/task', 'ep:document', 'ops/collect/task', 'CollectTask', 0, b'1', b'1', b'1', 'integration', 2);
-INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6137, '字典配置', 'oa:dict:admin-list', 2, 1, 6105, 'system-dict', 'ep:document', 'ops/system/DictManage', 'SystemDict', 0, b'1', b'1', b'1', 'integration', 2);
-INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6138, '登录日志', 'oa:log:login', 2, 2, 6105, 'system-log/login', 'ep:document', 'ops/system/LoginLog', 'SystemLogLogin', 0, b'1', b'1', b'1', 'integration', 2);
-INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6139, '操作日志', 'oa:log:operation', 2, 3, 6105, 'system-log/operation', 'ep:document', 'ops/system/LogManage', 'SystemLogOperation', 0, b'1', b'1', b'1', 'integration', 2);
+-- 6137 字典配置已移除：SSOT = Football #/dict（menu 105；system:dict:query @ 1026；见 V149 / OPS-DICT-MERGE-FOOTBALL-PLAN）
+-- 6138 登录日志已移除：OPS 不承载登录，SSOT = Football system/login-log（见 V146 / OPS-AUDIT-LOG-MIGRATION-PLAN AL-04）
+-- 6139 操作日志已移除：SSOT = Football #/log/operate-log（system:operate-log:query @ menu 1040；见 V147 / AL-11）
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6140, '消息管理', 'oa:message:list', 2, 4, 6105, 'system-message', 'ep:document', 'ops/system/MessageManage', 'SystemMessage', 0, b'1', b'1', b'1', 'integration', 2);
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6141, '系统参数', 'oa:param:list', 2, 5, 6105, 'system-param', 'ep:document', 'ops/system/ParamManage', 'SystemParam', 0, b'1', b'1', b'1', 'integration', 2);
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6142, '订单归因分析', 'oa:order-attribution:list', 2, 1, 6106, 'order-attribution', 'ep:document', 'ops/performance/OrderAttribution', 'OrderAttribution', 0, b'1', b'1', b'1', 'integration', 2);
@@ -70,7 +70,7 @@ INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6152, '实名人管理', 'oa:realname:list', 2, 5, 6108, 'realname', 'ep:document', 'ops/internal/RealnameManage', 'Realname', 0, b'1', b'1', b'1', 'integration', 2);
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6153, '手机卡管理', 'oa:simcard:list', 2, 6, 6108, 'simcard', 'ep:document', 'ops/internal/SimcardManage', 'Simcard', 0, b'1', b'1', b'1', 'integration', 2);
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6154, '账号分析', 'oa:account-analysis:list', 2, 1, 6109, 'account-analysis', 'ep:document', 'ops/operations/AccountAnalysis', 'AccountAnalysis', 0, b'1', b'1', b'1', 'integration', 2);
-INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6155, '作者管理', 'oa:author:list', 2, 2, 6109, 'author', 'ep:document', 'ops/operations/Author', 'Author', 0, b'1', b'1', b'1', 'integration', 2);
+-- 6155 作者管理已移除：基础 CRUD 迁移 Football author/info（见 V145 / OPS-AUTHOR-MERGE-ANALYSIS）
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6156, '人效盘点', 'oa:efficiency:list', 2, 3, 6109, 'efficiency', 'ep:document', 'ops/operations/Efficiency', 'Efficiency', 0, b'1', b'1', b'1', 'integration', 2);
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6157, '粉丝分析', 'oa:fans-analysis:list', 2, 4, 6109, 'fans-analysis', 'ep:document', 'ops/operations/FansAnalysis', 'FansAnalysis', 0, b'1', b'1', b'1', 'integration', 2);
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6158, '内部作品分析', 'oa:internal-content:list', 2, 5, 6109, 'internal-content', 'ep:document', 'ops/operations/InternalContent', 'InternalContent', 0, b'1', b'1', b'1', 'integration', 2);
@@ -118,9 +118,9 @@ INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70024, 1, 6134, 'integration', 1);
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70025, 1, 6135, 'integration', 1);
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70026, 1, 6136, 'integration', 1);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70027, 1, 6137, 'integration', 1);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70028, 1, 6138, 'integration', 1);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70029, 1, 6139, 'integration', 1);
+-- 70027 6137 字典配置菜单已移除（Football 105/1026–1029 由 V149 授予原 6137 角色）
+-- 70028 6138 登录日志菜单已移除
+-- 70029 6139 操作日志菜单已移除（Football 1040 由 V147 授予原 6139 角色）
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70030, 1, 6140, 'integration', 1);
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70031, 1, 6141, 'integration', 1);
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70032, 1, 6142, 'integration', 1);
@@ -136,7 +136,7 @@ INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70042, 1, 6152, 'integration', 1);
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70043, 1, 6153, 'integration', 1);
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70044, 1, 6154, 'integration', 1);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70045, 1, 6155, 'integration', 1);
+-- 70045 6155 作者管理菜单已移除
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70046, 1, 6156, 'integration', 1);
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70047, 1, 6157, 'integration', 1);
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id) VALUES (70048, 1, 6158, 'integration', 1);

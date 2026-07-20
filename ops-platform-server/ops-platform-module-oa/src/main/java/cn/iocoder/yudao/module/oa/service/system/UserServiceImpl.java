@@ -17,17 +17,21 @@ import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysDeptMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysRoleMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserRoleMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUser;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.service.impl.DiffParseFunction;
+import com.mzt.logapi.starter.annotation.LogRecord;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -73,7 +77,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-user", action = "create")
+    @LogRecord(type = M9_USER_TYPE, subType = M9_USER_CREATE_SUB_TYPE, bizNo = "{{#user.id}}",
+            success = M9_USER_CREATE_SUCCESS)
     public Long create(UserCreateReq req) {
         Long tenantId = requireTenantId();
         assertUsernameUnique(tenantId, req.getUsername(), null);
@@ -98,6 +103,7 @@ public class UserServiceImpl implements UserService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysUserMapper.insert(entity);
+        LogRecordContext.putVariable("user", entity);
 
         bindRoles(entity.getId(), req.getRoleIds());
         return entity.getId();
@@ -105,9 +111,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-user", action = "update")
+    @LogRecord(type = M9_USER_TYPE, subType = M9_USER_UPDATE_SUB_TYPE, bizNo = "{{#req.id}}",
+            success = M9_USER_UPDATE_SUCCESS)
     public void update(UserUpdateReq req) {
         SysUserDO existing = getRequiredInTenant(req.getId());
+        LogRecordContext.putVariable(DiffParseFunction.OLD_OBJECT, toUpdateReq(existing));
+        LogRecordContext.putVariable("user", existing);
         if (StrUtil.isNotBlank(req.getNickname())) {
             existing.setNickname(req.getNickname());
         }
@@ -146,9 +155,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-user", action = "delete")
+    @LogRecord(type = M9_USER_TYPE, subType = M9_USER_DELETE_SUB_TYPE, bizNo = "{{#id}}",
+            success = M9_USER_DELETE_SUCCESS)
     public void delete(Long id) {
         SysUserDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("user", existing);
         if ("oa-admin".equals(existing.getUsername())) {
             throw new ServiceException(OaErrorCodes.ENTITY_ALREADY_BOUND.getCode(), "内置管理员不可删除");
         }
@@ -300,5 +311,19 @@ public class UserServiceImpl implements UserService {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED);
         }
         return tenantId;
+    }
+
+    private UserUpdateReq toUpdateReq(SysUserDO entity) {
+        UserUpdateReq req = new UserUpdateReq();
+        req.setId(entity.getId());
+        req.setNickname(entity.getNickname());
+        req.setEmail(entity.getEmail());
+        req.setPosition(entity.getPosition());
+        req.setIpGroupId(entity.getIpGroupId());
+        req.setDeptId(entity.getDeptId());
+        req.setStatus(entity.getStatus());
+        req.setRemark(entity.getRemark());
+        req.setRoleIds(sysUserRoleMapper.selectRoleIdsByUserId(entity.getId()));
+        return req;
     }
 }

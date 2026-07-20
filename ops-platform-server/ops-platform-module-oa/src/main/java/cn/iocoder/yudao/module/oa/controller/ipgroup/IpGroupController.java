@@ -45,6 +45,22 @@ public class IpGroupController {
         return CommonResult.success(ipGroupService.getTree());
     }
 
+    @GetMapping("/accessible-tree")
+    public CommonResult<List<IpGroupTreeVO>> accessibleTree() {
+        return CommonResult.success(ipGroupService.getAccessibleTree());
+    }
+
+    @GetMapping("/led")
+    public CommonResult<List<IpGroupListVO>> ledGroups() {
+        return CommonResult.success(ipGroupService.listLedByCurrentUser());
+    }
+
+    /** 具备 IP组长(ip_group_leader) 角色的用户 id，供前端组长选择器过滤 */
+    @GetMapping("/leader-candidate-ids")
+    public CommonResult<List<Long>> leaderCandidateIds() {
+        return CommonResult.success(ipGroupService.listLeaderCandidateUserIds());
+    }
+
     /**
      * S-R12 修复：补 /list 端点（spec API-M1 §2.2 定义，但 controller 漏实现）
      * 注意：必须排在 /{id} 之前，否则 Spring 会把 "list" 当 id

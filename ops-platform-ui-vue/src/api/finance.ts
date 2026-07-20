@@ -1,5 +1,6 @@
 /**
  * M5 财务管理 - API接口封装
+ * ipGroupId：可选，后端已按可访问账号 IP 组过滤；前端仅缩小范围
  */
 import { request } from '@/utils/request'
 

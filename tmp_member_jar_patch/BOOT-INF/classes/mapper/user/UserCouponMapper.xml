@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.user.UserCouponMapper">
+
+    <select id="selectUserCouponPage"
+            resultType="football.module.member.controller.admin.usercoupon.vo.UserCouponRespVO">
+        SELECT muc.*, mu.nickname as userName, ci.coupon_name, ci.coupon_type
+        FROM member_user_coupon muc
+        LEFT JOIN coupon_info ci ON muc.coupon_id = ci.id
+        LEFT JOIN member_user mu ON muc.user_id = mu.id
+        WHERE muc.deleted = 0
+        <if test="reqVO.couponId != null">
+            AND muc.coupon_id = #{reqVO.couponId}
+        </if>
+        <if test="reqVO.orderId != null">
+            AND muc.order_id = #{reqVO.orderId}
+        </if>
+        <if test="reqVO.orderNo != null and reqVO.orderNo != ''">
+            AND muc.order_no = #{reqVO.orderNo}
+        </if>
+        <if test="reqVO.userName != null and reqVO.userName != ''">
+            AND mu.nickname LIKE CONCAT('%', #{reqVO.userName}, '%')
+        </if>
+        ORDER BY muc.id DESC
+    </select>
+
+    <select id="selectUserCountByCouponIds"
+            resultType="football.module.member.controller.admin.usercoupon.vo.UserCouponCountRespVO">
+        SELECT
+        coupon_id as couponId,
+        sum(numbers) as totalCount
+        FROM member_user_coupon
+        WHERE coupon_id IN
+        <foreach collection="couponIds" item="couponId" open="(" separator="," close=")">
+            #{couponId}
+        </foreach>
+        GROUP BY coupon_id
+    </select>
+
+    <select id="selectUserCountByUserIdsAndCouponId"
+            resultType="football.module.member.controller.admin.usercoupon.vo.UserClaimedCountRespVO">
+        SELECT
+        user_id as userId,
+        COUNT(*) as count
+        FROM member_user_coupon
+        WHERE coupon_id = #{couponId}
+        AND user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        GROUP BY user_id
+    </select>
+
+
+    <select id="getUserAvailableCoupons" resultType="football.module.member.controller.app.user.vo.AppUserCouponVO">
+        <!-- 第一部分：查询全局券 (Scope 1) -->
+        SELECT
+        muc.id AS userCouponId, muc.user_id, muc.effective_time, muc.expiration_time,
+        ci.id AS coupon_id, ci.coupon_name, ci.coupon_type, ci.threshold_amount, ci.discount_amount,
+        ci.scope, ci.effective_type, ci.effective_days, ci.expiration_days, ci.desc_info
+        FROM member_user_coupon muc
+        INNER JOIN coupon_info ci ON muc.coupon_id = ci.id
+        WHERE muc.deleted = 0 AND ci.deleted = 0 AND muc.user_id = #{userId}
+        AND ci.status = 0
+        AND muc.status = 0
+        AND muc.expiration_time &gt;= NOW()
+        AND muc.effective_time &lt;= NOW()
+        AND ci.threshold_amount &lt;= #{orderAmount}
+        AND ci.scope = 1
+        AND (FIND_IN_SET(#{authorId}, ci.author_ids) OR ci.author_ids = '0')
+        <choose>
+            <when test="orderSource != null and orderSource == 2">
+                AND ci.used_plat in (1,2)
+            </when>
+            <otherwise>
+                AND ci.used_plat in (1,3)
+            </otherwise>
+        </choose>
+        <if test="articleId != null and articleId > 0">
+            UNION ALL
+            <!-- 第二部分：查询文章专用券 (Scope 2) -->
+            SELECT
+            muc.id AS userCouponId, muc.user_id, muc.effective_time, muc.expiration_time,
+            ci.id AS coupon_id, ci.coupon_name, ci.coupon_type, ci.threshold_amount, ci.discount_amount,
+            ci.scope, ci.effective_type, ci.effective_days, ci.expiration_days, ci.desc_info
+            FROM member_user_coupon muc
+            INNER JOIN coupon_info ci ON muc.coupon_id = ci.id
+            WHERE muc.deleted = 0 AND ci.deleted = 0 AND muc.user_id = #{userId}
+            AND ci.status = 0
+            AND muc.status = 0
+            AND muc.expiration_time &gt;= NOW()
+            AND muc.effective_time &lt;= NOW()
+            AND ci.threshold_amount &lt;= #{orderAmount}
+            AND ci.scope = 2
+            AND (FIND_IN_SET(#{authorId}, ci.author_ids) OR ci.author_ids = '0')
+            <choose>
+                <when test="orderSource != null and orderSource == 2">
+                    AND ci.used_plat in (1,2)
+                </when>
+                <otherwise>
+                    AND ci.used_plat in (1,3)
+                </otherwise>
+            </choose>
+        </if>
+
+        <if test="privilegeId != null and privilegeId > 0">
+            UNION ALL
+            <!-- 第三部分：查询套餐专用券 (Scope 3) -->
+            SELECT
+            muc.id AS userCouponId, muc.user_id, muc.effective_time, muc.expiration_time,
+            ci.id AS coupon_id, ci.coupon_name, ci.coupon_type, ci.threshold_amount, ci.discount_amount,
+            ci.scope, ci.effective_type, ci.effective_days, ci.expiration_days, ci.desc_info
+            FROM member_user_coupon muc
+            INNER JOIN coupon_info ci ON muc.coupon_id = ci.id
+            WHERE muc.deleted = 0 AND ci.deleted = 0 AND muc.user_id = #{userId}
+            AND ci.status = 0
+            AND muc.expiration_time &gt;= NOW()
+            AND muc.effective_time &lt;= NOW()
+            AND ci.threshold_amount &lt;= #{orderAmount}
+            AND ci.scope = 3
+            AND (FIND_IN_SET(#{authorId}, ci.author_ids) OR ci.author_ids = '0')
+            <choose>
+                <when test="orderSource != null and orderSource == 2">
+                    AND ci.used_plat in (1,2)
+                </when>
+                <otherwise>
+                    AND ci.used_plat in (1,3)
+                </otherwise>
+            </choose>
+        </if>
+
+        ORDER BY threshold_amount DESC, expiration_time ASC
+    </select>
+
+
+    <select id="countCouponStatusByUserId"
+            resultType="football.module.member.controller.app.user.dto.UserCouponStatusCountDTO">
+        SELECT status,
+               COUNT(*) AS couponCount
+        FROM member_user_coupon
+        WHERE user_id = #{userId}
+          AND deleted = 0
+        GROUP BY status
+    </select>
+
+
+        <select id="getUserAvailableActivityCoupon" resultType="football.module.member.controller.app.activity.dto.ActivityCouponDTO">
+            SELECT
+            ma.id, ma.type, ma.status, ma.start_time, ma.end_time, ma.scope,
+            ma.available_num, ma.coupon_id, ma.author_id, ma.limited_num,
+            ci.coupon_name, ci.coupon_type, ci.threshold_amount, ci.discount_amount,
+            ci.effective_type, ci.effective_days, ci.expiration_days,
+            ci.max_issue_count, ci.issued_count, ci.used_count,
+            muc.id AS user_coupon_id
+            FROM member_user_coupon muc
+            INNER JOIN coupon_info ci ON muc.coupon_id = ci.id
+            INNER JOIN member_activity ma ON muc.coupon_id = ma.coupon_id
+            <where>
+                AND muc.user_id = #{userId}
+                AND muc.deleted = 0
+                AND muc.status = 0
+                AND muc.expiration_time &gt;= NOW()
+                AND muc.effective_time &lt;= NOW()
+                <if test="activityType != null">
+                    AND ma.type = #{activityType}
+                </if>
+            </where>
+        </select>
+
+
+    <update id="rollbackCoupon" parameterType="java.lang.Long">
+        UPDATE member_user_coupon SET status = 0,update_time = NOW() WHERE id = #{id} AND status=1
+    </update>
+</mapper>

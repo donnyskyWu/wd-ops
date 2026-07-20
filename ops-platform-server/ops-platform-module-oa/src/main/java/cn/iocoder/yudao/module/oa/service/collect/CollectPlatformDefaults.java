@@ -38,14 +38,14 @@ public final class CollectPlatformDefaults {
     static {
         BY_PLATFORM.put("WECHAT_OFFICIAL", new PlatformConfig(
                 "WECHAT_MP_API", METHOD_INTERNAL,
-                List.of("MP_FOLLOWER_STATS", "MP_FOLLOWER_LIST", "MP_ARTICLE_LIST",
+                List.of("MP_FOLLOWER_STATS", "MP_ARTICLE_LIST",
                         "MP_ARTICLE_STATS", "MP_ARTICLE_CONTENT")));
         BY_PLATFORM.put("WECHAT_VIDEO", new PlatformConfig(
                 "WECHAT_CHANNELS_API", METHOD_INTERNAL,
                 List.of(SENTINEL_FOLLOWER_STATS, "WECHAT_VIDEO_LIST", "WECHAT_VIDEO_STATS")));
         BY_PLATFORM.put("DOUYIN", new PlatformConfig(
                 "DOUYIN_OPEN_API", METHOD_INTERNAL,
-                List.of(SENTINEL_FOLLOWER_STATS, "DOUYIN_FOLLOWER_LIST",
+                List.of(SENTINEL_FOLLOWER_STATS,
                         "DOUYIN_VIDEO_LIST", "DOUYIN_VIDEO_STATS")));
         BY_PLATFORM.put("KUAISHOU", new PlatformConfig(
                 "KUAISHOU_OPEN_API", METHOD_INTERNAL,

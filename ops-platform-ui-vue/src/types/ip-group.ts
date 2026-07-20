@@ -272,9 +272,13 @@ export interface IpGroupAnchorVO {
   anchorUserName?: string
   authorName?: string
   /** 作者类型 */
-  anchorType: AnchorType
+  anchorType?: AnchorType
   /** 作者类型文本 */
   anchorTypeText?: string
+  /** member author_user.author_level：0=作者 1=专家 */
+  authorLevel?: number
+  /** 作者所属 IP 组等级 dict_ip_group_level */
+  ipGroupLevel?: string
   /** 关联时间 */
   boundAt?: string
   relTime?: string

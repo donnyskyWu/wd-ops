@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -20,10 +21,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class M1IpGroupS02IT extends OaITBase {
 
     private static final String ADMIN = "Bearer dev-token-oa-admin";
+    private static final String LEADER = "Bearer dev-token-oa-leader";
     private static final String TENANT = "1";
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Test
+    @DisplayName("M1-S-02: 组长可查询本人担任组长的 IP 组")
+    void listLedGroupsAsLeader() throws Exception {
+        mockMvc.perform(get("/admin-api/oa/ip-group/led")
+                        .header("Authorization", LEADER)
+                        .header("X-Tenant-Id", TENANT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.length()").value(greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.data[0].groupName").exists());
+    }
 
     @Test
     @DisplayName("M1-S-02: 新建大组 + 小组")

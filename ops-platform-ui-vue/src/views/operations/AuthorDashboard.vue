@@ -32,8 +32,7 @@
           </p>
         </div>
         <div class="actions">
-          <el-button @click="router.push(opsRouteTo({ name: 'Author' }))">返回列表</el-button>
-          <el-button type="primary" @click="router.push(opsRouteTo(`/author/${author.id}/edit`))">编辑作者</el-button>
+          <el-button @click="navigateToFootballAuthorInfo()">返回作者信息</el-button>
         </div>
       </div>
     </el-card>
@@ -106,15 +105,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import ContentWrap from '@/components/ContentWrap.vue'
 import { getAuthorDashboard, getAuthorOpsList } from '@/api/author'
-import { opsRouteTo } from '@/utils/ops-route'
+import { navigateToFootballAuthorInfo } from '@/utils/ops-route'
 
 const route = useRoute()
-const router = useRouter()
 
 const loading = ref(false)
 const author = ref<any>(null)

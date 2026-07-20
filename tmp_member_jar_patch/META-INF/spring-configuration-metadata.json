@@ -1,0 +1,50 @@
+{
+  "groups": [
+    {
+      "name": "chuanglan.flash",
+      "type": "football.module.member.service.config.ChuangLanConfig",
+      "sourceType": "football.module.member.service.config.ChuangLanConfig"
+    },
+    {
+      "name": "chuanglan.flash.android",
+      "type": "football.module.member.service.config.ChuangLanConfig$AppConfig",
+      "sourceType": "football.module.member.service.config.ChuangLanConfig"
+    },
+    {
+      "name": "chuanglan.flash.ios",
+      "type": "football.module.member.service.config.ChuangLanConfig$AppConfig",
+      "sourceType": "football.module.member.service.config.ChuangLanConfig"
+    }
+  ],
+  "properties": [
+    {
+      "name": "chuanglan.flash.android.app-id",
+      "type": "java.lang.String",
+      "sourceType": "football.module.member.service.config.ChuangLanConfig$AppConfig"
+    },
+    {
+      "name": "chuanglan.flash.android.app-key",
+      "type": "java.lang.String",
+      "sourceType": "football.module.member.service.config.ChuangLanConfig$AppConfig"
+    },
+    {
+      "name": "chuanglan.flash.ios.app-id",
+      "type": "java.lang.String",
+      "sourceType": "football.module.member.service.config.ChuangLanConfig$AppConfig"
+    },
+    {
+      "name": "chuanglan.flash.ios.app-key",
+      "type": "java.lang.String",
+      "sourceType": "football.module.member.service.config.ChuangLanConfig$AppConfig"
+    },
+    {
+      "name": "chuanglan.flash.query-url",
+      "type": "java.lang.String",
+      "sourceType": "football.module.member.service.config.ChuangLanConfig"
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}

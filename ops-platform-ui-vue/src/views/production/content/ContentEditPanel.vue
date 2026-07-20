@@ -91,6 +91,39 @@
         <DictSelect v-model="formData.documentType" dict-type="dict_document_type" placeholder="请选择文档类型" />
       </el-form-item>
 
+      <el-form-item v-if="showAiTextGenerate" label="方案分析类型" prop="schemeTypes">
+        <DictSelect
+          v-model="formData.schemeTypes"
+          dict-type="dict_scheme_type"
+          multiple
+          placeholder="请选择方案分析类型（可多选）"
+        />
+      </el-form-item>
+
+      <el-form-item v-if="formData.contentId && showAiTextGenerate" label="售价">
+        <div class="price-field">
+          <el-input-number
+            v-model="formData.price"
+            :min="0"
+            :step="1"
+            :disabled="effectiveReadonly"
+            controls-position="right"
+          />
+          <div v-if="!effectiveReadonly" class="price-presets">
+            <el-button
+              v-for="preset in PRICE_PRESETS"
+              :key="preset"
+              size="small"
+              link
+              type="primary"
+              @click="formData.price = preset"
+            >
+              {{ preset }}
+            </el-button>
+          </div>
+        </div>
+      </el-form-item>
+
       <el-form-item v-if="showScriptRef" label="引用文案">
         <el-input
           :model-value="scriptRef?.body || '同赛事暂无已完成的短视频文案'"
@@ -100,17 +133,19 @@
         />
       </el-form-item>
 
-      <el-form-item label="是否 AI 生成">
-        <el-switch v-model="formData.isAi" />
-      </el-form-item>
-
       <el-form-item v-if="showArticleLayout && !effectiveReadonly" label="版式模板">
         <el-button type="primary" plain @click="templateDialogVisible = true">选择并应用模板</el-button>
         <span v-if="formData.layoutTemplateId" class="text-muted">已关联模板 #{{ formData.layoutTemplateId }}</span>
       </el-form-item>
 
       <template v-if="showArticleLayout">
-        <div :class="['article-edit-shell', { 'is-maximized': editorMaximized }]">
+        <el-form-item v-if="showAiTextGenerate" label="方案正文">
+          <el-tabs v-model="bodyContentTab" class="body-content-tabs">
+            <el-tab-pane label="付费内容" name="paid" />
+            <el-tab-pane label="免费内容" name="free" />
+          </el-tabs>
+        </el-form-item>
+        <div v-show="bodyContentTab === 'paid'" :class="['article-edit-shell', { 'is-maximized': editorMaximized }]">
           <div v-if="!effectiveReadonly" class="article-edit-toolbar">
             <span v-if="editorMaximized" class="article-edit-maximized-title">正文编辑（全屏）</span>
             <div class="article-edit-toolbar-actions">
@@ -154,7 +189,7 @@
               :xs="24"
               :md="effectiveReadonly || layoutPanelCollapsed || editorMaximized ? 24 : 14"
             >
-              <el-form-item label="正文" prop="body">
+              <el-form-item label="付费内容" prop="body">
                 <RichTextEditor
                   v-if="!effectiveReadonly"
                   ref="richEditorRef"
@@ -187,17 +222,45 @@
             <el-button @click="editorMaximized = false">还原</el-button>
           </div>
         </div>
+        <div v-show="bodyContentTab === 'free'" class="free-body-editor">
+          <el-form-item label="免费内容">
+            <RichTextEditor
+              v-if="!effectiveReadonly"
+              v-model="freeBodyHtml"
+              placeholder="请输入免费内容（预览/引流文案，可选）"
+              :min-height="EDITOR_FRAME_MIN"
+            />
+            <LayoutViewer v-else :html="displayFreeHtml" />
+          </el-form-item>
+        </div>
       </template>
 
-      <el-form-item v-else-if="showBody" label="正文" prop="body">
-        <RichTextEditor
-          v-if="!effectiveReadonly"
-          v-model="richBodyHtml"
-          placeholder="请输入正文，支持富文本排版"
-          :min-height="EDITOR_FRAME_MIN"
-        />
-        <LayoutViewer v-else :html="displayRichHtml" />
-      </el-form-item>
+      <template v-else-if="showBody">
+        <el-form-item v-if="showAiTextGenerate" label="方案正文">
+          <el-tabs v-model="bodyContentTab" class="body-content-tabs">
+            <el-tab-pane label="付费内容" name="paid" />
+            <el-tab-pane label="免费内容" name="free" />
+          </el-tabs>
+        </el-form-item>
+        <el-form-item v-show="bodyContentTab === 'paid'" label="付费内容" prop="body">
+          <RichTextEditor
+            v-if="!effectiveReadonly"
+            v-model="richBodyHtml"
+            placeholder="请输入付费内容，支持富文本排版"
+            :min-height="EDITOR_FRAME_MIN"
+          />
+          <LayoutViewer v-else :html="displayRichHtml" />
+        </el-form-item>
+        <el-form-item v-show="bodyContentTab === 'free'" label="免费内容">
+          <RichTextEditor
+            v-if="!effectiveReadonly"
+            v-model="freeBodyHtml"
+            placeholder="请输入免费内容（预览/引流文案，可选）"
+            :min-height="EDITOR_FRAME_MIN"
+          />
+          <LayoutViewer v-else :html="displayFreeHtml" />
+        </el-form-item>
+      </template>
 
       <template v-if="showVideoFields">
         <el-form-item label="生成视频">
@@ -214,7 +277,7 @@
       </template>
 
       <el-form-item v-if="!effectiveReadonly">
-        <el-button v-if="formData.isAi && showAiTextGenerate" :loading="aiGenerating" @click="openAiDialog">生成</el-button>
+        <el-button v-if="showAiTextGenerate" @click="openAiContentDrawer">AI生成</el-button>
         <el-button v-if="isTaskMode && showVideoFields" :loading="generating" @click="handleGenerate">生成视频</el-button>
         <el-button type="primary" :loading="saving" :disabled="!canEdit" @click="handleSaveDraft">保存</el-button>
         <el-button
@@ -248,58 +311,13 @@
       <el-button @click="handleCancel">关闭</el-button>
     </div>
 
-    <el-dialog v-model="aiDialogVisible" title="AI 辅助生成" width="720px" append-to-body @open="loadAiDialogOptions">
-      <el-form label-width="110px">
-        <el-form-item label="AI 模型" required>
-          <el-select v-model="aiForm.modelId" placeholder="请选择已启用的 AI 模型" style="width: 100%" filterable>
-            <el-option v-for="item in aiModelOptions" :key="item.id" :label="item.modelName" :value="item.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="提示词" required>
-          <el-select v-model="aiForm.promptId" placeholder="按内容类型/文档类型匹配" style="width: 100%" filterable>
-            <el-option v-for="item in aiPromptOptions" :key="item.id" :label="item.templateName" :value="item.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="赛事信息">
-          <el-input :model-value="aiEventInfoLabel" type="textarea" :rows="2" readonly placeholder="来自内容表单所选赛事" />
-        </el-form-item>
-        <el-form-item label="作者/主播">
-          <el-select
-            v-model="aiForm.authorId"
-            placeholder="按 IP 组关联选择作者"
-            style="width: 100%"
-            filterable
-            clearable
-            :disabled="!formData.ipGroupId"
-          >
-            <el-option v-for="item in aiAuthorOptions" :key="item.id" :label="item.authorName" :value="item.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="历史战绩">
-          <el-input v-model="aiForm.historicalRecord" type="textarea" :rows="2" placeholder="可选" maxlength="500" show-word-limit />
-        </el-form-item>
-        <el-form-item label="赛事方向">
-          <el-input v-model="aiForm.matchDirection" placeholder="可选" maxlength="200" show-word-limit />
-        </el-form-item>
-        <el-form-item label="主播人设">
-          <el-input v-model="aiForm.streamerPersona" type="textarea" :rows="2" placeholder="可选" maxlength="500" show-word-limit />
-        </el-form-item>
-        <el-form-item label="修改意见">
-          <el-input v-model="aiForm.revisionFeedback" type="textarea" :rows="2" placeholder="可选" maxlength="500" show-word-limit />
-        </el-form-item>
-        <el-form-item label="长度类型">
-          <DictSelect
-            v-model="aiForm.lengthType"
-            dict-type="dict_content_length_type"
-            placeholder="可选：短篇/中篇/长篇"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :loading="aiGenerating" @click="handleAiGenerate">生成</el-button>
-        </el-form-item>
-      </el-form>
-    </el-dialog>
+    <AiContentDrawer
+      v-model="aiContentDrawerVisible"
+      :context="aiDrawerContext"
+      :pending-conversation="pendingAiConversation"
+      @adopted="handleAiContentAdopted"
+      @pending-buffered="handleAiPendingBuffered"
+    />
 
     <MatchSelectDialog v-model:visible="matchDialogVisible" @select="handleMatchSelect" />
     <LayoutTemplateSelectDialog
@@ -322,6 +340,7 @@ import { ref, reactive, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { CloseBold, Expand, Fold, FullScreen } from '@element-plus/icons-vue'
 import DictSelect from '@/components/DictSelect.vue'
+import AiContentDrawer from './AiContentDrawer.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
 import MatchSelectDialog from '@/components/selectors/MatchSelectDialog.vue'
 import RichTextEditor from '@/components/editor/RichTextEditor.vue'
@@ -338,6 +357,7 @@ import {
   sanitizeLayoutHtml,
   ensureLayoutArticleHtml,
 } from '@/utils/layoutSync'
+import { markdownToHtml } from '@/utils/markdownHtml'
 import { applyLayoutTemplate, previewApplyLayoutTemplate, previewTemplateMerge } from '@/api/layoutTemplate'
 import { emptyLayoutDocument, type LayoutDocument } from '@/types/layoutTemplate'
 import {
@@ -348,16 +368,23 @@ import {
   getContent,
   getScriptRef,
   generateContent,
-  aiGenerateContent,
-  getAiPromptOptions,
   getMyIpGroups,
+  fetchFootballScheme,
 } from '@/api/content'
 import { toCompetitionId, toCompetitionName, type MatchVO } from '@/api/match'
-import { fetchAiModelList } from '@/api/config'
 import { getTaskExecute } from '@/api/task'
 import { getAuthorPage } from '@/api/author'
 import { fetchUserProfile } from '@/api/system-user'
+import {
+  generateAiPreferenceSummary,
+  saveAiConversationHistory,
+} from '@/api/aiContent'
+import type { PendingAiConversation } from '@/composables/useAiContentSession'
+import type { FootballSchemeVO } from '@/types/content'
+
 import { formatDateTime } from '@/utils'
+
+const PRICE_PRESETS = [88, 128, 168, 208] as const
 
 const props = defineProps<{
   contentId?: number
@@ -475,6 +502,7 @@ const formRef = ref<FormInstance>()
 
 const competitionId = ref('')
 const competitionName = ref('')
+const titleFromCompetition = ref(false)
 const competitionLabel = computed(() => competitionName.value || competitionId.value || '')
 const matchDialogVisible = ref(false)
 const scriptRef = ref<ScriptRef | null>(null)
@@ -491,8 +519,9 @@ const formData = reactive({
   platformTypes: [] as string[],
   contentType: undefined as string | undefined,
   documentType: undefined as string | undefined,
+  schemeTypes: ['COMPREHENSIVE'] as string[],
   accountIds: [] as number[],
-  isAi: false,
+  isAi: true,
   body: '',
   bodyFormat: 'PLAIN' as string,
   layoutJson: emptyLayoutDocument() as LayoutDocument,
@@ -505,7 +534,22 @@ const formData = reactive({
   finalVideoUrl: '',
   creatorUserId: undefined as number | undefined,
   competitionId: '',
+  paidBody: '',
+  freeBody: '',
+  price: 88,
+  privilegeTypes: ['2'] as string[],
+  refundType: 0,
 })
+
+const footballScheme = reactive({
+  authorArticleId: undefined as number | undefined,
+  shelfStatus: undefined as number | undefined,
+  footballSyncError: undefined as string | undefined,
+  syncFootballAt: undefined as string | undefined,
+})
+const bodyContentTab = ref<'paid' | 'free'>('paid')
+const freeBodyHtml = ref('<p></p>')
+const freeSyncing = ref(false)
 
 const showDocumentType = computed(() => formData.contentType === 'ARTICLE')
 const showArticleLayout = computed(() => formData.contentType === 'ARTICLE')
@@ -543,6 +587,7 @@ function handleSidebarTemplateApplied(payload: {
   try {
     richBodyHtml.value = payload.layoutHtml || ''
     formData.body = extractPlainText(richBodyHtml.value)
+    formData.paidBody = formData.body
   } finally {
     richSyncing.value = false
   }
@@ -640,7 +685,14 @@ const displayRichHtml = computed(() => {
   if (formData.bodyFormat === 'LAYOUT' && formData.layoutHtml) {
     return formData.layoutHtml
   }
-  return plainTextToHtml(formData.body || '')
+  return plainTextToHtml(formData.paidBody || formData.body || '')
+})
+
+const displayFreeHtml = computed(() => {
+  if (formData.freeBody?.includes('<')) {
+    return sanitizeLayoutHtml(formData.freeBody)
+  }
+  return plainTextToHtml(formData.freeBody || '')
 })
 
 function syncRichToForm(html: string) {
@@ -649,6 +701,7 @@ function syncRichToForm(html: string) {
   try {
     const cleaned = html || '<p></p>'
     formData.body = extractPlainText(cleaned)
+    formData.paidBody = formData.body
     if (formData.contentType === 'ARTICLE') {
       formData.bodyFormat = 'LAYOUT'
       // Preserve editor HTML verbatim for WeChat publish (inline styles, img width, etc.)
@@ -667,10 +720,39 @@ function initRichBodyFromForm() {
     if (formData.bodyFormat === 'LAYOUT' && formData.layoutHtml) {
       richBodyHtml.value = formData.layoutHtml
     } else {
-      richBodyHtml.value = plainTextToHtml(formData.body || '')
+      richBodyHtml.value = plainTextToHtml(formData.paidBody || formData.body || '')
     }
   } finally {
     endRichSync()
+  }
+}
+
+function initFreeBodyFromForm() {
+  freeSyncing.value = true
+  try {
+    if (formData.freeBody?.includes('<')) {
+      freeBodyHtml.value = sanitizeLayoutHtml(formData.freeBody)
+    } else {
+      freeBodyHtml.value = plainTextToHtml(formData.freeBody || '')
+    }
+  } finally {
+    nextTick(() => {
+      freeSyncing.value = false
+    })
+  }
+}
+
+function syncFreeToForm(html: string) {
+  freeSyncing.value = true
+  try {
+    const cleaned = html || '<p></p>'
+    formData.freeBody = formData.contentType === 'ARTICLE'
+      ? ensureLayoutArticleHtml(cleaned)
+      : extractPlainText(cleaned) || cleaned
+  } finally {
+    nextTick(() => {
+      freeSyncing.value = false
+    })
   }
 }
 
@@ -690,7 +772,13 @@ watch(richBodyHtml, (html) => {
   if (showBody.value) {
     formData.bodyFormat = 'PLAIN'
     formData.body = extractPlainText(cleaned)
+    formData.paidBody = formData.body
   }
+})
+
+watch(freeBodyHtml, (html) => {
+  if (freeSyncing.value) return
+  syncFreeToForm(html || '<p></p>')
 })
 
 watch(
@@ -748,28 +836,38 @@ const formRules = computed<FormRules>(() => {
   return rules
 })
 
-const aiDialogVisible = ref(false)
-const aiForm = reactive({
-  modelId: undefined as number | undefined,
-  promptId: undefined as number | undefined,
-  authorId: undefined as number | undefined,
-  historicalRecord: '',
-  matchDirection: '',
-  streamerPersona: '',
-  revisionFeedback: '',
-  lengthType: undefined as string | undefined,
-})
-const aiModelOptions = ref<{ id: number; modelName: string }[]>([])
-const aiPromptOptions = ref<{ id: number; templateName: string }[]>([])
-const aiAuthorOptions = ref<Array<{ id: number; authorName: string }>>([])
-/** 已加载作者选项对应的 IP 组，避免弹窗 @open 重复清空选项 */
-const aiAuthorIpGroupId = ref<number | undefined>(undefined)
-const aiGenerating = ref(false)
-const aiEventInfoLabel = computed(() => competitionLabel.value || '—')
+const aiContentDrawerVisible = ref(false)
+/** 新建内容尚无 contentId 时，AI 对话暂存于此，保存内容后再写入后端 */
+const pendingAiConversation = ref<PendingAiConversation | null>(null)
+const aiDrawerContext = computed(() => ({
+  matchName: competitionLabel.value || competitionName.value || '',
+  authorName: authorLabel.value || '',
+  schemeTypes: [...formData.schemeTypes],
+  contentId: formData.contentId,
+  authorId: formData.authorId,
+}))
 
 const syncCompetitionToForm = () => {
   formData.competitionId = competitionId.value
 }
+
+const applyCompetitionTitle = (name: string) => {
+  const trimmed = name?.trim()
+  if (!trimmed) return
+  if (!formData.title.trim() || titleFromCompetition.value) {
+    formData.title = trimmed
+    titleFromCompetition.value = true
+  }
+}
+
+watch(
+  () => formData.title,
+  () => {
+    if (titleFromCompetition.value && formData.title.trim() !== competitionName.value.trim()) {
+      titleFromCompetition.value = false
+    }
+  },
+)
 
 const resetForm = () => {
   Object.assign(formData, {
@@ -778,8 +876,9 @@ const resetForm = () => {
     platformTypes: [],
     contentType: undefined,
     documentType: undefined,
+    schemeTypes: ['COMPREHENSIVE'],
     accountIds: [],
-    isAi: false,
+    isAi: true,
     body: '',
     bodyFormat: 'PLAIN',
     layoutJson: emptyLayoutDocument(),
@@ -792,28 +891,64 @@ const resetForm = () => {
     finalVideoUrl: '',
     creatorUserId: undefined,
     competitionId: '',
+    paidBody: '',
+    freeBody: '',
+    price: 88,
+    privilegeTypes: ['2'],
+    refundType: 0,
+  })
+  Object.assign(footballScheme, {
+    authorArticleId: undefined,
+    shelfStatus: undefined,
+    footballSyncError: undefined,
+    syncFootballAt: undefined,
   })
   competitionId.value = ''
   competitionName.value = ''
+  titleFromCompetition.value = false
   authorLabel.value = ''
   taskIpGroupName.value = ''
   myIpGroupAuthorCache.value = []
-  aiAuthorOptions.value = []
-  aiAuthorIpGroupId.value = undefined
   scriptRef.value = null
   contentStatus.value = undefined
   reviewProgress.value = []
   richBodyHtml.value = '<p></p>'
+  freeBodyHtml.value = '<p></p>'
+  bodyContentTab.value = 'paid'
+  pendingAiConversation.value = null
+}
+
+const applyFootballScheme = (scheme: FootballSchemeVO) => {
+  footballScheme.authorArticleId = scheme.authorArticleId
+  footballScheme.shelfStatus = scheme.shelfStatus
+  footballScheme.footballSyncError = scheme.footballSyncError
+  footballScheme.syncFootballAt = scheme.syncFootballAt
+  if (scheme.price != null) formData.price = scheme.price
+  if (scheme.privilegeTypes?.length) formData.privilegeTypes = [...scheme.privilegeTypes]
+  if (scheme.refundType != null) formData.refundType = scheme.refundType
+}
+
+const loadFootballScheme = async (contentId: number) => {
+  try {
+    applyFootballScheme(await fetchFootballScheme(contentId))
+  } catch {
+    // P2/P3：后端未就绪时不阻断编辑
+  }
 }
 
 const handleMatchSelect = (match: MatchVO) => {
   competitionId.value = toCompetitionId(match)
   competitionName.value = toCompetitionName(match)
   syncCompetitionToForm()
+  applyCompetitionTitle(competitionName.value)
   loadScriptRef()
 }
 
 const clearCompetition = () => {
+  if (titleFromCompetition.value) {
+    formData.title = ''
+    titleFromCompetition.value = false
+  }
   competitionId.value = ''
   competitionName.value = ''
   syncCompetitionToForm()
@@ -836,77 +971,6 @@ const mapAuthorListItem = (item: {
   const id = normalizeAuthorId(item.id) ?? normalizeAuthorId(item.authorUserId)
   const authorName = String(item.authorName || item.nickname || item.anchorUserName || '').trim()
   return id ? { id, authorName } : null
-}
-
-const ensureAiAuthorOption = (authorId?: number | string | null, authorName?: string) => {
-  const id = normalizeAuthorId(authorId)
-  if (!id) return
-  const name = authorName?.trim() || `作者 #${id}`
-  const idx = aiAuthorOptions.value.findIndex((item) => normalizeAuthorId(item.id) === id)
-  if (idx >= 0) {
-    if (!aiAuthorOptions.value[idx].authorName && name) {
-      aiAuthorOptions.value[idx].authorName = name
-    }
-    return
-  }
-  aiAuthorOptions.value.unshift({ id, authorName: name })
-}
-
-const fetchAiAuthorOptions = async (ipGroupId: number) => {
-  const page = await getAuthorPage({ ipGroupId, status: 1, page: 1, size: 100 })
-  return (page?.list || [])
-    .map((item) => mapAuthorListItem(item))
-    .filter((item): item is { id: number; authorName: string } => item != null)
-}
-
-/** Element Plus el-select：选项必须先于 v-model 存在，否则显示空白 */
-const applyAiAuthorSelection = async (authorId?: number | string | null, authorName?: string) => {
-  const id = normalizeAuthorId(authorId ?? formData.authorId)
-  const name = authorName?.trim() || authorLabel.value?.trim()
-  if (id) {
-    ensureAiAuthorOption(id, name)
-    formData.authorId = id
-    if (name) {
-      authorLabel.value = name
-    }
-  }
-  aiForm.authorId = undefined
-  await nextTick()
-  aiForm.authorId = id
-}
-
-const prepareAiAuthorForDialog = async () => {
-  if (!formData.ipGroupId) return
-
-  let authorId = normalizeAuthorId(formData.authorId)
-  let authorName = authorLabel.value?.trim()
-
-  if (!authorId) {
-    await loadAuthorForGroup(formData.ipGroupId)
-    authorId = normalizeAuthorId(formData.authorId)
-    authorName = authorLabel.value?.trim()
-  }
-
-  if (!authorId && authorName) {
-    const options = await fetchAiAuthorOptions(formData.ipGroupId).catch(() => [])
-    const matched = options.find((item) => item.authorName === authorName)
-    if (matched) {
-      authorId = matched.id
-      formData.authorId = authorId
-    }
-  }
-
-  if (aiAuthorIpGroupId.value !== formData.ipGroupId || !aiAuthorOptions.value.length) {
-    const options = await fetchAiAuthorOptions(formData.ipGroupId).catch(() => [])
-    aiAuthorOptions.value = options
-    aiAuthorIpGroupId.value = formData.ipGroupId
-  }
-
-  await applyAiAuthorSelection(authorId, authorName)
-  if (!aiForm.authorId && aiAuthorOptions.value.length === 1) {
-    const only = aiAuthorOptions.value[0]
-    await applyAiAuthorSelection(only.id, only.authorName)
-  }
 }
 
 const loadAuthorForGroup = async (ipGroupId?: number, preferAuthorId?: number) => {
@@ -1041,6 +1105,7 @@ const handleContentTypeChange = () => {
   }
   if (formData.contentType && formData.contentType !== 'SHORT_VIDEO') {
     initRichBodyFromForm()
+    initFreeBodyFromForm()
   }
   loadScriptRef()
 }
@@ -1055,11 +1120,15 @@ const buildPayload = () => {
   } else if (formData.contentType && formData.contentType !== 'SHORT_VIDEO') {
     formData.bodyFormat = 'PLAIN'
     formData.body = extractPlainText(richBodyHtml.value || '')
+    formData.paidBody = formData.body
   }
+  syncFreeToForm(freeBodyHtml.value)
   return {
     title: formData.title,
     contentType: formData.contentType!,
-    body: formData.body || '',
+    body: formData.body || formData.paidBody || '',
+    paidBody: formData.paidBody || formData.body || '',
+    freeBody: formData.freeBody || undefined,
     bodyFormat: formData.bodyFormat,
     layoutJson: formData.bodyFormat === 'LAYOUT' ? formData.layoutJson : undefined,
     layoutHtml: formData.bodyFormat === 'LAYOUT' ? formData.layoutHtml : undefined,
@@ -1070,26 +1139,66 @@ const buildPayload = () => {
     competitionId: competitionId.value || undefined,
     competitionName: competitionName.value || undefined,
     documentType: formData.documentType,
+    schemeTypes: formData.schemeTypes?.length ? formData.schemeTypes : undefined,
     ipGroupId: formData.ipGroupId,
     authorId: formData.authorId,
     generatedVideoUrl: formData.generatedVideoUrl || undefined,
     finalVideoUrl: formData.finalVideoUrl || undefined,
+    price: formData.price,
+    privilegeTypes: formData.privilegeTypes?.length ? formData.privilegeTypes : ['2'],
+    refundType: formData.refundType,
   }
 }
 
 const persistContent = async (): Promise<number> => {
   const payload = buildPayload()
+  const wasNew = !formData.contentId
   if (formData.contentId) {
     await updateContent({ ...payload, id: formData.contentId })
     if (contentStatus.value === 'REJECTED' || contentStatus.value === 'COMPLETED') {
       contentStatus.value = 'DRAFT'
     }
+    await loadFootballScheme(formData.contentId)
     return formData.contentId
   }
   const id = await createContent(payload)
   formData.contentId = id
   contentStatus.value = 'DRAFT'
+  if (wasNew) {
+    await flushPendingAiConversation(id)
+  }
+  await loadFootballScheme(id)
   return id
+}
+
+const flushPendingAiConversation = async (contentId: number) => {
+  const pending = pendingAiConversation.value
+  if (!pending?.conversationHistory?.length) {
+    pendingAiConversation.value = null
+    return
+  }
+  try {
+    await saveAiConversationHistory({
+      sessionId: pending.sessionId,
+      conversationHistory: pending.conversationHistory,
+      authorId: formData.authorId,
+      contentId,
+    })
+    if (pending.persistContext) {
+      await generateAiPreferenceSummary({
+        sessionId: pending.sessionId,
+        conversationHistory: pending.conversationHistory,
+        context: pending.persistContext,
+        authorId: formData.authorId,
+        contentId,
+        preferenceSummary: pending.preferenceSummary,
+      })
+    }
+  } catch {
+    // 保存内容已成功，对话持久化失败不阻断主流程
+  } finally {
+    pendingAiConversation.value = null
+  }
 }
 
 const finish = (action: 'draft' | 'review', contentId?: number) => {
@@ -1107,7 +1216,11 @@ const handleSaveDraft = async () => {
   saving.value = true
   try {
     const id = await persistContent()
-    ElMessage.success('草稿已保存')
+    if (footballScheme.footballSyncError) {
+      ElMessage.warning(`草稿已保存，Football 方案同步失败：${footballScheme.footballSyncError}`)
+    } else {
+      ElMessage.success('草稿已保存')
+    }
     finish('draft', id)
   } catch {
     ElMessage.error('保存失败')
@@ -1171,118 +1284,63 @@ const handleSubmitReview = async () => {
 }
 
 const handleCancel = () => {
+  pendingAiConversation.value = null
   emit('cancelled')
 }
 
-const openAiDialog = async () => {
-  if (!formData.contentType) {
-    ElMessage.warning('请先选择内容类型')
+const openAiContentDrawer = async () => {
+  if (!formData.title?.trim()) {
+    ElMessage.warning('请先填写标题')
     return
   }
   if (!formData.ipGroupId) {
     ElMessage.warning('请先选择所属 IP 组')
     return
   }
-  try {
-    await prepareAiAuthorForDialog()
-  } catch {
-    ensureAiAuthorOption(formData.authorId, authorLabel.value)
-    await applyAiAuthorSelection(formData.authorId, authorLabel.value)
-  }
-  aiDialogVisible.value = true
-}
-
-const loadAiDialogOptions = async () => {
-  aiForm.historicalRecord = ''
-  aiForm.matchDirection = ''
-  aiForm.streamerPersona = ''
-  aiForm.revisionFeedback = ''
-  aiForm.lengthType = undefined
-  try {
-    const [models, prompts] = await Promise.all([
-      fetchAiModelList({ status: 'ENABLED', pageNo: 1, pageSize: 100 }),
-      getAiPromptOptions(formData.contentType!, formData.documentType),
-    ])
-    aiModelOptions.value = (models?.list || []).map((m) => ({ id: m.id, modelName: m.modelName }))
-    aiPromptOptions.value = prompts || []
-    if (formData.ipGroupId) {
-      const options = await fetchAiAuthorOptions(formData.ipGroupId).catch(() => [])
-      aiAuthorOptions.value = options
-      aiAuthorIpGroupId.value = formData.ipGroupId
-    }
-    await applyAiAuthorSelection(formData.authorId, authorLabel.value)
-    if (!aiForm.authorId && aiAuthorOptions.value.length === 1) {
-      const only = aiAuthorOptions.value[0]
-      await applyAiAuthorSelection(only.id, only.authorName)
-    }
-    if (!aiForm.modelId && aiModelOptions.value.length) aiForm.modelId = aiModelOptions.value[0].id
-    if (!aiForm.promptId && aiPromptOptions.value.length) aiForm.promptId = aiPromptOptions.value[0].id
-  } catch {
-    ensureAiAuthorOption(formData.authorId, authorLabel.value)
-    await applyAiAuthorSelection(formData.authorId, authorLabel.value)
-    ElMessage.error('加载 AI 配置失败')
-  }
-}
-
-const handleAiGenerate = async () => {
-  if (!aiForm.modelId || !aiForm.promptId) {
-    ElMessage.warning('请选择 AI 模型和提示词')
-    return
-  }
   if (!competitionId.value) {
     ElMessage.warning('请先选择关联赛事')
     return
   }
-  aiGenerating.value = true
-  try {
-    const selectedAuthor = aiAuthorOptions.value.find(
-      (item) => normalizeAuthorId(item.id) === normalizeAuthorId(aiForm.authorId),
-    )
-    const res = await aiGenerateContent({
-      modelId: aiForm.modelId,
-      promptId: aiForm.promptId,
-      contentType: formData.contentType,
-      documentType: formData.documentType,
-      competitionId: competitionId.value,
-      competitionName: competitionName.value || undefined,
-      taskId: props.taskId,
-      ipGroupId: formData.ipGroupId,
-      authorId: aiForm.authorId,
-      authorName: selectedAuthor?.authorName,
-      historicalRecord: aiForm.historicalRecord.trim() || undefined,
-      matchDirection: aiForm.matchDirection.trim() || undefined,
-      streamerPersona: aiForm.streamerPersona.trim() || undefined,
-      revisionFeedback: aiForm.revisionFeedback.trim() || undefined,
-      lengthType: aiForm.lengthType,
-    })
-    const generated = res?.content || ''
-    formData.body = generated
-    if (formData.contentType && formData.contentType !== 'SHORT_VIDEO') {
-      richBodyHtml.value = plainTextToHtml(generated)
-      if (formData.contentType === 'ARTICLE') {
-        syncRichToForm(richBodyHtml.value)
-      } else {
-        formData.bodyFormat = 'PLAIN'
-      }
-    }
-    formData.isAi = true
-    if (aiForm.authorId) {
-      formData.authorId = aiForm.authorId
-      if (selectedAuthor?.authorName) {
-        authorLabel.value = selectedAuthor.authorName
-      }
-    }
-    aiDialogVisible.value = false
-    if (res?.mock) {
-      ElMessage.info(res.message || '占位生成完成，已写入正文')
-    } else {
-      ElMessage.success(res?.message || 'AI 生成完成，已写入正文')
-    }
-  } catch {
-    ElMessage.error('AI 生成失败')
-  } finally {
-    aiGenerating.value = false
+  if (!formData.schemeTypes?.length) {
+    ElMessage.warning('请先选择方案分析类型')
+    return
   }
+  if (!formData.authorId && formData.ipGroupId) {
+    await loadAuthorForGroup(formData.ipGroupId)
+  }
+  if (!authorLabel.value?.trim()) {
+    ElMessage.warning('请先确认作者信息')
+    return
+  }
+  aiContentDrawerVisible.value = true
+}
+
+const handleAiContentAdopted = (payload: { content: string; target: 'PAID' | 'FREE' }) => {
+  const generated = payload.content || ''
+  formData.isAi = true
+  if (!formData.contentType || formData.contentType === 'SHORT_VIDEO') return
+
+  const html = markdownToHtml(generated)
+  if (payload.target === 'FREE') {
+    bodyContentTab.value = 'free'
+    freeBodyHtml.value = html
+    syncFreeToForm(html)
+    return
+  }
+
+  bodyContentTab.value = 'paid'
+  richBodyHtml.value = html
+  formData.body = extractPlainText(richBodyHtml.value) || generated
+  if (formData.contentType === 'ARTICLE') {
+    syncRichToForm(richBodyHtml.value)
+  } else {
+    formData.bodyFormat = 'PLAIN'
+    formData.paidBody = formData.body
+  }
+}
+
+const handleAiPendingBuffered = (snapshot: PendingAiConversation | null) => {
+  pendingAiConversation.value = snapshot
 }
 
 const applyContentRecord = (existing: Record<string, any>, taskMode = false) => {
@@ -1294,7 +1352,17 @@ const applyContentRecord = (existing: Record<string, any>, taskMode = false) => 
       title: existing.title,
       contentType: existing.contentType,
       documentType: existing.documentType,
+      schemeTypes: existing.schemeTypes?.length
+        ? existing.schemeTypes
+        : existing.schemeType
+          ? [existing.schemeType]
+          : ['COMPREHENSIVE'],
       body: existing.body,
+      paidBody: existing.paidBody || existing.body || '',
+      freeBody: existing.freeBody || '',
+      price: existing.price ?? 88,
+      privilegeTypes: existing.privilegeTypes?.length ? existing.privilegeTypes : ['2'],
+      refundType: existing.refundType ?? 0,
       bodyFormat: existing.bodyFormat || 'PLAIN',
       layoutJson: existing.layoutJson || emptyLayoutDocument(),
       layoutHtml: existing.layoutHtml || '',
@@ -1319,12 +1387,17 @@ const applyContentRecord = (existing: Record<string, any>, taskMode = false) => 
     reviewProgress.value = existing.reviewProgress || []
     competitionId.value = existing.competitionId || ''
     competitionName.value = existing.competitionName || ''
+    titleFromCompetition.value = false
     syncCompetitionToForm()
     if (!taskMode) {
       authorLabel.value = existing.authorName || ''
     }
     if (existing.contentType && existing.contentType !== 'SHORT_VIDEO') {
       initRichBodyFromForm()
+      initFreeBodyFromForm()
+    }
+    if (existing.id) {
+      void loadFootballScheme(existing.id)
     }
   } finally {
     endRichSync()
@@ -1356,6 +1429,9 @@ const initTaskMode = async () => {
     competitionId.value = taskCtx.competitionId || props.competitionId || ''
     competitionName.value = taskCtx.competitionName || ''
     syncCompetitionToForm()
+    if (!existing && competitionName.value) {
+      applyCompetitionTitle(competitionName.value)
+    }
     formData.creatorUserId = profile?.id
     taskIpGroupName.value = taskCtx.ipGroupName || ''
     if (taskCtx.ipGroupId) {
@@ -1526,5 +1602,21 @@ watch(
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--el-border-color-lighter);
+}
+.price-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.price-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.body-content-tabs {
+  width: 100%;
+}
+.free-body-editor {
+  width: 100%;
 }
 </style>

@@ -15,8 +15,12 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.company.CompanyDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.company.CompanyExpansionDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.company.CompanyExpansionMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.company.CompanyMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.service.impl.DiffParseFunction;
+import com.mzt.logapi.starter.annotation.LogRecord;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import cn.iocoder.yudao.module.oa.util.ImageKeyHelper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -57,7 +61,8 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    @AuditLog(module = "公司管理", action = "新增公司")
+    @LogRecord(type = M4_COMPANY_TYPE, subType = M4_COMPANY_CREATE_SUB_TYPE, bizNo = "{{#company.id}}",
+            success = M4_COMPANY_CREATE_SUCCESS)
     public Long create(CompanyCreateReq req) {
         Long tenantId = requireTenantId();
         assertCreditCodeUnique(tenantId, req.getCreditCode(), null);
@@ -81,14 +86,18 @@ public class CompanyServiceImpl implements CompanyService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         companyMapper.insert(entity);
+        LogRecordContext.putVariable("company", entity);
         return entity.getId();
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "公司管理", action = "修改公司")
+    @LogRecord(type = M4_COMPANY_TYPE, subType = M4_COMPANY_UPDATE_SUB_TYPE, bizNo = "{{#company.id}}",
+            success = M4_COMPANY_UPDATE_SUCCESS)
     public void update(CompanyUpdateReq req) {
         CompanyDO existing = getRequiredInTenant(req.getId());
+        LogRecordContext.putVariable(DiffParseFunction.OLD_OBJECT, toUpdateReq(existing));
+        LogRecordContext.putVariable("company", existing);
         if (StrUtil.isNotBlank(req.getCompanyName())) {
             existing.setCompanyName(req.getCompanyName());
         }
@@ -120,9 +129,11 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    @AuditLog(module = "公司管理", action = "删除公司")
+    @LogRecord(type = M4_COMPANY_TYPE, subType = M4_COMPANY_DELETE_SUB_TYPE, bizNo = "{{#company.id}}",
+            success = M4_COMPANY_DELETE_SUCCESS)
     public void delete(Long id) {
         CompanyDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("company", existing);
         if (existing.getMpRegisteredCount() != null && existing.getMpRegisteredCount() > 0) {
             throw new ServiceException(OaErrorCodes.ENTITY_ALREADY_BOUND);
         }
@@ -131,9 +142,11 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    @AuditLog(module = "公司管理", action = "公司扩容")
+    @LogRecord(type = M4_COMPANY_TYPE, subType = M4_COMPANY_EXPAND_SUB_TYPE, bizNo = "{{#company.id}}",
+            success = M4_COMPANY_EXPAND_SUCCESS)
     public void expand(Long id, CompanyExpandReq req) {
         CompanyDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("company", existing);
         int current = existing.getMpCapacityStandard() == null ? 0 : existing.getMpCapacityStandard();
         if (req.getNewCapacity() <= current) {
             throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "新容量必须大于当前容量");
@@ -254,5 +267,17 @@ public class CompanyServiceImpl implements CompanyService {
         } catch (Exception ex) {
             return "****";
         }
+    }
+
+    private static CompanyUpdateReq toUpdateReq(CompanyDO entity) {
+        CompanyUpdateReq req = new CompanyUpdateReq();
+        req.setId(entity.getId());
+        req.setCompanyName(entity.getCompanyName());
+        req.setIndustry(entity.getIndustry());
+        req.setAddress(entity.getAddress());
+        req.setLegalName(entity.getLegalName());
+        req.setMpCapacityStandard(entity.getMpCapacityStandard());
+        req.setStatus(entity.getStatus());
+        return req;
     }
 }

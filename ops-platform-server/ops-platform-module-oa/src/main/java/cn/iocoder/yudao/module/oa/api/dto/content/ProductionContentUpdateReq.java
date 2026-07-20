@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.oa.api.dto.content;
 
 import cn.iocoder.yudao.module.oa.framework.dict.InDict;
+import cn.iocoder.yudao.module.oa.framework.dict.InDictList;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -23,6 +24,10 @@ public class ProductionContentUpdateReq {
     private List<Long> accountIds;
     private Long creatorUserId;
     private String body;
+    /** 付费内容（ADR-054） */
+    private String paidBody;
+    /** 免费内容（ADR-054） */
+    private String freeBody;
     @InDict("dict_content_body_format")
     private String bodyFormat;
     private Object layoutJson;
@@ -32,6 +37,8 @@ public class ProductionContentUpdateReq {
     private Integer aiGenerated;
     @InDict("dict_document_type")
     private String documentType;
+    @InDictList("dict_scheme_type")
+    private List<String> schemeTypes;
     private Long ipGroupId;
     private Long authorId;
     private String generatedVideoUrl;

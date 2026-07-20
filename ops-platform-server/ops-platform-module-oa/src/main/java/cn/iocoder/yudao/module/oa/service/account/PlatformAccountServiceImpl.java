@@ -26,11 +26,17 @@ import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.phone.PhoneMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.realname.RealnameMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.simcard.SimCardMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.service.impl.DiffParseFunction;
+import com.mzt.logapi.starter.annotation.LogRecord;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUser;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
 import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataQueryService;
+import cn.iocoder.yudao.module.oa.service.ipgroup.IpGroupAccessSupport;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -86,6 +92,8 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
     private final AesUtil aesUtil;
     private final CollectedDataQueryService collectedDataQueryService;
     private final PlatformAccountSyncService platformAccountSyncService;
+    private final IpGroupAccessSupport ipGroupAccessSupport;
+    private final OpsDataScopeSupport opsDataScopeSupport;
     @Autowired
     @Lazy
     private PlatformAccountServiceImpl self;
@@ -223,12 +231,22 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
     }
 
     @Override
-    @AuditLog(module = "M4-account", action = "create")
+    @LogRecord(type = M4_ACCOUNT_TYPE, subType = M4_ACCOUNT_CREATE_SUB_TYPE, bizNo = "{{#account.id}}",
+            success = M4_ACCOUNT_CREATE_SUCCESS)
     public Long create(AccountCreateReq req) {
+        Long tenantId = requireTenantId();
+        ipGroupAccessSupport.assertIpGroupAccessible(req.getIpGroupId(), tenantId);
+        Long id;
         if (PLATFORM_WECHAT_OFFICIAL.equals(req.getPlatformType())) {
-            return platformAccountSyncService.createWechatOfficial(req);
+            id = platformAccountSyncService.createWechatOfficial(req);
+        } else {
+            id = self.createLegacyAccount(req);
         }
-        return self.createLegacyAccount(req);
+        AccountDO account = accountMapper.selectById(id);
+        if (account != null) {
+            LogRecordContext.putVariable("account", account);
+        }
+        return id;
     }
 
     @Transactional
@@ -287,14 +305,21 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
     }
 
     @Override
-    @AuditLog(module = "M4-account", action = "update")
+    @LogRecord(type = M4_ACCOUNT_TYPE, subType = M4_ACCOUNT_UPDATE_SUB_TYPE, bizNo = "{{#account.id}}",
+            success = M4_ACCOUNT_UPDATE_SUCCESS)
     public void update(AccountUpdateReq req) {
         AccountDO existing = accountMapper.selectById(req.getId());
         if (existing == null) {
             platformAccountSyncService.updateWechatOfficial(req);
+            AccountDO updated = accountMapper.selectById(req.getId());
+            if (updated != null) {
+                LogRecordContext.putVariable("account", updated);
+            }
             return;
         }
         existing = getRequiredInTenant(req.getId());
+        LogRecordContext.putVariable(DiffParseFunction.OLD_OBJECT, toUpdateReq(existing));
+        LogRecordContext.putVariable("account", existing);
         if (PLATFORM_WECHAT_OFFICIAL.equals(existing.getPlatformType())) {
             platformAccountSyncService.updateWechatOfficial(req);
             return;
@@ -376,17 +401,22 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-account", action = "delete")
+    @LogRecord(type = M4_ACCOUNT_TYPE, subType = M4_ACCOUNT_DELETE_SUB_TYPE, bizNo = "{{#account.id}}",
+            success = M4_ACCOUNT_DELETE_SUCCESS)
     public void delete(Long id) {
         AccountDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("account", existing);
         decrementBoundCounts(existing);
         accountMapper.deleteById(id);
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M4-account", action = "replace")
+    @LogRecord(type = M4_ACCOUNT_TYPE, subType = M4_ACCOUNT_REPLACE_SUB_TYPE, bizNo = "{{#account.id}}",
+            success = M4_ACCOUNT_REPLACE_SUCCESS)
     public void replace(Long id, AccountReplaceReq req) {
+        AccountDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("account", existing);
         AccountUpdateReq updateReq = new AccountUpdateReq();
         updateReq.setId(id);
         updateReq.setRealnameId(req.getRealnameId());
@@ -647,18 +677,9 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
         return entity;
     }
 
-    /** BR-006：IP 组数据范围用户仅可查看本组账号；ALL 范围不限制 */
+    /** BR-006：非 admin 仅可查看成员 IP 组下账号 */
     private void assertAccountReadable(AccountDO entity) {
-        LoginUser user = LoginUserContext.get();
-        if (user == null || DataScopeSupport.ALL.equals(user.getDataScope())) {
-            return;
-        }
-        if (DataScopeSupport.IP_GROUP.equals(user.getDataScope())) {
-            Long scopeIpGroupId = user.getIpGroupId();
-            if (scopeIpGroupId != null && !Objects.equals(scopeIpGroupId, entity.getIpGroupId())) {
-                throw new ServiceException(OaErrorCodes.FORBIDDEN);
-            }
-        }
+        opsDataScopeSupport.assertAccountReadable(entity);
     }
 
     private Long requireTenantId() {
@@ -967,5 +988,32 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
         } catch (Exception ex) {
             return "****";
         }
+    }
+
+    private static AccountUpdateReq toUpdateReq(AccountDO entity) {
+        AccountUpdateReq req = new AccountUpdateReq();
+        req.setId(entity.getId());
+        req.setAccountName(entity.getAccountName());
+        req.setAccountType(entity.getAccountType());
+        req.setCompanyId(entity.getCompanyId());
+        req.setRealnameId(entity.getRealnameId());
+        req.setPhoneId(entity.getPhoneId());
+        req.setSimCardId(entity.getSimCardId());
+        req.setIntermediaryId(entity.getIntermediaryId());
+        req.setIpGroupId(entity.getIpGroupId());
+        req.setAppId(entity.getAppId());
+        req.setFieldMapping(entity.getFieldMapping());
+        req.setStatus(entity.getStatus());
+        req.setTrademarkName(entity.getTrademarkName());
+        req.setEmail(entity.getEmail());
+        req.setQualificationType(entity.getQualificationType());
+        req.setUsageStatus(entity.getUsageStatus());
+        req.setOriginalAccountName(entity.getOriginalAccountName());
+        req.setCertExpiryTime(entity.getCertExpiryTime());
+        req.setLinkedVideoAccountId(entity.getLinkedVideoAccountId());
+        req.setVideoAccountRegisteredAt(entity.getVideoAccountRegisteredAt());
+        req.setAdminName(entity.getAdminName());
+        req.setAdminUserId(entity.getAdminUserId());
+        return req;
     }
 }

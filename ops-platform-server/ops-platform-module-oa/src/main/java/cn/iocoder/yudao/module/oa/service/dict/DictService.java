@@ -1,10 +1,10 @@
 package cn.iocoder.yudao.module.oa.service.dict;
 
+import cn.iocoder.yudao.module.oa.dal.dataobject.dict.FootballSystemDictDataDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.dict.FootballSystemDictTypeDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.dict.SysDictDataDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.dict.SysDictTypeDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.dict.SysDictDataMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.dict.SysDictTypeMapper;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import cn.iocoder.yudao.module.oa.service.system.SystemDictAdapter;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -18,13 +18,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class DictService {
 
-    private final SysDictDataMapper sysDictDataMapper;
-    private final SysDictTypeMapper sysDictTypeMapper;
+    private final SystemDictAdapter systemDictAdapter;
 
     private final Map<String, CacheEntry> dataCache = new ConcurrentHashMap<>();
     private final LongAdder dataCacheMisses = new LongAdder();
@@ -57,6 +57,7 @@ public class DictService {
     private static class CacheEntry {
         final List<SysDictDataDO> rows;
         final long expireAtNanos;
+
         CacheEntry(List<SysDictDataDO> rows, long ttlNanos) {
             this.rows = rows;
             this.expireAtNanos = System.nanoTime() + ttlNanos;
@@ -64,24 +65,11 @@ public class DictService {
     }
 
     public boolean isValidValue(String dictType, String value) {
-        if (value == null || value.isBlank()) {
-            return false;
-        }
-        Long count = sysDictDataMapper.selectCount(new LambdaQueryWrapper<SysDictDataDO>()
-                .eq(SysDictDataDO::getDictType, dictType)
-                .eq(SysDictDataDO::getDictValue, value)
-                .eq(SysDictDataDO::getStatus, "ENABLED"));
-        return count != null && count > 0;
+        return systemDictAdapter.isValidValue(dictType, value);
     }
 
     public boolean typeExists(String dictType) {
-        if (dictType == null || dictType.isBlank()) {
-            return false;
-        }
-        Long count = sysDictTypeMapper.selectCount(new LambdaQueryWrapper<SysDictTypeDO>()
-                .eq(SysDictTypeDO::getType, dictType)
-                .eq(SysDictTypeDO::getStatus, "ENABLED"));
-        return count != null && count > 0;
+        return systemDictAdapter.typeExists(dictType);
     }
 
     public List<SysDictDataDO> listByType(String dictType) {
@@ -94,19 +82,17 @@ public class DictService {
             return cached.rows;
         }
         dataCacheMisses.increment();
-        List<SysDictDataDO> rows = sysDictDataMapper.selectList(new LambdaQueryWrapper<SysDictDataDO>()
-                .eq(SysDictDataDO::getDictType, dictType)
-                .eq(SysDictDataDO::getStatus, "ENABLED")
-                .orderByAsc(SysDictDataDO::getSort)
-                .orderByAsc(SysDictDataDO::getDictValue));
+        List<SysDictDataDO> rows = systemDictAdapter.listEnabledDataByType(dictType).stream()
+                .map(this::toDataDO)
+                .collect(Collectors.toList());
         dataCache.put(dictType, new CacheEntry(rows, TTL_NANOS));
         return rows;
     }
 
     public List<SysDictTypeDO> listAllTypes() {
-        return sysDictTypeMapper.selectList(new LambdaQueryWrapper<SysDictTypeDO>()
-                .eq(SysDictTypeDO::getStatus, "ENABLED")
-                .orderByAsc(SysDictTypeDO::getId));
+        return systemDictAdapter.listEnabledTypes().stream()
+                .map(this::toTypeDO)
+                .collect(Collectors.toList());
     }
 
     public void evictCache() {
@@ -119,5 +105,27 @@ public class DictService {
 
     public int getCacheSize() {
         return dataCache.size();
+    }
+
+    private SysDictDataDO toDataDO(FootballSystemDictDataDO d) {
+        SysDictDataDO row = new SysDictDataDO();
+        row.setId(d.getId());
+        row.setDictType(d.getDictType());
+        row.setLabel(d.getLabel());
+        row.setDictValue(d.getValue());
+        row.setSort(d.getSort());
+        row.setStatus(SystemDictAdapter.toOpsStatus(d.getStatus()));
+        row.setColorType(d.getColorType());
+        row.setRemark(d.getRemark());
+        return row;
+    }
+
+    private SysDictTypeDO toTypeDO(FootballSystemDictTypeDO t) {
+        SysDictTypeDO row = new SysDictTypeDO();
+        row.setId(t.getId());
+        row.setType(t.getType());
+        row.setName(t.getName());
+        row.setStatus(SystemDictAdapter.toOpsStatus(t.getStatus()));
+        return row;
     }
 }

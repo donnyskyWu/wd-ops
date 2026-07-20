@@ -22,7 +22,7 @@
         <el-row :gutter="16" class="search-row" align="middle">
           <el-col :xs="24" :sm="12" :lg="6" class="ip-group-col">
             <el-form-item label="IP组">
-              <IpGroupTreeSelect v-model="searchForm.ipGroupId" />
+              <IpGroupTreeSelect v-model="searchForm.ipGroupId" scope="accessible" clearable />
             </el-form-item>
           </el-col>
           <el-col :xs="24" :sm="12" :lg="4">
@@ -68,6 +68,14 @@
         </el-row>
       </el-form>
     </div>
+
+    <el-alert
+      type="info"
+      :title="DATA_SCOPE_FILTER_HINT"
+      show-icon
+      :closable="false"
+      style="margin-bottom: 12px"
+    />
 
     <!-- 操作栏 -->
     <div class="action-bar">
@@ -123,44 +131,21 @@
       />
     </ContentWrap>
 
-    <!-- 详情对话框 -->
-    <el-dialog v-model="detailDialogVisible" :title="`作品详情 - ${currentContent.title || ''}`" width="900px">
-      <el-descriptions :column="2" border size="small" style="margin-bottom: 16px;">
-        <el-descriptions-item label="标题" :span="2">{{ currentContent.title || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="账号">{{ currentContent.accountName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="IP组">{{ currentContent.ipGroupName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="类型">
-          <DictLabel dict-type="dict_content_type" :value="currentContent.contentType" />
-        </el-descriptions-item>
-        <el-descriptions-item label="发布时间">{{ formatDateTime(currentContent.publishTime) }}</el-descriptions-item>
-        <el-descriptions-item label="阅读量">{{ formatNumber(currentContent.readCount) }}</el-descriptions-item>
-        <el-descriptions-item label="点赞">{{ formatNumber(currentContent.likeCount) }}</el-descriptions-item>
-        <el-descriptions-item label="评论">{{ formatNumber(currentContent.commentCount) }}</el-descriptions-item>
-        <el-descriptions-item label="转发">{{ formatNumber(currentContent.forwardCount) }}</el-descriptions-item>
-        <el-descriptions-item label="爆款">{{ currentContent.isHit ? '是' : '否' }}</el-descriptions-item>
-        <el-descriptions-item label="数据来源">{{ currentContent.dataSource || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="内容摘要" :span="2">
-          {{ currentContent.summary || currentContent.description || '（正文未单独采集，展示标题与互动指标）' }}
-        </el-descriptions-item>
-      </el-descriptions>
-      <el-divider content-position="left">互动趋势</el-divider>
-      <div class="detail-trend-toolbar">
-        <el-date-picker
-          v-model="detailDateRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          value-format="YYYY-MM-DD"
-          @change="handleDetailDateChange"
-        />
-        <el-radio-group v-model="detailQuickRange" @change="(val) => handleDetailQuickRange(String(val))">
-          <el-radio-button label="7d">近 7 日</el-radio-button>
-          <el-radio-button label="30d">近 30 日</el-radio-button>
-        </el-radio-group>
-      </div>
-      <div ref="trendChartRef" style="height: 320px;"></div>
-    </el-dialog>
+    <el-drawer
+      direction="rtl"
+      append-to-body
+      v-model="detailDrawerVisible"
+      :title="detailDrawerTitle"
+      size="80%"
+      destroy-on-close
+      class="internal-content-detail-drawer"
+    >
+      <InternalContentDetailPanel
+        v-if="viewingContentId"
+        :content-id="viewingContentId"
+        :initial-content="viewingContent"
+      />
+    </el-drawer>
 
     <!-- 补录列表（我的补录 / 待审核） -->
     <el-dialog v-model="myImportsVisible" :title="myImportsDialogTitle" width="900px">
@@ -243,14 +228,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
-import * as echarts from 'echarts'
 import { Download, Search, Refresh } from '@element-plus/icons-vue'
 import { getInternalContentList, submitContentImport, getContentImportList, reviewContentImport } from '@/api/internal-content'
-import { getContentStats, getContentTrend } from '@/api/works'
+import { getContentStats } from '@/api/works'
+import InternalContentDetailPanel from './InternalContentDetail.vue'
+import type { ContentAnalysisVO } from '@/types/works'
 import type { ContentStats } from '@/types/works'
 import { normalizePlatform } from '@/utils/enum-alias'
 import ContentWrap from '@/components/ContentWrap.vue'
@@ -258,6 +244,7 @@ import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
+import { DATA_SCOPE_FILTER_HINT } from '@/utils/data-scope'
 import { exportToExcel, formatDateTime } from '@/utils'
 
 const route = useRoute()
@@ -273,11 +260,6 @@ const platforms = [
   { label: '企微', value: 'WEWORK' },
 ]
 
-function getDefaultWeekRange(): string[] {
-  const end = dayjs().format('YYYY-MM-DD')
-  const start = dayjs().subtract(6, 'day').format('YYYY-MM-DD')
-  return [start, end]
-}
 
 const searchForm = reactive({
   keyword: '',
@@ -311,11 +293,13 @@ const exportLoading = ref(false)
 const tableData = ref<any[]>([])
 const pagination = reactive({ pageNo: 1, pageSize: 10, total: 0 })
 
-const detailDialogVisible = ref(false)
-const currentContent = ref<any>({})
-const trendChartRef = ref<HTMLElement>()
-const detailDateRange = ref<string[]>(getDefaultWeekRange())
-const detailQuickRange = ref<'7d' | '30d' | 'custom'>('7d')
+const detailDrawerVisible = ref(false)
+const viewingContentId = ref<number | null>(null)
+const viewingContent = ref<ContentAnalysisVO | null>(null)
+const detailDrawerTitle = computed(() => {
+  const title = viewingContent.value?.title
+  return title ? `作品详情 - ${title}` : '作品详情'
+})
 
 const myImportsVisible = ref(false)
 const myImportsLoading = ref(false)
@@ -537,85 +521,10 @@ const handleExport = async () => {
   }
 }
 
-let detailTrendChart: echarts.ECharts | null = null
-
-const handleDetailQuickRange = (val: string) => {
-  if (val === '7d') {
-    detailDateRange.value = getDefaultWeekRange()
-  } else if (val === '30d') {
-    detailDateRange.value = [
-      dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
-      dayjs().format('YYYY-MM-DD'),
-    ]
-  }
-  if (currentContent.value?.id) {
-    renderTrendChart(currentContent.value.id)
-  }
-}
-
-const handleDetailDateChange = () => {
-  detailQuickRange.value = 'custom'
-  if (currentContent.value?.id) {
-    renderTrendChart(currentContent.value.id)
-  }
-}
-
-const renderTrendChart = async (contentId: number) => {
-  await nextTick()
-  if (!trendChartRef.value || trendChartRef.value.getBoundingClientRect().width === 0) {
-    setTimeout(() => renderTrendChart(contentId), 100)
-    return
-  }
-  if (detailTrendChart) {
-    detailTrendChart.dispose()
-    detailTrendChart = null
-  }
-
-  const [startDate, endDate] = detailDateRange.value?.length === 2
-    ? detailDateRange.value
-    : getDefaultWeekRange()
-  const trendData = await getContentTrend({ contentId, startDate, endDate })
-
-  const chart = echarts.init(trendChartRef.value)
-  detailTrendChart = chart
-
-  chart.setOption({
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['阅读量', '互动数'] },
-    xAxis: {
-      type: 'category',
-      data: trendData.map(d => d.date),
-    },
-    yAxis: [
-      { type: 'value', name: '阅读量', position: 'left' },
-      { type: 'value', name: '互动数', position: 'right' },
-    ],
-    series: [
-      {
-        name: '阅读量',
-        type: 'line',
-        data: trendData.map(d => d.readCount),
-        smooth: true,
-        lineStyle: { width: 3 },
-      },
-      {
-        name: '互动数',
-        type: 'bar',
-        yAxisIndex: 1,
-        data: trendData.map(d => (d.likeCount || 0) + (d.commentCount || 0) + (d.forwardCount || 0)),
-        itemStyle: { color: '#67C23A' },
-      },
-    ],
-  })
-}
-
-const handleViewDetail = async (row: any) => {
-  currentContent.value = row
-  detailDateRange.value = getDefaultWeekRange()
-  detailQuickRange.value = '7d'
-  detailDialogVisible.value = true
-  await nextTick()
-  renderTrendChart(row.id)
+const handleViewDetail = (row: ContentAnalysisVO) => {
+  viewingContentId.value = row.id
+  viewingContent.value = row
+  detailDrawerVisible.value = true
 }
 
 onMounted(async () => {
@@ -626,13 +535,6 @@ onMounted(async () => {
       ? Number(route.query.reviewStatus)
       : importsQuery === 'review' ? 0 : undefined
     await openImportReview(reviewStatus)
-  }
-})
-
-watch(detailDialogVisible, (visible) => {
-  if (!visible && detailTrendChart) {
-    detailTrendChart.dispose()
-    detailTrendChart = null
   }
 })
 
@@ -838,11 +740,10 @@ const handleReview = async (row: any, status: 1 | 2) => {
   font-size: 14px;
 }
 
-.detail-trend-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+</style>
+
+<style lang="scss">
+.internal-content-detail-drawer.el-drawer {
+  min-width: 720px;
 }
 </style>

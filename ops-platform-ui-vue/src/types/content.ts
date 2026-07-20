@@ -184,6 +184,30 @@ export interface CreateContentReq {
   competitionName?: string
   generatedVideoUrl?: string
   finalVideoUrl?: string
+  /** ADR-054：Football 付费正文 */
+  paidBody?: string
+  /** ADR-054：Football 免费正文 */
+  freeBody?: string
+  /** ADR-054 P4：售价（默认 88） */
+  price?: number
+  /** ADR-054 P4：是否同步至套餐（默认 ['2'] 不同步） */
+  privilegeTypes?: string[]
+  /** ADR-054 P4：优惠策略（默认 0） */
+  refundType?: number
+}
+
+/** ADR-054：Football 发布方案（Master + ext 组装） */
+export interface FootballSchemeVO {
+  authorArticleId?: number
+  /** author_article.status：-1 草稿 / 0 已下架 / 1 已上架 … */
+  shelfStatus?: number
+  footballSyncError?: string
+  syncFootballAt?: string
+  price?: number
+  privilegeTypes?: string[]
+  refundType?: number
+  paidBody?: string
+  freeBody?: string
 }
 
 // ==================== 审核相关类型 ====================
@@ -217,15 +241,13 @@ export interface SubmitReviewReq {
 }
 
 /**
- * 审核操作请求
+ * 审核操作请求（POST /oa/content/{id}/review）
  */
 export interface ReviewActionReq {
-  /** 内容ID */
-  contentId: number
-  /** 审核阶段 */
-  reviewStage: ReviewStage
-  /** 审核结果 */
-  reviewResult: 'approved' | 'rejected'
+  /** 审核动作：APPROVE | REJECT（dict_content_review_result） */
+  action: 'APPROVE' | 'REJECT'
+  /** 审核阶段：FIRST_REVIEW | SECOND_REVIEW（dict_review_stage） */
+  stage: 'FIRST_REVIEW' | 'SECOND_REVIEW' | 'FINAL_REVIEW'
   /** 审核意见 */
-  reviewComment: string
+  comment?: string
 }

@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.oa.api.dto.analytics.CustomQueryUpdateReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.analytics.CustomQueryDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.analytics.CustomQueryMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import cn.iocoder.yudao.module.oa.service.support.DashboardSqlParamBinder;
 import cn.iocoder.yudao.module.oa.service.support.SqlSafetySupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -35,16 +36,18 @@ public class CustomQueryServiceImpl implements CustomQueryService {
 
     private final CustomQueryMapper customQueryMapper;
     private final JdbcTemplate jdbcTemplate;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public PageResult<CustomQueryDO> list(String status, Integer pageNum, Integer pageSize) {
         Long tenantId = requireTenantId();
+        LambdaQueryWrapper<CustomQueryDO> wrapper = new LambdaQueryWrapper<CustomQueryDO>()
+                .eq(CustomQueryDO::getTenantId, tenantId)
+                .eq(status != null, CustomQueryDO::getStatus, status)
+                .orderByDesc(CustomQueryDO::getId);
+        opsDataScopeSupport.applySelfCreator(wrapper, CustomQueryDO::getCreator);
         Page<CustomQueryDO> page = customQueryMapper.selectPage(
-                new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize),
-                new LambdaQueryWrapper<CustomQueryDO>()
-                        .eq(CustomQueryDO::getTenantId, tenantId)
-                        .eq(status != null, CustomQueryDO::getStatus, status)
-                        .orderByDesc(CustomQueryDO::getId));
+                new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize), wrapper);
         return new PageResult<>(page.getRecords(), page.getTotal());
     }
 
@@ -175,6 +178,7 @@ public class CustomQueryServiceImpl implements CustomQueryService {
         if (!Objects.equals(entity.getTenantId(), requireTenantId())) {
             throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
         }
+        opsDataScopeSupport.assertSelfCreator(entity.getCreator());
         return entity;
     }
 

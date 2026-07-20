@@ -89,7 +89,7 @@ public class CollectLogResultBuilder {
         payload.put("recordCount", recordCount);
 
         if (DATA_TYPE_MP_FOLLOWER_LIST.equals(dataType)) {
-            buildMpFollowerResult(task, recordCount, payload);
+            buildMpFollowerStatsResult(task, recordCount, payload);
         } else if (DATA_TYPE_MP_FOLLOWER_STATS.equals(dataType)) {
             buildMpFollowerStatsResult(task, recordCount, payload);
         } else if (DATA_TYPE_MP_ARTICLE_LIST.equals(dataType)) {
@@ -99,7 +99,7 @@ public class CollectLogResultBuilder {
         } else if (DATA_TYPE_MP_ARTICLE_CONTENT.equals(dataType)) {
             buildMpArticleContentResult(task, recordCount, payload);
         } else if (DATA_TYPE_DOUYIN_FOLLOWER_LIST.equals(dataType)) {
-            buildDouyinFollowerResult(task, recordCount, payload);
+            buildChannelStatsResult(task, recordCount, payload);
         } else if (DATA_TYPE_DOUYIN_VIDEO_LIST.equals(dataType)) {
             buildDouyinVideoResult(task, recordCount, payload);
         } else if (DATA_TYPE_DOUYIN_VIDEO_STATS.equals(dataType)) {
@@ -556,7 +556,7 @@ public class CollectLogResultBuilder {
             return DATA_TYPE_WECOM_DAILY_STATS;
         }
         if ("WECHAT_MP_API".equals(task.getSource())) {
-            return DATA_TYPE_MP_FOLLOWER_LIST;
+            return DATA_TYPE_MP_FOLLOWER_STATS;
         }
         return task.getDataType();
     }

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="football.module.member.dal.mysql.aoc.AocUserMapper">
+
+    <select id="getPage" resultType="football.module.member.controller.admin.aoc.vo.AocUserRespVO">
+        select aou.*,km.name as kfName,mu.nickname from aoc_user aou
+        left join kf_manage km on km.id = aou.kf_id
+        left join member_user mu on mu.id = aou.bind_user_id
+        <where>
+            <if test="reqVo.friendWechatId != null and reqVo.friendWechatId != ''">
+                and (
+                    aou.friend_wechat_id like concat('%', #{reqVo.friendWechatId}, '%')
+                    or aou.friend_nickname like concat('%', #{reqVo.friendWechatId}, '%')
+                    or aou.friend_alias like concat('%', #{reqVo.friendWechatId}, '%')
+                    or aou.wechat_friend_id like concat('%', #{reqVo.friendWechatId}, '%')
+                    or cast(aou.id as char) = #{reqVo.friendWechatId}
+                    or cast(aou.bind_user_id as char) = #{reqVo.friendWechatId}
+                )
+            </if>
+            <if test="reqVo.bindUserId != null and reqVo.bindUserId != ''">
+                and aou.bind_user_id = #{reqVo.bindUserId}
+            </if>
+            <if test="reqVo.nickname != null and reqVo.nickname != ''">
+                and (
+                    mu.nickname like concat('%', #{reqVo.nickname}, '%')
+                    or mu.mobile like concat('%', #{reqVo.nickname}, '%')
+                    or cast(mu.id as char) = #{reqVo.nickname}
+                )
+            </if>
+            <if test="reqVo.kfName != null and reqVo.kfName != ''">
+                and (
+                    km.name like concat('%', #{reqVo.kfName}, '%')
+                    or km.wechat_account_id like concat('%', #{reqVo.kfName}, '%')
+                    or km.code like concat('%', #{reqVo.kfName}, '%')
+                    or cast(km.id as char) = #{reqVo.kfName}
+                )
+            </if>
+
+            <if test="reqVo.friendAlias != null and reqVo.friendAlias != ''">
+                and aou.friend_alias = #{reqVo.friendAlias}
+            </if>
+            <if test="reqVo.friendNickname != null and reqVo.friendNickname != ''">
+                and aou.friend_nickname = #{reqVo.friendNickname}
+            </if>
+            <if test="reqVo.startTime != null and reqVo.startTime != '' and reqVo.endTime != null
+                    and reqVo.endTime !='' ">
+                AND date_format(aou.create_time, '%Y-%m-%d %H:%i:%s')  BETWEEN #{reqVo.startTime} AND #{reqVo.endTime}
+            </if>
+        </where>
+        order by aou.id desc
+    </select>
+
+</mapper>

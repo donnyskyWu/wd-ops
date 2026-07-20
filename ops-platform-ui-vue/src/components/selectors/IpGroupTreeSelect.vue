@@ -9,7 +9,7 @@
     v-model="selectedValue"
     :data="treeData"
     :props="treeProps"
-    :placeholder="placeholder"
+    :placeholder="effectivePlaceholder"
     :clearable="clearable"
     :disabled="disabled"
     :multiple="multiple"
@@ -32,9 +32,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getIpGroupTree } from '@/api/ip-group'
+import { getIpGroupTree, getAccessibleIpGroupTree } from '@/api/ip-group'
 
 interface TreeNode {
   id: number
@@ -52,6 +52,8 @@ interface Props {
   multiple?: boolean
   /** 租户过滤(后端会自动按 tenant_id 隔离,前端无需传) */
   loadOnMount?: boolean
+  /** accessible=当前用户可访问 IP 组（成员∪组长；admin 全树）；默认 all=管理全树 */
+  scope?: 'all' | 'accessible'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -61,6 +63,7 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   multiple: false,
   loadOnMount: true,
+  scope: 'all',
 })
 
 const emit = defineEmits<{
@@ -71,6 +74,9 @@ const emit = defineEmits<{
 const selectedValue = ref<number | number[] | undefined>(props.modelValue)
 const treeData = ref<TreeNode[]>([])
 const treeProps = { children: 'children', label: 'groupName' }
+const effectivePlaceholder = computed(() =>
+  props.placeholder ?? (props.scope === 'accessible' ? '可选缩小范围' : '请选择 IP 组'),
+)
 
 watch(() => props.modelValue, (val) => { selectedValue.value = val })
 
@@ -81,7 +87,8 @@ const groupTypeTag = (t: string) => {
 
 const loadTree = async () => {
   try {
-    const data = await getIpGroupTree()
+    const loader = props.scope === 'accessible' ? getAccessibleIpGroupTree : getIpGroupTree
+    const data = await loader()
     treeData.value = data && data.length ? data : []
   } catch (e) {
     console.error('[IpGroupTreeSelect] 加载 IP 组树失败:', e)

@@ -1,5 +1,6 @@
 /**
  * 人效盘点 - API（S-R9 字段对齐）
+ * ipGroupId / userId / keyword：组长或 admin 可筛组员；普通用户后端强制仅本人
  */
 import { request } from '@/utils/request'
 import type {

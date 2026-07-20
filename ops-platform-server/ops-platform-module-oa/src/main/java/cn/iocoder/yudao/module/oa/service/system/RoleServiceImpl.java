@@ -17,8 +17,10 @@ import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysPermissionMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysRoleMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysRolePermissionMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserRoleMapper;
-import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mzt.logapi.context.LogRecordContext;
+import com.mzt.logapi.service.impl.DiffParseFunction;
+import com.mzt.logapi.starter.annotation.LogRecord;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstants.*;
 
 @Service
 @RequiredArgsConstructor
@@ -53,7 +57,8 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-role", action = "create")
+    @LogRecord(type = M9_ROLE_TYPE, subType = M9_ROLE_CREATE_SUB_TYPE, bizNo = "{{#role.id}}",
+            success = M9_ROLE_CREATE_SUCCESS)
     public Long create(RoleCreateReq req) {
         Long tenantId = requireTenantId();
         assertCodeUnique(tenantId, req.getCode(), null);
@@ -69,14 +74,18 @@ public class RoleServiceImpl implements RoleService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysRoleMapper.insert(entity);
+        LogRecordContext.putVariable("role", entity);
         return entity.getId();
     }
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-role", action = "update")
+    @LogRecord(type = M9_ROLE_TYPE, subType = M9_ROLE_UPDATE_SUB_TYPE, bizNo = "{{#req.id}}",
+            success = M9_ROLE_UPDATE_SUCCESS)
     public void update(RoleUpdateReq req) {
         SysRoleDO existing = getRequiredInTenant(req.getId());
+        LogRecordContext.putVariable(DiffParseFunction.OLD_OBJECT, toUpdateReq(existing));
+        LogRecordContext.putVariable("role", existing);
         if (StrUtil.isNotBlank(req.getName())) {
             existing.setName(req.getName());
         }
@@ -90,9 +99,11 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-role", action = "delete")
+    @LogRecord(type = M9_ROLE_TYPE, subType = M9_ROLE_DELETE_SUB_TYPE, bizNo = "{{#id}}",
+            success = M9_ROLE_DELETE_SUCCESS)
     public void delete(Long id) {
         SysRoleDO existing = getRequiredInTenant(id);
+        LogRecordContext.putVariable("role", existing);
         if ("OA_ADMIN".equals(existing.getCode())) {
             throw new ServiceException(OaErrorCodes.ENTITY_ALREADY_BOUND.getCode(), "内置管理员角色不可删除");
         }
@@ -107,9 +118,11 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
-    @AuditLog(module = "M9-role", action = "assign-permission")
+    @LogRecord(type = M9_ROLE_TYPE, subType = M9_ROLE_ASSIGN_PERMISSION_SUB_TYPE, bizNo = "{{#req.roleId}}",
+            success = M9_ROLE_ASSIGN_PERMISSION_SUCCESS)
     public void assignPermission(RoleAssignPermissionReq req) {
         SysRoleDO role = getRequiredInTenant(req.getRoleId());
+        LogRecordContext.putVariable("role", role);
         for (Long permissionId : req.getPermissionIds()) {
             SysPermissionDO permission = sysPermissionMapper.selectById(permissionId);
             if (permission == null) {
@@ -183,5 +196,13 @@ public class RoleServiceImpl implements RoleService {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED);
         }
         return tenantId;
+    }
+
+    private static RoleUpdateReq toUpdateReq(SysRoleDO entity) {
+        RoleUpdateReq req = new RoleUpdateReq();
+        req.setId(entity.getId());
+        req.setName(entity.getName());
+        req.setRemark(entity.getRemark());
+        return req;
     }
 }

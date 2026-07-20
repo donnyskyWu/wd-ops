@@ -454,7 +454,7 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
             Set<String> authorities = user.getAuthorities() == null ? Set.of() : user.getAuthorities();
             List<QuickActionVO> all = List.of(
                     action("IP 组管理", "icon-ip-group", "/ops/ip-group", "oa:ip-group:list"),
-                    action("作者管理", "icon-author", "/ops/author", "oa:author:list"),
+                    action("作者管理", "icon-author", "/author/info", "oa:author:list"),
                     action("账号管理", "icon-account", "/ops/account", "oa:account:list"),
                     action("SOP 管理", "icon-sop", "/ops/sop", "oa:sop:list"),
                     action("绩效管理", "icon-perf", "/ops/perf", "oa:perf:list"),

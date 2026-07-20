@@ -1,5 +1,13 @@
 <template>
   <div class="efficiency-page">
+    <el-alert
+      v-if="!canViewTeam"
+      type="info"
+      title="当前仅展示您本人的人效数据"
+      show-icon
+      :closable="false"
+      style="margin-bottom: 12px"
+    />
     <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
       <el-form-item label="统计周期">
         <DictSelect v-model="searchForm.timeDimension" dict-type="dict_time_dimension" style="width: 120px" />
@@ -7,10 +15,10 @@
       <el-form-item label="统计日期">
         <el-date-picker v-model="searchForm.statDate" type="month" placeholder="选择月份" style="width: 160px" />
       </el-form-item>
-      <el-form-item label="IP组">
-        <IpGroupTreeSelect v-model="searchForm.ipGroupId" />
+      <el-form-item v-if="canViewTeam" label="IP组">
+        <IpGroupTreeSelect v-model="searchForm.ipGroupId" scope="accessible" clearable />
       </el-form-item>
-      <el-form-item label="关键词">
+      <el-form-item v-if="canViewTeam" label="组员">
         <el-input v-model="searchForm.keyword" placeholder="经办人姓名" clearable maxlength="50" />
       </el-form-item>
     </TableSearch>
@@ -218,11 +226,13 @@ import TableSearch from '@/components/TableSearch.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
 import IpGroupTreeSelect from '@/components/selectors/IpGroupTreeSelect.vue'
+import { canViewTeamProductivity } from '@/utils/data-scope'
 import { Download, Document, Coin, TrendCharts, VideoCamera, Star, User } from '@element-plus/icons-vue'
 
 const activeTab = ref('wechat')
 const loading = ref(false)
 const totalCount = ref(0)
+const canViewTeam = ref(false)
 const searchForm = reactive({
   timeDimension: 'WEEK',
   statDate: undefined as string | undefined,
@@ -405,6 +415,7 @@ const handleExpand = async (row: ProductivityReviewVO, expandedRows: Productivit
 }
 
 onMounted(async () => {
+  canViewTeam.value = await canViewTeamProductivity()
   await loadData()
 })
 </script>

@@ -98,7 +98,7 @@ API_PROBE: dict[str, tuple[str, str]] = {
     "/ops/simcard": ("GET", "/admin-api/oa/sim-card/list?pageNo=1&pageSize=1"),
     # 运营管理
     "/ops/account-analysis": ("GET", "/admin-api/oa/account-analysis/list?pageNo=1&pageSize=1"),
-    "/ops/author": ("GET", "/admin-api/oa/author/list?pageNo=1&pageSize=1"),
+    # /ops/author 菜单已移除；list API 仍供选择器，见 /oa/author/list 集成测试
     "/ops/efficiency": ("GET", "/admin-api/oa/productivity-review/list?pageNo=1&pageSize=1"),
     "/ops/fans-analysis": ("GET", "/admin-api/oa/follower-analysis/list?page=1&size=1"),
     "/ops/internal-content": ("GET", "/admin-api/oa/internal-content/list?pageNo=1&pageSize=1"),

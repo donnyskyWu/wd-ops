@@ -59,7 +59,6 @@ ROUTE_PERMISSION: dict[str, str] = {
     "/dashboard": "oa:home:view",
     "/workbench-todos": "oa:home:view",
     "/ip-group": "oa:ip-group:list",
-    "/author": "oa:author:list",
     "/account-analysis": "oa:account-analysis:list",
     "/fans-analysis": "oa:fans-analysis:list",
     "/internal-content": "oa:internal-content:list",

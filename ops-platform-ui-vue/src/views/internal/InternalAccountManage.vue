@@ -75,6 +75,13 @@
       @change="loadData"
     />
 
+    <PlatformAccountDetailDialog
+      v-model:visible="detailDrawerVisible"
+      :account-id="detailAccountId"
+      :initial-tab="detailInitialTab"
+      @saved="loadData"
+    />
+
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="820px" destroy-on-close>
       <el-form :model="formData" ref="formRef" :rules="formRules" label-width="130px">
         <el-form-item label="平台" prop="platformType">
@@ -91,8 +98,8 @@
           <el-form-item label="原公众号名称">
             <el-input v-model="formData.originalAccountName" maxlength="128" />
           </el-form-item>
-          <el-form-item label="所属IP组">
-            <IpGroupTreeSelect v-model="formData.ipGroupId" />
+          <el-form-item label="所属IP组" prop="ipGroupId">
+            <IpGroupTreeSelect v-model="formData.ipGroupId" scope="accessible" />
           </el-form-item>
           <el-form-item label="商标名称">
             <el-input v-model="formData.trademarkName" maxlength="128" />
@@ -194,8 +201,8 @@
           </el-form-item>
         </template>
 
-        <el-form-item v-if="!isWechatOfficial" label="所属IP组">
-          <IpGroupTreeSelect v-model="formData.ipGroupId" />
+        <el-form-item v-if="!isWechatOfficial" label="所属IP组" prop="ipGroupId">
+          <IpGroupTreeSelect v-model="formData.ipGroupId" scope="accessible" />
         </el-form-item>
         <el-form-item label="状态">
           <DictSelect v-model="formData.status" dict-type="dict_account_status" />
@@ -215,7 +222,6 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Download } from '@element-plus/icons-vue'
 import TableSearch from '@/components/TableSearch.vue'
@@ -239,7 +245,7 @@ import {
   type PlatformAccountVO,
 } from '@/api/platform-account'
 import { isAccountBindingConflict, promptAccountForceReplace } from '@/utils/account-binding-conflict'
-import { opsRouteTo } from '@/utils/ops-route'
+import PlatformAccountDetailDialog from './PlatformAccountDetailDialog.vue'
 
 const PLATFORM_LABEL_MAP: Record<string, string> = {
   WECHAT_OFFICIAL: '公众号',
@@ -251,7 +257,6 @@ const PLATFORM_LABEL_MAP: Record<string, string> = {
 
 const activePlatform = ref('WECHAT_OFFICIAL')
 const isWechatOfficial = computed(() => activePlatform.value === 'WECHAT_OFFICIAL')
-const router = useRouter()
 const loading = ref(false)
 const exportLoading = ref(false)
 const tableData = ref<PlatformAccountVO[]>([])
@@ -265,6 +270,9 @@ const searchForm = reactive({
 const pagination = reactive({ pageNo: 1, pageSize: 20, total: 0 })
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增账号')
+const detailDrawerVisible = ref(false)
+const detailAccountId = ref<number | undefined>()
+const detailInitialTab = ref<string | undefined>()
 
 const formData = reactive({
   id: undefined as number | undefined,
@@ -300,6 +308,7 @@ const formRules = computed(() => {
     platformType: [{ required: true, message: '请选择平台', trigger: 'change' }],
     accountName: [{ required: true, message: '请输入账号名称', trigger: 'blur' }],
     externalAccountId: [{ required: true, message: '请输入账号ID', trigger: 'blur' }],
+    ipGroupId: [{ required: true, message: '请选择所属 IP 组', trigger: 'change' }],
   }
   if (isWechatOfficial.value) {
     rules.accountType = [{ required: true, message: '请选择账号类型', trigger: 'change' }]
@@ -505,17 +514,17 @@ const handleEdit = async (row: PlatformAccountVO) => {
 }
 
 const handleView = (row: PlatformAccountVO) => {
-  router.push(opsRouteTo({ path: `/platform-account/${row.id}` }))
+  detailAccountId.value = row.id
+  detailInitialTab.value = undefined
+  detailDrawerVisible.value = true
 }
 
 const goToCollectConfig = () => {
   if (!formData.id) return
   dialogVisible.value = false
-  router.push(
-    opsRouteTo({ path: `/platform-account/${formData.id}`, query: { tab: 'collect' } }),
-  ).catch(() => {
-    ElMessage.error('跳转详情页失败，请从列表点击「查看」重试')
-  })
+  detailAccountId.value = formData.id
+  detailInitialTab.value = 'collect'
+  detailDrawerVisible.value = true
 }
 
 const buildPayload = (forceReplace: boolean, reason?: string) => {

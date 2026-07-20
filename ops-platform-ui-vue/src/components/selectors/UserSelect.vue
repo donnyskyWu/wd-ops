@@ -1,7 +1,7 @@
 <!--
   UserSelect - 系统用户选择器
   三大铁律 § 3.2 强制
-  关联: PRD-M9 FR-M9-002 / API-M9 § 1 GET /admin-api/oa/system/user/list
+  关联: ADR-049 D4 · GET /admin-api/system/user/simple-list（身份 SSOT = Football system_users）
   使用: <UserSelect v-model="form.userId" :role-code="form.roleCode" />
 -->
 <template>
@@ -38,8 +38,8 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { request } from '@/utils/request'
-import { getIpGroupMembers } from '@/api/ip-group'
+import { fetchSystemUserSimpleList, filterSystemUsers } from '@/api/football-user'
+import { getIpGroupMembers, getIpGroupLeaderCandidateIds, IP_GROUP_LEADER_ROLE_CODE } from '@/api/ip-group'
 
 interface UserVO {
   id: number
@@ -91,8 +91,38 @@ const options = ref<UserVO[]>([])
 const loading = ref(false)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
-watch(() => props.modelValue, (val) => { selectedValue.value = val })
+watch(() => props.modelValue, (val) => {
+  selectedValue.value = val
+  void ensureSelectedUser()
+})
 watch(() => props.ipGroupId, () => loadList(''))
+
+const ensureSelectedUser = async () => {
+  const val = props.modelValue
+  if (val == null || (Array.isArray(val) && !val.length)) return
+  const ids = (Array.isArray(val) ? val : [val]).map(Number)
+  const missing = ids.filter((id) => !options.value.some((o) => o.id === id))
+  if (!missing.length) return
+  try {
+    const users = await fetchSystemUserSimpleList()
+    for (const id of missing) {
+      const u = users.find((x) => Number(x.id) === id)
+      if (!u || options.value.some((o) => o.id === Number(u.id))) continue
+      options.value.push({
+        id: Number(u.id),
+        username: u.username || String(u.id),
+        nickname: u.nickname,
+        phoneMasked: u.mobile,
+        deptId: u.deptId,
+        deptName: u.deptName,
+        roleNames: [],
+        status: u.status,
+      })
+    }
+  } catch {
+    // keep raw id display if lookup fails
+  }
+}
 
 const loadList = async (keyword: string) => {
   loading.value = true
@@ -112,24 +142,40 @@ const loadList = async (keyword: string) => {
         }))
       return
     }
-    const res = await request.get<{ list: UserVO[] }>({
-      url: '/oa/system/user/list',
-      params: {
-        nickname: keyword || undefined,
-        deptId: props.deptId,
-        roleCode: props.roleCode,
-        status: 'ENABLED',
-        pageSize: 50,
-      },
+    const users = await fetchSystemUserSimpleList()
+    let filtered = filterSystemUsers(users, {
+      keyword,
+      deptId: props.deptId,
+      enabledOnly: true,
     })
-    const list = (res as any).list || (Array.isArray(res) ? (res as any) : [])
-    options.value = list // P-GATE-UNMOCK S-A: 已去除 mock 兜底
+    // roleCode=ip_group_leader：仅展示持有 IP组长 角色的用户；其它 roleCode 暂无服务端列表接口，依赖后端校验
+    if (props.roleCode === IP_GROUP_LEADER_ROLE_CODE) {
+      try {
+        const allowed = new Set((await getIpGroupLeaderCandidateIds()).map(Number))
+        filtered = filtered.filter((u) => allowed.has(Number(u.id)))
+      } catch (roleErr) {
+        console.warn('[UserSelect] 加载 IP组长 候选人失败，回退全量列表（保存时仍由后端校验）:', roleErr)
+      }
+    }
+    options.value = filtered
+      .slice(0, 50)
+      .map((u) => ({
+        id: Number(u.id),
+        username: u.username || String(u.id),
+        nickname: u.nickname,
+        phoneMasked: u.mobile,
+        deptId: u.deptId,
+        deptName: u.deptName,
+        roleNames: [],
+        status: u.status,
+      }))
   } catch (e) {
     console.error('[UserSelect] 加载用户列表失败:', e)
     options.value = []
     ElMessage.error('用户列表加载失败，请稍后重试')
   } finally {
     loading.value = false
+    await ensureSelectedUser()
   }
 }
 

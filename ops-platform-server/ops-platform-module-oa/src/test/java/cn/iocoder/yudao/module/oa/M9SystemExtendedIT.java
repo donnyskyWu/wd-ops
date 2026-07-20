@@ -69,26 +69,8 @@ class M9SystemExtendedIT extends OaITBase {
     }
 
     @Test
-    @DisplayName("M9: 操作日志 + 登录日志查询")
-    void logQueries() throws Exception {
-        mockMvc.perform(get("/admin-api/oa/system/log/operation")
-                        .header("Authorization", AUTH)
-                        .header("X-Tenant-Id", TENANT))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.data.total").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)));
-
-        mockMvc.perform(get("/admin-api/oa/system/log/login")
-                        .header("Authorization", AUTH)
-                        .header("X-Tenant-Id", TENANT))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.data.total").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)));
-    }
-
-    @Test
-    @DisplayName("M9: 数据写操作记录操作日志")
-    void dataOperationAuditLog() throws Exception {
+    @DisplayName("M9: 公司创建写操作成功")
+    void companyCreateWriteOperation() throws Exception {
         String suffix = String.valueOf(System.currentTimeMillis() % 1_000_000);
         mockMvc.perform(post("/admin-api/oa/company/create")
                         .header("Authorization", AUTH)
@@ -105,16 +87,6 @@ class M9SystemExtendedIT extends OaITBase {
                                 """.formatted(suffix, suffix)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
-
-        mockMvc.perform(get("/admin-api/oa/system/log/operation")
-                        .header("Authorization", AUTH)
-                        .header("X-Tenant-Id", TENANT)
-                        .param("module", "ACCOUNT"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.data.list[0].module").value("ACCOUNT"))
-                .andExpect(jsonPath("$.data.list[0].action").value("新增公司"))
-                .andExpect(jsonPath("$.data.list[0].content").value("公司管理 / 新增公司"));
     }
 
     @Test

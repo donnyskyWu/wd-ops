@@ -21,6 +21,15 @@ public interface IpGroupService {
 
     List<IpGroupTreeVO> getTree();
 
+    /** 当前用户担任组长的 IP 组（含 leader_user_id 与成员 is_leader 两种认定方式） */
+    List<IpGroupListVO> listLedByCurrentUser();
+
+    /** 具备内置角色 ip_group_leader 的用户 id（供组长 UserSelect 过滤） */
+    List<Long> listLeaderCandidateUserIds();
+
+    /** 当前用户可绑定的 IP 组树（成员组 ∪ 组长组；系统管理员为全树） */
+    List<IpGroupTreeVO> getAccessibleTree();
+
     /**
      * S-R12 修复：分页查询 IP 组列表（spec API-M1 §2.2 定义，但 controller 漏实现）
      */

@@ -7,10 +7,14 @@ import cn.iocoder.yudao.module.oa.api.dto.collect.CollectorAccountBindSaveReq;
 import cn.iocoder.yudao.module.oa.api.dto.collect.CollectorQrLoginPollRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.collect.CollectorQrLoginStartRespVO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.account.OaAccountExtDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.AccountMapper;
+import cn.iocoder.yudao.module.oa.service.account.OaAccountExtDataService;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
 import cn.iocoder.yudao.module.oa.service.collect.CollectorAccountBindService;
+import cn.iocoder.yudao.module.oa.service.account.WechatOfficialAccountResolver;
 import cn.iocoder.yudao.module.oa.service.config.ConfigTenantSupport;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,6 +37,8 @@ public class CollectorQrLoginService {
     private static final Pattern KUAISHOU_AUTH_TOKEN = Pattern.compile("kuaishou\\.web\\.cp\\.api_st=([^;\\s]+)");
 
     private final AccountMapper accountMapper;
+    private final WechatOfficialAccountResolver wechatOfficialAccountResolver;
+    private final OaAccountExtDataService oaAccountExtDataService;
     private final CollectorAccountBindService collectorAccountBindService;
     private final UnifiedCollectorAdapter unifiedCollectorAdapter;
     private final UnifiedCollectorApiClient unifiedCollectorApiClient;
@@ -51,8 +57,11 @@ public class CollectorQrLoginService {
         CollectorQrLoginStartRespVO resp = new CollectorQrLoginStartRespVO();
         resp.setSessionId(str(data.get("session_id")));
         resp.setQrcodeBase64(normalizeQrcodeBase64(str(data.get("qrcode_base64"))));
-        if (StrUtil.isBlank(resp.getQrcodeBase64())) {
-            resp.setQrcodeBase64(normalizeQrcodeBase64(str(data.get("qrcode_url"))));
+        String qrcodeUrl = str(data.get("qrcode_url"));
+        if (StrUtil.isBlank(resp.getQrcodeBase64()) && isHttpUrl(qrcodeUrl)) {
+            resp.setQrcodeUrl(qrcodeUrl.trim());
+        } else if (StrUtil.isBlank(resp.getQrcodeBase64()) && StrUtil.isNotBlank(qrcodeUrl)) {
+            resp.setQrcodeBase64(normalizeQrcodeBase64(qrcodeUrl));
         }
         resp.setStatus(str(data.get("status")));
         resp.setMessage(firstNonBlank(data, "message", "请使用手机扫码登录"));
@@ -74,7 +83,7 @@ public class CollectorQrLoginService {
         if (StrUtil.isBlank(resp.getSessionId())) {
             throw new ServiceException(2022, "Collector 未返回扫码会话 ID");
         }
-        if (StrUtil.isBlank(resp.getQrcodeBase64())) {
+        if (StrUtil.isBlank(resp.getQrcodeBase64()) && StrUtil.isBlank(resp.getQrcodeUrl())) {
             throw new ServiceException(2022, "Collector 未返回二维码，请改用 Cookie 粘贴或本地 helper 登录");
         }
         return resp;
@@ -174,10 +183,40 @@ public class CollectorQrLoginService {
             }
         }
         if (updated) {
-            account.setUpdateTime(LocalDateTime.now());
-            accountMapper.updateById(account);
+            Long tenantId = ConfigTenantSupport.requireTenantId();
+            if (wechatOfficialAccountResolver.isMpBackedAccount(account.getId(), tenantId)) {
+                persistMpCredentials(account.getId(), tenantId, account);
+            } else {
+                account.setUpdateTime(LocalDateTime.now());
+                accountMapper.updateById(account);
+            }
         }
         return updated;
+    }
+
+    private void persistMpCredentials(Long mpAccountId, Long tenantId, AccountDO account) {
+        OaAccountExtDO ext = oaAccountExtDataService.findByMpAccountId(tenantId, mpAccountId);
+        if (ext == null) {
+            ext = new OaAccountExtDO();
+            ext.setTenantId(tenantId);
+            ext.setMpAccountId(mpAccountId);
+            ext.setPlatformType("WECHAT_OFFICIAL");
+            ext.setCreator(TenantContextHolder.getUsername());
+            ext.setCreateTime(LocalDateTime.now());
+        }
+        if (StrUtil.isNotBlank(account.getCookieEncrypted())) {
+            ext.setCookieEncrypted(account.getCookieEncrypted());
+        }
+        if (StrUtil.isNotBlank(account.getMpTokenEncrypted())) {
+            ext.setMpTokenEncrypted(account.getMpTokenEncrypted());
+        }
+        ext.setUpdater(TenantContextHolder.getUsername());
+        ext.setUpdateTime(LocalDateTime.now());
+        if (ext.getId() == null) {
+            oaAccountExtDataService.insert(ext);
+        } else {
+            oaAccountExtDataService.updateById(ext);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -202,8 +241,8 @@ public class CollectorQrLoginService {
     }
 
     private AccountDO requireQrSupportedAccount(Long oaAccountId) {
-        AccountDO account = accountMapper.selectById(oaAccountId);
-        account = ConfigTenantSupport.getRequiredInTenant(account);
+        AccountDO account = wechatOfficialAccountResolver.requireTenantAccount(
+                oaAccountId, ConfigTenantSupport.requireTenantId());
         if (!CollectorQrLoginSupport.supportsQrLogin(account.getPlatformType())) {
             throw new ServiceException(OaErrorCodes.DICT_VALUE_INVALID.getCode(), "当前平台不支持扫码登录");
         }
@@ -233,6 +272,14 @@ public class CollectorQrLoginService {
             case "error" -> "扫码失败";
             default -> "";
         };
+    }
+
+    private static boolean isHttpUrl(String value) {
+        if (StrUtil.isBlank(value)) {
+            return false;
+        }
+        String trimmed = value.trim().toLowerCase();
+        return trimmed.startsWith("http://") || trimmed.startsWith("https://");
     }
 
     private static String normalizeQrcodeBase64(String value) {

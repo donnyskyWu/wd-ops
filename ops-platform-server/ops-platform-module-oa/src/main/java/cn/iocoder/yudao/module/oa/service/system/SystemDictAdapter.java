@@ -116,11 +116,45 @@ public class SystemDictAdapter {
         return count == null ? 0L : count;
     }
 
-    static boolean isBusinessDictType(String type) {
-        return type != null && type.startsWith("dict_");
+    public boolean isValidValue(String dictType, String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        Long count = footballSystemDictDataMapper.selectCount(new LambdaQueryWrapper<FootballSystemDictDataDO>()
+                .eq(FootballSystemDictDataDO::getDictType, dictType)
+                .eq(FootballSystemDictDataDO::getValue, value)
+                .eq(FootballSystemDictDataDO::getStatus, 0));
+        return count != null && count > 0;
     }
 
-    static String toOpsStatus(Integer footballStatus) {
+    public boolean typeExists(String dictType) {
+        if (dictType == null || dictType.isBlank()) {
+            return false;
+        }
+        Long count = footballSystemDictTypeMapper.selectCount(new LambdaQueryWrapper<FootballSystemDictTypeDO>()
+                .eq(FootballSystemDictTypeDO::getType, dictType)
+                .eq(FootballSystemDictTypeDO::getStatus, 0));
+        return count != null && count > 0;
+    }
+
+    public List<FootballSystemDictDataDO> listEnabledDataByType(String dictType) {
+        if (dictType == null || dictType.isBlank()) {
+            return List.of();
+        }
+        return footballSystemDictDataMapper.selectList(new LambdaQueryWrapper<FootballSystemDictDataDO>()
+                .eq(FootballSystemDictDataDO::getDictType, dictType)
+                .eq(FootballSystemDictDataDO::getStatus, 0)
+                .orderByAsc(FootballSystemDictDataDO::getSort)
+                .orderByAsc(FootballSystemDictDataDO::getValue));
+    }
+
+    public List<FootballSystemDictTypeDO> listEnabledTypes() {
+        return footballSystemDictTypeMapper.selectList(new LambdaQueryWrapper<FootballSystemDictTypeDO>()
+                .eq(FootballSystemDictTypeDO::getStatus, 0)
+                .orderByAsc(FootballSystemDictTypeDO::getId));
+    }
+
+    public static String toOpsStatus(Integer footballStatus) {
         return footballStatus != null && footballStatus == 0 ? "ENABLED" : "DISABLED";
     }
 
