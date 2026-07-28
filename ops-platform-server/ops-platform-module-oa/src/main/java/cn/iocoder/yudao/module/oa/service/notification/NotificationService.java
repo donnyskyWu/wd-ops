@@ -16,6 +16,15 @@ public interface NotificationService {
 
     void notifyContentReviewApproved(ProductionContentDO content);
 
+    /** 关闭指定审核阶段的内容待审提醒（站内信）。 */
+    void dismissContentReviewReminders(ProductionContentDO content, String reviewStage);
+
+    /** 关闭该内容全部待审提醒（驳回或终审通过）。 */
+    void dismissAllContentReviewReminders(ProductionContentDO content);
+
+    /** 关闭 SOP 任务待审提醒（当前无独立通知，预留统一入口）。 */
+    void dismissSopReviewReminders(Long tenantId, Long taskId);
+
     void notifyExternalWorkAlert(Long tenantId, ExternalWorkDO work, NotificationEventType eventType);
 
     void notifyInternalWorkHit(Long tenantId, ContentDO work);

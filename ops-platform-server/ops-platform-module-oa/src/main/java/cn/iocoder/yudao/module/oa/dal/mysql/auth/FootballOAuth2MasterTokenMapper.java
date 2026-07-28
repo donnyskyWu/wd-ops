@@ -114,4 +114,25 @@ public interface FootballOAuth2MasterTokenMapper {
             LIMIT 1
             """)
     String selectRoleNameByCode(@Param("tenantId") Long tenantId, @Param("roleCode") String roleCode);
+
+    @Select("""
+            SELECT r.id
+            FROM system_role r
+            WHERE r.code = #{roleCode}
+              AND r.tenant_id = #{tenantId}
+              AND r.deleted = 0
+              AND r.status = 0
+            LIMIT 1
+            """)
+    Long selectRoleIdByCode(@Param("tenantId") Long tenantId, @Param("roleCode") String roleCode);
+
+    @Select("""
+            SELECT id, tenant_id AS tenantId, username, nickname, status
+            FROM system_users
+            WHERE tenant_id = #{tenantId}
+              AND deleted = 0
+              AND status = 0
+            ORDER BY id
+            """)
+    List<FootballSystemUserDO> selectEnabledUsersByTenant(@Param("tenantId") Long tenantId);
 }

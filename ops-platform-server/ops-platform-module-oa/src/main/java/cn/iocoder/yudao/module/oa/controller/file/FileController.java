@@ -39,10 +39,15 @@ public class FileController {
     }
 
     @GetMapping("/view")
-    public void view(@RequestParam("key") String key, HttpServletResponse response) {
+    public void view(@RequestParam("key") String key, HttpServletResponse response) throws java.io.IOException {
         Long tenantId = TenantContextHolder.getTenantId();
         if (tenantId == null) {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED);
+        }
+        if (LocalFileStorageService.isRemoteUrl(key)) {
+            String presigned = localFileStorageService.resolvePresignedReadUrl(key);
+            response.sendRedirect(presigned);
+            return;
         }
         Path path = localFileStorageService.resolveReadablePath(key, tenantId);
         try (InputStream in = Files.newInputStream(path)) {
@@ -55,10 +60,15 @@ public class FileController {
     }
 
     @GetMapping("/download")
-    public void download(@RequestParam("key") String key, HttpServletResponse response) {
+    public void download(@RequestParam("key") String key, HttpServletResponse response) throws java.io.IOException {
         Long tenantId = TenantContextHolder.getTenantId();
         if (tenantId == null) {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED);
+        }
+        if (LocalFileStorageService.isRemoteUrl(key)) {
+            String presigned = localFileStorageService.resolvePresignedReadUrl(key);
+            response.sendRedirect(presigned);
+            return;
         }
         Path path = localFileStorageService.resolveReadablePath(key, tenantId);
         String fileName = path.getFileName().toString();

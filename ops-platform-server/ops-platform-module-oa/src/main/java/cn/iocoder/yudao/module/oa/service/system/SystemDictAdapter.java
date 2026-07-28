@@ -1,8 +1,11 @@
 package cn.iocoder.yudao.module.oa.service.system;
 
 import cn.hutool.core.util.StrUtil;
+import cn.iocoder.yudao.framework.common.biz.system.dict.DictDataApi;
+import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.dict.DictTypeRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.system.DictAdminRowVO;
@@ -23,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +38,7 @@ public class SystemDictAdapter {
 
     private final FootballSystemDictTypeMapper footballSystemDictTypeMapper;
     private final FootballSystemDictDataMapper footballSystemDictDataMapper;
+    private final DictDataApi dictDataApi;
 
     public List<DictTypeRespVO> typeList() {
         return footballSystemDictTypeMapper.selectList(new LambdaQueryWrapper<FootballSystemDictTypeDO>()
@@ -120,6 +125,33 @@ public class SystemDictAdapter {
         if (value == null || value.isBlank()) {
             return false;
         }
+        Boolean feignValid = validateValueViaFeign(dictType, value);
+        if (feignValid != null) {
+            return feignValid;
+        }
+        return isValidValueViaDs(dictType, value);
+    }
+
+    /**
+     * G-DICT-01 dual-run: Feign {@link DictDataApi#validateDictDataList} first;
+     * {@code null} = fall back @DS; {@code false} is an explicit RPC result (no fallback).
+     */
+    Boolean validateValueViaFeign(String dictType, String value) {
+        if (dictDataApi == null || StrUtil.isBlank(dictType) || StrUtil.isBlank(value)) {
+            return null;
+        }
+        try {
+            CommonResult<Boolean> result = dictDataApi.validateDictDataList(dictType, List.of(value));
+            if (result == null || !result.isSuccess() || result.getData() == null) {
+                return null;
+            }
+            return result.getData();
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    boolean isValidValueViaDs(String dictType, String value) {
         Long count = footballSystemDictDataMapper.selectCount(new LambdaQueryWrapper<FootballSystemDictDataDO>()
                 .eq(FootballSystemDictDataDO::getDictType, dictType)
                 .eq(FootballSystemDictDataDO::getValue, value)
@@ -141,11 +173,57 @@ public class SystemDictAdapter {
         if (dictType == null || dictType.isBlank()) {
             return List.of();
         }
+        List<FootballSystemDictDataDO> feignRows = listEnabledDataByTypeViaFeign(dictType);
+        if (feignRows != null) {
+            return feignRows;
+        }
+        return listEnabledDataByTypeViaDs(dictType);
+    }
+
+    /**
+     * G-DICT-01 dual-run: Feign {@link DictDataApi#getDictDataList} first; {@code null} = fall back @DS.
+     */
+    List<FootballSystemDictDataDO> listEnabledDataByTypeViaFeign(String dictType) {
+        if (dictDataApi == null || StrUtil.isBlank(dictType)) {
+            return null;
+        }
+        try {
+            CommonResult<List<DictDataRespDTO>> result = dictDataApi.getDictDataList(dictType);
+            if (result == null || !result.isSuccess()) {
+                return null;
+            }
+            List<DictDataRespDTO> rows = result.getData();
+            if (rows == null || rows.isEmpty()) {
+                return List.of();
+            }
+            return rows.stream()
+                    .filter(Objects::nonNull)
+                    .filter(d -> d.getStatus() != null && d.getStatus() == 0)
+                    .map(this::toDictDataDO)
+                    .sorted(Comparator.comparing(FootballSystemDictDataDO::getSort, Comparator.nullsLast(Integer::compareTo))
+                            .thenComparing(FootballSystemDictDataDO::getValue, Comparator.nullsLast(String::compareTo)))
+                    .collect(Collectors.toList());
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    List<FootballSystemDictDataDO> listEnabledDataByTypeViaDs(String dictType) {
         return footballSystemDictDataMapper.selectList(new LambdaQueryWrapper<FootballSystemDictDataDO>()
                 .eq(FootballSystemDictDataDO::getDictType, dictType)
                 .eq(FootballSystemDictDataDO::getStatus, 0)
                 .orderByAsc(FootballSystemDictDataDO::getSort)
                 .orderByAsc(FootballSystemDictDataDO::getValue));
+    }
+
+    private FootballSystemDictDataDO toDictDataDO(DictDataRespDTO dto) {
+        FootballSystemDictDataDO row = new FootballSystemDictDataDO();
+        row.setDictType(dto.getDictType());
+        row.setLabel(dto.getLabel());
+        row.setValue(dto.getValue());
+        row.setStatus(dto.getStatus());
+        row.setSort(0);
+        return row;
     }
 
     public List<FootballSystemDictTypeDO> listEnabledTypes() {

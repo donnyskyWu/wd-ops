@@ -1,6 +1,13 @@
 package cn.iocoder.yudao.module.oa.config;
 
+import cn.iocoder.yudao.framework.common.biz.infra.file.FileApi;
+import cn.iocoder.yudao.framework.common.biz.member.article.ArticleApi;
+import cn.iocoder.yudao.framework.common.biz.mp.user.MpAccountInfoApi;
+import cn.iocoder.yudao.framework.common.biz.pay.order.PayOrderApi;
+import cn.iocoder.yudao.framework.common.biz.system.dict.DictDataApi;
 import cn.iocoder.yudao.framework.common.biz.system.logger.OperateLogCommonApi;
+import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
+import cn.iocoder.yudao.framework.common.biz.system.user.AdminUserApi;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.FootballOAuth2MasterTokenMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.FootballOAuth2TokenMapper;
 import cn.iocoder.yudao.module.oa.framework.feign.OaTenantFeignRequestInterceptor;
@@ -17,7 +24,16 @@ import org.springframework.context.annotation.Primary;
  * AL-05: enable mzt-log {@code @LogRecord} and Feign write path to Football system-server.
  */
 @Configuration
-@EnableFeignClients(clients = OperateLogCommonApi.class)
+@EnableFeignClients(clients = {
+        OperateLogCommonApi.class,
+        AdminUserApi.class,
+        PermissionCommonApi.class,
+        DictDataApi.class,
+        PayOrderApi.class,
+        ArticleApi.class,
+        MpAccountInfoApi.class,
+        FileApi.class
+})
 @EnableLogRecord(tenant = "")
 public class OaOperateLogConfiguration {
 

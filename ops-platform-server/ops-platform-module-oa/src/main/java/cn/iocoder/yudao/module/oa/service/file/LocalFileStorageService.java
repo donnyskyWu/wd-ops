@@ -2,8 +2,11 @@ package cn.iocoder.yudao.module.oa.service.file;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.iocoder.yudao.framework.common.biz.infra.file.FileApi;
+import cn.iocoder.yudao.framework.common.biz.infra.file.dto.FileCreateReqDTO;
 import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.oa.api.dto.file.FileUploadVO;
 import cn.iocoder.yudao.module.oa.api.dto.sop.TaskAttachmentVO;
 import cn.iocoder.yudao.module.oa.config.OaFileProperties;
@@ -19,6 +22,10 @@ import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.Set;
 
+/**
+ * G-INF-01 dual-run: Feign {@link FileApi} first for upload/presigned read;
+ * local disk fallback for H2 IT and unavailable infra-server.
+ */
 @Service
 @RequiredArgsConstructor
 public class LocalFileStorageService {
@@ -27,8 +34,10 @@ public class LocalFileStorageService {
     private static final String VIEW_PREFIX = "/admin-api/oa/file/view?key=";
     private static final long MAX_IMAGE_SIZE = 5L * 1024 * 1024;
     private static final Set<String> ALLOWED_IMAGE_EXT = Set.of("jpg", "jpeg", "png", "gif", "webp");
+    private static final int DEFAULT_PRESIGN_SECONDS = 3600;
 
     private final OaFileProperties fileProperties;
+    private final FileApi fileApi;
 
     public TaskAttachmentVO storeTaskAttachment(MultipartFile file, Long tenantId, Long taskId) {
         if (file == null || file.isEmpty()) {
@@ -39,7 +48,15 @@ public class LocalFileStorageService {
         }
         String originalName = StrUtil.blankToDefault(file.getOriginalFilename(), "file");
         String safeName = originalName.replaceAll("[\\\\/:*?\"<>|]", "_");
-        String relativeKey = tenantId + "/task/" + taskId + "/" + IdUtil.fastSimpleUUID() + "_" + safeName;
+        String directory = tenantId + "/task/" + taskId;
+        String infraUrl = tryCreateViaFeign(file, originalName, directory, null);
+        if (StrUtil.isNotBlank(infraUrl)) {
+            TaskAttachmentVO vo = new TaskAttachmentVO();
+            vo.setName(originalName);
+            vo.setUrl(infraUrl);
+            return vo;
+        }
+        String relativeKey = directory + "/" + IdUtil.fastSimpleUUID() + "_" + safeName;
         Path target = resolvePath(relativeKey);
         try {
             Files.createDirectories(target.getParent());
@@ -66,7 +83,17 @@ public class LocalFileStorageService {
             throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "仅支持 jpg/png/gif/webp 图片");
         }
         String safeName = originalName.replaceAll("[\\\\/:*?\"<>|]", "_");
-        String relativeKey = tenantId + "/content/" + IdUtil.fastSimpleUUID() + "_" + safeName;
+        String directory = tenantId + "/content";
+        String mimeType = resolveImageMediaType(originalName);
+        String infraUrl = tryCreateViaFeign(file, originalName, directory, mimeType);
+        if (StrUtil.isNotBlank(infraUrl)) {
+            FileUploadVO vo = new FileUploadVO();
+            vo.setName(originalName);
+            vo.setKey(infraUrl);
+            vo.setUrl(infraUrl);
+            return vo;
+        }
+        String relativeKey = directory + "/" + IdUtil.fastSimpleUUID() + "_" + safeName;
         Path target = resolvePath(relativeKey);
         try {
             Files.createDirectories(target.getParent());
@@ -82,6 +109,9 @@ public class LocalFileStorageService {
     }
 
     public Path resolveReadablePath(String key, Long tenantId) {
+        if (isRemoteUrl(key)) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "远程文件请使用 infra URL 直接访问");
+        }
         if (StrUtil.isBlank(key) || key.contains("..")) {
             throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "文件路径非法");
         }
@@ -93,6 +123,67 @@ public class LocalFileStorageService {
             throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), "文件不存在");
         }
         return path;
+    }
+
+    public String resolvePresignedReadUrl(String url) {
+        if (!isRemoteUrl(url)) {
+            return null;
+        }
+        String presigned = tryPresignViaFeign(url);
+        return StrUtil.isNotBlank(presigned) ? presigned : url;
+    }
+
+    public static boolean isRemoteUrl(String value) {
+        if (StrUtil.isBlank(value)) {
+            return false;
+        }
+        String lower = value.toLowerCase(Locale.ROOT);
+        return lower.startsWith("http://") || lower.startsWith("https://");
+    }
+
+    /**
+     * G-INF-01 dual-run: Feign {@link FileApi#createFile} first; {@code null} = fall back local disk.
+     */
+    String tryCreateViaFeign(MultipartFile file, String name, String directory, String mimeType) {
+        if (fileApi == null || file == null || file.isEmpty()) {
+            return null;
+        }
+        try {
+            byte[] content = file.getBytes();
+            if (content.length == 0) {
+                return null;
+            }
+            FileCreateReqDTO dto = new FileCreateReqDTO();
+            dto.setName(name);
+            dto.setDirectory(directory);
+            dto.setType(mimeType);
+            dto.setContent(content);
+            CommonResult<String> result = fileApi.createFile(dto);
+            if (result == null || !result.isSuccess() || StrUtil.isBlank(result.getData())) {
+                return null;
+            }
+            return result.getData();
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    /**
+     * G-INF-01 dual-run: Feign {@link FileApi#presignGetUrl} first; {@code null} = caller uses raw url.
+     */
+    String tryPresignViaFeign(String url) {
+        if (fileApi == null || StrUtil.isBlank(url)) {
+            return null;
+        }
+        try {
+            CommonResult<String> result = fileApi.presignGetUrl(url, DEFAULT_PRESIGN_SECONDS);
+            if (result == null || !result.isSuccess() || StrUtil.isBlank(result.getData())) {
+                return null;
+            }
+            return result.getData();
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private Path resolvePath(String relativeKey) {
@@ -110,5 +201,19 @@ public class LocalFileStorageService {
             return "";
         }
         return filename.substring(dot + 1).toLowerCase(Locale.ROOT);
+    }
+
+    static String resolveImageMediaType(String filename) {
+        String lower = filename.toLowerCase(Locale.ROOT);
+        if (lower.endsWith(".png")) {
+            return "image/png";
+        }
+        if (lower.endsWith(".gif")) {
+            return "image/gif";
+        }
+        if (lower.endsWith(".webp")) {
+            return "image/webp";
+        }
+        return "image/jpeg";
     }
 }

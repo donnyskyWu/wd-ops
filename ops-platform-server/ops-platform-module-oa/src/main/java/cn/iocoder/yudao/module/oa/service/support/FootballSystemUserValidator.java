@@ -1,9 +1,13 @@
 package cn.iocoder.yudao.module.oa.service.support;
 
 import cn.hutool.core.util.StrUtil;
+import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
+import cn.iocoder.yudao.framework.common.biz.system.user.AdminUserApi;
+import cn.iocoder.yudao.framework.common.biz.system.user.dto.AdminUserRespDTO;
 import cn.iocoder.yudao.framework.common.exception.ErrorCode;
 import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.FootballSystemRoleDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.FootballSystemUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysRoleDO;
@@ -12,13 +16,19 @@ import cn.iocoder.yudao.module.oa.dal.mysql.auth.FootballOAuth2MasterTokenMapper
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.FootballOAuth2TokenMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserTokenMapper;
+import cn.iocoder.yudao.module.oa.dal.mysql.system.FootballSystemRoleLookupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.system.FootballSystemUserLookupMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -27,8 +37,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Validates and resolves user ids submitted from {@code UserSelect} (Football {@code system_users.id})
- * with legacy {@code sys_user} fallback for H2 integration tests.
+ * Validates and resolves user ids submitted from {@code UserSelect}.
+ * SSOT = shenyu-system {@code system_users.id}; legacy {@code sys_user} / wd master only for H2 IT fallback.
  */
 @Component
 @RequiredArgsConstructor
@@ -37,6 +47,10 @@ public class FootballSystemUserValidator {
     private final FootballOAuth2MasterTokenMapper footballOAuth2MasterTokenMapper;
     private final FootballOAuth2TokenMapper footballOAuth2TokenMapper;
     private final FootballSystemUserLookupMapper footballSystemUserLookupMapper;
+    private final FootballSystemRoleLookupMapper footballSystemRoleLookupMapper;
+    private final FootballSystemUserSystemReader footballSystemUserSystemReader;
+    private final AdminUserApi adminUserApi;
+    private final PermissionCommonApi permissionCommonApi;
     private final SysUserMapper sysUserMapper;
     private final SysUserTokenMapper sysUserTokenMapper;
 
@@ -44,15 +58,15 @@ public class FootballSystemUserValidator {
         if (userId == null) {
             return null;
         }
-        FootballSystemUserDO masterUser = findMasterFootballUser(userId);
-        if (masterUser != null) {
-            return masterUser;
-        }
         try {
-            return footballSystemUserLookupMapper.selectById(userId);
+            FootballSystemUserDO systemUser = footballSystemUserSystemReader.findById(userId);
+            if (systemUser != null) {
+                return systemUser;
+            }
         } catch (Exception ignored) {
-            return null;
+            // H2 integration tests have no Football overlay tables.
         }
+        return findMasterFootballUser(userId);
     }
 
     private FootballSystemUserDO findMasterFootballUser(Long userId) {
@@ -71,10 +85,27 @@ public class FootballSystemUserValidator {
     }
 
     public void assertInTenant(Long userId, Long tenantId, String notFoundMessage) {
+        assertInTenant(userId, tenantId, OaErrorCodes.ENTITY_NOT_EXISTS, notFoundMessage);
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void assertInTenant(Long userId, Long tenantId, ErrorCode notFoundCode) {
+        assertInTenant(userId, tenantId, notFoundCode, notFoundCode.getMsg());
+    }
+
+    /**
+     * Suspend outer {@code @Transactional} so {@code @DS("system")} lookups work while validating
+     * UserSelect ids that only exist in shenyu-system {@code system_users}.
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void assertInTenant(Long userId, Long tenantId, ErrorCode notFoundCode, String notFoundMessage) {
         if (userId == null) {
             return;
         }
         FootballSystemUserDO footballUser = findFootballUser(userId);
+        if (footballUser == null) {
+            footballUser = findFootballUserByStoredIdBridge(userId);
+        }
         if (footballUser != null) {
             if (!Objects.equals(tenantId, footballUser.getTenantId())) {
                 throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
@@ -83,15 +114,19 @@ public class FootballSystemUserValidator {
         }
         SysUserDO legacyUser = findLegacyUser(userId);
         if (legacyUser == null) {
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS.getCode(), notFoundMessage);
+            throw new ServiceException(notFoundCode.getCode(), notFoundMessage);
         }
         if (!Objects.equals(tenantId, legacyUser.getTenantId())) {
             throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
         }
     }
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void assertEnabledInTenant(Long userId, Long tenantId, String notFoundMessage) {
         if (userId == null) {
+            return;
+        }
+        if (tryAssertEnabledViaFeign(userId, tenantId, notFoundMessage)) {
             return;
         }
         FootballSystemUserDO footballUser = findFootballUser(userId);
@@ -122,13 +157,72 @@ public class FootballSystemUserValidator {
         }
         FootballSystemUserDO footballUser = findFootballUser(userId);
         if (footballUser != null) {
-            return StrUtil.blankToDefault(footballUser.getNickname(), footballUser.getUsername());
+            String resolved = resolveNicknameFromProfile(footballUser);
+            if (StrUtil.isNotBlank(resolved)) {
+                return resolved;
+            }
         }
         SysUserDO legacyUser = findLegacyUser(userId);
         if (legacyUser == null) {
             return null;
         }
         return StrUtil.blankToDefault(legacyUser.getNickname(), legacyUser.getUsername());
+    }
+
+    public String resolveUsername(Long userId) {
+        if (userId == null) {
+            return null;
+        }
+        FootballSystemUserDO footballUser = findFootballUser(userId);
+        if (footballUser != null && StrUtil.isNotBlank(footballUser.getUsername())) {
+            return footballUser.getUsername();
+        }
+        SysUserDO legacyUser = findLegacyUser(userId);
+        return legacyUser == null ? null : legacyUser.getUsername();
+    }
+
+    /**
+     * Detect nicknames corrupted during non-utf8 import (MySQL stores unmappable CJK as literal {@code ?}).
+     */
+    static boolean isGarbledNickname(String nickname) {
+        if (StrUtil.isBlank(nickname)) {
+            return false;
+        }
+        if (nickname.chars().allMatch(c -> c == '?' || c == '？')) {
+            return true;
+        }
+        // Partial import corruption, e.g. ???02 for 测试号02
+        return nickname.matches("^[?？]+.+");
+    }
+
+    private String resolveNicknameFromProfile(FootballSystemUserDO profile) {
+        if (profile == null) {
+            return null;
+        }
+        if (!isGarbledNickname(profile.getNickname())) {
+            return StrUtil.blankToDefault(profile.getNickname(), profile.getUsername());
+        }
+        if (StrUtil.isNotBlank(profile.getUsername())) {
+            try {
+                FootballSystemUserDO masterUser = footballOAuth2MasterTokenMapper.selectUserByUsername(profile.getUsername());
+                if (masterUser != null && !isGarbledNickname(masterUser.getNickname())) {
+                    return StrUtil.blankToDefault(masterUser.getNickname(), masterUser.getUsername());
+                }
+            } catch (Exception ignored) {
+                // H2 test profile has no wd.system_users overlay.
+            }
+        }
+        return profile.getUsername();
+    }
+
+    private void putResolvedNickname(Map<Long, String> names, FootballSystemUserDO user) {
+        if (user == null || user.getId() == null) {
+            return;
+        }
+        String resolved = resolveNicknameFromProfile(user);
+        if (StrUtil.isNotBlank(resolved)) {
+            names.put(user.getId(), resolved);
+        }
     }
 
     public String resolveLegacyPosition(Long userId) {
@@ -157,7 +251,12 @@ public class FootballSystemUserValidator {
         if (storedUserId == null) {
             return null;
         }
-        if (findFootballUser(storedUserId) != null) {
+        FootballSystemUserDO footballUser = findFootballUser(storedUserId);
+        if (footballUser != null && StrUtil.isNotBlank(footballUser.getUsername())) {
+            FootballSystemUserDO systemUser = footballSystemUserSystemReader.findByUsername(footballUser.getUsername());
+            if (systemUser != null && systemUser.getId() != null) {
+                return systemUser.getId();
+            }
             return storedUserId;
         }
         SysUserDO legacyUser = findLegacyUser(storedUserId);
@@ -167,6 +266,10 @@ public class FootballSystemUserValidator {
         try {
             FootballSystemUserDO masterUser = footballOAuth2MasterTokenMapper.selectUserByUsername(legacyUser.getUsername());
             if (masterUser != null && masterUser.getId() != null) {
+                FootballSystemUserDO systemUser = footballSystemUserSystemReader.findByUsername(legacyUser.getUsername());
+                if (systemUser != null && systemUser.getId() != null) {
+                    return systemUser.getId();
+                }
                 return masterUser.getId();
             }
         } catch (Exception ignored) {
@@ -212,12 +315,18 @@ public class FootballSystemUserValidator {
         }
         FootballSystemUserDO footballById = findFootballUser(storedUserId);
         if (footballById != null && Objects.equals(legacyUser.getUsername(), footballById.getUsername())) {
-            return StrUtil.blankToDefault(footballById.getNickname(), footballById.getUsername());
+            String resolved = resolveNicknameFromProfile(footballById);
+            if (StrUtil.isNotBlank(resolved)) {
+                return resolved;
+            }
         }
         try {
             FootballSystemUserDO masterUser = footballOAuth2MasterTokenMapper.selectUserByUsername(legacyUser.getUsername());
             if (masterUser != null) {
-                return StrUtil.blankToDefault(masterUser.getNickname(), masterUser.getUsername());
+                String resolved = resolveNicknameFromProfile(masterUser);
+                if (StrUtil.isNotBlank(resolved)) {
+                    return resolved;
+                }
             }
         } catch (Exception ignored) {
             // H2 integration tests have no Football overlay tables.
@@ -235,32 +344,39 @@ public class FootballSystemUserValidator {
         }
         Map<Long, String> names = new HashMap<>();
         try {
-            List<FootballSystemUserDO> masterUsers = footballOAuth2MasterTokenMapper.selectDisplayUsersByIds(ids);
-            if (masterUsers != null) {
-                masterUsers.forEach(user -> names.put(user.getId(),
-                        StrUtil.blankToDefault(user.getNickname(), user.getUsername())));
+            List<FootballSystemUserDO> footballUsers = footballSystemUserLookupMapper.selectNicknamesByIds(ids);
+            if (footballUsers != null) {
+                footballUsers.forEach(user -> putResolvedNickname(names, user));
             }
         } catch (Exception ignored) {
-            // H2 test profile has no wd.system_users overlay.
+            // H2 test profile has no shenyu-system system_users.
         }
         List<Long> missingIds = ids.stream().filter(id -> !names.containsKey(id)).collect(Collectors.toList());
         if (!missingIds.isEmpty()) {
             try {
-                List<FootballSystemUserDO> footballUsers = footballSystemUserLookupMapper.selectNicknamesByIds(missingIds);
-                if (footballUsers != null) {
-                    footballUsers.forEach(user -> names.put(user.getId(),
-                            StrUtil.blankToDefault(user.getNickname(), user.getUsername())));
+                List<FootballSystemUserDO> masterUsers = footballOAuth2MasterTokenMapper.selectDisplayUsersByIds(missingIds);
+                if (masterUsers != null) {
+                    masterUsers.forEach(user -> putResolvedNickname(names, user));
                 }
             } catch (Exception ignored) {
-                // H2 test profile has no shenyu-system system_users.
+                // H2 test profile has no wd.system_users overlay.
             }
         }
         missingIds = ids.stream().filter(id -> !names.containsKey(id)).collect(Collectors.toList());
         if (!missingIds.isEmpty()) {
             List<SysUserDO> legacyUsers = sysUserMapper.selectBatchIds(missingIds);
             if (legacyUsers != null) {
-                legacyUsers.forEach(user -> names.put(user.getId(),
-                        StrUtil.blankToDefault(user.getNickname(), user.getUsername())));
+                legacyUsers.forEach(user -> {
+                    if (user.getId() == null) {
+                        return;
+                    }
+                    String resolved = isGarbledNickname(user.getNickname())
+                            ? user.getUsername()
+                            : StrUtil.blankToDefault(user.getNickname(), user.getUsername());
+                    if (StrUtil.isNotBlank(resolved)) {
+                        names.put(user.getId(), resolved);
+                    }
+                });
             }
         }
         return names;
@@ -268,13 +384,29 @@ public class FootballSystemUserValidator {
 
     /**
      * Whether the user (or an id-equivalent legacy/Football account) holds {@code roleCode}.
-     * Checks {@code sys_user_role} then wd / shenyu-system {@code system_role}.
+     * Checks shenyu-system {@code system_role} first, then wd master / legacy {@code sys_user_role} (H2 IT).
      */
     public boolean hasRoleCode(Long userId, Long tenantId, String roleCode) {
         if (userId == null || StrUtil.isBlank(roleCode)) {
             return false;
         }
-        for (Long candidateId : resolveRoleCheckUserIds(userId, tenantId)) {
+        Set<Long> candidateIds = resolveRoleCheckUserIds(userId, tenantId);
+        Boolean feignAvailable = null;
+        for (Long candidateId : candidateIds) {
+            Boolean feignResult = hasRoleCodeViaFeign(candidateId, roleCode);
+            if (feignResult == null) {
+                feignAvailable = false;
+                break;
+            }
+            feignAvailable = true;
+            if (feignResult) {
+                return true;
+            }
+        }
+        if (Boolean.TRUE.equals(feignAvailable)) {
+            return false;
+        }
+        for (Long candidateId : candidateIds) {
             if (hasRoleCodeForUserId(candidateId, roleCode)) {
                 return true;
             }
@@ -282,6 +414,7 @@ public class FootballSystemUserValidator {
         return false;
     }
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void assertHasRoleCode(Long userId, Long tenantId, String roleCode, ErrorCode errorCode) {
         if (!hasRoleCode(userId, tenantId, roleCode)) {
             throw new ServiceException(errorCode);
@@ -289,14 +422,185 @@ public class FootballSystemUserValidator {
     }
 
     /**
-     * Tenant users holding {@code roleCode} (sys_role ∪ Football system_role on master/system DS).
-     * Ids are normalized to presentable Football {@code system_users.id} when possible.
+     * Normalize UserSelect / legacy id to shenyu-system {@code system_users.id} (Football SSOT).
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public Long resolveStorableUserId(Long submittedUserId, Long tenantId) {
+        if (submittedUserId == null) {
+            return null;
+        }
+        try {
+            FootballSystemUserDO directSystemUser = footballSystemUserSystemReader.findById(submittedUserId);
+            if (directSystemUser != null && Objects.equals(tenantId, directSystemUser.getTenantId())) {
+                return directSystemUser.getId();
+            }
+        } catch (Exception ignored) {
+            // H2 integration tests have no Football overlay tables.
+        }
+        FootballSystemUserDO footballUser = findFootballUser(submittedUserId);
+        if (footballUser == null) {
+            footballUser = findFootballUserByStoredIdBridge(submittedUserId);
+        }
+        if (footballUser != null && StrUtil.isNotBlank(footballUser.getUsername())) {
+            try {
+                FootballSystemUserDO systemUser = footballSystemUserSystemReader.findByUsername(
+                        footballUser.getUsername());
+                if (systemUser != null && systemUser.getId() != null
+                        && Objects.equals(tenantId, systemUser.getTenantId())) {
+                    return systemUser.getId();
+                }
+            } catch (Exception ignored) {
+                // H2 integration tests have no Football overlay tables.
+            }
+            if (Objects.equals(tenantId, footballUser.getTenantId())) {
+                return footballUser.getId();
+            }
+        }
+        SysUserDO legacyUser = findLegacyUser(submittedUserId);
+        if (legacyUser != null && StrUtil.isNotBlank(legacyUser.getUsername())) {
+            try {
+                FootballSystemUserDO systemUser = footballSystemUserSystemReader.findByUsername(legacyUser.getUsername());
+                if (systemUser != null && systemUser.getId() != null
+                        && Objects.equals(tenantId, systemUser.getTenantId())) {
+                    return systemUser.getId();
+                }
+            } catch (Exception ignored) {
+                // H2 integration tests have no Football overlay tables.
+            }
+            if (Objects.equals(tenantId, legacyUser.getTenantId())) {
+                return legacyUser.getId();
+            }
+        }
+        return submittedUserId;
+    }
+
+    /**
+     * Tenant-wide enabled users for selector UIs that must NOT inherit Football dept/self data scope
+     * (e.g. IP 组「添加成员」). SSOT = shenyu-system; master / legacy fallback for H2 IT.
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public List<FootballSystemUserDO> listEnabledUsersInTenant(Long tenantId) {
+        if (tenantId == null) {
+            return Collections.emptyList();
+        }
+        List<FootballSystemUserDO> feignUsers = loadEnabledUsersViaFeign(tenantId);
+        if (feignUsers != null) {
+            return feignUsers;
+        }
+        return listEnabledUsersInTenantViaDs(tenantId);
+    }
+
+    /**
+     * G-SYS-01 dual-run: Feign {@link AdminUserApi#getSimpleUserList} first; returns {@code null} to fall back to @DS.
+     */
+    List<FootballSystemUserDO> loadEnabledUsersViaFeign(Long tenantId) {
+        if (adminUserApi == null || tenantId == null) {
+            return null;
+        }
+        try {
+            CommonResult<List<AdminUserRespDTO>> result = adminUserApi.getSimpleUserList(null, 0, null);
+            if (result == null || !result.isSuccess()) {
+                return null;
+            }
+            List<AdminUserRespDTO> users = result.getData();
+            if (users == null || users.isEmpty()) {
+                return List.of();
+            }
+            Map<Long, FootballSystemUserDO> byId = new LinkedHashMap<>();
+            for (AdminUserRespDTO dto : users) {
+                if (dto == null || dto.getId() == null || !isRpcUserEnabled(dto.getStatus())) {
+                    continue;
+                }
+                FootballSystemUserDO user = new FootballSystemUserDO();
+                user.setId(dto.getId());
+                user.setTenantId(tenantId);
+                user.setNickname(dto.getNickname());
+                user.setStatus(dto.getStatus());
+                byId.putIfAbsent(dto.getId(), user);
+            }
+            return List.copyOf(byId.values());
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private List<FootballSystemUserDO> listEnabledUsersInTenantViaDs(Long tenantId) {
+        Map<Long, FootballSystemUserDO> byId = new LinkedHashMap<>();
+        try {
+            List<FootballSystemUserDO> systemUsers = footballSystemUserLookupMapper.selectEnabledUsersByTenant(tenantId);
+            if (systemUsers != null) {
+                for (FootballSystemUserDO user : systemUsers) {
+                    if (user != null && user.getId() != null) {
+                        byId.putIfAbsent(user.getId(), user);
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // H2 / no shenyu-system
+        }
+        if (!byId.isEmpty()) {
+            return List.copyOf(byId.values());
+        }
+        try {
+            List<FootballSystemUserDO> masterUsers = footballOAuth2MasterTokenMapper.selectEnabledUsersByTenant(tenantId);
+            if (masterUsers != null) {
+                for (FootballSystemUserDO user : masterUsers) {
+                    if (user != null && user.getId() != null) {
+                        byId.putIfAbsent(user.getId(), user);
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // H2 / no wd overlay
+        }
+        if (!byId.isEmpty()) {
+            return List.copyOf(byId.values());
+        }
+        try {
+            List<SysUserDO> legacyUsers = sysUserMapper.selectList(new LambdaQueryWrapper<SysUserDO>()
+                    .eq(SysUserDO::getTenantId, tenantId)
+                    .and(w -> w.isNull(SysUserDO::getStatus)
+                            .or().ne(SysUserDO::getStatus, "DISABLED")));
+            if (legacyUsers != null) {
+                for (SysUserDO legacy : legacyUsers) {
+                    if (legacy == null || legacy.getId() == null) {
+                        continue;
+                    }
+                    Long presentableId = resolvePresentableUserId(legacy.getId());
+                    if (presentableId == null || byId.containsKey(presentableId)) {
+                        continue;
+                    }
+                    FootballSystemUserDO vo = new FootballSystemUserDO();
+                    vo.setId(presentableId);
+                    vo.setTenantId(tenantId);
+                    vo.setUsername(legacy.getUsername());
+                    vo.setNickname(StrUtil.blankToDefault(legacy.getNickname(), legacy.getUsername()));
+                    vo.setStatus(0);
+                    byId.put(presentableId, vo);
+                }
+            }
+        } catch (Exception ignored) {
+            // ignore
+        }
+        return List.copyOf(byId.values());
+    }
+
+    /**
+     * Tenant users holding {@code roleCode}; ids normalized to shenyu-system {@code system_users.id}.
+     * Role SSOT = shenyu-system {@code system_role}; legacy sys_role / wd master union for H2 IT & OPS 赋权路径.
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<Long> listPresentableUserIdsByRoleCode(Long tenantId, String roleCode) {
         if (tenantId == null || StrUtil.isBlank(roleCode)) {
             return Collections.emptyList();
         }
+        // legacy → master → system：须先查 wd（primary/master），再切 shenyu-system。
+        // 若先 @DS("system")，动态数据源线程会粘滞，legacy/master 查询会落到错误库并静默为空。
         Set<Long> rawIds = new LinkedHashSet<>();
+        List<Long> feignIds = listUserIdsByRoleCodeViaFeign(tenantId, roleCode);
+        if (feignIds != null) {
+            rawIds.addAll(feignIds);
+        }
         try {
             List<SysUserDO> legacyUsers = sysUserTokenMapper.selectUsersByRoleCode(tenantId, roleCode);
             if (legacyUsers != null) {
@@ -330,6 +634,47 @@ public class FootballSystemUserValidator {
                 .filter(Objects::nonNull)
                 .distinct()
                 .collect(Collectors.toList());
+    }
+
+    /** 按 username 桥接 wd master / shenyu-system / legacy sys_user */
+    private FootballSystemUserDO findFootballUserByStoredIdBridge(Long userId) {
+        String username = resolveUsernameForBridge(userId);
+        if (StrUtil.isBlank(username)) {
+            return null;
+        }
+        try {
+            FootballSystemUserDO systemUser = footballSystemUserSystemReader.findByUsername(username);
+            if (systemUser != null) {
+                return systemUser;
+            }
+        } catch (Exception ignored) {
+            // H2
+        }
+        try {
+            FootballSystemUserDO masterUser = footballOAuth2MasterTokenMapper.selectUserByUsername(username);
+            if (masterUser != null) {
+                return masterUser;
+            }
+        } catch (Exception ignored) {
+            // H2
+        }
+        return null;
+    }
+
+    private String resolveUsernameForBridge(Long userId) {
+        try {
+            String username = footballSystemUserSystemReader.findUsernameById(userId);
+            if (StrUtil.isNotBlank(username)) {
+                return username;
+            }
+        } catch (Exception ignored) {
+            // H2
+        }
+        SysUserDO legacyUser = findLegacyUser(userId);
+        if (legacyUser != null && StrUtil.isNotBlank(legacyUser.getUsername())) {
+            return legacyUser.getUsername();
+        }
+        return null;
     }
 
     private Set<Long> resolveRoleCheckUserIds(Long userId, Long tenantId) {
@@ -375,7 +720,7 @@ public class FootballSystemUserValidator {
             // H2
         }
         try {
-            FootballSystemUserDO systemUser = footballOAuth2TokenMapper.selectUserByUsername(username);
+            FootballSystemUserDO systemUser = footballSystemUserSystemReader.findByUsername(username);
             if (systemUser != null && systemUser.getId() != null) {
                 ids.add(systemUser.getId());
             }
@@ -389,12 +734,12 @@ public class FootballSystemUserValidator {
             return false;
         }
         try {
-            List<SysRoleDO> legacyRoles = sysUserTokenMapper.selectRolesByUserId(userId);
-            if (legacyRoles != null && legacyRoles.stream().anyMatch(r -> roleCode.equals(r.getCode()))) {
+            List<FootballSystemRoleDO> systemRoles = footballOAuth2TokenMapper.selectRolesByUserId(userId);
+            if (systemRoles != null && systemRoles.stream().anyMatch(r -> roleCode.equals(r.getCode()))) {
                 return true;
             }
         } catch (Exception ignored) {
-            // ignore
+            // H2 / no shenyu-system
         }
         try {
             List<FootballSystemRoleDO> masterRoles = footballOAuth2MasterTokenMapper.selectRolesByUserId(userId);
@@ -405,8 +750,8 @@ public class FootballSystemUserValidator {
             // H2
         }
         try {
-            List<FootballSystemRoleDO> systemRoles = footballOAuth2TokenMapper.selectRolesByUserId(userId);
-            return systemRoles != null && systemRoles.stream().anyMatch(r -> roleCode.equals(r.getCode()));
+            List<SysRoleDO> legacyRoles = sysUserTokenMapper.selectRolesByUserId(userId);
+            return legacyRoles != null && legacyRoles.stream().anyMatch(r -> roleCode.equals(r.getCode()));
         } catch (Exception ignored) {
             return false;
         }
@@ -414,5 +759,107 @@ public class FootballSystemUserValidator {
 
     private boolean isFootballUserEnabled(FootballSystemUserDO user) {
         return user.getStatus() == null || user.getStatus() == 0;
+    }
+
+    private static boolean isRpcUserEnabled(Integer status) {
+        return status == null || status == 0;
+    }
+
+    /**
+     * G-SYS-02: Feign {@link AdminUserApi#getUser} + {@link AdminUserApi#validateUserList}; returns {@code false} to fall back @DS.
+     */
+    boolean tryAssertEnabledViaFeign(Long userId, Long tenantId, String notFoundMessage) {
+        if (adminUserApi == null || tenantId == null) {
+            return false;
+        }
+        try {
+            Long storableId = resolveStorableUserId(userId, tenantId);
+            CommonResult<AdminUserRespDTO> userResult = adminUserApi.getUser(storableId);
+            if (userResult == null || !userResult.isSuccess() || userResult.getData() == null) {
+                return false;
+            }
+            AdminUserRespDTO user = userResult.getData();
+            if (!Objects.equals(tenantId, user.getTenantId())) {
+                throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
+            }
+            if (!isRpcUserEnabled(user.getStatus())) {
+                throw new ServiceException(OaErrorCodes.ENTITY_DISABLED);
+            }
+            CommonResult<Boolean> validResult = adminUserApi.validateUserList(List.of(storableId));
+            if (validResult == null || !validResult.isSuccess()) {
+                return false;
+            }
+            if (!Boolean.TRUE.equals(validResult.getData())) {
+                throw new ServiceException(OaErrorCodes.ENTITY_DISABLED);
+            }
+            return true;
+        } catch (ServiceException ex) {
+            throw ex;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    /**
+     * G-SYS-02: Feign {@link PermissionCommonApi#hasAnyRoles}; {@code null} = unavailable (fall back @DS).
+     */
+    Boolean hasRoleCodeViaFeign(Long userId, String roleCode) {
+        if (permissionCommonApi == null || userId == null || StrUtil.isBlank(roleCode)) {
+            return null;
+        }
+        try {
+            CommonResult<Boolean> result = permissionCommonApi.hasAnyRoles(userId, roleCode);
+            if (result == null || !result.isSuccess()) {
+                return null;
+            }
+            return Boolean.TRUE.equals(result.getData());
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    /**
+     * G-SYS-02: roleCode→roleId (@DS) + {@link AdminUserApi#getUserListByRoleId}; {@code null} = Feign unavailable.
+     */
+    List<Long> listUserIdsByRoleCodeViaFeign(Long tenantId, String roleCode) {
+        if (adminUserApi == null || tenantId == null || StrUtil.isBlank(roleCode)) {
+            return null;
+        }
+        try {
+            Long roleId = resolveRoleIdByCode(tenantId, roleCode);
+            if (roleId == null) {
+                return List.of();
+            }
+            CommonResult<List<AdminUserRespDTO>> result = adminUserApi.getUserListByRoleId(roleId);
+            if (result == null || !result.isSuccess()) {
+                return null;
+            }
+            List<AdminUserRespDTO> users = result.getData();
+            if (users == null || users.isEmpty()) {
+                return List.of();
+            }
+            return users.stream()
+                    .filter(u -> u != null && u.getId() != null && isRpcUserEnabled(u.getStatus()))
+                    .map(AdminUserRespDTO::getId)
+                    .collect(Collectors.toList());
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Long resolveRoleIdByCode(Long tenantId, String roleCode) {
+        try {
+            Long roleId = footballSystemRoleLookupMapper.selectRoleIdByCode(tenantId, roleCode);
+            if (roleId != null) {
+                return roleId;
+            }
+        } catch (Exception ignored) {
+            // H2 / no shenyu-system
+        }
+        try {
+            return footballOAuth2MasterTokenMapper.selectRoleIdByCode(tenantId, roleCode);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 }

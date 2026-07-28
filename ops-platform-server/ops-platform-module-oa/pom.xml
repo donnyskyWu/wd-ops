@@ -28,6 +28,8 @@
         <spring-cloud-alibaba.version>2023.0.3.3</spring-cloud-alibaba.version>
         <!-- Align with Football football-dependencies bizlog-sdk -->
         <bizlog-sdk.version>3.0.6</bizlog-sdk.version>
+        <!-- Flyway 9.x Community dropped MySQL 5.7; restored in Flyway 10+ (beta test host is 5.7.x) -->
+        <flyway.version>10.22.0</flyway.version>
     </properties>
 
     <dependencyManagement>

@@ -19,6 +19,9 @@ public final class ImageKeyHelper {
         if (StrUtil.isBlank(key)) {
             return null;
         }
+        if (isRemoteUrl(key)) {
+            return key;
+        }
         if (key.contains("..") || !key.startsWith(tenantId + "/")) {
             throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN.getCode(), "图片文件无效");
         }
@@ -42,7 +45,15 @@ public final class ImageKeyHelper {
         if (StrUtil.isBlank(key)) {
             return null;
         }
+        if (isRemoteUrl(key)) {
+            return key;
+        }
         return FILE_VIEW_PREFIX + key;
+    }
+
+    static boolean isRemoteUrl(String value) {
+        String lower = value.toLowerCase();
+        return lower.startsWith("http://") || lower.startsWith("https://");
     }
 
     public static List<String> toFileViewUrls(List<String> keys) {

@@ -1,7 +1,11 @@
 package cn.iocoder.yudao.module.oa.service.football;
 
+import cn.iocoder.yudao.framework.common.biz.pay.order.PayOrderApi;
+import cn.iocoder.yudao.framework.common.biz.pay.order.dto.AllOrderRespDTO;
+import cn.iocoder.yudao.framework.common.biz.pay.order.dto.OrderPageReqDTO;
 import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.api.dto.football.FootballOrderListVO;
@@ -20,6 +24,7 @@ import java.util.stream.Collectors;
 public class FootballOrderReadServiceImpl implements FootballOrderReadService {
 
     private final FootballPayAllOrderReadMapper footballPayAllOrderReadMapper;
+    private final PayOrderApi payOrderApi;
 
     @Override
     public PageResult<FootballOrderListVO> listPayAllOrders(LocalDate startDate, LocalDate endDate,
@@ -32,6 +37,47 @@ public class FootballOrderReadServiceImpl implements FootballOrderReadService {
         LocalDateTime startTime = startDate.atStartOfDay();
         LocalDateTime endTime = endDate.plusDays(1).atStartOfDay();
 
+        PageResult<FootballOrderListVO> feignPage = loadPageViaFeign(startTime, endTime, authorId, status, page, size);
+        if (feignPage != null) {
+            return feignPage;
+        }
+        return loadPageViaDs(tenantId, startTime, endTime, authorId, status, page, size);
+    }
+
+    /**
+     * G-PAY-01 dual-run: Feign {@link PayOrderApi#getOrderPage} first; {@code null} = fall back @DS.
+     */
+    PageResult<FootballOrderListVO> loadPageViaFeign(LocalDateTime startTime, LocalDateTime endTime,
+                                                     Long authorId, Integer status,
+                                                     int page, int size) {
+        if (payOrderApi == null) {
+            return null;
+        }
+        try {
+            OrderPageReqDTO req = new OrderPageReqDTO();
+            req.setPageNo(page);
+            req.setPageSize(size);
+            req.setAuthorId(authorId);
+            req.setStatus(status);
+            LocalDateTime inclusiveEnd = endTime.minusNanos(1);
+            req.setCreateTime(new LocalDateTime[]{startTime, inclusiveEnd});
+            CommonResult<PageResult<AllOrderRespDTO>> result = payOrderApi.getOrderPage(req);
+            if (result == null || !result.isSuccess() || result.getData() == null) {
+                return null;
+            }
+            PageResult<AllOrderRespDTO> data = result.getData();
+            List<FootballOrderListVO> rows = data.getList() == null
+                    ? List.of()
+                    : data.getList().stream().map(this::toVO).collect(Collectors.toList());
+            long total = data.getTotal() == null ? rows.size() : data.getTotal();
+            return new PageResult<>(rows, total);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    PageResult<FootballOrderListVO> loadPageViaDs(Long tenantId, LocalDateTime startTime, LocalDateTime endTime,
+                                                          Long authorId, Integer status, int page, int size) {
         long total = footballPayAllOrderReadMapper.countPage(tenantId, startTime, endTime, authorId, status);
         if (total == 0) {
             return PageResult.empty();
@@ -45,6 +91,21 @@ public class FootballOrderReadServiceImpl implements FootballOrderReadService {
     }
 
     private FootballOrderListVO toVO(FootballPayAllOrderReadDO row) {
+        FootballOrderListVO vo = new FootballOrderListVO();
+        vo.setId(row.getId());
+        vo.setOrderNo(row.getOrderNo());
+        vo.setUserId(row.getUserId());
+        vo.setAuthorId(row.getAuthorId());
+        vo.setAmount(row.getAmount());
+        vo.setPayAmount(row.getPayAmount());
+        vo.setStatus(row.getStatus());
+        vo.setOrderType(row.getOrderType());
+        vo.setPayTime(row.getPayTime());
+        vo.setCreateTime(row.getCreateTime());
+        return vo;
+    }
+
+    private FootballOrderListVO toVO(AllOrderRespDTO row) {
         FootballOrderListVO vo = new FootballOrderListVO();
         vo.setId(row.getId());
         vo.setOrderNo(row.getOrderNo());
