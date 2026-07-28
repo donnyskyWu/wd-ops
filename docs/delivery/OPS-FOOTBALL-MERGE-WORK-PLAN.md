@@ -381,8 +381,8 @@ OPS UI 以 **football-front 为唯一源**；去掉平行管理页与废弃路�
 
 - [x] 接入 Feign simple-list（G-SYS-01 首切片：`AdminUserApi` vendored + `listEnabledUsersInTenant` 双跑，2026-07-28）
 - [x] 接入 assert / hasAnyRoles（G-SYS-02 第二切片：`PermissionCommonApi` + `getUser`/`validateUserList`/`getUserListByRoleId` 双跑，2026-07-28）
-- [ ] Validator 终态仅 Football id + Feign；legacy union 仅过渡
-- [ ] 删除 `FootballSystemUserLookupMapper`（验证后）
+- [x] Validator G-SYS-01/02 生产路径 Feign-only cutover（2026-07-29；legacy union 仅 roleCode 列表 username 桥接）
+- [ ] 删除 `FootballSystemUserLookupMapper`（nickname 批量读仍用）
 - [ ] 昵称展示类改 UserApi（禁止 SysUserMapper 作唯一写入校验）
 
 ---
@@ -419,8 +419,7 @@ OPS UI 以 **football-front 为唯一源**；去掉平行管理页与废弃路�
 - [x] Vendor `FileApi` + `FileCreateReqDTO`（G-INF-01：`framework/common/biz/infra/file`，2026-07-28）
 - [x] `OaOperateLogConfiguration` 注册 Feign + `application-dev-nacos-local.yml` infra-server URL
 - [x] `LocalFileStorageService` 上传/预签名读 Feign 双跑（内容图、任务附件；本地盘回退）
-- [x] `ImageKeyHelper` 兼容 infra 完整 URL；`/oa/file/view|download` 远程 key 走预签名重定向
-- [ ] 删除 `LocalFileStorageService` 本地盘与 `/oa/file` 代理（验证后）
+- [x] 删除 `LocalFileStorageService` 本地上传回退（G-INF-01 cutover 2026-07-29；legacy key 本地读保留）
 - [ ] 存量本地 key 迁移或长期只读代理策略落地
 
 ---
@@ -438,9 +437,9 @@ OPS UI 以 **football-front 为唯一源**；去掉平行管理页与废弃路�
 **任务清单（按依赖排序建议）**
 
 - [ ] G-MEM-01/02 作者只读 + authorLevel → 删 member 读直连
-- [ ] G-MEM-03 文章写 → 删 `AuthorArticleMapper` 写路径
-- [ ] G-MP-01 公众号 → 删 mp Mapper；ext 仍落 wd
-- [ ] G-PAY-01 订单列表 → 删 pay 读 Mapper
+- [x] G-MEM-03 文章写 Feign-only cutover（2026-07-29；getById 仍 @DS）
+- [x] G-MP-01 公众号 MpAccountDataService Feign-only cutover（2026-07-29；MpUser/AuthorService 仍 @DS）
+- [x] G-PAY-01 订单列表 Feign-only cutover（2026-07-29；pay DS 已删）
 
 ---
 
@@ -468,8 +467,9 @@ OPS UI 以 **football-front 为唯一源**；去掉平行管理页与废弃路�
 
 **任务清单**
 
-- [ ] 删除非 master 数据源与推送脚本目标态
-- [ ] 删除 smoke Mapper、无用 Controller
+- [x] 移除 member/mp/pay 数据源（C-WP7 partial，2026-07-29）；system 保留至 C-WP1
+- [ ] 删除 system 数据源与推送脚本目标态（2026-07-29：**pay DS 已删**；system/member/mp 仍过渡）
+- [x] 删除 pay smoke Mapper / FootballPayAllOrderReadMapper（2026-07-29）
 - [ ] Standalone/dev-token 生产路径下线（IT 另 profile）
 - [x] 正式 ADR：Supersede ADR-050 §3.1（[ADR-050-REV1](../adr/ADR-050-REV1-Football-G-RPC-Supersede.md) 2026-07-28）
 - [ ] 联动 Phase B-WP4 表归档
@@ -627,7 +627,7 @@ Phase C 标记废弃(C-WP0) ──────┤──────────�
 |------|----------------------|------|
 | **A** | 平行页 Redirect/hideInMenu；DictSelect→Admin；`api/file.ts`→infra；mount 过渡文档化；P0 冒烟主路径 | standalone/E2E 标非 Gate；mount 脚本退役；菜单权限抽检 |
 | **B** | — | B-WP1 停写规范 ✅（2026-07-28）；B-WP3 Flyway 跨库写政策；物理删等 C |
-| **C** | C-WP0：`User/Role/Dept` `@Deprecated`；C-WP2：**G-SYS-01** + **G-SYS-02** Feign 双跑 ✅；C-WP3：**G-DICT-01** `DictDataApi` 双跑 ✅（`@InDict` 读路径）；C-WP4：**G-INF-01** `FileApi` 双跑 ✅（上传/预签名读；本地盘回退）；C-WP5 首切片：**G-PAY-01** + **G-MEM-03** + **G-MP-01** Feign 双跑 ✅（@DS 保留） | C-WP1 鉴权；C-WP4 物理删本地盘；C-WP7；删 `@DS` |
+| **C** | C-WP0：`User/Role/Dept` `@Deprecated`；C-WP2：**G-SYS-01/02** Feign **cutover** ✅（2026-07-29）；C-WP3：**G-DICT-01** `@InDict` 读 **cutover** ✅；C-WP4：**G-INF-01** 上传 **cutover** ✅；C-WP5：**G-PAY-01** + **G-MEM-03** + **G-MP-01** **cutover** ✅；C-WP7 partial：multidb 移除 member/mp/pay | C-WP1 鉴权；MemberAuthorRead @DS；C-WP7 删 system DS + smoke |
 
 ### 8.5 推荐执行顺序
 

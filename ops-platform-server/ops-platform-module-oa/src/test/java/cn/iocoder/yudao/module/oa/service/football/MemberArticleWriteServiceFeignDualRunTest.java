@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.oa.service.football;
 import cn.iocoder.yudao.framework.common.biz.member.article.ArticleApi;
 import cn.iocoder.yudao.framework.common.biz.member.article.dto.ArticleSaveDTO;
 import cn.iocoder.yudao.framework.common.biz.member.article.dto.ArticleStatusChangeDTO;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.oa.dal.dataobject.football.AuthorArticleDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.football.AuthorArticleMapper;
@@ -16,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -38,7 +40,7 @@ class MemberArticleWriteServiceFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-MEM-03: insert 优先 createArticle Feign")
+    @DisplayName("G-MEM-03 cutover: insert 走 createArticle Feign")
     void insertPrefersFeignCreate() {
         AuthorArticleDO article = sampleArticle();
         when(articleApi.createArticle(any(ArticleSaveDTO.class))).thenReturn(CommonResult.success(90001L));
@@ -50,7 +52,7 @@ class MemberArticleWriteServiceFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-MEM-03: update 仅 status 时走 statusChange Feign")
+    @DisplayName("G-MEM-03 cutover: update 仅 status 时走 statusChange Feign")
     void updateStatusOnlyUsesStatusChange() {
         AuthorArticleDO patch = new AuthorArticleDO();
         patch.setId(90001L);
@@ -65,7 +67,7 @@ class MemberArticleWriteServiceFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-MEM-03: update 含 title 时走 updateArticle Feign")
+    @DisplayName("G-MEM-03 cutover: update 含 title 时走 updateArticle Feign")
     void updateWithTitleUsesUpdateArticle() {
         AuthorArticleDO patch = new AuthorArticleDO();
         patch.setId(90001L);
@@ -79,14 +81,14 @@ class MemberArticleWriteServiceFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-MEM-03: Feign 失败时 insert 回退 @DS")
-    void insertFallsBackToDsWhenFeignFails() {
+    @DisplayName("G-MEM-03 cutover: Feign 失败时 insert fail-fast")
+    void insertThrowsWhenFeignFails() {
         AuthorArticleDO article = sampleArticle();
         when(articleApi.createArticle(any())).thenThrow(new RuntimeException("member-server down"));
 
-        service.insert(article);
+        assertThrows(ServiceException.class, () -> service.insert(article));
 
-        verify(authorArticleMapper).insert(article);
+        verify(authorArticleMapper, never()).insert(any(AuthorArticleDO.class));
     }
 
     @Test

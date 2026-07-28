@@ -3,11 +3,10 @@ package cn.iocoder.yudao.module.oa.service.football;
 import cn.iocoder.yudao.framework.common.biz.pay.order.PayOrderApi;
 import cn.iocoder.yudao.framework.common.biz.pay.order.dto.AllOrderRespDTO;
 import cn.iocoder.yudao.framework.common.biz.pay.order.dto.OrderPageReqDTO;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.football.FootballOrderListVO;
-import cn.iocoder.yudao.module.oa.dal.dataobject.football.FootballPayAllOrderReadDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.football.FootballPayAllOrderReadMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,19 +22,14 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class FootballOrderReadServiceFeignDualRunTest {
 
-    private static final Long TENANT_ID = 1L;
-
-    @Mock
-    private FootballPayAllOrderReadMapper footballPayAllOrderReadMapper;
     @Mock
     private PayOrderApi payOrderApi;
 
@@ -43,11 +37,11 @@ class FootballOrderReadServiceFeignDualRunTest {
 
     @BeforeEach
     void setUp() {
-        service = new FootballOrderReadServiceImpl(footballPayAllOrderReadMapper, payOrderApi);
+        service = new FootballOrderReadServiceImpl(payOrderApi);
     }
 
     @Test
-    @DisplayName("G-PAY-01: Feign getOrderPage 成功时优先返回且不查 @DS Mapper")
+    @DisplayName("G-PAY-01 cutover: Feign getOrderPage 成功时返回分页")
     void prefersFeignOrderPageWhenAvailable() {
         AllOrderRespDTO dto = new AllOrderRespDTO();
         dto.setId(70001L);
@@ -71,44 +65,21 @@ class FootballOrderReadServiceFeignDualRunTest {
         assertEquals(1L, page.getTotal());
         assertEquals(70001L, page.getList().get(0).getId());
         assertEquals("P202607230001", page.getList().get(0).getOrderNo());
-        verify(footballPayAllOrderReadMapper, never()).countPage(any(), any(), any(), any(), any());
     }
 
     @Test
-    @DisplayName("G-PAY-01: Feign 失败时回退 @DS FootballPayAllOrderReadMapper")
-    void fallsBackToDsWhenFeignFails() {
+    @DisplayName("G-PAY-01 cutover: Feign 失败时 fail-fast")
+    void throwsWhenFeignFails() {
         when(payOrderApi.getOrderPage(any())).thenThrow(new RuntimeException("pay-server down"));
-        FootballPayAllOrderReadDO row = new FootballPayAllOrderReadDO();
-        row.setId(80001L);
-        row.setOrderNo("P202607240001");
-        row.setUserId(3002L);
-        row.setAuthorId(1002L);
-        row.setAmount(new BigDecimal("99.00"));
-        row.setPayAmount(new BigDecimal("99.00"));
-        row.setStatus(1);
-        row.setOrderType(0);
-        when(footballPayAllOrderReadMapper.countPage(eq(TENANT_ID), any(), any(), any(), any())).thenReturn(1L);
-        when(footballPayAllOrderReadMapper.selectPage(eq(TENANT_ID), any(), any(), any(), any(), eq(0), eq(20)))
-                .thenReturn(List.of(row));
 
-        PageResult<FootballOrderListVO> page = service.loadPageViaFeign(
+        assertThrows(ServiceException.class, () -> service.loadPageViaFeign(
                 LocalDate.of(2026, 7, 24).atStartOfDay(),
                 LocalDate.of(2026, 7, 25).atStartOfDay(),
-                null, null, 1, 20);
-        assertEquals(null, page);
-
-        page = service.loadPageViaDs(TENANT_ID,
-                LocalDate.of(2026, 7, 24).atStartOfDay(),
-                LocalDate.of(2026, 7, 25).atStartOfDay(),
-                null, null, 1, 20);
-
-        assertEquals(1L, page.getTotal());
-        assertEquals(80001L, page.getList().get(0).getId());
-        verify(footballPayAllOrderReadMapper).countPage(eq(TENANT_ID), any(), any(), any(), any());
+                null, null, 1, 20));
     }
 
     @Test
-    @DisplayName("G-PAY-01: Feign 请求映射 createTime 与 authorId/status/page")
+    @DisplayName("G-PAY-01 cutover: Feign 请求映射 createTime 与 authorId/status/page")
     void mapsOrderPageRequestFields() {
         when(payOrderApi.getOrderPage(any())).thenReturn(CommonResult.success(PageResult.empty()));
 

@@ -8,16 +8,11 @@ import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.MpAccountDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.account.MpAccountMapper;
-import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.conditions.AbstractWrapper;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -27,38 +22,27 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * shenyu-mp.mp_account access; each call routed via @DS("mp") (ADR-050/051).
- * G-MP-01: Feign {@link MpAccountInfoApi} dual-run first for get/create/update/page/appId lookup.
+ * G-MP-01 cutover: Feign-only via {@link MpAccountInfoApi}（无 mp {@code @DS} 回退）。
+ * 限制：wrapper 含 SQL {@code IN} 时不支持 Feign 分页，调用方须改用 id 列表 Feign get 或简化查询。
  */
 @Service
 @RequiredArgsConstructor
 public class MpAccountDataService {
 
-    private final MpAccountMapper mpAccountMapper;
     private final MpAccountInfoApi mpAccountInfoApi;
 
-    @DS("mp")
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Page<MpAccountDO> selectPage(Page<MpAccountDO> page, Wrapper<MpAccountDO> wrapper) {
         Page<MpAccountDO> feignPage = loadPageViaFeign(page, wrapper);
         if (feignPage != null) {
             return feignPage;
         }
-        return mpAccountMapper.selectPage(page, wrapper);
+        throw unsupportedQuery(wrapper);
     }
 
-    @DS("mp")
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public MpAccountDO selectById(Long id) {
-        MpAccountDO feign = loadViaFeign(id);
-        if (feign != null) {
-            return feign;
-        }
-        return mpAccountMapper.selectById(id);
+        return loadViaFeign(id);
     }
 
-    @DS("mp")
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public MpAccountDO requireById(Long id, Long tenantId) {
         MpAccountDO mp = selectById(id);
         if (mp == null || !Objects.equals(mp.getTenantId(), tenantId)) {
@@ -67,43 +51,25 @@ public class MpAccountDataService {
         return mp;
     }
 
-    @DS("mp")
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void insert(MpAccountDO mp) {
-        if (tryInsertViaFeign(mp)) {
-            return;
-        }
-        mpAccountMapper.insert(mp);
+        insertViaFeign(mp);
     }
 
-    @DS("mp")
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void updateById(MpAccountDO mp) {
-        if (tryUpdateViaFeign(mp)) {
-            return;
-        }
-        mpAccountMapper.updateById(mp);
+        updateViaFeign(mp);
     }
 
-    @DS("mp")
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public MpAccountDO selectByAppId(Long tenantId, String appId) {
-        MpAccountDO feign = loadByAppIdViaFeign(appId, tenantId);
-        if (feign != null) {
-            return feign;
+        MpAccountDO mp = loadByAppIdViaFeign(appId, tenantId);
+        if (mp == null) {
+            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
         }
-        return mpAccountMapper.selectOne(new LambdaQueryWrapper<MpAccountDO>()
-                .eq(MpAccountDO::getTenantId, tenantId)
-                .eq(MpAccountDO::getAppId, appId)
-                .last("LIMIT 1"));
+        return mp;
     }
 
-    /**
-     * G-MP-01 dual-run: Feign {@link MpAccountInfoApi#getAccountPage} first; {@code null} = fall back @DS.
-     */
     Page<MpAccountDO> loadPageViaFeign(Page<MpAccountDO> page, Wrapper<MpAccountDO> wrapper) {
         if (mpAccountInfoApi == null || page == null) {
-            return null;
+            throw rpcUnavailable();
         }
         PageFeignParams query = extractPageFeignParams(wrapper);
         if (!query.supported()) {
@@ -115,7 +81,7 @@ public class MpAccountDataService {
             CommonResult<PageResult<MpAccountDTO>> result = mpAccountInfoApi.getAccountPage(
                     pageNo, pageSize, query.name(), query.appId(), query.authorId(), query.status(), query.type());
             if (result == null || !result.isSuccess() || result.getData() == null) {
-                return null;
+                throw rpcUnavailable();
             }
             PageResult<MpAccountDTO> data = result.getData();
             Long tenantId = TenantContextHolder.getTenantId();
@@ -126,29 +92,33 @@ public class MpAccountDataService {
             feignPage.setRecords(records);
             feignPage.setTotal(data.getTotal() == null ? records.size() : data.getTotal());
             return feignPage;
-        } catch (Exception ignored) {
-            return null;
+        } catch (ServiceException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw rpcUnavailable();
         }
     }
 
     MpAccountDO loadViaFeign(Long id) {
         if (mpAccountInfoApi == null || id == null) {
-            return null;
+            throw rpcUnavailable();
         }
         try {
             CommonResult<MpAccountDTO> result = mpAccountInfoApi.getAccount(id);
             if (result == null || !result.isSuccess() || result.getData() == null) {
-                return null;
+                throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
             }
             return toDo(result.getData(), TenantContextHolder.getTenantId());
-        } catch (Exception ignored) {
-            return null;
+        } catch (ServiceException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw rpcUnavailable();
         }
     }
 
     MpAccountDO loadByAppIdViaFeign(String appId, Long tenantId) {
         if (mpAccountInfoApi == null || appId == null) {
-            return null;
+            throw rpcUnavailable();
         }
         try {
             CommonResult<MpAccountDTO> result = mpAccountInfoApi.getMpAccountByAppId(appId);
@@ -160,36 +130,43 @@ public class MpAccountDataService {
                 return null;
             }
             return mp;
-        } catch (Exception ignored) {
-            return null;
+        } catch (ServiceException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw rpcUnavailable();
         }
     }
 
-    boolean tryInsertViaFeign(MpAccountDO mp) {
+    void insertViaFeign(MpAccountDO mp) {
         if (mpAccountInfoApi == null) {
-            return false;
+            throw rpcUnavailable();
         }
         try {
             CommonResult<Long> result = mpAccountInfoApi.createAccount(toDto(mp));
             if (result == null || !result.isSuccess() || result.getData() == null) {
-                return false;
+                throw rpcUnavailable();
             }
             mp.setId(result.getData());
-            return true;
-        } catch (Exception ignored) {
-            return false;
+        } catch (ServiceException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw rpcUnavailable();
         }
     }
 
-    boolean tryUpdateViaFeign(MpAccountDO mp) {
+    void updateViaFeign(MpAccountDO mp) {
         if (mpAccountInfoApi == null || mp.getId() == null) {
-            return false;
+            throw rpcUnavailable();
         }
         try {
             CommonResult<Boolean> result = mpAccountInfoApi.updateAccount(toDto(mp));
-            return result != null && result.isSuccess() && Boolean.TRUE.equals(result.getData());
-        } catch (Exception ignored) {
-            return false;
+            if (result == null || !result.isSuccess() || !Boolean.TRUE.equals(result.getData())) {
+                throw rpcUnavailable();
+            }
+        } catch (ServiceException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw rpcUnavailable();
         }
     }
 
@@ -308,5 +285,18 @@ public class MpAccountDataService {
         mp.setBindAuthorId(dto.getBindAuthorId());
         mp.setTenantId(tenantId);
         return mp;
+    }
+
+    private static ServiceException rpcUnavailable() {
+        return new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
+                "公众号服务不可用，请确认 mp-server 已启动");
+    }
+
+    private static ServiceException unsupportedQuery(Wrapper<MpAccountDO> wrapper) {
+        String hint = wrapper != null && wrapper.getSqlSegment() != null
+                && wrapper.getSqlSegment().toUpperCase().contains(" IN ")
+                ? "含 IN 条件的分页暂不支持 Feign，请改用 id 精确查询"
+                : "分页查询无法映射至 MpAccountInfoApi";
+        return new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), hint);
     }
 }

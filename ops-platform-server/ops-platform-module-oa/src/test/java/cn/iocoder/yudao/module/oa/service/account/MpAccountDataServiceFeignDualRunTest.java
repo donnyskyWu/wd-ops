@@ -2,10 +2,10 @@ package cn.iocoder.yudao.module.oa.service.account;
 
 import cn.iocoder.yudao.framework.common.biz.mp.user.MpAccountInfoApi;
 import cn.iocoder.yudao.framework.common.biz.mp.user.dto.MpAccountDTO;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.MpAccountDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.account.MpAccountMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,9 +19,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,19 +29,17 @@ import static org.mockito.Mockito.when;
 class MpAccountDataServiceFeignDualRunTest {
 
     @Mock
-    private MpAccountMapper mpAccountMapper;
-    @Mock
     private MpAccountInfoApi mpAccountInfoApi;
 
     private MpAccountDataService service;
 
     @BeforeEach
     void setUp() {
-        service = new MpAccountDataService(mpAccountMapper, mpAccountInfoApi);
+        service = new MpAccountDataService(mpAccountInfoApi);
     }
 
     @Test
-    @DisplayName("G-MP-01: selectById 优先 getAccount Feign")
+    @DisplayName("G-MP-01 cutover: selectById 走 getAccount Feign")
     void selectByIdPrefersFeign() {
         MpAccountDTO dto = new MpAccountDTO();
         dto.setId(501L);
@@ -53,11 +51,10 @@ class MpAccountDataServiceFeignDualRunTest {
 
         assertEquals(501L, mp.getId());
         assertEquals("测试号", mp.getName());
-        verify(mpAccountMapper, never()).selectById(any());
     }
 
     @Test
-    @DisplayName("G-MP-01: insert 优先 createAccount Feign")
+    @DisplayName("G-MP-01 cutover: insert 走 createAccount Feign")
     void insertPrefersFeignCreate() {
         MpAccountDO mp = new MpAccountDO();
         mp.setName("新公众号");
@@ -67,23 +64,20 @@ class MpAccountDataServiceFeignDualRunTest {
         service.insert(mp);
 
         assertEquals(601L, mp.getId());
-        verify(mpAccountMapper, never()).insert(any(MpAccountDO.class));
     }
 
     @Test
-    @DisplayName("G-MP-01: insert Feign 失败回退 @DS")
-    void insertFallsBackToDsWhenFeignFails() {
+    @DisplayName("G-MP-01 cutover: insert Feign 失败时 fail-fast")
+    void insertThrowsWhenFeignFails() {
         MpAccountDO mp = new MpAccountDO();
         mp.setName("新公众号");
         when(mpAccountInfoApi.createAccount(any())).thenThrow(new RuntimeException("mp-server down"));
 
-        service.insert(mp);
-
-        verify(mpAccountMapper).insert(mp);
+        assertThrows(ServiceException.class, () -> service.insert(mp));
     }
 
     @Test
-    @DisplayName("G-MP-01: selectPage 优先 getAccountPage Feign")
+    @DisplayName("G-MP-01 cutover: selectPage 走 getAccountPage Feign")
     void selectPagePrefersFeign() {
         MpAccountDTO dto = new MpAccountDTO();
         dto.setId(701L);
@@ -100,46 +94,32 @@ class MpAccountDataServiceFeignDualRunTest {
 
         assertEquals(1L, page.getTotal());
         assertEquals(701L, page.getRecords().get(0).getId());
-        verify(mpAccountMapper, never()).selectPage(any(), any());
     }
 
     @Test
-    @DisplayName("G-MP-01: selectPage Feign 失败回退 @DS")
-    void selectPageFallsBackToDsWhenFeignFails() {
+    @DisplayName("G-MP-01 cutover: selectPage Feign 失败时 fail-fast")
+    void selectPageThrowsWhenFeignFails() {
         when(mpAccountInfoApi.getAccountPage(any(), any(), any(), any(), any(), any(), any()))
                 .thenThrow(new RuntimeException("mp-server down"));
-        Page<MpAccountDO> dsPage = new Page<>(1, 10);
-        dsPage.setRecords(List.of());
-        dsPage.setTotal(0L);
-        when(mpAccountMapper.selectPage(any(), any())).thenReturn(dsPage);
 
         QueryWrapper<MpAccountDO> wrapper = new QueryWrapper<MpAccountDO>()
                 .eq("tenant_id", 1L);
-        Page<MpAccountDO> page = service.selectPage(new Page<>(1, 10), wrapper);
 
-        assertEquals(0L, page.getTotal());
-        verify(mpAccountMapper).selectPage(any(), any());
+        assertThrows(ServiceException.class, () -> service.selectPage(new Page<>(1, 10), wrapper));
     }
 
     @Test
-    @DisplayName("G-MP-01: selectPage wrapper 含 IN 时跳过 Feign")
-    void selectPageSkipsFeignWhenWrapperHasInClause() {
-        Page<MpAccountDO> dsPage = new Page<>(1, 10);
-        dsPage.setRecords(List.of());
-        dsPage.setTotal(0L);
-        when(mpAccountMapper.selectPage(any(), any())).thenReturn(dsPage);
-
+    @DisplayName("G-MP-01 cutover: selectPage wrapper 含 IN 时 fail-fast")
+    void selectPageThrowsWhenWrapperHasInClause() {
         QueryWrapper<MpAccountDO> wrapper = new QueryWrapper<MpAccountDO>()
                 .eq("tenant_id", 1L)
                 .in("id", List.of(1L, 2L));
-        service.selectPage(new Page<>(1, 10), wrapper);
 
-        verify(mpAccountInfoApi, never()).getAccountPage(any(), any(), any(), any(), any(), any(), any());
-        verify(mpAccountMapper).selectPage(any(), any());
+        assertThrows(ServiceException.class, () -> service.selectPage(new Page<>(1, 10), wrapper));
     }
 
     @Test
-    @DisplayName("G-MP-01: getAccountPage 请求映射 name/status/page")
+    @DisplayName("G-MP-01 cutover: getAccountPage 请求映射 name/status/page")
     void mapsAccountPageRequestFields() {
         when(mpAccountInfoApi.getAccountPage(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(CommonResult.success(PageResult.empty()));

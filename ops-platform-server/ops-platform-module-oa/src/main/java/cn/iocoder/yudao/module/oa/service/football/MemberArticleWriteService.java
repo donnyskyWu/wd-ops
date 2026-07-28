@@ -5,6 +5,8 @@ import cn.hutool.json.JSONUtil;
 import cn.iocoder.yudao.framework.common.biz.member.article.ArticleApi;
 import cn.iocoder.yudao.framework.common.biz.member.article.dto.ArticleSaveDTO;
 import cn.iocoder.yudao.framework.common.biz.member.article.dto.ArticleStatusChangeDTO;
+import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.oa.dal.dataobject.football.AuthorArticleDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.football.AuthorArticleMapper;
@@ -18,8 +20,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Member DB writes outside master {@code @Transactional} so {@code @DS("member")} routing works (ADR-051/054).
- * G-MEM-03: Feign {@link ArticleApi} dual-run first; @DS fallback for H2 IT / unavailable member-server.
+ * G-MEM-03 cutover: create/update Feign-only via {@link ArticleApi}.
+ * {@link #getById} 仍 @DS member（无 Feign 读路径；待 G-MEM read RPC 或移除调用方）。
  */
 @Service
 @RequiredArgsConstructor
@@ -28,14 +30,9 @@ public class MemberArticleWriteService {
     private final AuthorArticleMapper authorArticleMapper;
     private final ArticleApi articleApi;
 
-    @DS("member")
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void insert(AuthorArticleDO article) {
         AuthorArticleJsonHelper.normalizeJsonFieldsForInsert(article);
-        if (tryInsertViaFeign(article)) {
-            return;
-        }
-        authorArticleMapper.insert(article);
+        insertViaFeign(article);
     }
 
     @DS("member")
@@ -44,36 +41,32 @@ public class MemberArticleWriteService {
         return authorArticleMapper.selectById(id);
     }
 
-    @DS("member")
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void updateById(AuthorArticleDO article) {
         AuthorArticleJsonHelper.normalizeJsonFields(article);
-        if (tryUpdateViaFeign(article)) {
-            return;
-        }
-        authorArticleMapper.updateById(article);
+        updateViaFeign(article);
     }
 
-    boolean tryInsertViaFeign(AuthorArticleDO article) {
+    void insertViaFeign(AuthorArticleDO article) {
         if (articleApi == null) {
-            return false;
+            throw rpcUnavailable();
         }
         try {
             ArticleSaveDTO dto = toSaveDto(article, true);
             CommonResult<Long> result = articleApi.createArticle(dto);
             if (result == null || !result.isSuccess() || result.getData() == null) {
-                return false;
+                throw rpcUnavailable();
             }
             article.setId(result.getData());
-            return true;
-        } catch (Exception ignored) {
-            return false;
+        } catch (ServiceException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw rpcUnavailable();
         }
     }
 
-    boolean tryUpdateViaFeign(AuthorArticleDO article) {
+    void updateViaFeign(AuthorArticleDO article) {
         if (articleApi == null || article.getId() == null) {
-            return false;
+            throw rpcUnavailable();
         }
         try {
             if (isStatusChangeOnly(article)) {
@@ -81,16 +74,20 @@ public class MemberArticleWriteService {
                 dto.setId(article.getId());
                 dto.setStatus(article.getStatus());
                 CommonResult<Boolean> result = articleApi.statusChange(dto);
-                if (result != null && result.isSuccess() && Boolean.TRUE.equals(result.getData())) {
-                    return true;
+                if (result == null || !result.isSuccess() || !Boolean.TRUE.equals(result.getData())) {
+                    throw rpcUnavailable();
                 }
-                return false;
+                return;
             }
             ArticleSaveDTO dto = toSaveDto(article, false);
             CommonResult<Boolean> result = articleApi.updateArticle(dto);
-            return result != null && result.isSuccess() && Boolean.TRUE.equals(result.getData());
-        } catch (Exception ignored) {
-            return false;
+            if (result == null || !result.isSuccess() || !Boolean.TRUE.equals(result.getData())) {
+                throw rpcUnavailable();
+            }
+        } catch (ServiceException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw rpcUnavailable();
         }
     }
 
@@ -137,5 +134,10 @@ public class MemberArticleWriteService {
         } catch (Exception ignored) {
             return Collections.emptyList();
         }
+    }
+
+    private static ServiceException rpcUnavailable() {
+        return new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
+                "文章写入服务不可用，请确认 member-server 已启动");
     }
 }

@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.oa.service.file;
 
 import cn.iocoder.yudao.framework.common.biz.infra.file.FileApi;
 import cn.iocoder.yudao.framework.common.biz.infra.file.dto.FileCreateReqDTO;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.oa.api.dto.file.FileUploadVO;
 import cn.iocoder.yudao.module.oa.api.dto.sop.TaskAttachmentVO;
@@ -20,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -54,7 +56,7 @@ class LocalFileStorageServiceFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-INF-01: 内容图片上传 Feign 成功时不写本地盘")
+    @DisplayName("G-INF-01 cutover: 内容图片上传 Feign 成功时不写本地盘")
     void prefersFeignForContentImageUpload() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "cover.png", "image/png", new byte[]{1, 2, 3});
         when(fileApi.createFile(any(FileCreateReqDTO.class))).thenReturn(CommonResult.success(INFRA_URL));
@@ -68,20 +70,16 @@ class LocalFileStorageServiceFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-INF-01: 内容图片上传 Feign 失败时回退本地盘")
-    void fallsBackToLocalDiskForContentImageUpload() throws Exception {
+    @DisplayName("G-INF-01 cutover: 内容图片上传 Feign 失败时 fail-fast")
+    void throwsWhenFeignFailsForContentImageUpload() {
         MockMultipartFile file = new MockMultipartFile("file", "cover.png", "image/png", new byte[]{1, 2, 3});
         when(fileApi.createFile(any(FileCreateReqDTO.class))).thenThrow(new RuntimeException("infra-server down"));
 
-        FileUploadVO vo = service.storeContentImage(file, TENANT_ID);
-
-        assertTrue(vo.getUrl().startsWith("/admin-api/oa/file/view?key="));
-        assertTrue(vo.getKey().startsWith(TENANT_ID + "/content/"));
-        assertTrue(Files.walk(tempDir).anyMatch(path -> path.toString().endsWith(".png")));
+        assertThrows(ServiceException.class, () -> service.storeContentImage(file, TENANT_ID));
     }
 
     @Test
-    @DisplayName("G-INF-01: 任务附件上传 Feign 成功时不写本地盘")
+    @DisplayName("G-INF-01 cutover: 任务附件上传 Feign 成功时不写本地盘")
     void prefersFeignForTaskAttachmentUpload() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "plan.pdf", "application/pdf", new byte[]{9, 8, 7});
         when(fileApi.createFile(any(FileCreateReqDTO.class))).thenReturn(CommonResult.success(INFRA_URL));
@@ -97,15 +95,12 @@ class LocalFileStorageServiceFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-INF-01: 任务附件上传 Feign 失败时回退本地盘")
-    void fallsBackToLocalDiskForTaskAttachmentUpload() throws Exception {
+    @DisplayName("G-INF-01 cutover: 任务附件上传 Feign 失败时 fail-fast")
+    void throwsWhenFeignFailsForTaskAttachmentUpload() {
         MockMultipartFile file = new MockMultipartFile("file", "plan.pdf", "application/pdf", new byte[]{9, 8, 7});
         when(fileApi.createFile(any(FileCreateReqDTO.class))).thenReturn(CommonResult.error(500, "fail"));
 
-        TaskAttachmentVO vo = service.storeTaskAttachment(file, TENANT_ID, TASK_ID);
-
-        assertTrue(vo.getUrl().startsWith("/admin-api/oa/file/download?key="));
-        assertTrue(Files.walk(tempDir).anyMatch(path -> path.toString().endsWith(".pdf")));
+        assertThrows(ServiceException.class, () -> service.storeTaskAttachment(file, TENANT_ID, TASK_ID));
     }
 
     @Test
@@ -125,7 +120,7 @@ class LocalFileStorageServiceFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-INF-01: Feign create 传 tenant 目录与 MIME")
+    @DisplayName("G-INF-01 cutover: Feign create 传 tenant 目录与 MIME")
     void createFileRequestCarriesDirectoryAndMime() {
         MockMultipartFile file = new MockMultipartFile("file", "cover.png", "image/png", new byte[]{1, 2, 3});
         when(fileApi.createFile(any(FileCreateReqDTO.class))).thenReturn(CommonResult.success(INFRA_URL));

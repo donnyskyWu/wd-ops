@@ -3,7 +3,6 @@ package cn.iocoder.yudao.module.oa;
 import cn.iocoder.yudao.module.oa.dal.mysql.account.MpAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.author.AuthorUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.dict.FootballSystemDictDataMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.smoke.PayDsSmokeMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.smoke.SystemDsSmokeMapper;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
@@ -15,7 +14,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 
 /**
- * GATE-MDB-S1 auxiliary: four Football DS connectivity smoke (member/mp/pay/system).
+ * GATE-MDB-S1 auxiliary: remaining Football DS connectivity (member/mp/system).
+ * G-PAY-01 cutover 2026-07-29：pay DS 已移除。
  */
 @SpringBootTest
 @ActiveProfiles({"dev", "dev-local-multidb"})
@@ -26,22 +26,19 @@ class MultidbDsSmokeIT {
     @Autowired(required = false)
     private MpAccountMapper mpAccountMapper;
     @Autowired(required = false)
-    private PayDsSmokeMapper payDsSmokeMapper;
-    @Autowired(required = false)
     private SystemDsSmokeMapper systemDsSmokeMapper;
     @Autowired(required = false)
     private FootballSystemDictDataMapper footballSystemDictDataMapper;
 
     @Test
-    void allFourDatasourcesReachable() throws Exception {
+    void remainingDatasourcesReachable() throws Exception {
         assumeLocalMysql();
         Assumptions.assumeTrue(authorUserMapper != null && mpAccountMapper != null
-                && payDsSmokeMapper != null && systemDsSmokeMapper != null
+                && systemDsSmokeMapper != null
                 && footballSystemDictDataMapper != null);
 
         authorUserMapper.selectCount(null);
         mpAccountMapper.selectCount(null);
-        payDsSmokeMapper.selectOne();
         systemDsSmokeMapper.selectOne();
         footballSystemDictDataMapper.countActiveRows();
     }

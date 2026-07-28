@@ -23,7 +23,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -74,7 +73,7 @@ class FootballSystemUserValidatorFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-SYS-01: Feign simple-list 成功时优先返回且不查 @DS Mapper")
+    @DisplayName("G-SYS-01 cutover: Feign simple-list 成功时不查 @DS Mapper")
     void prefersFeignSimpleListWhenAvailable() {
         AdminUserRespDTO dto = new AdminUserRespDTO();
         dto.setId(1024L);
@@ -93,26 +92,17 @@ class FootballSystemUserValidatorFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-SYS-01: Feign 失败时回退 @DS FootballSystemUserLookupMapper")
-    void fallsBackToDsWhenFeignFails() {
+    @DisplayName("G-SYS-01 cutover: Feign 失败时 fail-fast")
+    void throwsWhenFeignSimpleListFails() {
         when(adminUserApi.getSimpleUserList(null, 0, null)).thenThrow(new RuntimeException("system-server down"));
-        FootballSystemUserDO dsUser = new FootballSystemUserDO();
-        dsUser.setId(2048L);
-        dsUser.setTenantId(TENANT_ID);
-        dsUser.setUsername("ops-user");
-        dsUser.setNickname("OPS 用户");
-        dsUser.setStatus(0);
-        when(footballSystemUserLookupMapper.selectEnabledUsersByTenant(TENANT_ID)).thenReturn(List.of(dsUser));
 
-        List<FootballSystemUserDO> users = validator.listEnabledUsersInTenant(TENANT_ID);
+        assertThrows(ServiceException.class, () -> validator.listEnabledUsersInTenant(TENANT_ID));
 
-        assertEquals(1, users.size());
-        assertEquals(2048L, users.get(0).getId());
-        verify(footballSystemUserLookupMapper).selectEnabledUsersByTenant(TENANT_ID);
+        verify(footballSystemUserLookupMapper, never()).selectEnabledUsersByTenant(TENANT_ID);
     }
 
     @Test
-    @DisplayName("G-SYS-01: Feign 返回空列表时不回退 @DS")
+    @DisplayName("G-SYS-01 cutover: Feign 返回空列表时不回退 @DS")
     void acceptsEmptyFeignResultWithoutDsFallback() {
         when(adminUserApi.getSimpleUserList(null, 0, null)).thenReturn(CommonResult.success(List.of()));
 
@@ -123,7 +113,7 @@ class FootballSystemUserValidatorFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-SYS-02: assertEnabledInTenant 走 getUser + validateUserList Feign")
+    @DisplayName("G-SYS-02 cutover: assertEnabledInTenant 走 getUser + validateUserList Feign")
     void assertEnabledUsesGetUserAndValidateUserList() {
         AdminUserRespDTO dto = new AdminUserRespDTO();
         dto.setId(1024L);
@@ -141,7 +131,7 @@ class FootballSystemUserValidatorFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-SYS-02: assertEnabledInTenant Feign 租户不一致抛 TENANT_FORBIDDEN")
+    @DisplayName("G-SYS-02 cutover: assertEnabledInTenant Feign 租户不一致抛 TENANT_FORBIDDEN")
     void assertEnabledFeignTenantMismatch() {
         AdminUserRespDTO dto = new AdminUserRespDTO();
         dto.setId(1024L);
@@ -157,7 +147,7 @@ class FootballSystemUserValidatorFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-SYS-02: hasRoleCode 优先 hasAnyRoles Feign")
+    @DisplayName("G-SYS-02 cutover: hasRoleCode 优先 hasAnyRoles Feign")
     void hasRoleCodePrefersFeignHasAnyRoles() {
         when(permissionCommonApi.hasAnyRoles(1024L, ROLE_CODE)).thenReturn(CommonResult.success(true));
 
@@ -168,17 +158,17 @@ class FootballSystemUserValidatorFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-SYS-02: hasRoleCode Feign 不可用时回退 @DS")
-    void hasRoleCodeFallsBackToDsWhenFeignUnavailable() {
+    @DisplayName("G-SYS-02 cutover: hasRoleCode Feign 不可用时 fail-fast")
+    void hasRoleCodeThrowsWhenFeignUnavailable() {
         when(permissionCommonApi.hasAnyRoles(1024L, ROLE_CODE)).thenThrow(new RuntimeException("down"));
 
-        assertFalse(validator.hasRoleCode(1024L, TENANT_ID, ROLE_CODE));
+        assertThrows(ServiceException.class, () -> validator.hasRoleCode(1024L, TENANT_ID, ROLE_CODE));
 
-        verify(footballOAuth2TokenMapper).selectRolesByUserId(1024L);
+        verify(footballOAuth2TokenMapper, never()).selectRolesByUserId(any());
     }
 
     @Test
-    @DisplayName("G-SYS-02: listPresentableUserIdsByRoleCode 走 roleId 映射 + getUserListByRoleId Feign")
+    @DisplayName("G-SYS-02 cutover: listPresentableUserIdsByRoleCode 走 roleId 映射 + getUserListByRoleId Feign")
     void listUsersByRoleCodeUsesFeignAndLegacyUnion() {
         when(footballSystemRoleLookupMapper.selectRoleIdByCode(TENANT_ID, ROLE_CODE)).thenReturn(10L);
         AdminUserRespDTO dto = new AdminUserRespDTO();

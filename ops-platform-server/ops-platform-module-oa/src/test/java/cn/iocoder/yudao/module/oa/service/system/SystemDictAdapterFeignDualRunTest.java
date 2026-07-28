@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.oa.service.system;
 
 import cn.iocoder.yudao.framework.common.biz.system.dict.DictDataApi;
 import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.oa.dal.dataobject.dict.FootballSystemDictDataDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.dict.FootballSystemDictDataMapper;
@@ -18,6 +19,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -45,7 +47,7 @@ class SystemDictAdapterFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-DICT-01: Feign validate 成功时优先返回 true 且不查 @DS Mapper")
+    @DisplayName("G-DICT-01 cutover: Feign validate 成功时不查 @DS Mapper")
     void prefersFeignValidateWhenValueValid() {
         when(dictDataApi.validateDictDataList(DICT_TYPE, List.of(DICT_VALUE)))
                 .thenReturn(CommonResult.success(true));
@@ -56,7 +58,7 @@ class SystemDictAdapterFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-DICT-01: Feign validate 返回 false 时不回退 @DS")
+    @DisplayName("G-DICT-01 cutover: Feign validate 返回 false 时不回退 @DS")
     void acceptsFeignInvalidResultWithoutDsFallback() {
         when(dictDataApi.validateDictDataList(DICT_TYPE, List.of(DICT_VALUE)))
                 .thenReturn(CommonResult.success(false));
@@ -67,19 +69,18 @@ class SystemDictAdapterFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-DICT-01: Feign validate 失败时回退 @DS FootballSystemDictDataMapper")
-    void fallsBackToDsWhenFeignValidateFails() {
+    @DisplayName("G-DICT-01 cutover: Feign validate 失败时 fail-fast")
+    void throwsWhenFeignValidateFails() {
         when(dictDataApi.validateDictDataList(DICT_TYPE, List.of(DICT_VALUE)))
                 .thenThrow(new RuntimeException("system-server down"));
-        when(footballSystemDictDataMapper.selectCount(any(Wrapper.class))).thenReturn(1L);
 
-        assertTrue(adapter.isValidValue(DICT_TYPE, DICT_VALUE));
+        assertThrows(ServiceException.class, () -> adapter.isValidValue(DICT_TYPE, DICT_VALUE));
 
-        verify(footballSystemDictDataMapper).selectCount(any(Wrapper.class));
+        verify(footballSystemDictDataMapper, never()).selectCount(any(Wrapper.class));
     }
 
     @Test
-    @DisplayName("G-DICT-01: Feign list 成功时优先返回且不查 @DS Mapper")
+    @DisplayName("G-DICT-01 cutover: Feign list 成功时不查 @DS Mapper")
     void prefersFeignDictListWhenAvailable() {
         DictDataRespDTO dto = new DictDataRespDTO();
         dto.setDictType(DICT_TYPE);
@@ -97,7 +98,7 @@ class SystemDictAdapterFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-DICT-01: Feign 返回空列表时不回退 @DS")
+    @DisplayName("G-DICT-01 cutover: Feign 返回空列表时不回退 @DS")
     void acceptsEmptyFeignListWithoutDsFallback() {
         when(dictDataApi.getDictDataList(DICT_TYPE)).thenReturn(CommonResult.success(List.of()));
 
@@ -108,20 +109,12 @@ class SystemDictAdapterFeignDualRunTest {
     }
 
     @Test
-    @DisplayName("G-DICT-01: Feign list 失败时回退 @DS FootballSystemDictDataMapper")
-    void fallsBackToDsWhenFeignListFails() {
+    @DisplayName("G-DICT-01 cutover: Feign list 失败时 fail-fast")
+    void throwsWhenFeignListFails() {
         when(dictDataApi.getDictDataList(DICT_TYPE)).thenThrow(new RuntimeException("system-server down"));
-        FootballSystemDictDataDO dsRow = new FootballSystemDictDataDO();
-        dsRow.setDictType(DICT_TYPE);
-        dsRow.setLabel("DS 标签");
-        dsRow.setValue(DICT_VALUE);
-        dsRow.setStatus(0);
-        when(footballSystemDictDataMapper.selectList(any(Wrapper.class))).thenReturn(List.of(dsRow));
 
-        List<FootballSystemDictDataDO> rows = adapter.listEnabledDataByType(DICT_TYPE);
+        assertThrows(ServiceException.class, () -> adapter.listEnabledDataByType(DICT_TYPE));
 
-        assertEquals(1, rows.size());
-        assertEquals("DS 标签", rows.get(0).getLabel());
-        verify(footballSystemDictDataMapper).selectList(any(Wrapper.class));
+        verify(footballSystemDictDataMapper, never()).selectList(any(Wrapper.class));
     }
 }

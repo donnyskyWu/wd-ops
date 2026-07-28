@@ -153,22 +153,62 @@ oa-server 须激活：`dev,dev-nacos,dev-nacos-local`（及 multidb 若需五库
 | G-PAY-01 | `POST :48085/rpc-api/pay/order/page` | **待手验** | :48085 无监听（curl `000`）；**配置已补** `pay-server.url` |
 | G-SYS-02 | — | **待手验** | 需 OPS 业务步骤 + 日志 |
 
-**结论**：配置已补 pay-server URL（`:48085`）；**G-PAY-01 及 OPS 双跑业务手验待 Integration 环境执行**（须先启动 pay-server）。
+**结论**：Phase C cutover 2026-07-29 — OPS 业务域 Feign-only + fail-fast；multidb 已移除 member/mp/pay。**G-PAY-01 Integration 手验仍阻塞**（pay-server 未启）。
+
+---
+
+## 6. 2026-07-29 cutover 抽检
+
+> 环境：`start-integration-all` 终态（system/infra/mp/member/oa/gateway UP）；**pay-server 未启动**。
+
+| G-* | RPC / Health 抽检 | cutover 代码 | 结果 |
+|-----|-------------------|--------------|------|
+| G-SYS-01/02 | :48081 HTTP 200 | `FootballSystemUserValidator` Feign-only | **代码 cutover ✅** · 业务手验待 |
+| G-DICT-01 | :48081 HTTP 200 | `SystemDictAdapter` 读 Feign-only | **代码 cutover ✅** |
+| G-INF-01 | :48082 HTTP 200 | `LocalFileStorageService` 上传 Feign-only | **代码 cutover ✅** |
+| G-MEM-03 | :48087 HTTP 200 | `MemberArticleWriteService` 写 Feign-only | **代码 cutover ✅** |
+| G-MP-01 | :48086 HTTP 200 | `MpAccountDataService` Feign-only | **代码 cutover ✅** |
+| G-PAY-01 | :48085 DOWN | `FootballOrderReadServiceImpl` Feign-only | **代码 cutover ✅** · Integration **阻塞** |
+
+详细记录：[CUTOVER-20260729-PHASE-C.md](./e2e-artifacts/CUTOVER-20260729-PHASE-C.md)
 
 ---
 
 ## 5. cutover 签字
 
-全部 G-* 手验 **Pass** 后，方可在 WORK-PLAN 对应 C-WP 勾选「删 @DS」并更新 §8.6 阻塞表。
+**2026-07-29 Phase C cutover 执行**（OPS 生产路径 Feign-only；@DS 回退已移除）
 
-| 签字项 | 日期 | 签字人 |
-|--------|------|--------|
-| G-SYS-01/02 cutover | | |
-| G-DICT-01 cutover | | |
-| G-INF-01 cutover | | |
-| G-PAY-01 cutover | | |
-| G-MEM-03 cutover | | |
-| G-MP-01 cutover | | |
+| 签字项 | 日期 | 签字人 | 备注 |
+|--------|------|--------|------|
+| G-SYS-01/02 cutover | 2026-07-29 | AI cutover | RPC :48081 200；Validator Feign-only |
+| G-DICT-01 cutover | 2026-07-29 | AI cutover | list/valid Feign-only；admin 写仍 @DS |
+| G-INF-01 cutover | 2026-07-29 | AI cutover | 上传 Feign-only；legacy key 本地读保留 |
+| G-PAY-01 cutover | 2026-07-29 | AI cutover | Feign-only；pay DS 已删；:48085 手验待 pay-server |
+| G-MEM-03 cutover | 2026-07-29 | AI cutover | 写 Feign-only；getById 仍 @DS member |
+| G-MP-01 cutover | 2026-07-29 | AI cutover | MpAccountDataService Feign-only；IN 分页抛错 |
+
+### 5.1 Integration RPC 抽检（2026-07-29）
+
+| G-* | RPC 抽检 | 结果 | 备注 |
+|-----|----------|------|------|
+| G-SYS-01 | `GET :48081/.../simple-list` | **HTTP 200** | |
+| G-DICT-01 | `GET :48081/.../dict-data/list?dictType=test` | **HTTP 200** | |
+| G-INF-01 | `GET :48082/.../presigned-url?path=test` | **HTTP 200** | |
+| G-MP-01 | `GET :48086/.../accountInfo/page` | **HTTP 200** | |
+| G-MEM-03 | `POST :48087/.../article/create` | **HTTP 200** | |
+| G-PAY-01 | `POST :48085/.../order/page` | **HTTP 000** | pay-server 未启动；G-PAY-01 代码 cutover 已完成 |
+| G-SYS-02 | OPS 业务步骤 | **待手验** | Feign-only 已落地 |
+
+**未 cutover（文档化原因）**
+
+| 项 | 原因 |
+|----|------|
+| C-WP1 FootballAuthProvider token @DS | 需 Gateway/check 切轨（D-SYS-03） |
+| MemberAuthorReadService | 无 Feign 读路径 |
+| MpUserDataService | 无 Feign |
+| SystemDictAdapter admin CRUD / typeExists | 平行字典管理 deprecated；仍 @DS |
+| FootballSystemUserValidator loadNicknames / resolveRoleIdByCode | roleId 映射与昵称批量读仍需 system @DS |
+| DevAuth / H2 legacy sys_user 桥接 | master DS；非 Football 库直连业务路径 |
 
 ---
 

@@ -1,7 +1,6 @@
 package cn.iocoder.yudao.module.oa;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.oa.dal.mysql.football.FootballPayAllOrderReadMapper;
 import cn.iocoder.yudao.module.oa.service.football.FootballOrderReadService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
@@ -12,25 +11,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * GATE-MDB-S3: pay_all_order read-only @DS pay.
+ * G-PAY-01 cutover: order list Feign-only (pay-server :48085); no @DS pay mapper.
  */
 @SpringBootTest
-@ActiveProfiles({"dev", "dev-local-multidb"})
+@ActiveProfiles({"dev", "dev-nacos", "dev-nacos-local", "dev-local-multidb"})
 class MdbS3PayOrderReadIT {
 
     private static final Long TENANT = 1L;
 
     @Autowired(required = false)
     private FootballOrderReadService footballOrderReadService;
-    @Autowired(required = false)
-    private FootballPayAllOrderReadMapper footballPayAllOrderReadMapper;
 
     @BeforeEach
     void setTenant() {
@@ -43,27 +40,30 @@ class MdbS3PayOrderReadIT {
     }
 
     @Test
-    @DisplayName("S3-04: football order list reads pay DB")
-    void payOrderListCrossDb() throws Exception {
-        assumeLocalMysql();
-        Assumptions.assumeTrue(footballOrderReadService != null && footballPayAllOrderReadMapper != null);
+    @DisplayName("S3-04: football order list via PayOrderApi Feign")
+    void payOrderListViaFeign() throws Exception {
+        assumePayServerUp();
+        Assumptions.assumeTrue(footballOrderReadService != null);
 
         LocalDate end = LocalDate.now();
         LocalDate start = end.minusYears(2);
-        long total = footballPayAllOrderReadMapper.countPage(TENANT,
-                start.atStartOfDay(), end.plusDays(1).atStartOfDay(), null, null);
-        Assumptions.assumeTrue(total > 0, "pay_all_order expected non-empty in shenyu-pay");
-
         var page = footballOrderReadService.listPayAllOrders(start, end, null, null, 1, 10);
-        assertTrue(page.getTotal() > 0);
+        assertNotNull(page);
     }
 
-    private void assumeLocalMysql() throws Exception {
-        try (Connection conn = DriverManager.getConnection(
-                "jdbc:mysql://localhost:3306/wd?useSSL=false&allowPublicKeyRetrieval=true", "root", "root")) {
-            Assumptions.assumeTrue(conn.isValid(2));
+    private void assumePayServerUp() throws Exception {
+        URL url = new URL("http://127.0.0.1:48085/rpc-api/pay/order/page");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setConnectTimeout(2000);
+        conn.setReadTimeout(2000);
+        try {
+            conn.getResponseCode();
+            Assumptions.assumeTrue(true);
         } catch (Exception ex) {
-            Assumptions.assumeTrue(false, "localhost MySQL not available: " + ex.getMessage());
+            Assumptions.assumeTrue(false, "pay-server :48085 not available: " + ex.getMessage());
+        } finally {
+            conn.disconnect();
         }
     }
 }

@@ -1,6 +1,5 @@
 package cn.iocoder.yudao.module.oa.service.file;
 
-import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.biz.infra.file.FileApi;
 import cn.iocoder.yudao.framework.common.biz.infra.file.dto.FileCreateReqDTO;
@@ -14,24 +13,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.Set;
 
 /**
- * G-INF-01 dual-run: Feign {@link FileApi} first for upload/presigned read;
- * local disk fallback for H2 IT and unavailable infra-server.
+ * G-INF-01 cutover: upload Feign-only via {@link FileApi}; legacy local key read via {@link #resolveReadablePath}.
  */
 @Service
 @RequiredArgsConstructor
 public class LocalFileStorageService {
 
-    private static final String DOWNLOAD_PREFIX = "/admin-api/oa/file/download?key=";
-    private static final String VIEW_PREFIX = "/admin-api/oa/file/view?key=";
     private static final long MAX_IMAGE_SIZE = 5L * 1024 * 1024;
     private static final Set<String> ALLOWED_IMAGE_EXT = Set.of("jpg", "jpeg", "png", "gif", "webp");
     private static final int DEFAULT_PRESIGN_SECONDS = 3600;
@@ -49,24 +43,10 @@ public class LocalFileStorageService {
         String originalName = StrUtil.blankToDefault(file.getOriginalFilename(), "file");
         String safeName = originalName.replaceAll("[\\\\/:*?\"<>|]", "_");
         String directory = tenantId + "/task/" + taskId;
-        String infraUrl = tryCreateViaFeign(file, originalName, directory, null);
-        if (StrUtil.isNotBlank(infraUrl)) {
-            TaskAttachmentVO vo = new TaskAttachmentVO();
-            vo.setName(originalName);
-            vo.setUrl(infraUrl);
-            return vo;
-        }
-        String relativeKey = directory + "/" + IdUtil.fastSimpleUUID() + "_" + safeName;
-        Path target = resolvePath(relativeKey);
-        try {
-            Files.createDirectories(target.getParent());
-            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "文件保存失败");
-        }
+        String infraUrl = createViaFeign(file, originalName, directory, null);
         TaskAttachmentVO vo = new TaskAttachmentVO();
         vo.setName(originalName);
-        vo.setUrl(DOWNLOAD_PREFIX + relativeKey);
+        vo.setUrl(infraUrl);
         return vo;
     }
 
@@ -85,26 +65,11 @@ public class LocalFileStorageService {
         String safeName = originalName.replaceAll("[\\\\/:*?\"<>|]", "_");
         String directory = tenantId + "/content";
         String mimeType = resolveImageMediaType(originalName);
-        String infraUrl = tryCreateViaFeign(file, originalName, directory, mimeType);
-        if (StrUtil.isNotBlank(infraUrl)) {
-            FileUploadVO vo = new FileUploadVO();
-            vo.setName(originalName);
-            vo.setKey(infraUrl);
-            vo.setUrl(infraUrl);
-            return vo;
-        }
-        String relativeKey = directory + "/" + IdUtil.fastSimpleUUID() + "_" + safeName;
-        Path target = resolvePath(relativeKey);
-        try {
-            Files.createDirectories(target.getParent());
-            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "文件保存失败");
-        }
+        String infraUrl = createViaFeign(file, originalName, directory, mimeType);
         FileUploadVO vo = new FileUploadVO();
         vo.setName(originalName);
-        vo.setKey(relativeKey);
-        vo.setUrl(VIEW_PREFIX + relativeKey);
+        vo.setKey(infraUrl);
+        vo.setUrl(infraUrl);
         return vo;
     }
 
@@ -142,16 +107,16 @@ public class LocalFileStorageService {
     }
 
     /**
-     * G-INF-01 dual-run: Feign {@link FileApi#createFile} first; {@code null} = fall back local disk.
+     * G-INF-01 cutover: Feign {@link FileApi#createFile} only.
      */
-    String tryCreateViaFeign(MultipartFile file, String name, String directory, String mimeType) {
+    String createViaFeign(MultipartFile file, String name, String directory, String mimeType) {
         if (fileApi == null || file == null || file.isEmpty()) {
-            return null;
+            throw rpcUnavailable();
         }
         try {
             byte[] content = file.getBytes();
             if (content.length == 0) {
-                return null;
+                throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "上传文件不能为空");
             }
             FileCreateReqDTO dto = new FileCreateReqDTO();
             dto.setName(name);
@@ -160,12 +125,19 @@ public class LocalFileStorageService {
             dto.setContent(content);
             CommonResult<String> result = fileApi.createFile(dto);
             if (result == null || !result.isSuccess() || StrUtil.isBlank(result.getData())) {
-                return null;
+                throw rpcUnavailable();
             }
             return result.getData();
-        } catch (Exception ignored) {
-            return null;
+        } catch (ServiceException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw rpcUnavailable();
         }
+    }
+
+    private static ServiceException rpcUnavailable() {
+        return new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
+                "文件上传服务不可用，请确认 infra-server 已启动");
     }
 
     /**

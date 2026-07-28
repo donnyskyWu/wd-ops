@@ -30,7 +30,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * 平台字典 Adapter（S2 / ADR-050 D4）：读 shenyu-system.system_dict_*，映射至 Ops VO。
+ * 平台字典 Adapter（S2 / ADR-050 D4）。
+ * G-DICT-01 cutover：{@code @InDict} 读/校验路径 Feign-only；管理写仍 @DS（deprecated，D-DEDUP-01）。
  */
 @Service
 @RequiredArgsConstructor
@@ -129,12 +130,11 @@ public class SystemDictAdapter {
         if (feignValid != null) {
             return feignValid;
         }
-        return isValidValueViaDs(dictType, value);
+        throw rpcUnavailable("字典校验");
     }
 
     /**
-     * G-DICT-01 dual-run: Feign {@link DictDataApi#validateDictDataList} first;
-     * {@code null} = fall back @DS; {@code false} is an explicit RPC result (no fallback).
+     * G-DICT-01 cutover: Feign {@link DictDataApi#validateDictDataList} only.
      */
     Boolean validateValueViaFeign(String dictType, String value) {
         if (dictDataApi == null || StrUtil.isBlank(dictType) || StrUtil.isBlank(value)) {
@@ -149,14 +149,6 @@ public class SystemDictAdapter {
         } catch (Exception ignored) {
             return null;
         }
-    }
-
-    boolean isValidValueViaDs(String dictType, String value) {
-        Long count = footballSystemDictDataMapper.selectCount(new LambdaQueryWrapper<FootballSystemDictDataDO>()
-                .eq(FootballSystemDictDataDO::getDictType, dictType)
-                .eq(FootballSystemDictDataDO::getValue, value)
-                .eq(FootballSystemDictDataDO::getStatus, 0));
-        return count != null && count > 0;
     }
 
     public boolean typeExists(String dictType) {
@@ -177,11 +169,11 @@ public class SystemDictAdapter {
         if (feignRows != null) {
             return feignRows;
         }
-        return listEnabledDataByTypeViaDs(dictType);
+        throw rpcUnavailable("字典读取");
     }
 
     /**
-     * G-DICT-01 dual-run: Feign {@link DictDataApi#getDictDataList} first; {@code null} = fall back @DS.
+     * G-DICT-01 cutover: Feign {@link DictDataApi#getDictDataList} only.
      */
     List<FootballSystemDictDataDO> listEnabledDataByTypeViaFeign(String dictType) {
         if (dictDataApi == null || StrUtil.isBlank(dictType)) {
@@ -206,14 +198,6 @@ public class SystemDictAdapter {
         } catch (Exception ignored) {
             return null;
         }
-    }
-
-    List<FootballSystemDictDataDO> listEnabledDataByTypeViaDs(String dictType) {
-        return footballSystemDictDataMapper.selectList(new LambdaQueryWrapper<FootballSystemDictDataDO>()
-                .eq(FootballSystemDictDataDO::getDictType, dictType)
-                .eq(FootballSystemDictDataDO::getStatus, 0)
-                .orderByAsc(FootballSystemDictDataDO::getSort)
-                .orderByAsc(FootballSystemDictDataDO::getValue));
     }
 
     private FootballSystemDictDataDO toDictDataDO(DictDataRespDTO dto) {
@@ -360,6 +344,11 @@ public class SystemDictAdapter {
             throw new ServiceException(OaErrorCodes.DICT_TYPE_NOT_FOUND);
         }
         return dictType;
+    }
+
+    private static ServiceException rpcUnavailable(String domain) {
+        return new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(),
+                domain + "服务不可用，请确认 Football Integration 栈已启动");
     }
 
     private List<DictDataItemVO> listItems(String type) {
