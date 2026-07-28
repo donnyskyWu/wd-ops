@@ -17,3 +17,11 @@ spring:
         config:
           system-server:
             url: http://127.0.0.1:48081
+          member-server:
+            url: http://127.0.0.1:48087
+          mp-server:
+            url: http://127.0.0.1:48086
+          infra-server:
+            url: http://127.0.0.1:48082
+          pay-server:
+            url: http://127.0.0.1:48085

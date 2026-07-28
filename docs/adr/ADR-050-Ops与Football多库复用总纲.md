@@ -10,7 +10,8 @@
 | 日期 | 2026-07-05 |
 | 决策人 | 架构 / 产品 |
 | Supersedes | [ADR-047](./ADR-047-Football-Ops平台集成决策.md) **§2 D2**（单库 `wd`）、[ADR-049](./ADR-049-Ops与Football数据归属与松耦合集成.md) **§已确认 #1 作者部分、#4 平台账号（微信）** |
-| 关联 | [ADR-051](./ADR-051-Ops与Football多库复用-作者域.md) · [OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN](../delivery/OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN.md) · [OPS-FOOTBALL-MULTI-DB-REUSE-ANALYSIS](../delivery/OPS-FOOTBALL-MULTI-DB-REUSE-ANALYSIS.md) |
+| 关联 | [ADR-051](./ADR-051-Ops与Football多库复用-作者域.md) · [ADR-050-REV1](./ADR-050-REV1-Football-G-RPC-Supersede.md) · [OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN](../delivery/OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN.md) · [OPS-FOOTBALL-MULTI-DB-REUSE-ANALYSIS](../delivery/OPS-FOOTBALL-MULTI-DB-REUSE-ANALYSIS.md) |
+| 修订 | **§3.1 部分 Superseded** — [ADR-050-REV1](./ADR-050-REV1-Football-G-RPC-Supersede.md)（2026-07-28，G-* RPC 白名单） |
 
 ---
 
@@ -51,7 +52,8 @@ ADR-047/049 在 **单库 `101.37.161.136/wd`** 下完成 Football × Ops 集成�
 
 ### 3.1 硬约束：不改 Football 业务代码与逻辑
 
-> **2026-07-05 用户原则**：多库集成**全部在 Ops 侧完成**；Football 业务微服务保持只读 SSOT 或既有 API，**不得**为其多库改造而改业务代码。
+> **2026-07-05 用户原则**：多库集成**全部在 Ops 侧完成**；Football 业务微服务保持只读 SSOT 或既有 API，**不得**为其多库改造而改业务代码。  
+> **2026-07-28 修订**：[ADR-050-REV1](./ADR-050-REV1-Football-G-RPC-Supersede.md) **有限 Supersede** 本节 — 仅允许 MUST-HAVE §7 白名单 **G-SYS / G-DICT / G-MEM / G-MP / G-PAY / G-DING** RPC 扩展；OPS Phase C Feign 切轨合法；**其余 Football 业务代码仍禁止改**。
 
 | 范围 | 允许 | 禁止 |
 |------|------|------|
@@ -152,7 +154,7 @@ flowchart TB
 ## 8. 不在本期
 
 - 远程 101.37.161.136 库结构变更
-- Football 业务微服务代码修改（§3.1；gateway 已冻结集成基建除外）
+- Football 业务微服务代码修改（§3.1 **除** [ADR-050-REV1](./ADR-050-REV1-Football-G-RPC-Supersede.md) G-* 白名单；gateway 已冻结集成基建除外）
 - 历史 seed 映射 / backfill
 - M10 采集全量（Phase 2）
 
@@ -165,3 +167,4 @@ flowchart TB
 | 2026-07-05 | Agent | 初稿；用户确认数据原则 + localhost TRUNCATE + Accepted |
 | 2026-07-05 | Agent | §3.1 硬约束：不改 Football 业务代码与逻辑（Ops 侧改造 + gateway 冻结例外） |
 | 2026-07-05 | Agent | §3.2 验收约束：GATE-MDB-S0～S4 强制 Football :5777 UI 签收 |
+| 2026-07-28 | Agent | §3.1 部分 Superseded — ADR-050-REV1（G-* RPC 白名单；D-ADR-050 选项 C） |

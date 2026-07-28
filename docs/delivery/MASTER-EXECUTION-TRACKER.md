@@ -514,6 +514,8 @@ curl http://localhost:8080/oa/...
 
 ## 13. 阻塞与风险登�?
 
+> **业务缺陷（E2E Fail）**：登记 [`docs/delivery/defects/`](./defects/README.md)（DEF 单文件）；本表侧重 **Gate / 环境级阻塞**。
+
 | 日期 | Gate | 问题 | 影响模块 | 负责�?| 状�?| 解除日期 |
 |------|------|------|---------|--------|------|---------|
 | | | | | | | |
@@ -741,8 +743,8 @@ curl http://localhost:8080/oa/...
 
 ## 19. 多库复用程序（2026-07-05 启动）
 
-> **SSOT**：[OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN.md](./OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN.md) · [ADR-050](../adr/ADR-050-Ops与Football多库复用总纲.md) · [OPS-FOOTBALL-MULTI-DB-REUSE-ANALYSIS](./OPS-FOOTBALL-MULTI-DB-REUSE-ANALYSIS.md)  
-> **硬约束**：TRUNCATE **仅 localhost:3306/wd**；远程 101.37.161.136 **禁止**在本程序变更；**不改 Football 业务代码与逻辑**（ADR-050 §3.1：改造仅限 oa-server + wd + football-front 挂载层；member/mp/pay/system-server 业务模块禁止改动；gateway 集成基建已冻结）。  
+> **SSOT**：[OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN.md](./OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN.md) · [ADR-050](../adr/ADR-050-Ops与Football多库复用总纲.md) · [ADR-050-REV1](../adr/ADR-050-REV1-Football-G-RPC-Supersede.md) · [OPS-FOOTBALL-MULTI-DB-REUSE-ANALYSIS](./OPS-FOOTBALL-MULTI-DB-REUSE-ANALYSIS.md)  
+> **硬约束**：TRUNCATE **仅 localhost:3306/wd**；远程 101.37.161.136 **禁止**在本程序变更；**Football 业务代码** — ADR-050 §3.1 **有限 Supersede**（[ADR-050-REV1](../adr/ADR-050-REV1-Football-G-RPC-Supersede.md) G-* 白名单，2026-07-28）；其余 member/mp/pay/system 业务模块仍禁止改动；gateway 集成基建已冻结。  
 > **验收 Gate**：**必须**经 Football 集成 UI `:5777` 登录操作签收（[EXECUTION-PLAN §0.6](./OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN.md#06-验收总则强制-gate) · ADR-050 §3.2）；curl/:3000 **非 Gate**。
 
 | Gate | 阶段 | 范围 | Football UI 签收 | 状态 | 备注 |
@@ -773,7 +775,7 @@ curl http://localhost:8080/oa/...
 | 4 | 作者 ext PK = `author_user_id`；弃用 `oa_author` |
 | 5 | 微信 = `mp_account` + `oa_account_ext` |
 | 6 | Supersedes ADR-047 D2（单库）部分 |
-| 7 | **不改 Football 业务代码与逻辑** — Ops 侧 Adapter/sync + football-front 挂载；gateway 集成基建已冻结 |
+| 7 | **Football 业务代码** — §3.1 有限 Supersede（ADR-050-REV1 G-* 白名单）；Ops 侧 Adapter/sync + football-front 挂载；gateway 集成基建已冻结 |
 | 7 | **GATE-MDB 验收** — Football `:5777` UI 登录操作签收；58/58 E2E 回归基线（§0.6 / ADR-050 §3.2） |
 | 8 | **Post-MDB 本地签收** | 2026-07-05 | [POST-MDB-LOCAL-SIGNOFF-20260705](./gates/POST-MDB-LOCAL-SIGNOFF-20260705.md) · E2E 58/58 · DB SSOT ✅ |
 
