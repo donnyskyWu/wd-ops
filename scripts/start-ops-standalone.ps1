@@ -1,4 +1,5 @@
 # start-ops-standalone.ps1 — Ops dev/QA harness only (no Football, no collector)
+# 非 Gate 签收路径 — Gate / Integration 请用 start-integration-all.ps1 或 start-ops-dev.ps1
 #
 # ADR-049 D6: ops-platform-ui-vue (:3000) + oa-server profile dev (:8080).
 # DB: application-dev.yml -> 101.37.161.136/wd (NOT dev-local-multidb / NOT Gate path).
