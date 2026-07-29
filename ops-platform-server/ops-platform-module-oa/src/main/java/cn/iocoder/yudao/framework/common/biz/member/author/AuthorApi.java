@@ -30,4 +30,10 @@ public interface AuthorApi {
 
     @GetMapping(PREFIX + "/getAuthorByUserId")
     CommonResult<AuthorSimpleRespDTO> getAuthorByUserId(@RequestParam("userId") Long userId);
+
+    /**
+     * 精确匹配作者 id / 手机号，或模糊匹配昵称（G-MEM-02 列表 keyword 筛选）。
+     */
+    @GetMapping(PREFIX + "/getAuthorListByAuthorInfo")
+    CommonResult<List<AuthorSimpleRespDTO>> getAuthorListByAuthorInfo(@RequestParam("param") String param);
 }

@@ -45,4 +45,19 @@ class MemberAuthorReadServiceFeignTest {
         assertEquals(1, map.size());
         assertEquals("作者甲", map.get(1001L).getNickname());
     }
+
+    @Test
+    @DisplayName("G-MEM-02: listByKeyword 走 AuthorApi.getAuthorListByAuthorInfo")
+    void listByKeywordViaFeign() {
+        AuthorSimpleRespDTO dto = new AuthorSimpleRespDTO();
+        dto.setId(2001L);
+        dto.setNickname("专家乙");
+        dto.setTenantId(1L);
+        when(authorApi.getAuthorListByAuthorInfo("专家")).thenReturn(CommonResult.success(List.of(dto)));
+
+        var list = service.listByKeyword("专家", 1L);
+
+        assertEquals(1, list.size());
+        assertEquals("专家乙", list.get(0).getNickname());
+    }
 }

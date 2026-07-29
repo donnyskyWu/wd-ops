@@ -47,8 +47,6 @@ import cn.iocoder.yudao.module.oa.dal.mysql.account.MpAccountMapper;
 
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 
-import cn.iocoder.yudao.module.oa.dal.mysql.author.AuthorUserMapper;
-
 import cn.iocoder.yudao.module.oa.dal.mysql.author.OaAuthorExtMapper;
 
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupAnchorRelMapper;
@@ -68,8 +66,6 @@ import static cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordConstan
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
@@ -81,6 +77,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import java.util.ArrayList;
+
+import java.util.Comparator;
+
+import java.util.LinkedHashSet;
 
 import java.util.Collections;
 
@@ -116,9 +116,9 @@ public class AuthorServiceImpl implements AuthorService {
 
 
 
-    private final AuthorUserMapper authorUserMapper;
-
     private final OaAuthorExtMapper oaAuthorExtMapper;
+
+    private final MemberAuthorReadService memberAuthorReadService;
 
     private final IpGroupMapper ipGroupMapper;
 
@@ -144,6 +144,10 @@ public class AuthorServiceImpl implements AuthorService {
 
         Long tenantId = requireTenantId();
 
+        int pn = pageNo == null ? 1 : pageNo;
+
+        int ps = pageSize == null ? 20 : pageSize;
+
         Set<Long> scopedUserIds = null;
 
         if (ipGroupId != null) {
@@ -168,31 +172,79 @@ public class AuthorServiceImpl implements AuthorService {
 
 
 
-        LambdaQueryWrapper<AuthorUserDO> wrapper = new LambdaQueryWrapper<AuthorUserDO>()
+        List<AuthorUserDO> candidates;
 
-                .eq(AuthorUserDO::getTenantId, tenantId)
+        if (StrUtil.isNotBlank(keyword)) {
 
-                .like(StrUtil.isNotBlank(keyword), AuthorUserDO::getNickname, keyword)
+            candidates = memberAuthorReadService.listByKeyword(keyword, tenantId);
 
-                .in(scopedUserIds != null, AuthorUserDO::getId, scopedUserIds)
+            if (scopedUserIds != null) {
 
-                .orderByDesc(AuthorUserDO::getId);
+                Set<Long> scope = scopedUserIds;
 
-        if (status != null) {
+                candidates = candidates.stream()
 
-            wrapper.eq(AuthorUserDO::getStatus, toMemberStatus(status));
+                        .filter(u -> scope.contains(u.getId()))
+
+                        .collect(Collectors.toList());
+
+            }
+
+        } else if (scopedUserIds != null) {
+
+            candidates = new ArrayList<>(memberAuthorReadService.loadByIds(scopedUserIds).values());
+
+            candidates = candidates.stream()
+
+                    .filter(u -> Objects.equals(u.getTenantId(), tenantId))
+
+                    .collect(Collectors.toList());
+
+        } else {
+
+            candidates = loadTenantAuthorCandidates(tenantId);
 
         }
 
 
 
-        Page<AuthorUserDO> page = authorUserMapper.selectPage(
+        if (status != null) {
 
-                new Page<>(pageNo == null ? 1 : pageNo, pageSize == null ? 20 : pageSize), wrapper);
+            int memberStatus = toMemberStatus(status);
+
+            candidates = candidates.stream()
+
+                    .filter(u -> Objects.equals(u.getStatus(), memberStatus))
+
+                    .collect(Collectors.toCollection(ArrayList::new));
+
+        } else {
+
+            candidates = new ArrayList<>(candidates);
+
+        }
 
 
 
-        List<Long> userIds = page.getRecords().stream().map(AuthorUserDO::getId).toList();
+        candidates.sort(Comparator.comparing(AuthorUserDO::getId, Comparator.nullsLast(Comparator.naturalOrder())).reversed());
+
+        long total = candidates.size();
+
+        int fromIndex = Math.max(0, (pn - 1) * ps);
+
+        if (fromIndex >= total) {
+
+            return new PageResult<>(Collections.emptyList(), total);
+
+        }
+
+        int toIndex = Math.min(fromIndex + ps, candidates.size());
+
+        List<AuthorUserDO> pageRecords = candidates.subList(fromIndex, toIndex);
+
+
+
+        List<Long> userIds = pageRecords.stream().map(AuthorUserDO::getId).toList();
 
         Map<Long, OaAuthorExtDO> extMap = loadExtMap(tenantId, userIds);
 
@@ -208,13 +260,13 @@ public class AuthorServiceImpl implements AuthorService {
 
         Map<Long, Long> displayIpGroupMap = loadDisplayIpGroupMap(tenantId, userIds, ipGroupId);
 
-        List<AuthorVO> list = page.getRecords().stream()
+        List<AuthorVO> list = pageRecords.stream()
 
                 .map(u -> toVO(u, extMap.get(u.getId()), displayIpGroupMap.get(u.getId())))
 
                 .collect(Collectors.toList());
 
-        return new PageResult<>(list, page.getTotal());
+        return new PageResult<>(list, total);
 
     }
 
@@ -804,6 +856,44 @@ public class AuthorServiceImpl implements AuthorService {
         }
 
         return authorResolveSupport.loadDisplayIpGroupIdByAuthor(tenantId, authorUserIds);
+
+    }
+
+
+
+    /**
+     * 无 keyword / IP 组筛选时的作者候选集：anchor_rel ∪ oa_author_ext → Feign getAuthors。
+     * Football 暂无 tenant 级 page RPC（G-MEM-02 缺口）；未绑定作者可能不在列表中。
+     */
+    private List<AuthorUserDO> loadTenantAuthorCandidates(Long tenantId) {
+
+        Set<Long> authorUserIds = new LinkedHashSet<>();
+
+        ipGroupAnchorRelMapper.selectList(new LambdaQueryWrapper<IpGroupAnchorRelDO>()
+
+                        .eq(IpGroupAnchorRelDO::getTenantId, tenantId))
+
+                .forEach(rel -> authorUserIds.add(rel.getAnchorUserId()));
+
+        oaAuthorExtMapper.selectList(new LambdaQueryWrapper<OaAuthorExtDO>()
+
+                        .eq(OaAuthorExtDO::getTenantId, tenantId))
+
+                .forEach(ext -> authorUserIds.add(ext.getAuthorUserId()));
+
+        if (authorUserIds.isEmpty()) {
+
+            return Collections.emptyList();
+
+        }
+
+        return memberAuthorReadService.loadByIds(authorUserIds).values().stream()
+
+                .filter(u -> Objects.equals(u.getTenantId(), tenantId))
+
+                .sorted(Comparator.comparing(AuthorUserDO::getId, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
+
+                .collect(Collectors.toList());
 
     }
 

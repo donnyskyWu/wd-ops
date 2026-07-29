@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.oa.service.author;
 
+import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.biz.member.author.AuthorApi;
 import cn.iocoder.yudao.framework.common.biz.member.author.dto.AuthorSimpleRespDTO;
 import cn.iocoder.yudao.framework.common.exception.OaErrorCodes;
@@ -57,6 +58,21 @@ public class MemberAuthorReadService {
                 .map(this::toAuthorUserDO)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(AuthorUserDO::getId, u -> u, (a, b) -> a));
+    }
+
+    /**
+     * keyword 列表：走 Football {@code getAuthorListByAuthorInfo}，并按 tenant 过滤。
+     */
+    public List<AuthorUserDO> listByKeyword(String keyword, Long tenantId) {
+        if (StrUtil.isBlank(keyword)) {
+            return Collections.emptyList();
+        }
+        List<AuthorSimpleRespDTO> authors = loadListByAuthorInfoViaFeign(keyword.trim());
+        return authors.stream()
+                .map(this::toAuthorUserDO)
+                .filter(Objects::nonNull)
+                .filter(u -> Objects.equals(u.getTenantId(), tenantId))
+                .collect(Collectors.toList());
     }
 
     public Set<Long> listAuthorUserIdsByLinkedUserIds(Collection<Long> userIds, Long tenantId) {
@@ -122,6 +138,23 @@ public class MemberAuthorReadService {
         }
         try {
             CommonResult<List<AuthorSimpleRespDTO>> result = authorApi.getAuthors(ids);
+            if (result == null || !result.isSuccess() || result.getData() == null) {
+                throw rpcUnavailable();
+            }
+            return result.getData();
+        } catch (ServiceException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw rpcUnavailable();
+        }
+    }
+
+    private List<AuthorSimpleRespDTO> loadListByAuthorInfoViaFeign(String param) {
+        if (authorApi == null) {
+            throw rpcUnavailable();
+        }
+        try {
+            CommonResult<List<AuthorSimpleRespDTO>> result = authorApi.getAuthorListByAuthorInfo(param);
             if (result == null || !result.isSuccess() || result.getData() == null) {
                 throw rpcUnavailable();
             }
