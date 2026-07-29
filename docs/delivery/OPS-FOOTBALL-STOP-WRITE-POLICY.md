@@ -66,7 +66,7 @@
 | **禁止** | OPS Flyway 新 migration 中 `INSERT`/`UPDATE`/`DELETE` 指向 `` `shenyu-system`.* ``、`` `shenyu-member`.* ``、`` `shenyu-mp`.* ``、`` `shenyu-pay`.* `` |
 | **历史** | V152 · V158 · V137 等 **保留**（已执行）；**禁止**新增同类脚本 |
 | **菜单 seed** | OPS **6100–6999** 菜单 seed **可保留**；勿再同步 Football 原生菜单树 |
-| **详细政策** | 见 [WORK-PLAN §B-WP3](./OPS-FOOTBALL-MERGE-WORK-PLAN.md#b-wp3　flyway--seed-所有权移交) |
+| **详细政策** | 见 [WORK-PLAN §B-WP3](./OPS-FOOTBALL-MERGE-WORK-PLAN.md#b-wp3　flyway--seed-所有权移交) · Football 库 schema/seed 由 football-backend-saas Flyway 负责 |
 | **依据** | CLEANUP §3.3 · ADR-050 数据归属原则 |
 
 ### 2.5 跨 Football 库直连写（member / mp / pay）

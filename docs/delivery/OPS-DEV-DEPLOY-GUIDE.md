@@ -1,17 +1,22 @@
-# Ops × Football 开发调试与部署操作指南
+﻿# Ops × Football 开发调试与部署操作指南
 
-> **版本**：v1.1 | 2026-07-10  
+> **版本**：v1.2 | 2026-07-23  
 > **性质**：运维/开发上手 SSOT（基于仓库现有脚本与配置，不编造未实现的 CI/CD）  
-> **关联**：[OPS-STARTUP-MATRIX](./OPS-STARTUP-MATRIX.md)（启动路径对比）· [INTEGRATION-PROGRESS](./INTEGRATION-PROGRESS.md) · [ADR-047](../adr/ADR-047-Football-Ops平台集成决策.md) · [ADR-050](../adr/ADR-050-Ops与Football多库复用总纲.md)
+> **关联**：[OPS-STARTUP-MATRIX](./OPS-STARTUP-MATRIX.md)（启动路径对比）· [INTEGRATION-PROGRESS](./INTEGRATION-PROGRESS.md) · [ADR-047](../adr/ADR-047-Football-Ops平台集成决策.md) · [ADR-050](../adr/ADR-050-Ops与Football多库复用总纲.md) · [ADR-056](../adr/ADR-056-Football用户身份SSOT.md)
 
 ### 快速启动（日常默认）
 
 ```powershell
 # 仓库根目录 — Gate / 集成栈一键启动（含 Redis/MySQL 预检，无需手改 redis-cli）
 .\scripts\start-ops-dev.ps1
+# OPS 页面重挂到 football-front（views/ops 缺失时脚本会自动 mount）：
+.\scripts\start-ops-dev.ps1 -MountOps
 ```
 
-登录：http://localhost:5777 · `admin` / `admin123` · 租户 **1**
+登录：http://localhost:5777 · `admin` / `admin123` · 租户 **1**  
+Gate 路径**不需要** `ops-platform-ui-vue :3000`。`football-front` / `football-backend-saas` 应在 Gitee **`ops`** 分支（见 [FOOTBALL-OPS-BRANCH.md](./FOOTBALL-OPS-BRANCH.md)）。
+
+**DB 默认 = 本地**：MySQL `localhost:3306`（`wd` / `shenyu-system` / `shenyu-member` / `shenyu-mp` / `shenyu-pay`，root/root）+ Redis `127.0.0.1:6379`（密码 `123456`）。**Beta 远程**（`110.42.49.224`）仅 opt-in：见 [OPS-TEST-DB.md](./OPS-TEST-DB.md)（`ops-test-remote.env` + `dev-test-beta`）。
 
 ---
 
@@ -22,7 +27,7 @@
 | 路径 | 用途 | 一键脚本 |
 |------|------|----------|
 | **B — Football 集成（Gate 路径，默认）** | Gate 签收、多库、Gateway 鉴权、5777 全菜单 E2E | **`.\scripts\start-ops-dev.ps1`**（推荐；内部调用 `start-integration-all.ps1`） |
-| **A — Ops Standalone** | 快速改 Ops 页面/API，无需 Football 壳 | `.\scripts\start-ops-standalone.ps1` |
+| **A — Ops Standalone** | 快速改 Ops 页面/API，无需 Football 壳；**非 Gate 签收路径** | `.\scripts\start-ops-standalone.ps1` |
 | **C — Standalone + Collector** | M10 采集真实联调（:8000 collector + :8080 oa） | `.\scripts\restart-all.ps1` |
 
 **生产目标形态**（ADR-047）：浏览器 → **football-front** → **Gateway :48080** → Nacos 发现 → 各微服务（含 **oa-server**）。Standalone `:3000/:8080` **不是**生产路径。
@@ -89,7 +94,7 @@ flowchart TB
 | `football-front/` | Football 前端壳（集成 UI :5777） |
 | `unify-collector-api/` | M10 统一采集 API（Python FastAPI :8000） |
 | `scripts/` | 一键启动/停止/验收 PowerShell 脚本 |
-| `docs/sql/` | Football 四库 SQL 快照（如 `shenyu-system0708.sql`，供本地灌库参考） |
+| `docs/sql/` | Football 四库 SQL 快照（如 `shenyu-system0708.sql`）；`wd-schema.sql` 为 wd **仅结构**导出（见 `scripts/export-wd-schema.py`） |
 
 ### 2.3 本地 MySQL 五库（集成路径 B 必需）
 
@@ -101,7 +106,7 @@ Integration / Gate 路径使用 **localhost:3306** 五个 schema（profile `dev-
 | `member` | `shenyu-member` | 作者域 SSOT |
 | `mp` | `shenyu-mp` | 微信公众号账号 |
 | `pay` | `shenyu-pay` | 订单只读 |
-| `system` | `shenyu-system` | Football 平台字典/日志 |
+| `system` | `shenyu-system` | Football 平台用户/角色/菜单/字典/日志（ADR-056：身份 + **OPS 菜单 RBAC** SSOT） |
 
 默认凭证（见 `application-dev-local-multidb.yml`）：**root / root**
 
@@ -165,6 +170,48 @@ playwright install chromium   # 扫码登录类平台需要
 
 **根因（已修复）**：旧版 `stop-integration-all.ps1` 在 `-Restart` 流程中会杀掉 :6379；Windows 本机 `redis-server` 以服务方式重启后**无密码**，而 Gateway/system 仍期望 **123456**，导致登录链失败、UI「内部服务错误」。现停止脚本默认保留 Redis 监听，启动脚本自动补设密码。
 
+### 2.7 OPS 菜单 seed → `shenyu-system`（ADR-056）
+
+system-server 本地 master 指向 **`localhost:3306/shenyu-system`** 后，Football 侧栏菜单从该库 `system_menu` / `system_role_menu` 读取。OPS 菜单块 **id 6100–6999**（权限前缀 `oa:*`）须灌入 **shenyu-system**，否则登录后看不到「运营数据」。
+
+| 产物 | 路径 |
+|------|------|
+| SQL（幂等 DELETE+INSERT） | `scripts/integration-config/seed-oa-system-menu.sql` |
+| UTF-8 导入器（**禁止** PowerShell 管道） | `scripts/integration-config/apply-seed-oa-menu.py` |
+| 菜单↔权限映射 | `docs/delivery/oa-menu-permission-map.csv` |
+| 从 Ops 路由重生成 SQL | `scripts/extract-oa-menu.py` |
+
+**本地五库灌入（推荐）**
+
+```powershell
+# 仓库根目录 — stdin utf8mb4，避免中文变成 ????
+python scripts/integration-config/apply-seed-oa-menu.py `
+  --host localhost --port 3306 --user root --password root `
+  --database shenyu-system
+```
+
+脚本行为：删除 `menu_id/id ∈ [6100,7000)` 的旧 OPS 行 → 插入完整菜单树 → 将全部 OPS 菜单授予 **`super_admin`（role_id=1, tenant_id=1）**。本地 `admin` 用户已绑定 role_id=1。
+
+**已执行记录（localhost）**：2026-07-23 对 `shenyu-system` 执行上述命令。灌入前 OPS 菜单 **5** / role_menu **5**（残留 6137–6139 等）；灌入后菜单 **71** / role_menu **61**；`get-permission-info` 可见顶级「运营数据」(`/ops`) 与「IP组管理」等。
+
+**校验 SQL**
+
+```sql
+SELECT COUNT(*) FROM `shenyu-system`.system_menu WHERE id >= 6100 AND id < 7000 AND deleted=0;
+SELECT id, name, path FROM `shenyu-system`.system_menu WHERE id IN (6100,6159,6168);
+```
+
+**UI 校验**：http://localhost:5777 以 `admin` / `admin123`（租户 1）登录 → 侧栏应出现 **运营数据** → **运营管理 → IP组管理**；或调 `GET /admin-api/system/auth/get-permission-info`（Bearer）确认 `menus` 含 id 6100 / 6159。
+
+**前端必须连本机 Gateway**（两处，改完后必须重启 `:5777`）：
+
+1. **主路径**：`football-front/apps/web-ele/vite.config.mts` 里 `/admin-api` 的 `proxy.target` → `http://localhost:48080/admin-api`（`apiURL`=`VITE_GLOB_API_URL`=`/admin-api`，请求走 Vite 代理；若仍指向 `110.42.49.224` / `192.168.10.x`，菜单管理/侧栏读**远程库**，本地 OPS 6100+ 不可见）。
+2. **辅路径**：`.env.development` 中 `VITE_BASE_URL=http://localhost:48080`（WebSocket / Swagger 等）。
+
+`start-integration-all.ps1` 预检会校验 proxy target。
+
+> Flyway `V159`/`V160` 作用于 **wd**（任务菜单拆分 / `sys_permission`），**不能**替代本 seed。历史文档若写「OPS 菜单在 wd.system_menu」，在 ADR-056 本地集成路径下以 **shenyu-system** 为准。
+
 ---
 
 ## 3. 开发调试启动
@@ -222,12 +269,15 @@ playwright install chromium   # 扫码登录类平台需要
 # 不杀已有进程，只补缺失服务
 .\scripts\start-ops-dev.ps1 -NoRestart
 
+# 强制重挂 OPS 到 football-front（views/ops 为空时会自动 mount）
+.\scripts\start-ops-dev.ps1 -MountOps
+
 # 无 UI / 无 Nacos
 .\scripts\start-ops-dev.ps1 -SkipFrontend
 .\scripts\start-ops-dev.ps1 -SkipNacos
 ```
 
-`start-ops-dev.ps1` 内部调用 `start-integration-all.ps1`，并做 Redis/MySQL/Docker 预检。
+`start-ops-dev.ps1` 内部调用 `start-integration-all.ps1`，并做 Redis/MySQL/Docker、**ops 分支告警**、**views/ops mount**、**vite → localhost:48080** 预检。Gate UI 为 `:5777`（`pnpm dev:ele`），**不启动** standalone `:3000`。
 
 #### 3.2.2 完整参数（start-integration-all.ps1）
 
@@ -400,6 +450,8 @@ if ($conn) { Stop-Process -Id $conn.OwningProcess -Force }
 | user/dict API 500（`user_type` 列） | schema 未 patch | 脚本会自动跑 `apply-system-role-menu-user-type.py`；或手动执行 |
 | collector 联调无数据 | stub 模式 | `oa.unified-collector.stub: false` + collector :8000 运行 |
 | Integration 用 dev-token 调 Gateway | 鉴权路径错误 | Gate 路径须 Football 登录 Bearer，**不用** dev-token |
+| 登录后无「运营数据」/ IP组管理 | `shenyu-system.system_menu` 未灌 OPS seed（6100+） | 按 §2.7 执行 `apply-seed-oa-menu.py --database shenyu-system`；重新登录 |
+| OPS 菜单中文 `????` | PowerShell 管道导入破坏 UTF-8 | 只用 `apply-seed-oa-menu.py`（utf8mb4 stdin），勿 `Get-Content \| mysql` |
 
 ---
 
@@ -543,6 +595,7 @@ docker build -t unify-collector-api:1.0.0 .
 | `stop-integration-all.ps1` | 停止集成栈（默认保留 Redis :6379；`-StopRedis` 显式释放） |
 | `start-ops-standalone.ps1` | Ops Standalone :3000/:8080 |
 | `restart-all.ps1` | Standalone + collector :8000/:8080/:3000 |
+| `start-collector.ps1` | 仅启动 unify-collector-api :8000（M10 采集） |
 | `start-integration-oa.ps1` | 仅 oa-server :48094（Nacos 集成 profile） |
 | `start-integration-stack.ps1` | Nacos + oa-server |
 | `start-nacos-local.ps1` | Docker 本地 Nacos |
@@ -553,6 +606,9 @@ docker build -t unify-collector-api:1.0.0 .
 | `lib/integration-preflight.ps1` | Redis/MySQL/Docker 预检（被 start-ops-dev 引用） |
 | `run-uat-football-e2e.ps1` | Football 58 路由 E2E |
 | `run-uat-browser-e2e.ps1` | Standalone 浏览器 E2E |
+| `integration-config/apply-seed-oa-menu.py` | OPS 菜单 seed → 目标库（本地须 `--database shenyu-system`，见 §2.7） |
+| `integration-config/seed-oa-system-menu.sql` | OPS `system_menu` + `super_admin` `system_role_menu`（6100–6999） |
+| `extract-oa-menu.py` | 从 Ops 路由重生成 seed SQL / CSV |
 
 Linux：`scripts/restart-all.sh`（Windows Git Bash 转调 `.ps1`）。
 

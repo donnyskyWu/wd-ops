@@ -196,8 +196,18 @@ oa-server 须激活：`dev,dev-nacos,dev-nacos-local`（及 multidb 若需五库
 | G-INF-01 | `GET :48082/.../presigned-url?path=test` | **HTTP 200** | |
 | G-MP-01 | `GET :48086/.../accountInfo/page` | **HTTP 200** | |
 | G-MEM-03 | `POST :48087/.../article/create` | **HTTP 200** | |
-| G-PAY-01 | `POST :48085/.../order/page` | **HTTP 000** | pay-server 未启动；G-PAY-01 代码 cutover 已完成 |
-| G-SYS-02 | OPS 业务步骤 | **待手验** | Feign-only 已落地 |
+| G-PAY-01 | `POST :48085/.../order/page` | **HTTP 200 · code 500** | pay-server UP；member-server :48087 DOWN 导致 permitted-ids Feign 失败 |
+| G-SYS-02 | `has-any-roles` / `simple-list` | **Pass（RPC）** | IP 组保存业务步骤待手验；见 [G-PAY-G-SYS-20260729.md](./e2e-artifacts/G-PAY-G-SYS-20260729.md) |
+
+### 5.2 MpUser 粉丝列表 Feign 手验（2026-07-29）
+
+| 项 | RPC / OPS | accountId | total | 结果 |
+|----|-----------|-----------|-------|------|
+| RPC | `GET :48086/rpc-api/mp/mpUser/getUserPageByAccount?accountId=1000002&pageNo=1&pageSize=10` + `tenant-id:1` | mp_account **1000002** | **13** | **Pass** |
+| OPS | `GET :48080/admin-api/oa/account/1000002/mp-followers?pageNo=1&pageSize=10` + dev-token | OPS 账号 **1000002** | **13** | **Pass** |
+| 负例 | `GET .../account/9006/mp-followers` | 非公众号 | — | **Pass**（1500） |
+
+详细记录：[MP-USER-FEIGN-20260729.md](./e2e-artifacts/MP-USER-FEIGN-20260729.md)
 
 **未 cutover（文档化原因）**
 
@@ -205,7 +215,7 @@ oa-server 须激活：`dev,dev-nacos,dev-nacos-local`（及 multidb 若需五库
 |----|------|
 | C-WP1 FootballAuthProvider token @DS | 需 Gateway/check 切轨（D-SYS-03） |
 | MemberAuthorReadService | 无 Feign 读路径 |
-| MpUserDataService | 无 Feign |
+| MpUserDataService | ~~无 Feign~~ → **2026-07-29 已 cutover** | 见 [MP-USER-FEIGN-20260729.md](./e2e-artifacts/MP-USER-FEIGN-20260729.md) |
 | SystemDictAdapter admin CRUD / typeExists | 平行字典管理 deprecated；仍 @DS |
 | FootballSystemUserValidator loadNicknames / resolveRoleIdByCode | roleId 映射与昵称批量读仍需 system @DS |
 | DevAuth / H2 legacy sys_user 桥接 | master DS；非 Football 库直连业务路径 |
