@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.biz.infra.file.FileApi;
 import cn.iocoder.yudao.framework.common.biz.member.article.ArticleApi;
 import cn.iocoder.yudao.framework.common.biz.member.author.AuthorApi;
 import cn.iocoder.yudao.framework.common.biz.mp.user.MpAccountInfoApi;
+import cn.iocoder.yudao.framework.common.biz.mp.user.MpUserApi;
 import cn.iocoder.yudao.framework.common.biz.pay.order.PayOrderApi;
 import cn.iocoder.yudao.framework.common.biz.system.dict.DictDataApi;
 import cn.iocoder.yudao.framework.common.biz.system.logger.OperateLogCommonApi;
@@ -34,6 +35,7 @@ import org.springframework.context.annotation.Primary;
         ArticleApi.class,
         AuthorApi.class,
         MpAccountInfoApi.class,
+        MpUserApi.class,
         FileApi.class,
         OAuth2TokenCommonApi.class
 })
