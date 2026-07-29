@@ -3,10 +3,11 @@ package cn.iocoder.yudao.module.oa.service.author;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.api.dto.author.AuthorVO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.account.MpAccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.author.AuthorUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.author.OaAuthorExtDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupAnchorRelDO;
-import cn.iocoder.yudao.module.oa.dal.mysql.account.MpAccountMapper;
+import cn.iocoder.yudao.module.oa.service.account.MpAccountDataService;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.author.OaAuthorExtMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupAnchorRelMapper;
@@ -47,7 +48,7 @@ class AuthorServiceImplFeignTest {
     @Mock
     private IpGroupAnchorRelMapper ipGroupAnchorRelMapper;
     @Mock
-    private MpAccountMapper mpAccountMapper;
+    private MpAccountDataService mpAccountDataService;
     @Mock
     private SysUserMapper sysUserMapper;
     @Mock
@@ -69,7 +70,7 @@ class AuthorServiceImplFeignTest {
                 memberAuthorReadService,
                 ipGroupMapper,
                 ipGroupAnchorRelMapper,
-                mpAccountMapper,
+                mpAccountDataService,
                 sysUserMapper,
                 opsAnchorRelMapper,
                 followerDailyMapper,
@@ -146,5 +147,35 @@ class AuthorServiceImplFeignTest {
         assertEquals(1L, page.getTotal());
         assertEquals("绑定作者", page.getList().get(0).getNickname());
         assertEquals(10L, page.getList().get(0).getIpGroupId());
+    }
+
+    @Test
+    @DisplayName("G-MP-01: list 主账号名称走 MpAccountDataService Feign")
+    void listPrimaryAccountNameViaFeign() {
+        AuthorUserDO user = new AuthorUserDO();
+        user.setId(1001L);
+        user.setNickname("作者甲");
+        user.setTenantId(TENANT_ID);
+        user.setStatus(0);
+        when(memberAuthorReadService.listByKeyword("作者", TENANT_ID)).thenReturn(List.of(user));
+
+        OaAuthorExtDO ext = new OaAuthorExtDO();
+        ext.setAuthorUserId(1001L);
+        ext.setTenantId(TENANT_ID);
+        ext.setStatus(1);
+        ext.setPrimaryMpAccountId(2001L);
+        when(oaAuthorExtMapper.selectList(any())).thenReturn(List.of(ext));
+        when(authorResolveSupport.loadDisplayIpGroupIdByAuthor(eq(TENANT_ID), any())).thenReturn(Map.of());
+
+        MpAccountDO mp = new MpAccountDO();
+        mp.setId(2001L);
+        mp.setName("测试公众号");
+        mp.setTenantId(TENANT_ID);
+        when(mpAccountDataService.selectById(2001L)).thenReturn(mp);
+
+        PageResult<AuthorVO> page = authorService.list(null, "作者", null, 1, 20);
+
+        verify(mpAccountDataService).selectById(2001L);
+        assertEquals("测试公众号", page.getList().get(0).getPrimaryAccountName());
     }
 }

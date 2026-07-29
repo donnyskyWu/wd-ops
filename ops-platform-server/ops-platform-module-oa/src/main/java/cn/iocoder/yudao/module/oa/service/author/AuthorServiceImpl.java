@@ -43,7 +43,7 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.operations.FollowerDailyDO;
 
 import cn.iocoder.yudao.module.oa.dal.dataobject.operations.OpsAnchorRelDO;
 
-import cn.iocoder.yudao.module.oa.dal.mysql.account.MpAccountMapper;
+import cn.iocoder.yudao.module.oa.service.account.MpAccountDataService;
 
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserMapper;
 
@@ -124,7 +124,7 @@ public class AuthorServiceImpl implements AuthorService {
 
     private final IpGroupAnchorRelMapper ipGroupAnchorRelMapper;
 
-    private final MpAccountMapper mpAccountMapper;
+    private final MpAccountDataService mpAccountDataService;
 
     private final SysUserMapper sysUserMapper;
 
@@ -610,17 +610,7 @@ public class AuthorServiceImpl implements AuthorService {
 
             vo.setRemark(ext.getRemark());
 
-            if (ext.getPrimaryMpAccountId() != null) {
-
-                MpAccountDO mp = mpAccountMapper.selectById(ext.getPrimaryMpAccountId());
-
-                if (mp != null) {
-
-                    vo.setPrimaryAccountName(mp.getName());
-
-                }
-
-            }
+            vo.setPrimaryAccountName(resolveMpAccountName(ext.getPrimaryMpAccountId()));
 
         }
 
@@ -811,17 +801,7 @@ public class AuthorServiceImpl implements AuthorService {
 
             vo.setRemark(ext.getRemark());
 
-            if (ext.getPrimaryMpAccountId() != null) {
-
-                MpAccountDO mp = mpAccountMapper.selectById(ext.getPrimaryMpAccountId());
-
-                if (mp != null) {
-
-                    vo.setPrimaryAccountName(mp.getName());
-
-                }
-
-            }
+            vo.setPrimaryAccountName(resolveMpAccountName(ext.getPrimaryMpAccountId()));
 
         }
 
@@ -901,13 +881,7 @@ public class AuthorServiceImpl implements AuthorService {
 
     private void validatePrimaryMpAccount(Long tenantId, Long mpAccountId, Long excludeAuthorUserId) {
 
-        MpAccountDO mp = mpAccountMapper.selectById(mpAccountId);
-
-        if (mp == null || !Objects.equals(mp.getTenantId(), tenantId)) {
-
-            throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
-
-        }
+        mpAccountDataService.requireById(mpAccountId, tenantId);
 
         LambdaQueryWrapper<OaAuthorExtDO> wrapper = new LambdaQueryWrapper<OaAuthorExtDO>()
 
@@ -952,6 +926,21 @@ public class AuthorServiceImpl implements AuthorService {
     }
 
 
+
+    private String resolveMpAccountName(Long mpAccountId) {
+        if (mpAccountId == null) {
+            return null;
+        }
+        try {
+            MpAccountDO mp = mpAccountDataService.selectById(mpAccountId);
+            return mp != null ? mp.getName() : null;
+        } catch (ServiceException ex) {
+            if (OaErrorCodes.ENTITY_NOT_EXISTS.getCode().equals(ex.getCode())) {
+                return null;
+            }
+            throw ex;
+        }
+    }
 
     private Long requireTenantId() {
 
