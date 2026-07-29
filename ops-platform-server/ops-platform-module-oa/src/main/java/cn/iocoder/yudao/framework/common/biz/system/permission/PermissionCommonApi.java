@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
  * Football system-server permission RPC (vendored subset, G-SYS-02).
  * Aligns with {@code football.module.system.api.permission.PermissionCommonApi#hasAnyRoles}.
  */
-@FeignClient(name = RpcConstants.SYSTEM_NAME, primary = false)
+@FeignClient(contextId = "permissionCommonApi", name = RpcConstants.SYSTEM_NAME, primary = false)
 public interface PermissionCommonApi {
 
     String PREFIX = RpcConstants.SYSTEM_PREFIX + "/permission";

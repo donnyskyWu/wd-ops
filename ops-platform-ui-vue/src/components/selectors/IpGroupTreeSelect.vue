@@ -19,13 +19,13 @@
     style="width: 100%"
     @change="handleChange"
   >
-    <template #default="{ data }">
-      <span class="tree-node">
-        <el-tag v-if="data.groupType" size="small" :type="groupTypeTag(data.groupType)" effect="plain" style="margin-right: 6px">
-          {{ data.groupType }}
+    <template #default="scope">
+      <span v-if="scope?.data" class="tree-node">
+        <el-tag v-if="scope.data.groupType" size="small" :type="groupTypeTag(scope.data.groupType)" effect="plain" style="margin-right: 6px">
+          {{ scope.data.groupType }}
         </el-tag>
-        <span>{{ data.groupName }}</span>
-        <span v-if="data.status === 0" style="color: #f56c6c; margin-left: 6px; font-size: 12px">已停用</span>
+        <span>{{ scope.data.groupName }}</span>
+        <span v-if="scope.data.status === 0" style="color: #f56c6c; margin-left: 6px; font-size: 12px">已停用</span>
       </span>
     </template>
   </el-tree-select>

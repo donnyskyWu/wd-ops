@@ -9,9 +9,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -43,6 +45,24 @@ public class OaAccountExtDataService {
                 .eq(OaAccountExtDO::getTenantId, tenantId)
                 .eq(OaAccountExtDO::getMpAccountId, mpAccountId)
                 .last("LIMIT 1"));
+    }
+
+    /** 按 IP 组反查公众号 mp_account_id（数据权限预过滤，避免先分页再过滤导致空页） */
+    @DS("master")
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public List<Long> listMpAccountIdsByIpGroupIds(Long tenantId, Collection<Long> ipGroupIds) {
+        if (tenantId == null || ipGroupIds == null || ipGroupIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return oaAccountExtMapper.selectList(new LambdaQueryWrapper<OaAccountExtDO>()
+                        .eq(OaAccountExtDO::getTenantId, tenantId)
+                        .in(OaAccountExtDO::getIpGroupId, ipGroupIds)
+                        .select(OaAccountExtDO::getMpAccountId))
+                .stream()
+                .map(OaAccountExtDO::getMpAccountId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     @DS("master")

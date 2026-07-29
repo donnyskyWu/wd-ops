@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.sop.SopNodeMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.SopReviewMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.home.TodoReminderSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class SopReviewServiceImpl implements SopReviewService {
     private final TaskMapper taskMapper;
     private final SopNodeMapper sopNodeMapper;
     private final SysUserMapper sysUserMapper;
+    private final TodoReminderSupport todoReminderSupport;
 
     @Override
     public List<SopReviewVO> pending(Long reviewerId) {
@@ -76,6 +78,7 @@ public class SopReviewServiceImpl implements SopReviewService {
             task.setUpdateTime(LocalDateTime.now());
             taskMapper.updateById(task);
         }
+        todoReminderSupport.onSopReviewStateChanged(review.getTenantId(), review.getTaskId());
     }
 
     @Override
@@ -98,6 +101,7 @@ public class SopReviewServiceImpl implements SopReviewService {
             task.setUpdateTime(LocalDateTime.now());
             taskMapper.updateById(task);
         }
+        todoReminderSupport.onSopReviewStateChanged(review.getTenantId(), review.getTaskId());
     }
 
     private void validateReviewer(SopReviewDO review) {

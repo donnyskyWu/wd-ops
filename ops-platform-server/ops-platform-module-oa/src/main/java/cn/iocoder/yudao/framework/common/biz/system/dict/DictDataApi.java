@@ -14,7 +14,7 @@ import java.util.List;
  * Football system-server dict RPC (vendored subset, G-DICT-01).
  * Aligns with {@code football.module.system.api.dict.DictDataApi} + {@code DictDataCommonApi}.
  */
-@FeignClient(name = RpcConstants.SYSTEM_NAME, primary = false)
+@FeignClient(contextId = "dictDataApi", name = RpcConstants.SYSTEM_NAME, primary = false)
 public interface DictDataApi {
 
     String PREFIX = RpcConstants.SYSTEM_PREFIX + "/dict-data";

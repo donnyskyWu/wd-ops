@@ -38,4 +38,7 @@ public interface HomeDashboardService {
     List<QuickActionVO> getQuickActions();
 
     void refresh();
+
+    /** 业务状态变更后失效租户下全部用户的首页缓存（待办/KPI 等）。 */
+    void refreshTenant(Long tenantId);
 }

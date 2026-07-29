@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+﻿import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
@@ -24,53 +24,56 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  // Phase A：standalone :3000 为 harness / 非 Gate（ADR-049 D6）。
+  // 目标态入口 = football-front :5777 + Gateway :48080（见 docs/delivery/FOOTBALL-OPS-BRANCH.md）。
   server: {
+    host: '127.0.0.1',
     port: 3000,
     open: true,
     proxy: {
       '/admin-api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:48080',
         changeOrigin: true,
       },
     },
   },
   build: {
-    // 代码分割优化
+    // 浠ｇ爜鍒嗗壊浼樺寲
     rollupOptions: {
       output: {
-        // 按模块分割chunk
+        // 鎸夋ā鍧楀垎鍓瞔hunk
         manualChunks: {
-          // Element Plus UI库单独打包
+          // Element Plus UI搴撳崟鐙墦鍖?
           'element-plus': ['element-plus'],
-          // ECharts图表库单独打包
+          // ECharts鍥捐〃搴撳崟鐙墦鍖?
           'echarts': ['echarts'],
-          // Vue核心库
+          // Vue鏍稿績搴?
           'vue-vendor': ['vue', 'vue-router', 'pinia'],
-          // VueFlow流程图
+          // VueFlow娴佺▼鍥?
           'vue-flow': ['@vue-flow/core', '@vue-flow/additional-components'],
         },
-        // 优化chunk文件名
+        // 浼樺寲chunk鏂囦欢鍚?
         chunkFileNames: 'js/[name]-[hash].js',
         entryFileNames: 'js/[name]-[hash].js',
         assetFileNames: '[ext]/[name]-[hash].[ext]',
       },
     },
-    // 启用Gzip压缩
+    // 鍚敤Gzip鍘嬬缉
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // 生产环境移除console
+        drop_console: true, // 鐢熶骇鐜绉婚櫎console
         drop_debugger: true,
       },
     },
-    // chunk大小警告阈值
+    // chunk澶у皬璀﹀憡闃堝€?
     chunkSizeWarningLimit: 1000,
-    // 启用CSS代码分割
+    // 鍚敤CSS浠ｇ爜鍒嗗壊
     cssCodeSplit: true,
-    // 启用sourcemap（生产环境可关闭）
+    // 鍚敤sourcemap锛堢敓浜х幆澧冨彲鍏抽棴锛?
     sourcemap: false,
   },
-  // 依赖预构建优化
+  // 渚濊禆棰勬瀯寤轰紭鍖?
   optimizeDeps: {
     include: [
       'vue',
@@ -81,7 +84,7 @@ export default defineConfig({
     ],
     exclude: [],
   },
-  // 生产环境插件
+  // 鐢熶骇鐜鎻掍欢
   ...(process.env.NODE_ENV === 'production' ? {
     plugins: [
       visualizer({

@@ -65,14 +65,14 @@ export const mockCollectLogs: CollectLogVO[] = [
 ]
 
 export const mockQualityChecks: QualityCheckVO[] = [
-  { id: 1, name: '账号粉丝数非空', checkType: 'NOT_NULL', level: 'ERROR', tableName: 'oa_account', rule: 'follower_count IS NOT NULL', enabled: true, lastCheckAt: '2026-06-08 09:00:00', passRate: 99.5 },
-  { id: 2, name: '内容标题长度检查', checkType: 'RANGE', level: 'WARN', tableName: 'oa_content', rule: 'CHAR_LENGTH(title) BETWEEN 5 AND 100', enabled: true, lastCheckAt: '2026-06-08 09:00:00', passRate: 87.3 },
-  { id: 3, name: '订单金额一致性', checkType: 'CONSISTENT', level: 'ERROR', tableName: 'oa_order', rule: 'amount == quantity * unit_price', enabled: true, lastCheckAt: '2026-06-08 09:00:00', passRate: 100 },
-  { id: 4, name: '作品发布平台分布', checkType: 'DISTRIBUTION', level: 'INFO', tableName: 'oa_works', rule: 'platform_type IN allowed_list', enabled: false, lastCheckAt: '-', passRate: undefined },
+  { id: 1, name: '账号粉丝数非空', checkType: 'COMPLETENESS', level: 'EXCELLENT', tableName: 'oa_account', rule: 'follower_count IS NOT NULL', enabled: true, lastCheckAt: '2026-06-08 09:00:00', passRate: 99.5 },
+  { id: 2, name: '内容标题长度检查', checkType: 'ACCURACY', level: 'GOOD', tableName: 'oa_content', rule: 'CHAR_LENGTH(title) BETWEEN 5 AND 100', enabled: true, lastCheckAt: '2026-06-08 09:00:00', passRate: 87.3 },
+  { id: 3, name: '订单金额一致性', checkType: 'CONSISTENCY', level: 'EXCELLENT', tableName: 'oa_order', rule: 'amount == quantity * unit_price', enabled: true, lastCheckAt: '2026-06-08 09:00:00', passRate: 100 },
+  { id: 4, name: '作品发布平台分布', checkType: 'TIMELINESS', level: 'MEDIUM', tableName: 'oa_works', rule: 'platform_type IN allowed_list', enabled: false, lastCheckAt: '-', passRate: undefined },
 ]
 
 export const mockQualityLogs: QualityLogVO[] = [
-  { id: 1, checkId: 1, checkName: '账号粉丝数非空', checkTime: '2026-06-08 09:00:00', totalCount: 2450, passCount: 2438, failCount: 12, level: 'ERROR' },
-  { id: 2, checkId: 2, checkName: '内容标题长度检查', checkTime: '2026-06-08 09:00:00', totalCount: 1280, passCount: 1117, failCount: 163, level: 'WARN' },
-  { id: 3, checkId: 3, checkName: '订单金额一致性', checkTime: '2026-06-08 09:00:00', totalCount: 5680, passCount: 5680, failCount: 0, level: 'ERROR' },
+  { id: 1, checkId: 1, checkName: '账号粉丝数非空', checkTime: '2026-06-08 09:00:00', totalCount: 2450, passCount: 2438, failCount: 12, level: 'EXCELLENT' },
+  { id: 2, checkId: 2, checkName: '内容标题长度检查', checkTime: '2026-06-08 09:00:00', totalCount: 1280, passCount: 1117, failCount: 163, level: 'GOOD' },
+  { id: 3, checkId: 3, checkName: '订单金额一致性', checkTime: '2026-06-08 09:00:00', totalCount: 5680, passCount: 5680, failCount: 0, level: 'EXCELLENT' },
 ]

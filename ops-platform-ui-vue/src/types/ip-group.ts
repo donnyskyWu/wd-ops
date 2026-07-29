@@ -47,8 +47,8 @@ export interface IpGroupTreeVO {
   parentId: number | null
   /** 父级名称 */
   parentName: string | null
-  /** 组长ID */
-  leaderId: number | null
+  /** 组长ID（JSON 字符串，避免雪花 id 精度丢失） */
+  leaderId: string | null
   /** 组长姓名 */
   leaderName: string | null
   /** 成员数量（仅小组有） */
@@ -109,8 +109,8 @@ export interface IpGroupSaveReqVO {
   groupType: IpGroupType
   /** 父级ID（小组必填，大组必须为null） */
   parentId: number | null
-  /** 组长ID */
-  leaderId?: number | null
+  /** 组长ID（JSON 字符串） */
+  leaderId?: string | null
   /** 状态：0=停用，1=启用 */
   status: IpGroupStatus
   /** IP组等级 dict_ip_group_level: S/A/B/C */

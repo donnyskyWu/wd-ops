@@ -32,17 +32,21 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { appendFileAuth } from '@/utils/fileUrl'
-import { IMAGE_ACCEPT, uploadContentImage, validateImageFile } from '@/api/file'
+import { IMAGE_ACCEPT, OA_FILE_VIEW_PREFIX, uploadContentImage, validateImageFile } from '@/api/file'
 
-const OA_FILE_VIEW_PREFIX = '/admin-api/oa/file/view?key='
-
-/** Build preview URL from storage key when API omits previewUrl (edit reload path). */
+/** Build preview URL from storage key / infra url when API omits previewUrl. */
 function viewUrlForKey(key: string): string {
   if (!key) return ''
-  if (key.startsWith('/admin-api/') || key.startsWith('http://') || key.startsWith('https://')) {
+  if (
+    key.startsWith('/admin-api/')
+    || key.startsWith('http://')
+    || key.startsWith('https://')
+    || key.startsWith('//')
+  ) {
     return key
   }
-  return OA_FILE_VIEW_PREFIX + key
+  // 历史本地盘 key（tenantId/...）过渡预览；新上传为 infra url
+  return OA_FILE_VIEW_PREFIX + encodeURIComponent(key)
 }
 
 const props = defineProps<{

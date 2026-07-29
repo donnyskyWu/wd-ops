@@ -403,3 +403,92 @@ export function plainTextToHtml(text: string): string {
   if (!paragraphs.length) return '<p></p>'
   return paragraphs.map((p) => `<p>${escapeHtml(p.replace(/\n/g, ' '))}</p>`).join('')
 }
+
+export function isEmptyContentHtml(html: string): boolean {
+  return !extractPlainText(html || '').trim()
+}
+
+const LAYOUT_ARTICLE_RE =
+  /^<section[^>]*class=["'][^"']*layout-article[^"']*["'][^>]*>([\s\S]*)<\/section>$/i
+
+/** Strip outer layout-article wrapper so merged view keeps one section shell. */
+export function unwrapLayoutArticle(html: string): string {
+  const trimmed = (html || '').trim()
+  if (!trimmed) return ''
+  const match = trimmed.match(LAYOUT_ARTICLE_RE)
+  return match ? match[1].trim() : trimmed
+}
+
+/** Ensure a single layout-article wrapper for LayoutViewer. */
+export function ensureCombinedLayoutArticle(html: string): string {
+  const trimmed = (html || '').trim()
+  if (!trimmed) return '<section class="layout-article"><p></p></section>'
+  if (LAYOUT_ARTICLE_RE.test(trimmed)) return trimmed
+  return `<section class="layout-article">${trimmed}</section>`
+}
+
+function resolveStoredBodyHtml(
+  stored: string | undefined,
+  editorHtml?: string,
+): string {
+  if (editorHtml && !isEmptyContentHtml(editorHtml)) {
+    return editorHtml
+  }
+  const source = stored || ''
+  if (!source.trim()) return '<p></p>'
+  if (source.includes('<')) return sanitizeLayoutHtml(source)
+  return plainTextToHtml(source)
+}
+
+function resolveStoredHtmlField(stored: string | undefined): string | undefined {
+  const source = stored?.trim()
+  if (!source) return undefined
+  if (source.includes('<') && !isEmptyContentHtml(source)) {
+    return sanitizeLayoutHtml(source)
+  }
+  return undefined
+}
+
+/** Resolve paid body HTML for readonly display (preserves WeChat inline styles). */
+export function resolvePaidContentHtml(options: {
+  bodyFormat?: string
+  layoutHtml?: string
+  layoutJson?: LayoutDocument
+  paidBody?: string
+  body?: string
+  editorHtml?: string
+}): string {
+  if (options.layoutHtml?.trim()) {
+    return options.layoutHtml
+  }
+  if (options.editorHtml && !isEmptyContentHtml(options.editorHtml)) {
+    return options.editorHtml
+  }
+  const storedHtml = resolveStoredHtmlField(options.paidBody) ?? resolveStoredHtmlField(options.body)
+  if (storedHtml) {
+    return storedHtml
+  }
+  if (options.bodyFormat === 'LAYOUT' && options.layoutJson?.blocks?.length) {
+    return renderLayoutHtml(options.layoutJson)
+  }
+  return resolveStoredBodyHtml(options.paidBody || options.body, undefined)
+}
+
+/** Resolve free body HTML for readonly display. */
+export function resolveFreeContentHtml(options: {
+  freeBody?: string
+  editorHtml?: string
+}): string {
+  return resolveStoredBodyHtml(options.freeBody, options.editorHtml)
+}
+
+/** View mode: merge free (preview) + paid body in display order. */
+export function combineContentHtml(freeHtml: string, paidHtml: string): string {
+  const freeEmpty = isEmptyContentHtml(freeHtml)
+  const paidEmpty = isEmptyContentHtml(paidHtml)
+  if (freeEmpty && paidEmpty) return '<p></p>'
+  if (freeEmpty) return ensureCombinedLayoutArticle(paidHtml || '<p></p>')
+  if (paidEmpty) return ensureCombinedLayoutArticle(freeHtml || '<p></p>')
+  const merged = `${unwrapLayoutArticle(freeHtml)}${unwrapLayoutArticle(paidHtml)}`
+  return ensureCombinedLayoutArticle(merged)
+}

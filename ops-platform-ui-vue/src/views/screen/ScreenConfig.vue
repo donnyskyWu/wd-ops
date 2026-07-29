@@ -470,6 +470,7 @@ interface ListFieldRow {
 }
 
 const NEW_TEMPLATE = -1
+let userChangedTemplate = false
 interface QueryOption { id: number; queryName: string; sqlText?: string; paramsJson?: string }
 interface MetricOption { id: number; metricName: string; metricFormula?: string; dataSource?: string }
 
@@ -712,15 +713,28 @@ const loadTemplate = (row: DashboardVO) => {
   loadPreviewData()
 }
 
-const onTemplateSelect = (id: number) => {
-  if (id === NEW_TEMPLATE) {
+const isNewTemplateId = (id: number | string | typeof NEW_TEMPLATE) => Number(id) === NEW_TEMPLATE
+
+const onTemplateSelect = (id: number | string) => {
+  userChangedTemplate = true
+  if (isNewTemplateId(id)) {
     selectedId.value = NEW_TEMPLATE
-    resetForm('INTERNAL')
+    // 仅从已加载模板切到新建时清空；避免 el-select 重复 @change 清空已添加组件
+    if (formMeta.id != null) {
+      resetForm('INTERNAL')
+    }
     return
   }
-  const row = list.value.find((d) => d.id === id)
+  const numId = Number(id)
+  const row = list.value.find((d) => d.id === numId)
   if (row) loadTemplate(row)
 }
+
+watch(selectedId, (id, prev) => {
+  if (prev != null && isNewTemplateId(id) && !isNewTemplateId(prev)) {
+    resetForm('INTERNAL')
+  }
+})
 
 const onScopeChange = () => {
   layout.widgets = layout.widgets.filter((w) => {
@@ -1031,7 +1045,7 @@ onMounted(async () => {
   }
   await loadList()
   await loadPickers()
-  if (list.value.length) {
+  if (list.value.length && !userChangedTemplate && isNewTemplateId(selectedId.value)) {
     selectedId.value = list.value[0].id
     loadTemplate(list.value[0])
   }

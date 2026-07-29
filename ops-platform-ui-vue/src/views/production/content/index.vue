@@ -51,7 +51,9 @@
           </template>
         </el-table-column>
         <el-table-column prop="accountName" label="发布账号" width="140" show-overflow-tooltip />
-        <el-table-column prop="creatorUserName" label="创作者" width="100" />
+        <el-table-column prop="authorName" label="作者" width="100">
+          <template #default="{ row }">{{ row.authorName || '-' }}</template>
+        </el-table-column>
         <el-table-column prop="ipGroupName" label="IP组" width="120" show-overflow-tooltip>
           <template #default="{ row }">{{ row.ipGroupName || '-' }}</template>
         </el-table-column>
@@ -257,6 +259,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Download } from '@element-plus/icons-vue'
 import { exportToExcel, formatDateTime } from '@/utils'
+import { extractApiErrorMessage } from '@/utils/apiError'
 import {
   getContentList,
   submitContentReview,
@@ -380,7 +383,8 @@ const loadData = async () => {
     pagination.total = result.total
   } catch (error) {
     console.error('加载内容数据失败:', error)
-    ElMessage.error('数据加载失败，请重试')
+    const detail = extractApiErrorMessage(error, '系统错误')
+    ElMessage.error(`数据加载失败，请重试：${detail}`)
   } finally {
     loading.value = false
   }
@@ -527,7 +531,7 @@ const handleExport = () => {
     contentType: row.contentType,
     platformType: row.platformType,
     accountName: row.accountName,
-    creatorUserName: row.creatorUserName,
+    authorName: row.authorName || '-',
     ipGroupName: row.ipGroupName || '-',
     aiGenerated: row.aiGenerated === 1 ? '是' : '否',
     status: row.status,
@@ -538,7 +542,7 @@ const handleExport = () => {
     { key: 'contentType', label: '类型' },
     { key: 'platformType', label: '平台' },
     { key: 'accountName', label: '发布账号' },
-    { key: 'creatorUserName', label: '创作者' },
+    { key: 'authorName', label: '作者' },
     { key: 'ipGroupName', label: 'IP组' },
     { key: 'aiGenerated', label: 'AI生成' },
     { key: 'status', label: '状态' },

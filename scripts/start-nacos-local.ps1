@@ -1,4 +1,4 @@
-ï»¿# start-nacos-local.ps1 â€” Standalone Nacos 2.x for local Football/OA integration
+# start-nacos-local.ps1 ¡ª Standalone Nacos 2.x for local Football/OA integration
 #
 # Requires Docker Desktop (or docker CLI on PATH).
 # Console: http://127.0.0.1:8848/nacos  (username/password: nacos / nacos)

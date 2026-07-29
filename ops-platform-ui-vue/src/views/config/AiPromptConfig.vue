@@ -70,18 +70,28 @@
         <el-table-column prop="scene" label="应用场景" width="120" align="center">
           <template #default="{ row }">
             <el-tag :type="getSceneTagType(row.scene)">
-              {{ getSceneLabel(row.scene) }}
+              <DictLabel dict-type="dict_ai_scene" :value="row.scene" />
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="contentType" label="内容类型" width="100" align="center" />
-        <el-table-column prop="documentType" label="文档类型" width="120" align="center" />
+        <el-table-column prop="contentType" label="内容类型" width="100" align="center">
+          <template #default="{ row }">
+            <DictLabel v-if="row.contentType" dict-type="dict_content_type" :value="row.contentType" />
+            <span v-else>—</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="documentType" label="文档类型" width="120" align="center">
+          <template #default="{ row }">
+            <DictLabel v-if="row.documentType" dict-type="dict_document_type" :value="row.documentType" />
+            <span v-else>—</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="promptContent" label="提示词内容" min-width="300" show-overflow-tooltip />
         <el-table-column prop="version" label="版本" width="80" align="center" />
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 'ENABLED' ? 'success' : 'danger'">
-              {{ row.status === 'ENABLED' ? '启用' : '停用' }}
+              <DictLabel dict-type="dict_config_status" :value="row.status" />
             </el-tag>
           </template>
         </el-table-column>
@@ -201,11 +211,17 @@
         <el-descriptions-item label="模板名称">{{ viewData.templateName }}</el-descriptions-item>
         <el-descriptions-item label="应用场景">
           <el-tag :type="getSceneTagType(viewData.scene)">
-            {{ getSceneLabel(viewData.scene) }}
+            <DictLabel dict-type="dict_ai_scene" :value="viewData.scene" />
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="内容类型">{{ viewData.contentType || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="文档类型">{{ viewData.documentType || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="内容类型">
+          <DictLabel v-if="viewData.contentType" dict-type="dict_content_type" :value="viewData.contentType" />
+          <span v-else>—</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="文档类型">
+          <DictLabel v-if="viewData.documentType" dict-type="dict_document_type" :value="viewData.documentType" />
+          <span v-else>—</span>
+        </el-descriptions-item>
         <el-descriptions-item label="版本">{{ viewData.version }}</el-descriptions-item>
         <el-descriptions-item label="提示词内容">
           <div style="white-space: pre-wrap; background: #f5f7fa; padding: 12px; border-radius: 4px;">
@@ -218,7 +234,7 @@
         <el-descriptions-item label="温度参数">{{ viewData.temperature }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="viewData.status === 'ENABLED' ? 'success' : 'danger'">
-            {{ viewData.status === 'ENABLED' ? '启用' : '停用' }}
+            <DictLabel dict-type="dict_config_status" :value="viewData.status" />
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="备注" v-if="viewData.remark">
@@ -238,6 +254,7 @@ import ContentWrap from '@/components/ContentWrap.vue'
 import TableSearch from '@/components/TableSearch.vue'
 import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictLabel from '@/components/DictLabel.vue'
 import {
   fetchAiPromptList,
   createAiPrompt,
@@ -330,9 +347,9 @@ function mapRow(row: AiPromptConfigVO): AiPromptTemplate {
     promptContent: row.promptContent,
     variableDesc: row.variableDesc,
     temperature: row.temperature ?? 0.7,
-    version: 'v1.0',
+    version: row.version || 'v1',
     status: (row.status as 'ENABLED' | 'DISABLED') || 'ENABLED',
-    updateTime: row.createTime || '-',
+    updateTime: row.updateTime || row.createTime || '-',
     remark: row.remark,
   }
 }
@@ -382,20 +399,7 @@ watch(activeTab, () => {
 })
 
 // ==================== 辅助函数 ====================
-const getSceneLabel = (scene: string) => {
-  const map: Record<string, string> = {
-    SHORT_VIDEO: '短视频文案',
-    LIVE_SCRIPT: '直播脚本',
-    XIAOHONGSHU: '小红书笔记',
-    WECHAT_ARTICLE: '公众号文章',
-    DATA_ANALYSIS: '数据分析',
-    REPORT: '周报月报',
-    COMPETITOR: '竞品分析'
-  }
-  return map[scene] || scene
-}
-
-const getSceneTagType = (scene: string) => {
+const getSceneTagType = (scene?: string) => {
   const map: Record<string, any> = {
     SHORT_VIDEO: '',
     LIVE_SCRIPT: 'success',

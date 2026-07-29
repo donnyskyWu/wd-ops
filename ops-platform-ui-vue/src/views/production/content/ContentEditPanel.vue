@@ -100,7 +100,7 @@
         />
       </el-form-item>
 
-      <el-form-item v-if="formData.contentId && showAiTextGenerate" label="售价">
+      <el-form-item v-if="showPriceField" label="售价">
         <div class="price-field">
           <el-input-number
             v-model="formData.price"
@@ -139,6 +139,23 @@
       </el-form-item>
 
       <template v-if="showArticleLayout">
+        <template v-if="effectiveReadonly">
+          <el-form-item label="付费内容">
+            <LayoutViewer
+              v-if="!loading"
+              :key="`${formData.contentId ?? 'new'}-paid`"
+              :html="displayRichHtml"
+            />
+          </el-form-item>
+          <el-form-item label="免费内容">
+            <LayoutViewer
+              v-if="!loading"
+              :key="`${formData.contentId ?? 'new'}-free`"
+              :html="displayFreeHtml"
+            />
+          </el-form-item>
+        </template>
+        <template v-else>
         <el-form-item v-if="showAiTextGenerate" label="方案正文">
           <el-tabs v-model="bodyContentTab" class="body-content-tabs">
             <el-tab-pane label="付费内容" name="paid" />
@@ -222,20 +239,92 @@
             <el-button @click="editorMaximized = false">还原</el-button>
           </div>
         </div>
-        <div v-show="bodyContentTab === 'free'" class="free-body-editor">
-          <el-form-item label="免费内容">
-            <RichTextEditor
-              v-if="!effectiveReadonly"
-              v-model="freeBodyHtml"
-              placeholder="请输入免费内容（预览/引流文案，可选）"
-              :min-height="EDITOR_FRAME_MIN"
-            />
-            <LayoutViewer v-else :html="displayFreeHtml" />
-          </el-form-item>
+        <div v-show="bodyContentTab === 'free'" :class="['article-edit-shell', { 'is-maximized': freeEditorMaximized }]">
+          <div v-if="!effectiveReadonly" class="article-edit-toolbar">
+            <span v-if="freeEditorMaximized" class="article-edit-maximized-title">免费内容编辑（全屏）</span>
+            <div class="article-edit-toolbar-actions">
+              <el-button
+                v-if="!freeEditorMaximized"
+                size="small"
+                :icon="FullScreen"
+                @click="toggleFreeEditorMaximize"
+              >
+                最大化
+              </el-button>
+              <el-button
+                v-if="freeEditorMaximized"
+                size="small"
+                :icon="CloseBold"
+                @click="freeEditorMaximized = false"
+              >
+                还原
+              </el-button>
+              <el-button
+                v-if="!freeEditorMaximized"
+                size="small"
+                type="primary"
+                plain
+                @click="openQuickTypesetDialog"
+              >
+                一键排版
+              </el-button>
+              <el-button
+                v-if="!freeEditorMaximized"
+                size="small"
+                :icon="freeLayoutPanelCollapsed ? Expand : Fold"
+                @click="freeLayoutPanelCollapsed = !freeLayoutPanelCollapsed"
+              >
+                {{ freeLayoutPanelCollapsed ? '展开版式工作台' : '收起版式工作台' }}
+              </el-button>
+            </div>
+          </div>
+          <el-row :gutter="16" class="article-edit-row">
+            <el-col
+              :xs="24"
+              :md="effectiveReadonly || freeLayoutPanelCollapsed || freeEditorMaximized ? 24 : 14"
+            >
+              <el-form-item label="免费内容">
+                <RichTextEditor
+                  v-if="!effectiveReadonly"
+                  ref="freeEditorRef"
+                  v-model="freeBodyHtml"
+                  :placeholder="freeEditorMaximized ? '全屏编辑模式，按 Esc 可还原' : '请输入免费内容（预览/引流文案，可选）'"
+                  :min-height="freeEditorMaximized ? '0' : EDITOR_FRAME_MIN"
+                  :fill-height="freeEditorMaximized"
+                />
+                <LayoutViewer v-else :html="displayFreeHtml" />
+              </el-form-item>
+            </el-col>
+            <el-col v-if="!effectiveReadonly && !freeLayoutPanelCollapsed && !freeEditorMaximized" :xs="24" :md="10">
+              <LayoutResourceSidebar
+                :document-type="formData.documentType"
+                :body="sidebarFreeBodyText"
+                :html="freeBodyHtml"
+                :existing-layout-json="freeLayoutJson"
+                :insert-html="insertHtmlAtCursorFree"
+                :apply-style-to-selection="applyStyleToSelectionFree"
+                @template-applied="handleFreeSidebarTemplateApplied"
+                @typeset-applied="handleFreeSidebarTypesetApplied"
+              />
+            </el-col>
+          </el-row>
+          <div v-if="freeEditorMaximized && !effectiveReadonly" class="article-edit-maximized-footer">
+            <el-button type="primary" :loading="saving" :disabled="!canEdit" @click="handleSaveDraft">保存</el-button>
+            <el-button @click="freeEditorMaximized = false">还原</el-button>
+          </div>
         </div>
+        </template>
       </template>
 
       <template v-else-if="showBody">
+        <el-form-item v-if="effectiveReadonly" label="内容">
+          <LayoutViewer
+            v-if="!loading"
+            :key="formData.contentId ?? 'new'"
+            :html="displayCombinedHtml"
+          />
+        </el-form-item>
+        <template v-else>
         <el-form-item v-if="showAiTextGenerate" label="方案正文">
           <el-tabs v-model="bodyContentTab" class="body-content-tabs">
             <el-tab-pane label="付费内容" name="paid" />
@@ -244,22 +333,19 @@
         </el-form-item>
         <el-form-item v-show="bodyContentTab === 'paid'" label="付费内容" prop="body">
           <RichTextEditor
-            v-if="!effectiveReadonly"
             v-model="richBodyHtml"
             placeholder="请输入付费内容，支持富文本排版"
             :min-height="EDITOR_FRAME_MIN"
           />
-          <LayoutViewer v-else :html="displayRichHtml" />
         </el-form-item>
         <el-form-item v-show="bodyContentTab === 'free'" label="免费内容">
           <RichTextEditor
-            v-if="!effectiveReadonly"
             v-model="freeBodyHtml"
             placeholder="请输入免费内容（预览/引流文案，可选）"
             :min-height="EDITOR_FRAME_MIN"
           />
-          <LayoutViewer v-else :html="displayFreeHtml" />
         </el-form-item>
+        </template>
       </template>
 
       <template v-if="showVideoFields">
@@ -329,7 +415,7 @@
       v-model="quickTypesetVisible"
       :title="formData.title"
       :author="authorLabel"
-      :body-html="richBodyHtml"
+      :body-html="quickTypesetSourceHtml"
       @apply="handleQuickTypesetApply"
     />
   </div>
@@ -356,6 +442,9 @@ import {
   renderLayoutHtml,
   sanitizeLayoutHtml,
   ensureLayoutArticleHtml,
+  combineContentHtml,
+  resolvePaidContentHtml,
+  resolveFreeContentHtml,
 } from '@/utils/layoutSync'
 import { markdownToHtml } from '@/utils/markdownHtml'
 import { applyLayoutTemplate, previewApplyLayoutTemplate, previewTemplateMerge } from '@/api/layoutTemplate'
@@ -550,6 +639,10 @@ const footballScheme = reactive({
 const bodyContentTab = ref<'paid' | 'free'>('paid')
 const freeBodyHtml = ref('<p></p>')
 const freeSyncing = ref(false)
+const freeEditorRef = ref<InstanceType<typeof RichTextEditor> | null>(null)
+const freeEditorMaximized = ref(false)
+const freeLayoutPanelCollapsed = ref(true)
+const freeLayoutJson = ref<LayoutDocument>(emptyLayoutDocument())
 
 const showDocumentType = computed(() => formData.contentType === 'ARTICLE')
 const showArticleLayout = computed(() => formData.contentType === 'ARTICLE')
@@ -557,6 +650,8 @@ const templateDialogVisible = ref(false)
 const quickTypesetVisible = ref(false)
 const richBodyHtml = ref('<p></p>')
 const richSyncing = ref(false)
+/** Blocks layoutJson→HTML sync while hydrating detail from API (layoutHtml is SSOT). */
+const contentHydrating = ref(false)
 const layoutJsonFromRichEditor = ref(false)
 const editorMaximized = ref(false)
 const layoutPanelCollapsed = ref(true)
@@ -569,8 +664,16 @@ function insertHtmlAtCursor(html: string) {
   richEditorRef.value?.insertHtmlAtCursor(html)
 }
 
+function insertHtmlAtCursorFree(html: string) {
+  freeEditorRef.value?.insertHtmlAtCursor(html)
+}
+
 function applyStyleToSelection(html: string) {
   richEditorRef.value?.applyStyleToSelection(html)
+}
+
+function applyStyleToSelectionFree(html: string) {
+  freeEditorRef.value?.applyStyleToSelection(html)
 }
 
 function handleSidebarTemplateApplied(payload: {
@@ -593,8 +696,48 @@ function handleSidebarTemplateApplied(payload: {
   }
 }
 
+function handleFreeSidebarTemplateApplied(payload: {
+  layoutJson: unknown
+  layoutHtml: string
+  templateId: number
+  mode: string
+}) {
+  freeSyncing.value = true
+  try {
+    freeLayoutJson.value = payload.layoutJson as LayoutDocument
+    freeBodyHtml.value = payload.layoutHtml || ''
+    syncFreeToForm(freeBodyHtml.value)
+  } finally {
+    nextTick(() => {
+      freeSyncing.value = false
+    })
+  }
+}
+
+function handleFreeSidebarTypesetApplied(payload: {
+  html: string
+  layoutJson?: unknown
+  templateId?: number
+  mode: string
+}) {
+  freeSyncing.value = true
+  try {
+    if (payload.mode === 'TEMPLATE' && payload.layoutJson) {
+      freeLayoutJson.value = payload.layoutJson as LayoutDocument
+    }
+    freeBodyHtml.value = payload.html
+    syncFreeToForm(payload.html)
+  } finally {
+    nextTick(() => {
+      freeSyncing.value = false
+    })
+  }
+}
+
 function openQuickTypesetDialog() {
-  const bodyText = extractPlainText(richBodyHtml.value) || formData.body?.trim()
+  const isFreeTab = bodyContentTab.value === 'free'
+  const html = isFreeTab ? freeBodyHtml.value : richBodyHtml.value
+  const bodyText = extractPlainText(html) || (isFreeTab ? formData.freeBody?.trim() : formData.body?.trim())
   if (!formData.title?.trim() && !bodyText) {
     ElMessage.warning('请先填写标题或正文，再使用一键排版')
     return
@@ -603,6 +746,21 @@ function openQuickTypesetDialog() {
 }
 
 function handleQuickTypesetApply(html: string) {
+  if (bodyContentTab.value === 'free') {
+    freeSyncing.value = true
+    try {
+      const layoutHtml = ensureLayoutArticleHtml(html)
+      freeBodyHtml.value = layoutHtml
+      freeLayoutJson.value = parseHtmlToLayoutDocument(layoutHtml)
+      syncFreeToForm(layoutHtml)
+      ElMessage.success('排版已应用到免费内容')
+    } finally {
+      nextTick(() => {
+        freeSyncing.value = false
+      })
+    }
+    return
+  }
   richSyncing.value = true
   try {
     formData.bodyFormat = 'LAYOUT'
@@ -642,6 +800,14 @@ const sidebarBodyText = computed(
   () => extractPlainText(richBodyHtml.value) || formData.body?.trim() || '',
 )
 
+const sidebarFreeBodyText = computed(
+  () => extractPlainText(freeBodyHtml.value) || formData.freeBody?.trim() || '',
+)
+
+const quickTypesetSourceHtml = computed(() =>
+  bodyContentTab.value === 'free' ? freeBodyHtml.value : richBodyHtml.value,
+)
+
 function toggleEditorMaximize() {
   editorMaximized.value = !editorMaximized.value
   if (editorMaximized.value) {
@@ -649,9 +815,22 @@ function toggleEditorMaximize() {
   }
 }
 
+function toggleFreeEditorMaximize() {
+  freeEditorMaximized.value = !freeEditorMaximized.value
+  if (freeEditorMaximized.value) {
+    freeLayoutPanelCollapsed.value = true
+  }
+}
+
 function onMaximizeKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape' && editorMaximized.value) {
     editorMaximized.value = false
+  }
+}
+
+function onFreeMaximizeKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && freeEditorMaximized.value) {
+    freeEditorMaximized.value = false
   }
 }
 
@@ -665,9 +844,20 @@ watch(editorMaximized, (maximized) => {
   }
 })
 
+watch(freeEditorMaximized, (maximized) => {
+  if (maximized) {
+    document.body.classList.add('content-editor-maximized-open')
+    document.addEventListener('keydown', onFreeMaximizeKeydown)
+  } else {
+    document.body.classList.remove('content-editor-maximized-open')
+    document.removeEventListener('keydown', onFreeMaximizeKeydown)
+  }
+})
+
 onBeforeUnmount(() => {
   document.body.classList.remove('content-editor-maximized-open')
   document.removeEventListener('keydown', onMaximizeKeydown)
+  document.removeEventListener('keydown', onFreeMaximizeKeydown)
 })
 
 function normalizeRichHtml(html: string): string {
@@ -681,19 +871,27 @@ function endRichSync() {
   })
 }
 
-const displayRichHtml = computed(() => {
-  if (formData.bodyFormat === 'LAYOUT' && formData.layoutHtml) {
-    return formData.layoutHtml
-  }
-  return plainTextToHtml(formData.paidBody || formData.body || '')
-})
+const displayRichHtml = computed(() =>
+  resolvePaidContentHtml({
+    bodyFormat: formData.bodyFormat,
+    layoutHtml: formData.layoutHtml,
+    layoutJson: formData.layoutJson,
+    paidBody: formData.paidBody,
+    body: formData.body,
+    editorHtml: richBodyHtml.value,
+  }),
+)
 
-const displayFreeHtml = computed(() => {
-  if (formData.freeBody?.includes('<')) {
-    return sanitizeLayoutHtml(formData.freeBody)
-  }
-  return plainTextToHtml(formData.freeBody || '')
-})
+const displayFreeHtml = computed(() =>
+  resolveFreeContentHtml({
+    freeBody: formData.freeBody,
+    editorHtml: freeBodyHtml.value,
+  }),
+)
+
+const displayCombinedHtml = computed(() =>
+  combineContentHtml(displayFreeHtml.value, displayRichHtml.value),
+)
 
 function syncRichToForm(html: string) {
   richSyncing.value = true
@@ -717,11 +915,13 @@ function syncRichToForm(html: string) {
 function initRichBodyFromForm() {
   richSyncing.value = true
   try {
-    if (formData.bodyFormat === 'LAYOUT' && formData.layoutHtml) {
-      richBodyHtml.value = formData.layoutHtml
-    } else {
-      richBodyHtml.value = plainTextToHtml(formData.paidBody || formData.body || '')
-    }
+    richBodyHtml.value = resolvePaidContentHtml({
+      bodyFormat: formData.bodyFormat,
+      layoutHtml: formData.layoutHtml,
+      layoutJson: formData.layoutJson,
+      paidBody: formData.paidBody,
+      body: formData.body,
+    })
   } finally {
     endRichSync()
   }
@@ -730,10 +930,9 @@ function initRichBodyFromForm() {
 function initFreeBodyFromForm() {
   freeSyncing.value = true
   try {
-    if (formData.freeBody?.includes('<')) {
-      freeBodyHtml.value = sanitizeLayoutHtml(formData.freeBody)
-    } else {
-      freeBodyHtml.value = plainTextToHtml(formData.freeBody || '')
+    freeBodyHtml.value = resolveFreeContentHtml({ freeBody: formData.freeBody })
+    if (formData.contentType === 'ARTICLE') {
+      freeLayoutJson.value = parseHtmlToLayoutDocument(freeBodyHtml.value)
     }
   } finally {
     nextTick(() => {
@@ -785,6 +984,7 @@ watch(
   () => formData.layoutJson,
   (val) => {
     if (
+      contentHydrating.value ||
       richSyncing.value ||
       layoutJsonFromRichEditor.value ||
       formData.contentType !== 'ARTICLE' ||
@@ -814,6 +1014,12 @@ const showBody = computed(
 /** AI 文本生成：文章走 showArticleLayout，其它非短视频类型走 showBody */
 const showAiTextGenerate = computed(
   () => !!formData.contentType && formData.contentType !== 'SHORT_VIDEO',
+)
+/** ADR-054：正式方案（OFFICIAL_PLAN）需维护售价；编辑已有内容时始终展示 */
+const showPriceField = computed(
+  () =>
+    showAiTextGenerate.value &&
+    (!!formData.contentId || formData.documentType === 'OFFICIAL_PLAN'),
 )
 const showVideoFields = computed(() => isTaskMode.value && formData.contentType === 'SHORT_VIDEO')
 
@@ -914,6 +1120,9 @@ const resetForm = () => {
   reviewProgress.value = []
   richBodyHtml.value = '<p></p>'
   freeBodyHtml.value = '<p></p>'
+  freeLayoutJson.value = emptyLayoutDocument()
+  freeEditorMaximized.value = false
+  freeLayoutPanelCollapsed.value = true
   bodyContentTab.value = 'paid'
   pendingAiConversation.value = null
 }
@@ -1039,14 +1248,25 @@ const loadScriptRef = async () => {
 }
 
 const handleApplyTemplate = async (template: { id: number; templateName: string }) => {
-  const bodyText = extractPlainText(richBodyHtml.value) || formData.body?.trim()
+  const isFreeTab = bodyContentTab.value === 'free'
+  const bodyText = isFreeTab
+    ? extractPlainText(freeBodyHtml.value) || formData.freeBody?.trim()
+    : extractPlainText(richBodyHtml.value) || formData.body?.trim()
   if (!bodyText) {
     ElMessage.warning('请先填写正文，再套用版式模板')
     return
   }
-  if (formData.bodyFormat === 'LAYOUT' && formData.layoutJson?.blocks?.length) {
+  if (!isFreeTab && formData.bodyFormat === 'LAYOUT' && formData.layoutJson?.blocks?.length) {
     try {
       await ElMessageBox.confirm('应用模板将覆盖当前富版式样式，正文文字将保留。是否继续？', '确认覆盖', {
+        type: 'warning',
+      })
+    } catch {
+      return
+    }
+  } else if (isFreeTab && freeLayoutJson.value?.blocks?.length) {
+    try {
+      await ElMessageBox.confirm('应用模板将覆盖当前免费内容版式样式，正文文字将保留。是否继续？', '确认覆盖', {
         type: 'warning',
       })
     } catch {
@@ -1055,10 +1275,14 @@ const handleApplyTemplate = async (template: { id: number; templateName: string 
   }
   try {
     let preview
-    if (formData.contentId) {
+    if (!isFreeTab && formData.contentId) {
       preview = await previewApplyLayoutTemplate(formData.contentId, template.id)
     } else {
-      preview = await previewTemplateMerge(template.id, bodyText, formData.layoutJson)
+      preview = await previewTemplateMerge(
+        template.id,
+        bodyText,
+        isFreeTab ? freeLayoutJson.value : formData.layoutJson,
+      )
     }
     await ElMessageBox.confirm(
       '左侧为原文，右侧为套用后版式预览。确认应用？',
@@ -1072,9 +1296,23 @@ const handleApplyTemplate = async (template: { id: number; templateName: string 
         </div>`,
       }
     )
-    if (formData.contentId) {
+    if (!isFreeTab && formData.contentId) {
       const updated = (await applyLayoutTemplate(formData.contentId, template.id, true)) as Record<string, any>
       applyContentRecord(updated, isTaskMode.value)
+      ElMessage.success(`已应用模板：${template.templateName}`)
+      return
+    }
+    if (isFreeTab) {
+      freeSyncing.value = true
+      try {
+        freeLayoutJson.value = (preview.layoutJson as LayoutDocument) || emptyLayoutDocument()
+        freeBodyHtml.value = preview.layoutHtml || ''
+        syncFreeToForm(freeBodyHtml.value)
+      } finally {
+        nextTick(() => {
+          freeSyncing.value = false
+        })
+      }
       ElMessage.success(`已应用模板：${template.templateName}`)
       return
     }
@@ -1102,6 +1340,7 @@ const handleContentTypeChange = () => {
     formData.layoutJson = emptyLayoutDocument()
     formData.layoutHtml = ''
     formData.layoutTemplateId = undefined
+    freeLayoutJson.value = emptyLayoutDocument()
   }
   if (formData.contentType && formData.contentType !== 'SHORT_VIDEO') {
     initRichBodyFromForm()
@@ -1345,6 +1584,7 @@ const handleAiPendingBuffered = (snapshot: PendingAiConversation | null) => {
 
 const applyContentRecord = (existing: Record<string, any>, taskMode = false) => {
   // ADR-021: layoutHtml is SSOT — block layoutJson→HTML sync while hydrating from API.
+  contentHydrating.value = true
   richSyncing.value = true
   try {
     Object.assign(formData, {
@@ -1401,6 +1641,9 @@ const applyContentRecord = (existing: Record<string, any>, taskMode = false) => 
     }
   } finally {
     endRichSync()
+    nextTick(() => {
+      contentHydrating.value = false
+    })
   }
 }
 

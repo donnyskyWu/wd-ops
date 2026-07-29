@@ -85,6 +85,7 @@ public class SimCardServiceImpl implements SimCardService {
     public Long create(SimCardCreateReq req) {
         Long tenantId = requireTenantId();
         assertUserInTenant(req.getAssignedUserId(), tenantId);
+        Long assignedUserId = footballSystemUserValidator.resolveStorableUserId(req.getAssignedUserId(), tenantId);
         String phoneNumber = resolvePhoneNumber(tenantId, req.getPhoneId(), req.getPhoneNumber());
         assertPhoneNumberUnique(tenantId, phoneNumber, null);
 
@@ -95,7 +96,7 @@ public class SimCardServiceImpl implements SimCardService {
         entity.setPhoneNumberHash(hashPlain(phoneNumber));
         entity.setIsPrimary(StrUtil.blankToDefault(req.getIsPrimary(), "YES"));
         entity.setOperator(req.getOperator());
-        entity.setAssignedUserId(req.getAssignedUserId());
+        entity.setAssignedUserId(assignedUserId);
         if (StrUtil.isNotBlank(req.getIccid())) {
             entity.setIccidEncrypted(aesUtil.encrypt(req.getIccid()));
             entity.setIccidHash(hashPlain(req.getIccid()));
@@ -134,7 +135,8 @@ public class SimCardServiceImpl implements SimCardService {
         }
         if (req.getAssignedUserId() != null) {
             assertUserInTenant(req.getAssignedUserId(), existing.getTenantId());
-            existing.setAssignedUserId(req.getAssignedUserId());
+            existing.setAssignedUserId(footballSystemUserValidator.resolveStorableUserId(
+                    req.getAssignedUserId(), existing.getTenantId()));
         }
         if (req.getIccid() != null) {
             if (StrUtil.isBlank(req.getIccid())) {

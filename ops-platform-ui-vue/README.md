@@ -72,7 +72,7 @@ Standalone 侧栏与 Football 集成 seed **系统管理（OA）** 子集对齐�
 | 消息管理 | 6140 | `/system-message` |
 | 元数据维护 | 6165 | `/config-metadata`（配置管理） |
 
-**M9 身份页已废弃**（ADR-049 D4/D7）：`/system-user`、`/system-role`、`/system-tenant` 路由保留兼容，**侧栏已隐藏**；用户/角色/租户请在 Football 原生菜单（`system_users` / `system_menu`）维护。
+**M9 身份页已物理删除**（ADR-049 D4/D7 · CLEANUP Phase A）：`UserManage` / `RoleManage` / `TenantManage`（及 mock 死页 `SystemManage` / `ConfigManage`）已移除；`/system-user`、`/system-role`、`/system-tenant` 仅保留书签兼容路由，跳转 Football Admin（`FootballAdminRedirect`），**侧栏已隐藏**。用户/角色/租户请在 Football 原生菜单维护。
 
 ## 构建
 

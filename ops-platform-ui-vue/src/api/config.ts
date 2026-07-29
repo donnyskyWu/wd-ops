@@ -99,6 +99,7 @@ export interface AiPromptConfigVO {
   status?: string
   remark?: string
   createTime?: string
+  updateTime?: string
 }
 
 export interface KeywordConfigVO {

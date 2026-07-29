@@ -122,7 +122,7 @@ def transform_router_paths(content: str) -> str:
                     if "from '@/utils/ops-route'" in m.group(2)
                     or 'from "@/utils/ops-route"' in m.group(2)
                     or "from '#/utils/ops/ops-route'" in m.group(2)
-                    else "import { opsRouteTo } from '@/utils/ops-route'\n" + m.group(2)
+                    else "import { opsRouteTo } from '#/utils/ops/ops-route'\n" + m.group(2)
                 )
                 + m.group(3)
             ),
@@ -147,6 +147,7 @@ def transform_router_paths(content: str) -> str:
 
 def transform_api(content: str) -> str:
     content = re.sub(r"from ['\"]@/utils/request['\"]", "from './client'", content)
+    content = re.sub(r"from ['\"]@/api/([^'\"]+)['\"]", r"from './\1'", content)
     content = re.sub(r"from ['\"]@/utils/([^'\"]+)['\"]", r"from '#/utils/ops/\1'", content)
     content = re.sub(r"from ['\"]@/utils['\"]", "from '#/utils/ops/index'", content)
     content = re.sub(r"from ['\"]@/types/([^'\"]+)['\"]", r"from '#/types/ops/\1'", content)
@@ -291,11 +292,36 @@ def load_csv_rows() -> list[dict[str, str]]:
 def copy_all_apis() -> int:
     count = 0
     for src in sorted((OPS_UI / "api").glob("*.ts")):
+        # client.ts is Football-only adapter (not in ops-platform-ui-vue);
+        # never overwrite with a transformed upstream file of the same name.
+        if src.name == "client.ts":
+            continue
         dst = FF / "api/ops" / src.name
         copy_transform(src, dst, api=True)
         print(f"  api: {dst.relative_to(ROOT)}")
         count += 1
+    ensure_ops_api_client()
     return count
+
+
+def ensure_ops_api_client() -> None:
+    """Install/refresh Football Ops request adapter (X-Tenant-Id + legacy request shape).
+
+    ops-platform apis import `@/utils/request`; transform_api rewrites that to `./client`.
+    The adapter itself is additive (ADR-047) and lives under scripts/integration-config.
+    """
+    template = ROOT / "scripts/integration-config/ops-api-client.ts"
+    dst = FF / "api/ops/client.ts"
+    if not template.exists():
+        print(f"  WARN: missing template {template.relative_to(ROOT)}; api/ops/client.ts not ensured")
+        return
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    text = template.read_text(encoding="utf-8")
+    if dst.exists() and dst.read_text(encoding="utf-8") == text:
+        print(f"  api client: ok {dst.relative_to(ROOT)}")
+        return
+    dst.write_text(text, encoding="utf-8")
+    print(f"  api client: wrote {dst.relative_to(ROOT)}")
 
 
 def copy_all_types() -> int:
@@ -418,13 +444,19 @@ def copy_extra_views(seen_components: set[str]) -> int:
         rel_from_views = src.relative_to(views_root)
         key = f"ops/{rel_from_views.with_suffix('')}".replace("\\", "/")
         dst = FF / "views/ops" / rel_from_views
-        if key in seen_components and dst.exists():
-            continue
+        # Always sync from ops-platform-ui-vue — stale mounts caused view-mode regressions.
         copy_transform(src, dst, page=True)
         print(f"  extra view: {dst.relative_to(ROOT)}")
         count += 1
         seen_components.add(key)
     return count
+
+
+# CSV football_path aliases that backend group-slug joining does not register
+# (e.g. menu under `production` → /ops/production/content/review, UAT expects /ops/content/review).
+SHORT_PATH_ALIASES = {
+    "/ops/content/review": ("OpsContentReview", "ops/production/content/review", "内容审核"),
+}
 
 
 def generate_ops_routes(rows: list[dict[str, str]]) -> None:
@@ -435,6 +467,7 @@ def generate_ops_routes(rows: list[dict[str, str]]) -> None:
         "const routes: RouteRecordRaw[] = [",
     ]
     hidden = 0
+    seen_paths: set[str] = set()
     for row in rows:
         if row.get("hide_in_menu", "").upper() != "Y":
             continue
@@ -446,16 +479,28 @@ def generate_ops_routes(rows: list[dict[str, str]]) -> None:
         if not path or not comp or not name:
             continue
         hidden += 1
+        seen_paths.add(path)
         lines.append("  {")
         lines.append(f"    path: '{path}',")
         lines.append(f"    name: '{name}',")
         lines.append(f"    component: () => import('#/views/{comp}.vue'),")
         lines.append("    meta: { hideInMenu: true, title: '' },")
         lines.append("  },")
+    aliases = 0
+    for path, (name, comp, title) in SHORT_PATH_ALIASES.items():
+        if path in seen_paths:
+            continue
+        aliases += 1
+        lines.append("  {")
+        lines.append(f"    path: '{path}',")
+        lines.append(f"    name: '{name}',")
+        lines.append(f"    component: () => import('#/views/{comp}.vue'),")
+        lines.append(f"    meta: {{ hideInMenu: true, title: '{title}' }},")
+        lines.append("  },")
     lines.extend(["];", "", "export default routes;", ""])
     out = FF / "router/routes/modules/ops.ts"
     out.write_text("\n".join(lines), encoding="utf-8")
-    print(f"  routes: {out.relative_to(ROOT)} ({hidden} hidden)")
+    print(f"  routes: {out.relative_to(ROOT)} ({hidden} hidden, {aliases} short-path aliases)")
 
 
 def main() -> None:

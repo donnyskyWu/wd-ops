@@ -1,0 +1,88 @@
+﻿# Football services optional overlay for beta test host (110.42.49.224).
+# Pattern: same as football-integration-overlay.yml (local) / *-remote.yml (archive).
+# Usage: start-ops-dev.ps1 -Beta  OR  --spring.config.additional-location=file:.../football-integration-overlay-beta.yml
+# Load secrets from ops-test-remote.env first. Prefer Football git branch `ops` (see docs/delivery/FOOTBALL-OPS-BRANCH.md).
+# Processes stay on localhost; MySQL/Redis/Nacos point to beta. Feign stays 127.0.0.1 (local JARs).
+# NOT the default for start-integration-all.ps1 (daily local still uses football-integration-overlay.yml).
+
+spring:
+  autoconfigure:
+    exclude:
+      - org.apache.rocketmq.spring.autoconfigure.RocketMQAutoConfiguration
+  cloud:
+    nacos:
+      server-addr: ${OPS_TEST_NACOS_ADDR:110.42.49.224:8848}
+      username: ${OPS_TEST_NACOS_USERNAME:nacos}
+      password: ${OPS_TEST_NACOS_PASSWORD:CHANGE_ME}
+      discovery:
+        enabled: true
+        register-enabled: true
+        namespace: ${OPS_TEST_NACOS_NAMESPACE:beta}
+        group: ${OPS_TEST_NACOS_GROUP:DEFAULT_GROUP}
+        fail-fast: false
+        failure-tolerance-enabled: true
+        metadata:
+          version: 1.0.0
+      config:
+        enabled: false
+        namespace: ${OPS_TEST_NACOS_NAMESPACE:beta}
+        group: ${OPS_TEST_NACOS_GROUP:DEFAULT_GROUP}
+    openfeign:
+      client:
+        config:
+          system-server:
+            url: http://127.0.0.1:48081
+          member-server:
+            url: http://127.0.0.1:48087
+          infra-server:
+            url: http://127.0.0.1:48082
+          mp-server:
+            url: http://127.0.0.1:48086
+          match-server:
+            url: http://127.0.0.1:48088
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://${OPS_TEST_DB_HOST:110.42.49.224}:${OPS_TEST_DB_PORT:3306}/${OPS_TEST_SYSTEM_DB:shenyu-system}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: ${OPS_TEST_SYSTEM_USER:shenyu-system}
+          password: ${OPS_TEST_SYSTEM_PASSWORD:CHANGE_ME}
+        slave:
+          url: jdbc:mysql://${OPS_TEST_DB_HOST:110.42.49.224}:${OPS_TEST_DB_PORT:3306}/${OPS_TEST_SYSTEM_DB:shenyu-system}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: ${OPS_TEST_SYSTEM_USER:shenyu-system}
+          password: ${OPS_TEST_SYSTEM_PASSWORD:CHANGE_ME}
+  data:
+    redis:
+      host: ${OPS_TEST_REDIS_HOST:110.42.49.224}
+      port: ${OPS_TEST_REDIS_PORT:6379}
+      database: ${OPS_TEST_REDIS_DATABASE:1}
+      password: ${OPS_TEST_REDIS_PASSWORD:CHANGE_ME}
+
+rocketmq:
+  name-server: 192.168.10.51:9876
+  consumer:
+    listeners:
+      article-push-consumer-group:
+        ARTICLE_PUSH_TOPIC: false
+      MEMBER_BIZ_TOPIC_CONSUMER:
+        MEMBER_BIZ_TOPIC: false
+
+football:
+  captcha:
+    enable: false
+  security:
+    mock-enable: true
+  websocket:
+    sender-type: local
+  signature:
+    app-id: 20260408160327_DEV
+    app-secret: 8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c
+  encrypt:
+    data-key: K9m2P5v8x1B4n7Q0
+    data-iv: L3j6R9w2Z5c8F1b4
+
+# Per-service master DB overrides (member / mp / pay / bpm) via *-integration-overlay-beta.yml
+# member-server master -> shenyu-member / OPS_TEST_MEMBER_*
+# mp-server master     -> shenyu-mp / OPS_TEST_MP_*
+# pay-server master    -> shenyu-pay / OPS_TEST_PAY_*
+# bpm-server master    -> shenyu-bpm / OPS_TEST_BPM_*

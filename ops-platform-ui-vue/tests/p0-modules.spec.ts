@@ -11,6 +11,11 @@ test.describe('IP组管理测试 @smoke', () => {
     await page.waitForLoadState('networkidle')
   })
 
+  test('IPG-000: 系统管理员无权限拦截页', async ({ page }) => {
+    await expect(page.locator('.ip-group-page--denied')).toHaveCount(0)
+    await expect(page.locator('.ip-group-page').first()).toBeVisible({ timeout: 8_000 })
+  })
+
   test('IPG-001: 列表数据加载（树形结构）', async ({ page }) => {
     // IP 组是左树+右 5 Tab 布局
     const tree = page.locator('.el-tree').first()
@@ -31,6 +36,12 @@ test.describe('IP组管理测试 @smoke', () => {
     // "新建大组" 按钮
     const addButton = page.locator('button:has-text("新建大组"), button:has-text("新增")').first()
     await expect(addButton).toBeVisible({ timeout: 5_000 })
+  })
+
+  test('IPG-004: 系统管理员可打开新建大组对话框', async ({ page }) => {
+    await page.locator('button:has-text("新建大组")').first().click()
+    await expect(page.locator('.el-dialog:has-text("新建 IP 组")')).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('.el-dialog input[placeholder*="组名"]')).toBeVisible()
   })
 })
 

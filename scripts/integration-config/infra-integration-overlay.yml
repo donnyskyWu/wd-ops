@@ -1,0 +1,14 @@
+# Local integration overlay for infra-server (:48082).
+# Phase A needs /admin-api/infra/file/upload; default application-local.yaml points
+# sftp.private-key at D:/zhengshu/... which breaks bean init on most dev machines.
+#
+# Use with football-integration-overlay.yml (localhost DB/Redis):
+#   --spring.config.additional-location=optional:file:.../football-integration-overlay.yml,optional:file:.../infra-integration-overlay.yml
+
+sftp:
+  host: 127.0.0.1
+  port: 22
+  username: local
+  # Repo-local dummy key (generated for bean init only; not used for real SFTP)
+  private-key: scripts/integration-config/local-sftp-id_rsa
+  remote-dir: /tmp/ops-local-sftp

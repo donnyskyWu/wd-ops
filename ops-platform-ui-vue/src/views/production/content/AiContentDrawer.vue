@@ -40,44 +40,49 @@
     </template>
 
     <div class="drawer-body">
-      <section class="info-section">
-        <div class="section-title">信息参数</div>
-        <div class="info-tags">
-          <span class="info-tag"><span class="tag-label">赛事：</span>{{ context.matchName || '—' }}</span>
-          <span class="info-tag"><span class="tag-label">作者：</span>{{ context.authorName || '—' }}</span>
-          <span class="info-tag">
-            <span class="tag-label">方案分析类型：</span>{{ schemeTypesDisplay }}
-          </span>
+      <section class="info-section" :class="{ collapsed: paramsCollapsed }">
+        <div class="info-header">
+          <span class="section-title">信息参数</span>
+          <span v-if="paramsCollapsed" class="info-collapsed-hint">滚回顶部展开</span>
         </div>
-        <el-row :gutter="12">
-          <el-col :span="16">
-            <label class="field-label">历史战绩</label>
+        <div class="info-body">
+          <div class="info-tags">
+            <span class="info-tag"><span class="tag-label">赛事：</span>{{ context.matchName || '—' }}</span>
+            <span class="info-tag"><span class="tag-label">作者：</span>{{ context.authorName || '—' }}</span>
+            <span class="info-tag">
+              <span class="tag-label">方案分析类型：</span>{{ schemeTypesDisplay }}
+            </span>
+          </div>
+          <el-row :gutter="12">
+            <el-col :span="16">
+              <label class="field-label">历史战绩</label>
+              <el-input
+                v-model="params.historyRecord"
+                placeholder="请输入该作者近10场历史战绩，如：7胜2平1负"
+                maxlength="500"
+              />
+            </el-col>
+            <el-col :span="8">
+              <label class="field-label">主播风格</label>
+              <DictSelect
+                v-model="params.anchorStyle"
+                dict-type="dict_anchor_style"
+                placeholder="请选择"
+                clearable
+              />
+            </el-col>
+          </el-row>
+          <div class="field-block">
+            <label class="field-label">产品定义说明</label>
             <el-input
-              v-model="params.historyRecord"
-              placeholder="请输入该作者近10场历史战绩，如：7胜2平1负"
-              maxlength="500"
+              v-model="params.productDescription"
+              type="textarea"
+              :rows="3"
+              placeholder="请描述产品的定位、目标用户、核心卖点等"
+              maxlength="1000"
+              show-word-limit
             />
-          </el-col>
-          <el-col :span="8">
-            <label class="field-label">主播风格</label>
-            <DictSelect
-              v-model="params.anchorStyle"
-              dict-type="dict_anchor_style"
-              placeholder="请选择"
-              clearable
-            />
-          </el-col>
-        </el-row>
-        <div class="field-block">
-          <label class="field-label">产品定义说明</label>
-          <el-input
-            v-model="params.productDescription"
-            type="textarea"
-            :rows="3"
-            placeholder="请描述产品的定位、目标用户、核心卖点等"
-            maxlength="1000"
-            show-word-limit
-          />
+          </div>
         </div>
       </section>
 
@@ -107,7 +112,7 @@
         </div>
       </section>
 
-      <section ref="chatRef" class="chat-section">
+      <section ref="chatRef" class="chat-section" @scroll="handleChatScroll">
         <div v-if="!conversationHistory.length && !generating" class="chat-empty">
           输入您的想法或要求，点击发送开始生成赛事方案
         </div>
@@ -172,6 +177,8 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
+
+const PARAMS_COLLAPSE_THRESHOLD = 24
 import { ElMessage } from 'element-plus'
 import { ArrowDown, Cpu, UserFilled } from '@element-plus/icons-vue'
 import MarkdownIt from 'markdown-it'
@@ -247,6 +254,7 @@ const selectedModel = ref<number | null>(null)
 const generating = ref(false)
 const inputMessage = ref('')
 const chatRef = ref<HTMLElement | null>(null)
+const paramsCollapsed = ref(false)
 const showPrefPanel = ref(false)
 const prefCollapsed = ref(false)
 const preferenceEdited = ref(false)
@@ -446,10 +454,16 @@ function closePrefPanel() {
   }
 }
 
+function handleChatScroll(event: Event) {
+  const el = event.target as HTMLElement
+  paramsCollapsed.value = el.scrollTop > PARAMS_COLLAPSE_THRESHOLD
+}
+
 function scrollChatToBottom() {
   nextTick(() => {
     if (chatRef.value) {
       chatRef.value.scrollTop = chatRef.value.scrollHeight
+      paramsCollapsed.value = chatRef.value.scrollTop > PARAMS_COLLAPSE_THRESHOLD
     }
   })
 }
@@ -580,9 +594,13 @@ function handleClosed() {
 watch(
   () => props.modelValue,
   async (open) => {
-    if (!open) return
+    if (!open) {
+      paramsCollapsed.value = false
+      return
+    }
     preferenceEdited.value = false
     skipPersistOnClose = false
+    paramsCollapsed.value = false
     params.value = { historyRecord: '', anchorStyle: 'comprehensive', productDescription: '' }
     inputMessage.value = DEFAULT_AI_INPUT_MESSAGE
 
@@ -666,11 +684,38 @@ watch(
   border-radius: 8px;
   padding: 14px 16px;
   flex-shrink: 0;
+  transition: padding 0.25s ease;
+}
+.info-section.collapsed {
+  padding-bottom: 10px;
+}
+.info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 .section-title {
   font-size: 13px;
   font-weight: 600;
-  margin-bottom: 10px;
+}
+.info-collapsed-hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+.info-body {
+  overflow: hidden;
+  max-height: 420px;
+  opacity: 1;
+  transition: max-height 0.25s ease, opacity 0.2s ease, margin-top 0.25s ease;
+  margin-top: 10px;
+}
+.info-section.collapsed .info-body {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  pointer-events: none;
 }
 .info-tags {
   display: flex;

@@ -1,10 +1,10 @@
 {
   "auth": "gateway-login",
   "summary": {
-    "total": 17,
-    "pass": 17,
+    "total": 14,
+    "pass": 14,
     "fail": 0,
-    "api_pass": 16,
+    "api_pass": 13,
     "api_fail": 0,
     "api_skip": 1
   },
@@ -102,30 +102,6 @@
       "title": "采集任务",
       "route": "collect/task",
       "api": "/admin-api/oa/collect/task/page?pageNo=1&pageSize=10",
-      "detail": "code=0",
-      "pass": true
-    },
-    {
-      "module": "系统管理(OA)",
-      "title": "字典配置",
-      "route": "system-dict",
-      "api": "/admin-api/oa/system/dict/list?pageNo=1&pageSize=10",
-      "detail": "code=0",
-      "pass": true
-    },
-    {
-      "module": "系统管理(OA)",
-      "title": "登录日志",
-      "route": "system-log/login",
-      "api": "/admin-api/oa/system/log/login?pageNo=1&pageSize=10",
-      "detail": "code=0",
-      "pass": true
-    },
-    {
-      "module": "系统管理(OA)",
-      "title": "操作日志",
-      "route": "system-log/operation",
-      "api": "/admin-api/oa/system/log/operation?pageNo=1&pageSize=10",
       "detail": "code=0",
       "pass": true
     },

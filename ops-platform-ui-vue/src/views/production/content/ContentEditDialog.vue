@@ -10,6 +10,7 @@
     @update:model-value="(val: boolean) => emit('update:visible', val)"
   >
     <ContentEditPanel
+      v-if="visible"
       embedded
       :content-id="contentId"
       :task-id="taskId"

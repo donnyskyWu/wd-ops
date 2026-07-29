@@ -790,7 +790,8 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
         vo.setLinkedVideoAccountId(entity.getLinkedVideoAccountId());
         vo.setVideoAccountRegisteredAt(entity.getVideoAccountRegisteredAt());
         vo.setAdminName(entity.getAdminName());
-        vo.setAdminUserId(entity.getAdminUserId());
+        vo.setAdminUserId(entity.getAdminUserId() == null ? null
+                : footballSystemUserValidator.resolvePresentableUserId(entity.getAdminUserId()));
         vo.setHasAdminIdCard(StrUtil.isNotBlank(entity.getAdminIdCardEncrypted()));
         return vo;
     }
@@ -897,9 +898,9 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
             entity.setVideoAccountRegisteredAt(resolveVideoAccountRegisteredAt(video));
         }
         if (req.getAdminUserId() != null) {
-            assertAdminUserEnabled(req.getAdminUserId(), tenantId);
-            entity.setAdminUserId(req.getAdminUserId());
-            entity.setAdminName(resolveAdminDisplayName(req.getAdminUserId()));
+            Long adminUserId = resolveStorableAdminUserId(req.getAdminUserId(), tenantId);
+            entity.setAdminUserId(adminUserId);
+            entity.setAdminName(resolveAdminDisplayName(adminUserId));
         }
         if (StrUtil.isNotBlank(req.getAdminIdCard())) {
             entity.setAdminIdCardEncrypted(aesUtil.encrypt(req.getAdminIdCard()));
@@ -938,9 +939,9 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
             entity.setVideoAccountRegisteredAt(resolveVideoAccountRegisteredAt(video));
         }
         if (req.getAdminUserId() != null) {
-            assertAdminUserEnabled(req.getAdminUserId(), tenantId);
-            entity.setAdminUserId(req.getAdminUserId());
-            entity.setAdminName(resolveAdminDisplayName(req.getAdminUserId()));
+            Long adminUserId = resolveStorableAdminUserId(req.getAdminUserId(), tenantId);
+            entity.setAdminUserId(adminUserId);
+            entity.setAdminName(resolveAdminDisplayName(adminUserId));
         }
         if (StrUtil.isNotBlank(req.getAdminIdCard())) {
             entity.setAdminIdCardEncrypted(aesUtil.encrypt(req.getAdminIdCard()));
@@ -965,6 +966,11 @@ public class PlatformAccountServiceImpl implements PlatformAccountService {
 
     private void assertAdminUserEnabled(Long userId, Long tenantId) {
         footballSystemUserValidator.assertEnabledInTenant(userId, tenantId, "管理员用户不存在");
+    }
+
+    private Long resolveStorableAdminUserId(Long adminUserId, Long tenantId) {
+        assertAdminUserEnabled(adminUserId, tenantId);
+        return footballSystemUserValidator.resolveStorableUserId(adminUserId, tenantId);
     }
 
     private LocalDateTime resolveVideoAccountRegisteredAt(AccountDO video) {

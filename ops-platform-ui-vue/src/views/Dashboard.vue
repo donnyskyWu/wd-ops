@@ -233,7 +233,7 @@ const kpiCards = [
 
 const SOURCE_LABEL: Record<string, string> = {
   SOP: 'SOP',
-  PUBLISH: '发布',
+  PUBLISH: '内容审核',
   PERF: '绩效',
   INTEGRATION: '集成',
   IMPORT: '数据补录',

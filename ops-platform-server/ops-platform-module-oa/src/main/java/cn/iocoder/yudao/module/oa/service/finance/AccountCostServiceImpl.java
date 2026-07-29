@@ -121,11 +121,22 @@ public class AccountCostServiceImpl implements AccountCostService {
         if (!Objects.equals(entity.getTenantId(), requireTenantId())) {
             throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
         }
+        assertAccountReadable(entity.getAccountId());
         return entity;
     }
 
     private AccountDO requireAccount(Long accountId) {
-        return wechatOfficialAccountResolver.requireTenantAccount(accountId, requireTenantId());
+        AccountDO account = wechatOfficialAccountResolver.requireTenantAccount(accountId, requireTenantId());
+        opsDataScopeSupport.assertAccountReadable(account);
+        return account;
+    }
+
+    private void assertAccountReadable(Long accountId) {
+        if (accountId == null) {
+            throw new ServiceException(OaErrorCodes.BAD_REQUEST.getCode(), "账号不能为空");
+        }
+        AccountDO account = wechatOfficialAccountResolver.requireTenantAccount(accountId, requireTenantId());
+        opsDataScopeSupport.assertAccountReadable(account);
     }
 
     private void assertAmount(BigDecimal amount) {

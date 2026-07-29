@@ -5,6 +5,7 @@
  */
 
 import { request } from '@/utils/request'
+import { normalizeUserId } from './football-user'
 import type {
   IpGroupTreeVO,
   IpGroupPageReqVO,
@@ -43,9 +44,85 @@ export function getLedIpGroups(): Promise<IpGroupListVO[]> {
   return request.get<IpGroupListVO[]>({ url: '/oa/ip-group/led' })
 }
 
-/** 具备内置角色 ip_group_leader（IP组长）的用户 id，供组长 UserSelect 过滤 */
-export function getIpGroupLeaderCandidateIds(): Promise<number[]> {
-  return request.get<number[]>({ url: '/oa/ip-group/leader-candidate-ids' })
+/** 具备内置角色 ip_group_leader（IP组长）的用户 id，供组长 UserSelect 过滤（字符串 id） */
+export function getIpGroupLeaderCandidateIds(): Promise<string[]> {
+  return request.get<string[]>({ url: '/oa/ip-group/leader-candidate-ids' })
+}
+
+export interface IpGroupLeaderCandidateVO {
+  id: string
+  username?: string
+  nickname: string
+}
+
+/** 具备 IP组长 角色的用户（含昵称；UserSelect 主数据源） */
+export function getIpGroupLeaderCandidates(): Promise<IpGroupLeaderCandidateVO[]> {
+  return request.get<IpGroupLeaderCandidateVO[]>({
+    url: '/oa/ip-group/leader-candidates',
+    responseType: 'text',
+    transformResponse: [(data) => {
+      if (typeof data !== 'string' || !data) {
+        return data
+      }
+      try {
+        const preserved = data.replace(/"id"\s*:\s*(\d{16,})/g, '"id":"$1"')
+        const envelope = JSON.parse(preserved) as {
+          code?: number
+          data?: Array<{ id?: number | string; username?: string; nickname?: string }>
+          msg?: string
+        }
+        if (envelope?.code !== 0 && envelope?.code !== 200) {
+          return envelope
+        }
+        const list = (Array.isArray(envelope.data) ? envelope.data : []).map((u) => ({
+          id: normalizeUserId(u.id),
+          username: u.username,
+          nickname: u.nickname || normalizeUserId(u.id),
+        }))
+        return { ...envelope, data: list }
+      } catch {
+        return data
+      }
+    }],
+  })
+}
+
+export interface IpGroupMemberCandidateVO {
+  id: string
+  username?: string
+  nickname: string
+}
+
+/** 租户内全部启用用户（添加成员 UserSelect；不受 Football simple-list 数据权限限制） */
+export function getIpGroupMemberCandidates(): Promise<IpGroupMemberCandidateVO[]> {
+  return request.get<IpGroupMemberCandidateVO[]>({
+    url: '/oa/ip-group/member-candidates',
+    responseType: 'text',
+    transformResponse: [(data) => {
+      if (typeof data !== 'string' || !data) {
+        return data
+      }
+      try {
+        const preserved = data.replace(/"id"\s*:\s*(\d{16,})/g, '"id":"$1"')
+        const envelope = JSON.parse(preserved) as {
+          code?: number
+          data?: Array<{ id?: number | string; username?: string; nickname?: string }>
+          msg?: string
+        }
+        if (envelope?.code !== 0 && envelope?.code !== 200) {
+          return envelope
+        }
+        const list = (Array.isArray(envelope.data) ? envelope.data : []).map((u) => ({
+          id: normalizeUserId(u.id),
+          username: u.username,
+          nickname: u.nickname || normalizeUserId(u.id),
+        }))
+        return { ...envelope, data: list }
+      } catch {
+        return data
+      }
+    }],
+  })
 }
 
 /** Football / sys_role 内置角色编码：IP组长 */
@@ -58,18 +135,26 @@ export function getIpGroupPage(params: IpGroupPageReqVO): Promise<IpGroupPageRes
   return request.get<IpGroupPageRespVO>({ url: '/oa/ip-group/list', params })
 }
 
+/** 雪花 id 必须以字符串提交，避免 JS Number 精度丢失导致后端校验「用户不存在」 */
+function normalizeLeaderPayload<T extends { leaderId?: string | number | null }>(data: T): T {
+  if (data.leaderId == null || data.leaderId === '') {
+    return data
+  }
+  return { ...data, leaderId: normalizeUserId(data.leaderId) }
+}
+
 /**
  * 新增IP组
  */
 export function createIpGroup(data: IpGroupSaveReqVO): Promise<number> {
-  return request.post<number>({ url: '/oa/ip-group/create', data })
+  return request.post<number>({ url: '/oa/ip-group/create', data: normalizeLeaderPayload(data) })
 }
 
 /**
  * 修改IP组
  */
 export function updateIpGroup(data: IpGroupSaveReqVO): Promise<boolean> {
-  return request.put<boolean>({ url: '/oa/ip-group/update', data })
+  return request.put<boolean>({ url: '/oa/ip-group/update', data: normalizeLeaderPayload(data) })
 }
 
 /**

@@ -41,6 +41,8 @@ import cn.iocoder.yudao.module.oa.framework.auth.LoginUser;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
 import cn.iocoder.yudao.module.oa.service.dict.DictService;
 import cn.iocoder.yudao.module.oa.service.support.OaTenantSupport;
+
+import static cn.iocoder.yudao.module.oa.service.home.PendingReviewStatusSupport.CONTENT_REVIEW_STATUSES;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -242,16 +244,18 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
                 vo.setRoute("/ops/perf/record");
                 items.add(vo);
             }
-            long contentReview = productionContentMapper.selectCount(new LambdaQueryWrapper<ProductionContentDO>()
-                    .eq(ProductionContentDO::getTenantId, ctx.tenantId())
-                    .in(ProductionContentDO::getStatus, "PENDING_FIRST_REVIEW", "PENDING_SECOND_REVIEW")).longValue();
-            if (contentReview > 0) {
-                DashboardTodoItemVO vo = new DashboardTodoItemVO();
-                vo.setType("REVIEW");
-                vo.setTitle("内容待审核");
-                vo.setCount(contentReview);
-                vo.setRoute("/ops/content/review");
-                items.add(vo);
+            for (String reviewStatus : CONTENT_REVIEW_STATUSES) {
+                long stageCount = productionContentMapper.selectCount(new LambdaQueryWrapper<ProductionContentDO>()
+                        .eq(ProductionContentDO::getTenantId, ctx.tenantId())
+                        .eq(ProductionContentDO::getStatus, reviewStatus)).longValue();
+                if (stageCount > 0) {
+                    DashboardTodoItemVO vo = new DashboardTodoItemVO();
+                    vo.setType("REVIEW");
+                    vo.setTitle(PendingReviewStatusSupport.todoListTitle(reviewStatus));
+                    vo.setCount(stageCount);
+                    vo.setRoute(PendingReviewStatusSupport.reviewActionUrl(reviewStatus));
+                    items.add(vo);
+                }
             }
             long expiredTasks = taskMapper.selectCount(new LambdaQueryWrapper<TaskDO>()
                     .eq(TaskDO::getTenantId, ctx.tenantId())
@@ -414,15 +418,15 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
         List<ProductionContentDO> contents = productionContentMapper.selectList(
                 new LambdaQueryWrapper<ProductionContentDO>()
                         .eq(ProductionContentDO::getTenantId, ctx.tenantId())
-                        .in(ProductionContentDO::getStatus, "PENDING_FIRST_REVIEW", "PENDING_SECOND_REVIEW")
+                        .in(ProductionContentDO::getStatus, CONTENT_REVIEW_STATUSES)
                         .orderByDesc(ProductionContentDO::getCreateTime)
                         .last("LIMIT " + max));
         for (ProductionContentDO content : contents) {
             TodoVO vo = new TodoVO();
-            vo.setTitle("内容《" + content.getTitle() + "》待审核");
+            vo.setTitle(PendingReviewStatusSupport.todoItemTitle(content.getTitle(), content.getStatus()));
             vo.setSource("PUBLISH");
             vo.setTime(toOffset(content.getCreateTime()));
-            vo.setActionUrl("/ops/content/review");
+            vo.setActionUrl(PendingReviewStatusSupport.reviewActionUrl(content.getStatus()));
             todos.add(vo);
         }
     }
@@ -474,6 +478,15 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
         Long tenantId = OaTenantSupport.requireTenantId();
         Long userId = TenantContextHolder.getUserId();
         String prefix = tenantId + ":" + userId + ":";
+        CACHE.keySet().removeIf(key -> key.startsWith(prefix));
+    }
+
+    @Override
+    public void refreshTenant(Long tenantId) {
+        if (tenantId == null) {
+            return;
+        }
+        String prefix = tenantId + ":";
         CACHE.keySet().removeIf(key -> key.startsWith(prefix));
     }
 
@@ -631,7 +644,7 @@ public class HomeDashboardServiceImpl implements HomeDashboardService {
                 .eq(SopReviewDO::getStatus, "PENDING"));
         long content = productionContentMapper.selectCount(new LambdaQueryWrapper<ProductionContentDO>()
                 .eq(ProductionContentDO::getTenantId, ctx.tenantId())
-                .in(ProductionContentDO::getStatus, "PENDING_FIRST_REVIEW", "PENDING_SECOND_REVIEW"));
+                .in(ProductionContentDO::getStatus, CONTENT_REVIEW_STATUSES));
         return sop + content;
     }
 

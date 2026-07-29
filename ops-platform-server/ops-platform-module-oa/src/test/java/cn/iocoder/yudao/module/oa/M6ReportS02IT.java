@@ -34,6 +34,32 @@ class M6ReportS02IT extends OaITBase {
     }
 
     @Test
+    @DisplayName("M6-S-02: stats.totalAccounts 与 list.total 一致（全量 oa_account，非 pageSize）")
+    void unifiedAccountStatsMatchesListTotal() throws Exception {
+        var statsResult = mockMvc.perform(get("/admin-api/oa/report/unified-account/stats")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT))
+                .andExpect(jsonPath("$.code").value(0))
+                .andReturn();
+        var listResult = mockMvc.perform(get("/admin-api/oa/report/unified-account/list")
+                        .header("Authorization", ADMIN)
+                        .header("X-Tenant-Id", TENANT)
+                        .param("pageNum", "1")
+                        .param("pageSize", "20"))
+                .andExpect(jsonPath("$.code").value(0))
+                .andReturn();
+
+        long statsTotal = com.jayway.jsonpath.JsonPath.read(
+                statsResult.getResponse().getContentAsString(), "$.data.totalAccounts");
+        long listTotal = com.jayway.jsonpath.JsonPath.read(
+                listResult.getResponse().getContentAsString(), "$.data.total");
+        org.junit.jupiter.api.Assertions.assertEquals(listTotal, statsTotal,
+                "stats.totalAccounts 应等于 list.total（oa_account 全量计数）");
+        org.junit.jupiter.api.Assertions.assertTrue(statsTotal > 20 || listTotal <= 20,
+                "当 oa_account 超过 20 条时，totalAccounts 不得等于 pageSize");
+    }
+
+    @Test
     @DisplayName("M6-S-02: 账号状态 trend 非空")
     void accountStatusTrend() throws Exception {
         mockMvc.perform(get("/admin-api/oa/report/account-status/trend")

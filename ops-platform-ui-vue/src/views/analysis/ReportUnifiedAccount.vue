@@ -86,19 +86,25 @@ const total = ref(0)
 const list = ref<any[]>([])
 const stats = reactive<any>({ totalAccounts: 0, totalFollowers: 0, totalRevenue: 0, overallRoi: 0 })
 
-const buildQuery = (page = pageNum.value, size = pageSize.value) => {
-  const q: Record<string, any> = { pageNum: page, pageSize: size }
+const buildFilterQuery = () => {
+  const q: Record<string, any> = {}
   if (filter.ipGroupId) q.ipGroupId = filter.ipGroupId
   if (filter.platformType) q.platformType = filter.platformType
   if (filter.dateRange?.length === 2) { q.startDate = filter.dateRange[0]; q.endDate = filter.dateRange[1] }
   return q
 }
 
+const buildListQuery = (page = pageNum.value, size = pageSize.value) => ({
+  ...buildFilterQuery(),
+  pageNum: page,
+  pageSize: size,
+})
+
 const handleExport = async () => {
   exportLoading.value = true
   try {
     const rows = await fetchAllPaginated(async (page, size) =>
-      pickListPage(unwrapApiData(await getUnifiedAccountList(buildQuery(page, size)))),
+      pickListPage(unwrapApiData(await getUnifiedAccountList(buildListQuery(page, size)))),
     )
     const exportData = rows.map(row => ({
       accountName: reportField(row, 'account_name', 'accountName'),
@@ -133,8 +139,10 @@ const handleExport = async () => {
 const loadData = async () => {
   loading.value = true
   try {
-    const q = buildQuery()
-    const [listRes, statsRes] = await Promise.all([getUnifiedAccountList(q), getUnifiedAccountStats(q)])
+    const [listRes, statsRes] = await Promise.all([
+      getUnifiedAccountList(buildListQuery()),
+      getUnifiedAccountStats(buildFilterQuery()),
+    ])
     const l = pickListPage(unwrapApiData(listRes))
     list.value = l.list
     total.value = l.total

@@ -60,12 +60,14 @@ public class OpsAnchorServiceImpl implements OpsAnchorService {
     public Long create(OpsAnchorCreateReq req) {
         Long tenantId = requireTenantId();
         assertUsersExist(tenantId, req.getOpsUserId(), req.getAnchorUserId());
-        assertNoOverlap(tenantId, req.getOpsUserId(), req.getAnchorUserId(), req.getStartDate(), req.getEndDate(), null);
+        Long opsUserId = footballSystemUserValidator.resolveStorableUserId(req.getOpsUserId(), tenantId);
+        Long anchorUserId = footballSystemUserValidator.resolveStorableUserId(req.getAnchorUserId(), tenantId);
+        assertNoOverlap(tenantId, opsUserId, anchorUserId, req.getStartDate(), req.getEndDate(), null);
 
         OpsAnchorRelDO entity = new OpsAnchorRelDO();
         entity.setTenantId(tenantId);
-        entity.setOpsUserId(req.getOpsUserId());
-        entity.setAnchorUserId(req.getAnchorUserId());
+        entity.setOpsUserId(opsUserId);
+        entity.setAnchorUserId(anchorUserId);
         entity.setIpGroupId(req.getIpGroupId());
         entity.setStartDate(req.getStartDate());
         entity.setEndDate(req.getEndDate());
@@ -86,17 +88,24 @@ public class OpsAnchorServiceImpl implements OpsAnchorService {
         OpsAnchorRelDO existing = requireRel(req.getId());
         LogRecordContext.putVariable(DiffParseFunction.OLD_OBJECT, toUpdateReq(existing));
         LogRecordContext.putVariable("anchorRel", existing);
-        Long opsUserId = req.getOpsUserId() != null ? req.getOpsUserId() : existing.getOpsUserId();
-        Long anchorUserId = req.getAnchorUserId() != null ? req.getAnchorUserId() : existing.getAnchorUserId();
+        Long opsUserId = req.getOpsUserId() != null
+                ? footballSystemUserValidator.resolveStorableUserId(req.getOpsUserId(), existing.getTenantId())
+                : existing.getOpsUserId();
+        Long anchorUserId = req.getAnchorUserId() != null
+                ? footballSystemUserValidator.resolveStorableUserId(req.getAnchorUserId(), existing.getTenantId())
+                : existing.getAnchorUserId();
         LocalDate startDate = req.getStartDate() != null ? req.getStartDate() : existing.getStartDate();
         LocalDate endDate = req.getEndDate() != null ? req.getEndDate() : existing.getEndDate();
+        if (req.getOpsUserId() != null || req.getAnchorUserId() != null) {
+            assertUsersExist(existing.getTenantId(), opsUserId, anchorUserId);
+        }
         assertNoOverlap(existing.getTenantId(), opsUserId, anchorUserId, startDate, endDate, existing.getId());
 
         if (req.getOpsUserId() != null) {
-            existing.setOpsUserId(req.getOpsUserId());
+            existing.setOpsUserId(opsUserId);
         }
         if (req.getAnchorUserId() != null) {
-            existing.setAnchorUserId(req.getAnchorUserId());
+            existing.setAnchorUserId(anchorUserId);
         }
         if (req.getIpGroupId() != null) {
             existing.setIpGroupId(req.getIpGroupId());

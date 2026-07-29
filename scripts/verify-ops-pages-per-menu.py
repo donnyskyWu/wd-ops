@@ -50,17 +50,17 @@ API_PROBE: dict[str, tuple[str, str]] = {
     "/ops/sop/review": ("GET", "/admin-api/oa/sop/review/pending"),
     "/ops/task": ("GET", "/admin-api/oa/task/list?pageNo=1&pageSize=1"),
     # 数据分析
-    "/ops/custom-query": ("GET", "/admin-api/oa/query/list?pageNo=1&pageSize=10"),
+    "/ops/analysis/custom-query": ("GET", "/admin-api/oa/query/list?pageNo=1&pageSize=10"),
     "/ops/data-report": ("GET", "/admin-api/oa/report/unified-account/stats"),
     "/ops/financial-analysis": (
         "GET",
         "/admin-api/oa/finance/roi/analysis?startDate=2026-01-01&endDate=2026-06-30",
     ),
     "/ops/funnel-analysis": ("GET", "/admin-api/oa/funnel/list?pageNo=1&pageSize=10"),
-    "/ops/metric": ("GET", "/admin-api/oa/metric/list?pageNo=1&pageSize=10"),
-    "/ops/metric-analysis": ("GET", "/admin-api/oa/metric/list?pageNo=1&pageSize=10"),
-    "/ops/screen": ("GET", "/admin-api/oa/dashboard-config/list?pageNum=1&pageSize=10"),
-    "/ops/screen-config": ("GET", "/admin-api/oa/dashboard-config/list?pageNum=1&pageSize=10"),
+    "/ops/analysis/metric": ("GET", "/admin-api/oa/metric/list?pageNo=1&pageSize=10"),
+    "/ops/analysis/metric-analysis": ("GET", "/admin-api/oa/metric/list?pageNo=1&pageSize=10"),
+    "/ops/analysis/screen": ("GET", "/admin-api/oa/dashboard-config/list?pageNum=1&pageSize=10"),
+    "/ops/analysis/screen-config": ("GET", "/admin-api/oa/dashboard-config/list?pageNum=1&pageSize=10"),
     # 数据采集
     "/ops/collect/log": ("GET", "/admin-api/oa/collect/log/page?pageNo=1&pageSize=10"),
     "/ops/collect/private-domain-bridge": (
@@ -109,7 +109,7 @@ API_PROBE: dict[str, tuple[str, str]] = {
     "/ops/config-external-collect": ("GET", "/admin-api/oa/config/external-collect/list?pageNo=1&pageSize=1"),
     "/ops/config-external-data": ("GET", "/admin-api/oa/config/external-source/list?pageNo=1&pageSize=1"),
     "/ops/config-internal-collect": ("GET", "/admin-api/oa/config/internal-collect/list?pageNo=1&pageSize=1"),
-    "/ops/config-metadata": ("GET", "/admin-api/oa/metadata/list?pageNo=1&pageSize=1"),
+    "/ops/config/config-metadata": ("GET", "/admin-api/oa/metadata/list?pageNo=1&pageSize=1"),
     "/ops/config-order-collect": ("GET", "/admin-api/oa/config/order-collect/list?pageNo=1&pageSize=1"),
     "/ops/config-threshold": ("GET", "/admin-api/oa/config/threshold/list?pageNo=1&pageSize=1"),
     # 首页

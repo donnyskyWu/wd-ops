@@ -24,6 +24,7 @@ param(
 )
 
 $ErrorActionPreference = "Continue"
+. (Join-Path $PSScriptRoot "lib\integration-preflight.ps1")
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $LogDir = Join-Path $PSScriptRoot "logs"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
@@ -53,6 +54,13 @@ if ($Profiles -match "dev-nacos-local" -and -not $SkipNacosPrerequisiteCheck) {
 
 Write-Host "=== Start oa-server ($Profiles) ==="
 Write-Host "Note: Nacos unreachable does not abort startup (spring.cloud.nacos.discovery.fail-fast=false)."
+if ($Profiles -match "dev-test-beta") {
+    $repairScript = Join-Path $Root "scripts\integration-config\repair-flyway-failed.py"
+    if (Test-Path $repairScript) {
+        Write-Host "[beta] Repair failed Flyway rows (if any) before startup..."
+        & python $repairScript
+    }
+}
 Stop-ListenersOnPort -Port 48094
 Start-Sleep -Seconds 2
 
@@ -67,20 +75,9 @@ Start-Process -FilePath "powershell.exe" -ArgumentList @(
 ) -WindowStyle Minimized | Out-Null
 
 Write-Host "Log: $BackendLog"
-Write-Host "Waiting up to ${WaitSeconds}s for http://localhost:48094/actuator/health ..."
-$deadline = (Get-Date).AddSeconds($WaitSeconds)
-$ok = $false
-while ((Get-Date) -lt $deadline -and -not $ok) {
-    try {
-        $resp = Invoke-WebRequest -Uri "http://localhost:48094/actuator/health" -UseBasicParsing -TimeoutSec 5
-        Write-Host "[ready] oa-server health: $($resp.Content)"
-        $ok = $true
-    } catch {
-        Start-Sleep -Seconds 3
-    }
-}
+$ok = Wait-HttpEndpoint -Url "http://127.0.0.1:48094/actuator/health" -TimeoutSec $WaitSeconds -Label "oa-server"
 if (-not $ok) {
-    Write-Warning "oa-server not ready — check log (Nacos may be down; startup should still succeed if fail-fast is off): $BackendLog"
+    Write-Warning "oa-server log (Nacos may be down; startup should still succeed if fail-fast is off): $BackendLog"
 }
 Write-Host ""
 Write-Host "Verify Nacos console: service oa-server in namespace dev (when Nacos is up)"

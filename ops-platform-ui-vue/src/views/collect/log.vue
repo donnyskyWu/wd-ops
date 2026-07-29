@@ -44,7 +44,8 @@
           <el-empty description="暂无日志" />
         </template>
         <el-table-column type="index" label="#" width="60" align="center" />
-        <el-table-column prop="taskName" label="任务名" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="taskName" label="任务名" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="accountName" label="账号" min-width="140" show-overflow-tooltip />
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)">{{ statusText(row.status) }}</el-tag>

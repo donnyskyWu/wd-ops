@@ -6,15 +6,17 @@
   保护删除: ADR-M1-002 - 成员/账号/作者未迁移不允许删除 IP 组
 -->
 <template>
-  <div v-if="accessDenied" class="ip-group-page ip-group-page--denied">
-    <el-empty description="无权限访问 IP 组管理" :image-size="160">
+  <div
+    class="ip-group-page"
+    :class="{ 'ip-group-page--denied': accessDenied }"
+  >
+    <el-empty v-if="accessDenied" description="无权限访问 IP 组管理" :image-size="160">
       <template #description>
         <p>仅系统管理员或 IP 组组长可访问此页面</p>
         <p style="color: #909399; font-size: 13px">如需管理 IP 组，请联系管理员分配组长权限</p>
       </template>
     </el-empty>
-  </div>
-  <div v-else class="ip-group-page">
+    <template v-else>
     <div class="ip-group-layout">
       <!-- 左侧：IP 组树 -->
       <div class="ip-group-tree-panel">
@@ -343,7 +345,11 @@
     <el-dialog v-model="memberDialogVisible" title="添加成员" width="500px">
       <el-form :model="memberForm" label-width="80px">
         <el-form-item label="成员" required>
-          <UserSelect v-model="memberForm.userId" placeholder="请选择系统用户" />
+          <UserSelect
+            v-model="memberForm.userId"
+            :all-tenant-users="true"
+            placeholder="请选择系统用户"
+          />
         </el-form-item>
         <el-form-item label="岗位" required>
           <DictSelect
@@ -386,6 +392,7 @@
         <el-button type="primary" :loading="anchorSubmitting" @click="handleSubmitAnchor">确定</el-button>
       </template>
     </el-dialog>
+    </template>
   </div>
 </template>
 
@@ -417,6 +424,7 @@ import UserSelect from '@/components/selectors/UserSelect.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
 import { isForbiddenError } from '@/utils/data-scope'
+import { normalizeUserId } from '@/api/football-user'
 
 // ============== 左侧树 ==============
 const accessDenied = ref(false)
@@ -545,7 +553,7 @@ const formData = reactive({
   groupName: '',
   groupType: 1 as 1 | 2,
   parentId: undefined as number | undefined,
-  leaderId: undefined as number | undefined,
+  leaderId: undefined as string | undefined,
   level: undefined as string | undefined,
   sortOrder: 0,
   status: 1 as 0 | 1,
@@ -627,7 +635,7 @@ const handleEdit = async () => {
       groupName: detail.groupName,
       groupType: detail.groupType,
       parentId: detail.parentId,
-      leaderId: detail.leaderId,
+      leaderId: detail.leaderId != null ? normalizeUserId(detail.leaderId) : undefined,
       level: detail.level || undefined,
       sortOrder: detail.sortOrder || 0,
       status: detail.status,

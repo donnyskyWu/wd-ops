@@ -32,6 +32,12 @@ spring:
                 response-timeout: 300000
                 connect-timeout: 10000
               order: -100
+            # Phase A D-INF-01: frontend /admin-api/infra/file/* → infra-server
+            - id: infra-admin-api-direct
+              uri: http://127.0.0.1:48082
+              predicates:
+                - Path=/admin-api/infra/**
+              order: -100
             - id: member-admin-api-direct
               uri: http://127.0.0.1:48087
               predicates:
@@ -50,6 +56,8 @@ spring:
               - uri: http://127.0.0.1:48081
             oa-server:
               - uri: http://127.0.0.1:48094
+            infra-server:
+              - uri: http://127.0.0.1:48082
             mp-server:
               - uri: http://127.0.0.1:48086
             member-server:

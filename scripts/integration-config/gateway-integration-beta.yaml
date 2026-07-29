@@ -1,0 +1,86 @@
+# Gateway overlay for beta test DBs: keep localhost direct routes (vite → :48080),
+# but share remote Redis with system-server (token/session). Nacos discovery stays off.
+# Secrets: load ops-test-remote.env before start. See docs/delivery/OPS-TEST-DB.md
+spring:
+  cloud:
+    nacos:
+      server-addr: ${OPS_TEST_NACOS_ADDR:110.42.49.224:8848}
+      username: ${OPS_TEST_NACOS_USERNAME:nacos}
+      password: ${OPS_TEST_NACOS_PASSWORD:CHANGE_ME}
+      discovery:
+        namespace: ${OPS_TEST_NACOS_NAMESPACE:beta}
+        group: ${OPS_TEST_NACOS_GROUP:DEFAULT_GROUP}
+        register-enabled: true
+        enabled: false
+        fail-fast: false
+        failure-tolerance-enabled: true
+      config:
+        enabled: false
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            response-timeout: 300s
+          routes:
+            - id: system-admin-api-direct
+              uri: http://127.0.0.1:48081
+              predicates:
+                - Path=/admin-api/system/**
+              order: -100
+            - id: oa-admin-api-direct
+              uri: http://127.0.0.1:48094
+              predicates:
+                - Path=/admin-api/oa/**
+              metadata:
+                response-timeout: 300000
+                connect-timeout: 10000
+              order: -100
+            - id: infra-admin-api-direct
+              uri: http://127.0.0.1:48082
+              predicates:
+                - Path=/admin-api/infra/**
+              order: -100
+            - id: member-admin-api-direct
+              uri: http://127.0.0.1:48087
+              predicates:
+                - Path=/admin-api/member/**
+              order: -100
+            - id: match-admin-api-direct
+              uri: http://127.0.0.1:48088
+              predicates:
+                - Path=/admin-api/match/**
+              order: -100
+    discovery:
+      client:
+        simple:
+          instances:
+            system-server:
+              - uri: http://127.0.0.1:48081
+            oa-server:
+              - uri: http://127.0.0.1:48094
+            infra-server:
+              - uri: http://127.0.0.1:48082
+            mp-server:
+              - uri: http://127.0.0.1:48086
+            member-server:
+              - uri: http://127.0.0.1:48087
+            match-server:
+              - uri: http://127.0.0.1:48088
+  data:
+    redis:
+      host: ${OPS_TEST_REDIS_HOST:110.42.49.224}
+      port: ${OPS_TEST_REDIS_PORT:6379}
+      database: ${OPS_TEST_REDIS_DATABASE:1}
+      password: ${OPS_TEST_REDIS_PASSWORD:CHANGE_ME}
+
+logging:
+  level:
+    org.springframework.context.support.PostProcessorRegistrationDelegate: ERROR
+
+football:
+  signature:
+    app-id: 20260408160327_DEV
+    app-secret: 8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c
+  encrypt:
+    data-key: K9m2P5v8x1B4n7Q0
+    data-iv: L3j6R9w2Z5c8F1b4

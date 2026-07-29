@@ -26,7 +26,8 @@ export const UAT_GAP_PAGES: UatGapPage[] = [
   { group: '内容生产', path: '/layout-template', title: '公推模板库', apiPattern: /\/layout-template\/list/ },
   { group: '内容生产', path: '/sop', title: 'SOP管理', apiPattern: /\/sop\/list/ },
   { group: '内容生产', path: '/sop/review', title: 'SOP审核', apiPattern: /\/sop\/review\/list/ },
-  { group: '内容生产', path: '/task', title: '任务管理', apiPattern: /\/task\/list/ },
+  { group: '内容生产', path: '/task', title: '我的任务', apiPattern: /\/task\/my-tasks/ },
+  { group: '内容生产', path: '/task/all', title: '全部任务', apiPattern: /\/task\/list/ },
 
   // 运营管理 (ip-group in UAT 5/5)
   { group: '运营管理', path: '/account-analysis', title: '账号分析', apiPattern: /\/account-analysis/ },

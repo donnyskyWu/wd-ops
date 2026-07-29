@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 /**
  * Football system-server operate-log RPC (vendored from yudao-common, AL-05).
  */
-@FeignClient(name = RpcConstants.SYSTEM_NAME, primary = false)
+@FeignClient(contextId = "operateLogCommonApi", name = RpcConstants.SYSTEM_NAME, primary = false)
 public interface OperateLogCommonApi {
 
     String PREFIX = RpcConstants.SYSTEM_PREFIX + "/operate-log";

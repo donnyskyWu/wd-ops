@@ -3,7 +3,7 @@
 -- Also seeds sys_role ip_group_leader (V150 skipped on H2 — no system_role overlay).
 
 INSERT INTO sys_role (id, tenant_id, code, name, status, data_scope, remark, creator, updater)
-SELECT 6, 1, 'ip_group_leader', 'IP组长', 'ENABLED', 'SELF',
+SELECT 161, 1, 'ip_group_leader', 'IP组长', 'ENABLED', 'SELF',
        'h2-seed · IP组长', 'h2-seed', 'h2-seed'
 FROM sys_user WHERE id = 1001
   AND NOT EXISTS (

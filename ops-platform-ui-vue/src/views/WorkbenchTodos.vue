@@ -49,14 +49,14 @@ const activeTab = ref('ALL')
 const TODO_TABS = [
   { source: 'IMPORT', label: '数据补录' },
   { source: 'SOP', label: 'SOP' },
-  { source: 'PUBLISH', label: '发布审核' },
+  { source: 'PUBLISH', label: '内容审核' },
   { source: 'PERF', label: '绩效' },
   { source: 'INTEGRATION', label: '集成' },
 ] as const
 
 const SOURCE_LABEL: Record<string, string> = {
   SOP: 'SOP',
-  PUBLISH: '发布',
+  PUBLISH: '内容审核',
   PERF: '绩效',
   INTEGRATION: '集成',
   IMPORT: '数据补录',

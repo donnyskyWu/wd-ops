@@ -11,7 +11,9 @@ import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupAnchorBindReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupAnchorVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupDetailVO;
+import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupLeaderCandidateVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupListVO;
+import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberCandidateVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberVO;
@@ -19,6 +21,7 @@ import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupStatsVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupTreeVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupUpdateReq;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.auth.FootballSystemUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.author.AuthorUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.author.OaAuthorExtDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupAnchorRelDO;
@@ -46,7 +49,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -74,6 +79,7 @@ public class IpGroupServiceImpl implements IpGroupService {
     private final MemberAuthorReadService memberAuthorReadService;
     private final IpGroupAccessSupport ipGroupAccessSupport;
     private final OpsDataScopeSupport opsDataScopeSupport;
+    private final PlatformTransactionManager transactionManager;
 
     @Override
     public List<IpGroupTreeVO> getTree() {
@@ -170,6 +176,39 @@ public class IpGroupServiceImpl implements IpGroupService {
         Long tenantId = requireTenantId();
         return footballSystemUserValidator.listPresentableUserIdsByRoleCode(
                 tenantId, IpGroupRoleCodes.IP_GROUP_LEADER);
+    }
+
+    @Override
+    public List<IpGroupLeaderCandidateVO> listLeaderCandidates() {
+        List<Long> ids = listLeaderCandidateUserIds();
+        if (ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<Long, String> nicknames = footballSystemUserValidator.loadNicknames(ids);
+        return ids.stream().map(id -> {
+            IpGroupLeaderCandidateVO vo = new IpGroupLeaderCandidateVO();
+            vo.setId(id);
+            vo.setUsername(footballSystemUserValidator.resolveUsername(id));
+            vo.setNickname(footballSystemUserValidator.resolveMemberDisplayName(id, nicknames.get(id)));
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<IpGroupMemberCandidateVO> listMemberCandidates() {
+        Long tenantId = requireTenantId();
+        List<FootballSystemUserDO> users = footballSystemUserValidator.listEnabledUsersInTenant(tenantId);
+        if (users.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return users.stream().map(user -> {
+            IpGroupMemberCandidateVO vo = new IpGroupMemberCandidateVO();
+            vo.setId(user.getId());
+            vo.setUsername(user.getUsername());
+            vo.setNickname(footballSystemUserValidator.resolveMemberDisplayName(
+                    user.getId(), user.getNickname()));
+            return vo;
+        }).collect(Collectors.toList());
     }
 
     @Override
@@ -360,7 +399,6 @@ public class IpGroupServiceImpl implements IpGroupService {
     }
 
     @Override
-    @Transactional
     @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_CREATE_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
             success = M1_IP_GROUP_CREATE_SUCCESS)
     public Long create(IpGroupCreateReq req) {
@@ -369,10 +407,7 @@ public class IpGroupServiceImpl implements IpGroupService {
         assertNameUnique(tenantId, req.getParentId(), req.getGroupName(), null);
         validateGroupTypeAndParent(tenantId, req.getGroupType(), req.getParentId());
 
-        Long leaderUserId = resolveLeaderUserId(req.getLeaderId(), req.getLeaderUserId());
-        if (leaderUserId != null) {
-            assertLeaderExists(tenantId, leaderUserId);
-        }
+        Long leaderUserId = prepareResolvedLeaderUserId(tenantId, req.getLeaderId(), req.getLeaderUserId());
 
         IpGroupDO entity = new IpGroupDO();
         entity.setTenantId(tenantId);
@@ -388,19 +423,26 @@ public class IpGroupServiceImpl implements IpGroupService {
         entity.setUpdater(TenantContextHolder.getUsername());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
-        ipGroupMapper.insert(entity);
-        LogRecordContext.putVariable("ipGroup", entity);
-        return entity.getId();
+        return new TransactionTemplate(transactionManager).execute(status -> {
+            ipGroupMapper.insert(entity);
+            LogRecordContext.putVariable("ipGroup", entity);
+            return entity.getId();
+        });
     }
 
     @Override
-    @Transactional
     @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_UPDATE_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
             success = M1_IP_GROUP_UPDATE_SUCCESS)
     public void update(IpGroupUpdateReq req) {
-        IpGroupDO existing = requireGroup(req.getId());
+        IpGroupDO existing = requireGroupWritable(req.getId());
         LogRecordContext.putVariable(DiffParseFunction.OLD_OBJECT, toUpdateReq(existing));
         LogRecordContext.putVariable("ipGroup", existing);
+        Long leaderUserId = prepareResolvedLeaderUserId(
+                existing.getTenantId(), req.getLeaderId(), req.getLeaderUserId());
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> applyUpdate(req, existing, leaderUserId));
+    }
+
+    private void applyUpdate(IpGroupUpdateReq req, IpGroupDO existing, Long leaderUserId) {
         // P-GATE-UNMOCK S-E: parentId 修改支持（spec 漏字段，已补 IpGroupUpdateReq.parentId）
         // 仅小组可改 parentId；防自引用与子孙引用（防死循环）
         boolean parentIdChanged = false;
@@ -430,9 +472,7 @@ public class IpGroupServiceImpl implements IpGroupService {
             }
             existing.setGroupName(req.getGroupName().trim());
         }
-        Long leaderUserId = resolveLeaderUserId(req.getLeaderId(), req.getLeaderUserId());
         if (leaderUserId != null) {
-            assertLeaderExists(existing.getTenantId(), leaderUserId);
             existing.setLeaderUserId(leaderUserId);
         }
         if (req.getSortOrder() != null) {
@@ -457,7 +497,7 @@ public class IpGroupServiceImpl implements IpGroupService {
     @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_UPDATE_STATUS_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
             success = M1_IP_GROUP_UPDATE_STATUS_SUCCESS)
     public void updateStatus(Long id, Integer status) {
-        IpGroupDO existing = requireGroup(id);
+        IpGroupDO existing = requireGroupWritable(id);
         LogRecordContext.putVariable("ipGroup", existing);
         existing.setStatus(status);
         existing.setUpdater(TenantContextHolder.getUsername());
@@ -470,7 +510,7 @@ public class IpGroupServiceImpl implements IpGroupService {
     @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_DELETE_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
             success = M1_IP_GROUP_DELETE_SUCCESS)
     public void delete(Long id) {
-        IpGroupDO entity = requireGroup(id);
+        IpGroupDO entity = requireGroupWritable(id);
         LogRecordContext.putVariable("ipGroup", entity);
         assertDeletable(entity);
         ipGroupMapper.deleteById(id);
@@ -502,18 +542,19 @@ public class IpGroupServiceImpl implements IpGroupService {
     @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_ADD_MEMBER_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
             success = M1_IP_GROUP_ADD_MEMBER_SUCCESS)
     public void addMember(Long groupId, IpGroupMemberCreateReq req) {
-        IpGroupDO entity = requireGroup(groupId);
+        IpGroupDO entity = requireGroupWritable(groupId);
         LogRecordContext.putVariable("ipGroup", entity);
         assertMemberGroupType(entity);
-        assertUserExists(entity.getTenantId(), req.getUserId());
-        assertMemberNotExists(entity.getTenantId(), groupId, req.getUserId());
+        Long storableUserId = footballSystemUserValidator.resolveStorableUserId(req.getUserId(), entity.getTenantId());
+        assertUserExists(entity.getTenantId(), storableUserId);
+        assertMemberNotExists(entity.getTenantId(), groupId, storableUserId);
 
         IpGroupMemberDO member = new IpGroupMemberDO();
         member.setTenantId(entity.getTenantId());
         member.setIpGroupId(groupId);
-        member.setUserId(req.getUserId());
+        member.setUserId(storableUserId);
         member.setPosition(StrUtil.blankToDefault(req.getPosition(),
-                footballSystemUserValidator.resolveLegacyPosition(req.getUserId())));
+                footballSystemUserValidator.resolveLegacyPosition(storableUserId)));
         member.setIsLeader(Boolean.TRUE.equals(req.getIsLeader()) ? 1 : 0);
         member.setCreator(TenantContextHolder.getUsername());
         member.setUpdater(TenantContextHolder.getUsername());
@@ -527,7 +568,7 @@ public class IpGroupServiceImpl implements IpGroupService {
     @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_UPDATE_MEMBER_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
             success = M1_IP_GROUP_UPDATE_MEMBER_SUCCESS)
     public void updateMember(Long groupId, Long memberId, IpGroupMemberUpdateReq req) {
-        IpGroupDO entity = requireGroup(groupId);
+        IpGroupDO entity = requireGroupWritable(groupId);
         LogRecordContext.putVariable("ipGroup", entity);
         IpGroupMemberDO member = requireMember(groupId, memberId);
         if (req.getPosition() != null) {
@@ -546,7 +587,7 @@ public class IpGroupServiceImpl implements IpGroupService {
     @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_DELETE_MEMBER_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
             success = M1_IP_GROUP_DELETE_MEMBER_SUCCESS)
     public void deleteMember(Long groupId, Long memberId) {
-        IpGroupDO entity = requireGroup(groupId);
+        IpGroupDO entity = requireGroupWritable(groupId);
         LogRecordContext.putVariable("ipGroup", entity);
         requireMember(groupId, memberId);
         ipGroupMemberMapper.deleteById(memberId);
@@ -557,7 +598,7 @@ public class IpGroupServiceImpl implements IpGroupService {
     @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_BIND_ACCOUNTS_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
             success = M1_IP_GROUP_BIND_ACCOUNTS_SUCCESS)
     public void bindAccounts(Long groupId, IpGroupAccountBindReq req) {
-        IpGroupDO entity = requireGroup(groupId);
+        IpGroupDO entity = requireGroupWritable(groupId);
         LogRecordContext.putVariable("ipGroup", entity);
         assertAccountBindGroupType(entity);
         Long tenantId = entity.getTenantId();
@@ -582,7 +623,7 @@ public class IpGroupServiceImpl implements IpGroupService {
     @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_UNBIND_ACCOUNT_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
             success = M1_IP_GROUP_UNBIND_ACCOUNT_SUCCESS)
     public void unbindAccount(Long groupId, Long accountId) {
-        IpGroupDO entity = requireGroup(groupId);
+        IpGroupDO entity = requireGroupWritable(groupId);
         LogRecordContext.putVariable("ipGroup", entity);
         AccountDO account = accountMapper.selectById(accountId);
         if (account == null || !Objects.equals(account.getTenantId(), entity.getTenantId())) {
@@ -638,7 +679,7 @@ public class IpGroupServiceImpl implements IpGroupService {
     @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_BIND_ANCHORS_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
             success = M1_IP_GROUP_BIND_ANCHORS_SUCCESS)
     public void bindAnchors(Long groupId, IpGroupAnchorBindReq req) {
-        IpGroupDO entity = requireGroup(groupId);
+        IpGroupDO entity = requireGroupWritable(groupId);
         LogRecordContext.putVariable("ipGroup", entity);
         Long tenantId = entity.getTenantId();
         for (Long anchorUserId : req.getAnchorUserIds()) {
@@ -669,7 +710,7 @@ public class IpGroupServiceImpl implements IpGroupService {
     @LogRecord(type = M1_IP_GROUP_TYPE, subType = M1_IP_GROUP_UNBIND_ANCHOR_SUB_TYPE, bizNo = "{{#ipGroup.id}}",
             success = M1_IP_GROUP_UNBIND_ANCHOR_SUCCESS)
     public void unbindAnchor(Long groupId, Long anchorUserId) {
-        IpGroupDO entity = requireGroup(groupId);
+        IpGroupDO entity = requireGroupWritable(groupId);
         LogRecordContext.putVariable("ipGroup", entity);
         IpGroupAnchorRelDO rel = ipGroupAnchorRelMapper.selectOne(new LambdaQueryWrapper<IpGroupAnchorRelDO>()
                 .eq(IpGroupAnchorRelDO::getTenantId, entity.getTenantId())
@@ -757,6 +798,16 @@ public class IpGroupServiceImpl implements IpGroupService {
         return leaderUserId != null ? leaderUserId : leaderId;
     }
 
+    /** Validate + store leader as shenyu-system {@code system_users.id} (Football SSOT). */
+    private Long prepareResolvedLeaderUserId(Long tenantId, Long leaderId, Long leaderUserId) {
+        Long resolved = resolveLeaderUserId(leaderId, leaderUserId);
+        if (resolved == null) {
+            return null;
+        }
+        assertLeaderExists(tenantId, resolved);
+        return footballSystemUserValidator.resolveStorableUserId(resolved, tenantId);
+    }
+
     private void assertLeaderExists(Long tenantId, Long leaderUserId) {
         assertUserExists(tenantId, leaderUserId);
         footballSystemUserValidator.assertHasRoleCode(
@@ -765,7 +816,8 @@ public class IpGroupServiceImpl implements IpGroupService {
     }
 
     private void assertUserExists(Long tenantId, Long userId) {
-        footballSystemUserValidator.assertInTenant(userId, tenantId, OaErrorCodes.IP_GROUP_LEADER_NOT_FOUND.getMsg());
+        footballSystemUserValidator.assertInTenant(
+                userId, tenantId, OaErrorCodes.IP_GROUP_LEADER_NOT_FOUND);
     }
 
     private String resolveAuthorAnchorType(Long authorUserId) {
@@ -830,7 +882,7 @@ public class IpGroupServiceImpl implements IpGroupService {
     }
 
     private IpGroupMemberDO requireMember(Long groupId, Long memberId) {
-        requireGroup(groupId);
+        requireGroupWritable(groupId);
         IpGroupMemberDO member = ipGroupMemberMapper.selectById(memberId);
         if (member == null || !Objects.equals(member.getIpGroupId(), groupId)
                 || !Objects.equals(member.getTenantId(), requireTenantId())) {
@@ -852,8 +904,9 @@ public class IpGroupServiceImpl implements IpGroupService {
         vo.setGroupType(entity.getGroupType());
         vo.setParentId(entity.getParentId());
         vo.setParentName(entity.getParentId() == null ? null : nameMap.get(entity.getParentId()));
-        vo.setLeaderId(entity.getLeaderUserId());
-        vo.setLeaderName(entity.getLeaderUserId() == null ? null : leaderNameMap.get(entity.getLeaderUserId()));
+        Long leaderUserId = entity.getLeaderUserId();
+        vo.setLeaderId(leaderUserId == null ? null : footballSystemUserValidator.resolvePresentableUserId(leaderUserId));
+        vo.setLeaderName(leaderUserId == null ? null : leaderNameMap.get(leaderUserId));
         vo.setStatus(entity.getStatus());
         vo.setLevel(entity.getLevel());
         vo.setCreateTime(entity.getCreateTime());
@@ -1004,7 +1057,21 @@ public class IpGroupServiceImpl implements IpGroupService {
         return names;
     }
 
+    /** 详情/成员/统计等只读；组长可访问管辖组及其树祖先 */
     private IpGroupDO requireGroup(Long id) {
+        IpGroupDO entity = loadTenantGroup(id);
+        opsDataScopeSupport.assertIpGroupLedReadable(entity.getId());
+        return entity;
+    }
+
+    /** 增删改；组长仅管辖小组，不可写祖先大组 */
+    private IpGroupDO requireGroupWritable(Long id) {
+        IpGroupDO entity = loadTenantGroup(id);
+        opsDataScopeSupport.assertIpGroupLedWritable(entity.getId());
+        return entity;
+    }
+
+    private IpGroupDO loadTenantGroup(Long id) {
         IpGroupDO entity = ipGroupMapper.selectById(id);
         if (entity == null) {
             throw new ServiceException(OaErrorCodes.ENTITY_NOT_EXISTS);
@@ -1012,7 +1079,6 @@ public class IpGroupServiceImpl implements IpGroupService {
         if (!Objects.equals(entity.getTenantId(), requireTenantId())) {
             throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
         }
-        opsDataScopeSupport.assertIpGroupLedReadable(entity.getId());
         return entity;
     }
 

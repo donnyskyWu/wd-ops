@@ -29,6 +29,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfRecordMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateItemMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.PerfTemplateMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import cn.iocoder.yudao.module.oa.service.dict.DictService;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.hutool.core.util.StrUtil;
@@ -68,6 +69,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
     private final FootballSystemUserValidator footballSystemUserValidator;
     private final PerfMetricValueResolver perfMetricValueResolver;
     private final DictService dictService;
+    private final OpsDataScopeSupport opsDataScopeSupport;
 
     @Override
     public PageResult<PerfRecordVO> list(Long ipGroupId, Long targetUserId, String periodType, String status,
@@ -80,6 +82,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
                 .eq(periodType != null && !periodType.isBlank(), PerfRecordDO::getPeriodType, periodType)
                 .eq(status != null && !status.isBlank(), PerfRecordDO::getStatus, status)
                 .orderByDesc(PerfRecordDO::getId);
+        opsDataScopeSupport.applySelfCreatorOrUserId(wrapper, PerfRecordDO::getCreator, PerfRecordDO::getTargetUserId);
         Page<PerfRecordDO> page = perfRecordMapper.selectPage(
                 new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize), wrapper);
         Map<Long, String> userNames = loadUserNames(page.getRecords());
@@ -97,10 +100,11 @@ public class PerfRecordServiceImpl implements PerfRecordService {
         Long tenantId = requireTenantId();
         assertIpGroupExists(req.getIpGroupId(), tenantId);
         footballSystemUserValidator.assertEnabledInTenant(req.getTargetUserId(), tenantId, "被考核人不存在");
-        SysUserDO user = footballSystemUserValidator.findLegacyUser(req.getTargetUserId());
+        Long targetUserId = footballSystemUserValidator.resolveStorableUserId(req.getTargetUserId(), tenantId);
+        SysUserDO user = footballSystemUserValidator.findLegacyUser(targetUserId);
         long duplicate = perfRecordMapper.selectCount(new LambdaQueryWrapper<PerfRecordDO>()
                 .eq(PerfRecordDO::getTenantId, tenantId)
-                .eq(PerfRecordDO::getTargetUserId, req.getTargetUserId())
+                .eq(PerfRecordDO::getTargetUserId, targetUserId)
                 .eq(PerfRecordDO::getPeriodType, req.getPeriodType())
                 .eq(PerfRecordDO::getPeriodStart, req.getPeriodStart())
                 .eq(PerfRecordDO::getPeriodEnd, req.getPeriodEnd()));
@@ -111,7 +115,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
         PerfRecordDO entity = new PerfRecordDO();
         entity.setTenantId(tenantId);
         entity.setTemplateId(template.getId());
-        entity.setTargetUserId(req.getTargetUserId());
+        entity.setTargetUserId(targetUserId);
         entity.setIpGroupId(req.getIpGroupId());
         entity.setPeriodType(req.getPeriodType());
         entity.setPeriodStart(req.getPeriodStart());
@@ -218,7 +222,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
 
         PerfRecordDetailVO vo = new PerfRecordDetailVO();
         vo.setId(record.getId());
-        vo.setTargetUserId(record.getTargetUserId());
+        vo.setTargetUserId(footballSystemUserValidator.resolvePresentableUserId(record.getTargetUserId()));
         vo.setTemplateId(record.getTemplateId());
         vo.setTargetUserName(footballSystemUserValidator.resolveDisplayName(record.getTargetUserId()));
         vo.setTemplateName(template != null ? template.getTemplateName() : null);
@@ -294,7 +298,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
                               Map<Long, String> ipGroupNames) {
         PerfRecordVO vo = new PerfRecordVO();
         vo.setId(record.getId());
-        vo.setTargetUserId(record.getTargetUserId());
+        vo.setTargetUserId(footballSystemUserValidator.resolvePresentableUserId(record.getTargetUserId()));
         vo.setTargetUserName(userNames.get(record.getTargetUserId()));
         vo.setPosition(positions.get(record.getId()));
         vo.setTemplateId(record.getTemplateId());
@@ -482,6 +486,7 @@ public class PerfRecordServiceImpl implements PerfRecordService {
         if (!Objects.equals(record.getTenantId(), requireTenantId())) {
             throw new ServiceException(OaErrorCodes.TENANT_FORBIDDEN);
         }
+        opsDataScopeSupport.assertSelfCreatorOrUserId(record.getCreator(), record.getTargetUserId());
         return record;
     }
 

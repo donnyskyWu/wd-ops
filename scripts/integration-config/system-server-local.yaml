@@ -1,15 +1,18 @@
-﻿spring:
+﻿# Nacos DataId for local integration (namespace=local).
+# Must match football-integration-overlay.yml — system-server → shenyu-system (ADR-056).
+# Remote 101.37.161.136 preserved in football-integration-overlay-remote.yml / oa-server-remote-multidb.yaml.
+spring:
   datasource:
     dynamic:
       datasource:
         master:
-          url: jdbc:mysql://101.37.161.136:3306/wd?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
-          username: shenyu
-          password: Zhangwu+123456
+          url: jdbc:mysql://localhost:3306/shenyu-system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: root
+          password: root
         slave:
-          url: jdbc:mysql://101.37.161.136:3306/wd?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
-          username: shenyu
-          password: Zhangwu+123456
+          url: jdbc:mysql://localhost:3306/shenyu-system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: root
+          password: root
   data:
     redis:
       host: 127.0.0.1

@@ -98,6 +98,7 @@ class M10ColCollectLogDetailIT extends OaITBase {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.taskName").value("日志详情测试任务"))
                 .andExpect(jsonPath("$.data.platformType").value("WECHAT_OFFICIAL"))
+                .andExpect(jsonPath("$.data.accountName").value("SEED-公众号A1"))
                 .andExpect(jsonPath("$.data.result.summary").value("同步粉丝 2 条"))
                 .andExpect(jsonPath("$.data.result.samples[0].openid").value("o-test-1"))
                 .andExpect(jsonPath("$.data.result.samples[1].nickname").value("测试粉丝B"));

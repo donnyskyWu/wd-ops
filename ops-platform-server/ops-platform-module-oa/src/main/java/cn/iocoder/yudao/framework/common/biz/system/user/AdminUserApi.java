@@ -14,7 +14,7 @@ import java.util.List;
  * Football system-server user RPC (vendored subset, G-SYS-01).
  * Aligns with {@code football.module.system.api.user.AdminUserApi#getSimpleUserList}.
  */
-@FeignClient(name = RpcConstants.SYSTEM_NAME, primary = false)
+@FeignClient(contextId = "adminUserApi", name = RpcConstants.SYSTEM_NAME, primary = false)
 public interface AdminUserApi {
 
     String PREFIX = RpcConstants.SYSTEM_PREFIX + "/user";

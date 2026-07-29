@@ -19,6 +19,7 @@ pairs = [
     ("ops-platform-ui-vue/src/components/TableSearch.vue", "football-front/apps/web-ele/src/components/ops/TableSearch.vue"),
     ("ops-platform-ui-vue/src/views/production/content/ContentEditDialog.vue", "football-front/apps/web-ele/src/views/ops/production/content/ContentEditDialog.vue"),
     ("ops-platform-ui-vue/src/views/production/content/ContentEditPanel.vue", "football-front/apps/web-ele/src/views/ops/production/content/ContentEditPanel.vue"),
+    ("ops-platform-ui-vue/src/views/production/content/AiContentDrawer.vue", "football-front/apps/web-ele/src/views/ops/production/content/AiContentDrawer.vue"),
 ]
 
 

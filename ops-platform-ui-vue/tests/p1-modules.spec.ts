@@ -44,17 +44,19 @@ test.describe('任务管理测试 @regression', () => {
     await page.waitForLoadState('networkidle')
   })
 
-  test('TASK-001: 任务列表加载', async ({ page }) => {
+  test('TASK-001: 我的任务列表加载', async ({ page }) => {
     const table = page.locator('.el-table')
     await expect(table).toBeVisible()
+    await expect(page.locator('.el-tabs')).toHaveCount(0)
   })
 
-  test('TASK-002: Tab切换', async ({ page }) => {
-    const tabs = page.locator('.el-tabs__item')
-    await expect(tabs).toHaveCount(2)
-    
-    await tabs.nth(1).click()
-    await page.waitForTimeout(300)
+  test('TASK-002: 全部任务页面加载', async ({ page }) => {
+    await page.goto('/task/all')
+    await page.waitForLoadState('networkidle')
+
+    const table = page.locator('.el-table')
+    await expect(table).toBeVisible()
+    await expect(page.locator('.el-tabs')).toHaveCount(0)
   })
 })
 

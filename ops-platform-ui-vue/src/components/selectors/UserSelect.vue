@@ -12,19 +12,21 @@
     :disabled="disabled"
     :filterable="filterable"
     :multiple="multiple"
-    :remote="remote"
-    :remote-method="handleRemoteSearch"
+    :remote="useRemoteSearch"
+    :remote-method="useRemoteSearch ? handleRemoteSearch : undefined"
+    :filter-method="useRemoteSearch ? undefined : filterLocalOptions"
     :loading="loading"
     style="width: 100%"
     @change="handleChange"
+    @visible-change="handleVisibleChange"
   >
     <el-option
       v-for="item in options"
       :key="item.id"
-      :label="item.nickname"
+      :label="formatUserLabel(item)"
       :value="item.id"
     >
-      <span style="float: left">{{ item.nickname }}</span>
+      <span style="float: left">{{ formatUserLabel(item) }}</span>
       <span style="float: right; color: #909399; font-size: 12px; margin-left: 12px">
         {{ item.deptName || '-' }} · {{ item.roleNames?.join('/') || '-' }}
       </span>
@@ -36,13 +38,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { fetchSystemUserSimpleList, filterSystemUsers } from '@/api/football-user'
-import { getIpGroupMembers, getIpGroupLeaderCandidateIds, IP_GROUP_LEADER_ROLE_CODE } from '@/api/ip-group'
+import { fetchSystemUserSimpleList, filterSystemUsers, normalizeUserId } from '@/api/football-user'
+import {
+  getIpGroupMembers,
+  getIpGroupLeaderCandidates,
+  getIpGroupMemberCandidates,
+  IP_GROUP_LEADER_ROLE_CODE,
+} from '@/api/ip-group'
 
 interface UserVO {
-  id: number
+  id: string
   username: string
   nickname: string
   phoneMasked?: string
@@ -53,7 +60,7 @@ interface UserVO {
 }
 
 interface Props {
-  modelValue?: number | number[] | undefined
+  modelValue?: string | string[] | number | number[] | undefined
   placeholder?: string
   clearable?: boolean
   disabled?: boolean
@@ -66,6 +73,11 @@ interface Props {
   roleCode?: string
   /** 限定到某 IP 组成员 */
   ipGroupId?: number
+  /**
+   * 租户内全部启用用户（OA /member-candidates，不受 Football simple-list 数据权限限制）。
+   * 用于 IP 组「添加成员」等需选任意人的场景。
+   */
+  allTenantUsers?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -79,20 +91,84 @@ const props = withDefaults(defineProps<Props>(), {
   deptId: undefined,
   roleCode: undefined,
   ipGroupId: undefined,
+  allTenantUsers: false,
 })
 
 const emit = defineEmits<{
-  'update:modelValue': [val: number | number[] | undefined]
-  change: [val: number | number[] | undefined, item?: UserVO]
+  'update:modelValue': [val: string | string[] | number | number[] | undefined]
+  change: [val: string | string[] | number | number[] | undefined, item?: UserVO]
 }>()
 
-const selectedValue = ref<number | number[] | undefined>(props.modelValue)
+const toModelValue = (val: string | string[] | number | number[] | undefined) => {
+  if (val == null) return undefined
+  if (Array.isArray(val)) return val.map((item) => normalizeUserId(item))
+  return normalizeUserId(val)
+}
+
+const selectedValue = ref<string | string[] | undefined>(toModelValue(props.modelValue) as string | string[] | undefined)
 const options = ref<UserVO[]>([])
+const cachedOptions = ref<UserVO[]>([])
 const loading = ref(false)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
+/** 组长/成员候选人/IP 组成员等短列表走本地过滤，避免 remote 模式与雪花 id 精度问题 */
+const useRemoteSearch = computed(() => {
+  if (
+    props.allTenantUsers
+    || props.roleCode === IP_GROUP_LEADER_ROLE_CODE
+    || props.ipGroupId != null
+  ) {
+    return false
+  }
+  return props.remote
+})
+
+const isGarbledNickname = (nickname?: string) =>
+  !!nickname && (/^[?？]+$/.test(nickname) || /^[?？]+.+/.test(nickname))
+
+const displayNickname = (item: Pick<UserVO, 'nickname' | 'username'>) => {
+  if (isGarbledNickname(item.nickname)) {
+    return item.username || item.nickname
+  }
+  return item.nickname
+}
+
+const formatUserLabel = (item: UserVO) => {
+  const nickname = displayNickname(item)
+  if (item.username && item.username !== nickname) {
+    return `${nickname} (${item.username})`
+  }
+  return nickname
+}
+
+const matchesUserKeyword = (item: Pick<UserVO, 'nickname' | 'username'>, keyword: string) => {
+  const kw = keyword.trim().toLowerCase()
+  if (!kw) return true
+  const nickname = (item.nickname || '').toLowerCase()
+  const username = (item.username || '').toLowerCase()
+  if (nickname.includes(kw) || username.includes(kw)) {
+    return true
+  }
+  // 支持缩写检索：zw → zhangwu
+  let cursor = 0
+  for (const ch of username) {
+    if (ch === kw[cursor]) {
+      cursor += 1
+    }
+    if (cursor >= kw.length) {
+      return true
+    }
+  }
+  return false
+}
+
+const setOptions = (list: UserVO[]) => {
+  cachedOptions.value = list
+  options.value = list
+}
+
 watch(() => props.modelValue, (val) => {
-  selectedValue.value = val
+  selectedValue.value = toModelValue(val) as string | string[] | undefined
   void ensureSelectedUser()
 })
 watch(() => props.ipGroupId, () => loadList(''))
@@ -100,16 +176,16 @@ watch(() => props.ipGroupId, () => loadList(''))
 const ensureSelectedUser = async () => {
   const val = props.modelValue
   if (val == null || (Array.isArray(val) && !val.length)) return
-  const ids = (Array.isArray(val) ? val : [val]).map(Number)
+  const ids = (Array.isArray(val) ? val : [val]).map((item) => normalizeUserId(item))
   const missing = ids.filter((id) => !options.value.some((o) => o.id === id))
   if (!missing.length) return
   try {
     const users = await fetchSystemUserSimpleList()
     for (const id of missing) {
-      const u = users.find((x) => Number(x.id) === id)
-      if (!u || options.value.some((o) => o.id === Number(u.id))) continue
+      const u = users.find((x) => normalizeUserId(x.id) === id)
+      if (!u || options.value.some((o) => o.id === normalizeUserId(u.id))) continue
       options.value.push({
-        id: Number(u.id),
+        id: normalizeUserId(u.id),
         username: u.username || String(u.id),
         nickname: u.nickname,
         phoneMasked: u.mobile,
@@ -130,16 +206,65 @@ const loadList = async (keyword: string) => {
     if (props.ipGroupId) {
       const members = await getIpGroupMembers(props.ipGroupId)
       const kw = keyword?.trim().toLowerCase()
-      options.value = members
-        .filter((item) => !kw || item.userName.toLowerCase().includes(kw))
-        .map((item) => ({
-          id: item.userId,
-          username: String(item.userId),
-          nickname: item.userName,
-          phoneMasked: undefined,
-          deptName: undefined,
-          roleNames: item.positionText ? [item.positionText] : [],
-        }))
+      setOptions(
+        members
+          .filter((item) => !kw || item.userName.toLowerCase().includes(kw))
+          .map((item) => ({
+            id: normalizeUserId(item.userId),
+            username: String(item.userId),
+            nickname: item.userName,
+            phoneMasked: undefined,
+            deptName: undefined,
+            roleNames: item.positionText ? [item.positionText] : [],
+          })),
+      )
+      return
+    }
+    if (props.roleCode === IP_GROUP_LEADER_ROLE_CODE) {
+      const candidates = await getIpGroupLeaderCandidates()
+      const kw = keyword?.trim().toLowerCase()
+      setOptions(
+        candidates
+          .filter((u) => {
+            if (!kw) return true
+            return matchesUserKeyword(
+              { nickname: u.nickname, username: u.username || String(u.id) },
+              kw,
+            )
+          })
+          .slice(0, 50)
+          .map((u) => ({
+            id: normalizeUserId(u.id),
+            username: u.username || String(u.id),
+            nickname: u.nickname,
+            phoneMasked: undefined,
+            deptName: undefined,
+            roleNames: ['IP组长'],
+          })),
+      )
+      return
+    }
+    if (props.allTenantUsers) {
+      const candidates = await getIpGroupMemberCandidates()
+      const kw = keyword?.trim().toLowerCase()
+      setOptions(
+        candidates
+          .filter((u) => {
+            if (!kw) return true
+            return matchesUserKeyword(
+              { nickname: u.nickname, username: u.username || String(u.id) },
+              kw,
+            )
+          })
+          .map((u) => ({
+            id: normalizeUserId(u.id),
+            username: u.username || String(u.id),
+            nickname: u.nickname,
+            phoneMasked: undefined,
+            deptName: undefined,
+            roleNames: [],
+          })),
+      )
       return
     }
     const users = await fetchSystemUserSimpleList()
@@ -148,19 +273,9 @@ const loadList = async (keyword: string) => {
       deptId: props.deptId,
       enabledOnly: true,
     })
-    // roleCode=ip_group_leader：仅展示持有 IP组长 角色的用户；其它 roleCode 暂无服务端列表接口，依赖后端校验
-    if (props.roleCode === IP_GROUP_LEADER_ROLE_CODE) {
-      try {
-        const allowed = new Set((await getIpGroupLeaderCandidateIds()).map(Number))
-        filtered = filtered.filter((u) => allowed.has(Number(u.id)))
-      } catch (roleErr) {
-        console.warn('[UserSelect] 加载 IP组长 候选人失败，回退全量列表（保存时仍由后端校验）:', roleErr)
-      }
-    }
-    options.value = filtered
-      .slice(0, 50)
-      .map((u) => ({
-        id: Number(u.id),
+    setOptions(
+      filtered.slice(0, 50).map((u) => ({
+        id: normalizeUserId(u.id),
         username: u.username || String(u.id),
         nickname: u.nickname,
         phoneMasked: u.mobile,
@@ -168,10 +283,11 @@ const loadList = async (keyword: string) => {
         deptName: u.deptName,
         roleNames: [],
         status: u.status,
-      }))
+      })),
+    )
   } catch (e) {
     console.error('[UserSelect] 加载用户列表失败:', e)
-    options.value = []
+    setOptions([])
     ElMessage.error('用户列表加载失败，请稍后重试')
   } finally {
     loading.value = false
@@ -184,13 +300,35 @@ const handleRemoteSearch = (kw: string) => {
   searchTimer = setTimeout(() => loadList(kw), 200)
 }
 
-const handleChange = (val: number | number[] | undefined) => {
-  selectedValue.value = val
-  const item = Array.isArray(options.value)
-    ? options.value.find((o) => o.id === val)
-    : undefined
-  emit('update:modelValue', val)
-  emit('change', val, item)
+const filterLocalOptions = (query: string) => {
+  const kw = query.trim().toLowerCase()
+  if (!kw) {
+    options.value = cachedOptions.value
+    return
+  }
+  options.value = cachedOptions.value.filter((item) => matchesUserKeyword(item, kw))
+}
+
+const handleVisibleChange = (visible: boolean) => {
+  if (!visible) return
+  if (
+    props.allTenantUsers
+    || props.roleCode === IP_GROUP_LEADER_ROLE_CODE
+    || props.ipGroupId != null
+  ) {
+    void loadList('')
+  }
+}
+
+const handleChange = (val: string | string[] | number | number[] | undefined) => {
+  const normalized = toModelValue(val) as string | string[] | undefined
+  selectedValue.value = normalized
+  const item = Array.isArray(normalized)
+    ? undefined
+    : options.value.find((o) => o.id === normalized)
+      ?? cachedOptions.value.find((o) => o.id === normalized)
+  emit('update:modelValue', normalized)
+  emit('change', normalized, item)
 }
 
 onMounted(() => loadList(''))

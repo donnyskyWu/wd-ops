@@ -103,7 +103,7 @@ public class UnifiedCollectorAdapter {
         } catch (Exception ex) {
             resp.setSuccess(false);
             resp.setConnStatus("DISCONNECTED");
-            resp.setMessage("连接失败: " + ex.getMessage());
+            resp.setMessage(CollectorErrorMessages.enrich("连接失败: " + ex.getMessage()));
             collectorAccountBindService.updateConnStatus(oaAccountId, "DISCONNECTED", now);
         }
         return resp;

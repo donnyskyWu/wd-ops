@@ -20,4 +20,5 @@ public class AiPromptConfigRespVO {
     private String status;
     private String remark;
     private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }

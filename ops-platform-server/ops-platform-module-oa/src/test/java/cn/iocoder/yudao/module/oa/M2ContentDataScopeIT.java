@@ -16,13 +16,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 /**
- * 内容管理列表数据范围：非 admin 仅可见 creator_user_id=本人的内容（6117 P1 收窄）。
+ * 内容管理列表数据范围：IP 组长仅管辖组；非 admin 仅可见 creator_user_id=本人的内容（6117）。
  */
 @AutoConfigureMockMvc
 class M2ContentDataScopeIT extends OaITBase {
 
     private static final String ADMIN = "Bearer dev-token-oa-admin";
     private static final String OPERATOR = "Bearer dev-token-oa-operator";
+    private static final String LEADER = "Bearer dev-token-oa-leader";
     private static final String TENANT = "1";
 
     @Autowired
@@ -32,20 +33,36 @@ class M2ContentDataScopeIT extends OaITBase {
     private ProductionContentMapper productionContentMapper;
 
     @BeforeEach
-    void seedAdminOwnedContent() {
+    void seedScopeFixtures() {
+        seedIfAbsent("IT-管理员专属内容", content -> {
+            content.setCreatorUserId(1001L);
+            content.setAccountId(9006L);
+            content.setIpGroupId(null);
+        });
+        seedIfAbsent("IT-组外内容", content -> {
+            content.setCreatorUserId(1003L);
+            content.setAccountId(9003L);
+            content.setIpGroupId(9999L);
+        });
+        seedIfAbsent("IT-组内内容", content -> {
+            content.setCreatorUserId(1003L);
+            content.setAccountId(9001L);
+            content.setIpGroupId(9001L);
+        });
+    }
+
+    private void seedIfAbsent(String title, java.util.function.Consumer<ProductionContentDO> customizer) {
         Long count = productionContentMapper.selectCount(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ProductionContentDO>()
                         .eq(ProductionContentDO::getTenantId, 1L)
-                        .eq(ProductionContentDO::getTitle, "IT-管理员专属内容"));
+                        .eq(ProductionContentDO::getTitle, title));
         if (count != null && count > 0) {
             return;
         }
         ProductionContentDO entity = new ProductionContentDO();
         entity.setTenantId(1L);
-        entity.setTitle("IT-管理员专属内容");
+        entity.setTitle(title);
         entity.setBody("scope test");
-        entity.setCreatorUserId(1001L);
-        entity.setAccountId(9006L);
         entity.setPlatformType("DOUYIN");
         entity.setContentType("SHORT_VIDEO");
         entity.setStatus("DRAFT");
@@ -54,6 +71,7 @@ class M2ContentDataScopeIT extends OaITBase {
         entity.setUpdater("it-scope");
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
+        customizer.accept(entity);
         productionContentMapper.insert(entity);
     }
 
@@ -73,6 +91,34 @@ class M2ContentDataScopeIT extends OaITBase {
     void operatorListExcludesOthersContent() throws Exception {
         mockMvc.perform(get("/admin-api/oa/content/list")
                         .header("Authorization", OPERATOR)
+                        .header("X-Tenant-Id", TENANT)
+                        .param("title", "IT-管理员专属内容")
+                        .param("pageSize", "10"))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.total").value(0));
+    }
+
+    @Test
+    @DisplayName("M2: IP 组长内容列表仅见管辖 IP 组")
+    void ipGroupLeaderListScopedToLedGroups() throws Exception {
+        mockMvc.perform(get("/admin-api/oa/content/list")
+                        .header("Authorization", LEADER)
+                        .header("X-Tenant-Id", TENANT)
+                        .param("title", "IT-组内内容")
+                        .param("pageSize", "10"))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.total").value(1));
+
+        mockMvc.perform(get("/admin-api/oa/content/list")
+                        .header("Authorization", LEADER)
+                        .header("X-Tenant-Id", TENANT)
+                        .param("title", "IT-组外内容")
+                        .param("pageSize", "10"))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.total").value(0));
+
+        mockMvc.perform(get("/admin-api/oa/content/list")
+                        .header("Authorization", LEADER)
                         .header("X-Tenant-Id", TENANT)
                         .param("title", "IT-管理员专属内容")
                         .param("pageSize", "10"))

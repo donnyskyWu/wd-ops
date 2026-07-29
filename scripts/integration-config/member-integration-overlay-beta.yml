@@ -1,0 +1,13 @@
+﻿# member-server beta master DS. Use with football-integration-overlay-beta.yml + ops-test-remote.env
+spring:
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://${OPS_TEST_DB_HOST:110.42.49.224}:${OPS_TEST_DB_PORT:3306}/${OPS_TEST_MEMBER_DB:shenyu-member}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: ${OPS_TEST_MEMBER_USER:shenyu-member}
+          password: ${OPS_TEST_MEMBER_PASSWORD:CHANGE_ME}
+        slave:
+          url: jdbc:mysql://${OPS_TEST_DB_HOST:110.42.49.224}:${OPS_TEST_DB_PORT:3306}/${OPS_TEST_MEMBER_DB:shenyu-member}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: ${OPS_TEST_MEMBER_USER:shenyu-member}
+          password: ${OPS_TEST_MEMBER_PASSWORD:CHANGE_ME}

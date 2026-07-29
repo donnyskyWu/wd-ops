@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
-"""Apply seed-oa-system-menu.sql to wd with UTF-8 (no PowerShell pipe corruption)."""
+"""Apply seed-oa-system-menu.sql with UTF-8 stdin (no PowerShell pipe corruption).
+
+ADR-056 local integration: target localhost ``shenyu-system`` (Football system-server
+master). Remote beta test: use ops-test-remote.env credentials.
+
+Example (remote beta test)::
+
+    python scripts/integration-config/apply-seed-oa-menu.py \\
+      --host 110.42.49.224 --user shenyu-system --password <见 env> --database shenyu-system
+
+Example (local five-DB)::
+
+    python scripts/integration-config/apply-seed-oa-menu.py \\
+      --host localhost --user root --password root --database shenyu-system
+"""
 from __future__ import annotations
 
 import argparse

@@ -32,6 +32,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
 import cn.iocoder.yudao.module.oa.service.author.AuthorResolveSupport;
 import cn.iocoder.yudao.module.oa.service.file.LocalFileStorageService;
 import cn.iocoder.yudao.module.oa.service.ipgroup.IpGroupAccessSupport;
+import cn.iocoder.yudao.module.oa.service.home.TodoReminderSupport;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
 import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
@@ -73,6 +74,7 @@ public class TaskServiceImpl implements TaskService {
     private final AuthorResolveSupport authorResolveSupport;
     private final IpGroupAccessSupport ipGroupAccessSupport;
     private final OpsDataScopeSupport opsDataScopeSupport;
+    private final TodoReminderSupport todoReminderSupport;
 
     private static final String NODE_TYPE_CONTENT_GENERATION = "CONTENT_GENERATION";
 
@@ -152,7 +154,10 @@ public class TaskServiceImpl implements TaskService {
         entity.setTemplateId(req.getTemplateId());
         entity.setNodeId(req.getNodeId());
         entity.setPlanName(req.getPlanName());
-        entity.setAssigneeId(req.getAssigneeId());
+        if (req.getAssigneeId() != null) {
+            footballSystemUserValidator.assertInTenant(req.getAssigneeId(), tenantId, "执行人不存在");
+        }
+        entity.setAssigneeId(footballSystemUserValidator.resolveStorableUserId(req.getAssigneeId(), tenantId));
         entity.setIpGroupId(req.getIpGroupId());
         entity.setAuthorId(resolveTaskAuthorId(req.getAuthorId(), req.getIpGroupId(), tenantId));
         entity.setStatus("PENDING");
@@ -234,6 +239,7 @@ public class TaskServiceImpl implements TaskService {
         review.setCreateTime(LocalDateTime.now());
         review.setUpdateTime(LocalDateTime.now());
         sopReviewMapper.insert(review);
+        todoReminderSupport.onSopReviewStateChanged(task.getTenantId(), task.getId());
     }
 
     @Override
@@ -352,6 +358,7 @@ public class TaskServiceImpl implements TaskService {
         review.setCreateTime(LocalDateTime.now());
         review.setUpdateTime(LocalDateTime.now());
         sopReviewMapper.insert(review);
+        todoReminderSupport.onSopReviewStateChanged(task.getTenantId(), task.getId());
     }
 
     private TaskExecuteVO buildExecuteVO(TaskDO task) {
@@ -457,7 +464,8 @@ public class TaskServiceImpl implements TaskService {
         vo.setNodeId(entity.getNodeId());
         vo.setCompetitionId(entity.getCompetitionId());
         vo.setPlanName(entity.getPlanName());
-        vo.setAssigneeId(entity.getAssigneeId());
+        vo.setAssigneeId(entity.getAssigneeId() == null ? null
+                : footballSystemUserValidator.resolvePresentableUserId(entity.getAssigneeId()));
         vo.setAssigneeName(footballSystemUserValidator.resolveDisplayName(entity.getAssigneeId()));
         SopNodeDO node = sopNodeMapper.selectById(entity.getNodeId());
         if (node != null) {

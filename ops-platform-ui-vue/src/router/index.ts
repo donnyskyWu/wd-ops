@@ -115,12 +115,19 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/production/sop/edit.vue'),
         meta: { title: '编辑SOP模板' }
       },
-      // 内容生产 - 任务管理
+      // 内容生产 - 我的任务
       {
         path: '/task',
         name: 'Task',
         component: () => import('@/views/production/task/index.vue'),
-        meta: { title: '任务管理' }
+        meta: { title: '我的任务' }
+      },
+      // 内容生产 - 全部任务
+      {
+        path: '/task/all',
+        name: 'TaskAll',
+        component: () => import('@/views/production/task/all.vue'),
+        meta: { title: '全部任务' }
       },
       {
         path: '/task/:id/execute',
@@ -571,28 +578,40 @@ const routes: RouteRecordRaw[] = [
       },
 
       // ===== 10. 系统管理 =====
-      // ADR-049 D4/D7: M9 身份页（user/role/tenant）已废弃 — Football system_* 为 SSOT。
-      // 路由保留供历史链接/E2E 兼容，侧栏已隐藏（meta.hideInMenu）。
-      // 系统管理 - 用户管理 [deprecated · ADR-049]
+      // Phase A / D-DEDUP-01：平行 User/Role/Tenant CRUD 页已物理删除；
+      // 书签兼容路由 → FootballAdminRedirect → Football Admin SSOT。
       {
         path: '/system-user',
         name: 'SystemUser',
-        component: () => import('@/views/system/UserManage.vue'),
-        meta: { title: '用户管理', deprecated: true, hideInMenu: true }
+        component: () => import('@/views/system/FootballAdminRedirect.vue'),
+        meta: {
+          title: '用户管理',
+          deprecated: true,
+          hideInMenu: true,
+          footballAdminPath: '/system/user',
+        }
       },
-      // 系统管理 - 角色权限 [deprecated · ADR-049]
       {
         path: '/system-role',
         name: 'SystemRole',
-        component: () => import('@/views/system/RoleManage.vue'),
-        meta: { title: '角色权限', deprecated: true, hideInMenu: true }
+        component: () => import('@/views/system/FootballAdminRedirect.vue'),
+        meta: {
+          title: '角色权限',
+          deprecated: true,
+          hideInMenu: true,
+          footballAdminPath: '/system/role',
+        }
       },
-      // 系统管理 - 租户管理 [deprecated · ADR-049]
       {
         path: '/system-tenant',
         name: 'SystemTenant',
-        component: () => import('@/views/system/TenantManage.vue'),
-        meta: { title: '租户管理', deprecated: true, hideInMenu: true }
+        component: () => import('@/views/system/FootballAdminRedirect.vue'),
+        meta: {
+          title: '租户管理',
+          deprecated: true,
+          hideInMenu: true,
+          footballAdminPath: '/system/tenant',
+        }
       },
       // 系统管理 - 系统参数
       {

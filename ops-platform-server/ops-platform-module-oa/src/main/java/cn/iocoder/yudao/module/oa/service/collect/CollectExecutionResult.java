@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.oa.service.collect;
 
+import cn.iocoder.yudao.module.oa.service.collect.unified.CollectorErrorMessages;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,7 +24,7 @@ public class CollectExecutionResult {
     }
 
     public static CollectExecutionResult failure(String errorMessage) {
-        return new CollectExecutionResult(false, 0, errorMessage, null);
+        return new CollectExecutionResult(false, 0, CollectorErrorMessages.enrich(errorMessage), null);
     }
 
     public static CollectExecutionResult aggregate(int totalCount, List<TypeOutcome> outcomes) {

@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.oa.api.dto.analytics.MetricVO;
 import cn.iocoder.yudao.module.oa.service.analytics.AnalyticsMetricService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +31,7 @@ public class MetricController {
     private final AnalyticsMetricService analyticsMetricService;
 
     @GetMapping("/list")
+    @PreAuthorize("hasAnyAuthority('oa:metric:list','oa:metric-analysis:list')")
     public CommonResult<PageResult<MetricVO>> list(
             @RequestParam(required = false) String metricType,
             @RequestParam(defaultValue = "1") Integer pageNum,
@@ -38,23 +40,27 @@ public class MetricController {
     }
 
     @PostMapping("/create")
+    @PreAuthorize("hasAuthority('oa:metric:list')")
     public CommonResult<Long> create(@Valid @RequestBody MetricCreateReq req) {
         return CommonResult.success(analyticsMetricService.create(req));
     }
 
     @PutMapping("/update")
+    @PreAuthorize("hasAuthority('oa:metric:list')")
     public CommonResult<Boolean> update(@Valid @RequestBody MetricUpdateReq req) {
         analyticsMetricService.update(req);
         return CommonResult.success(true);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('oa:metric:list')")
     public CommonResult<Boolean> delete(@PathVariable Long id) {
         analyticsMetricService.delete(id);
         return CommonResult.success(true);
     }
 
     @PostMapping("/preview")
+    @PreAuthorize("hasAnyAuthority('oa:metric:list','oa:metric-analysis:list')")
     public CommonResult<MetricPreviewVO> preview(@Valid @RequestBody MetricPreviewReq req) {
         return CommonResult.success(analyticsMetricService.preview(req));
     }

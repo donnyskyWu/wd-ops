@@ -134,7 +134,12 @@ const resetLogSearch = () => {
 }
 
 const getLevelType = (lv: string) => {
-  const m: Record<string, string> = { ERROR: 'danger', WARN: 'warning', INFO: 'info' }
+  const m: Record<string, string> = {
+    EXCELLENT: 'success',
+    GOOD: 'primary',
+    MEDIUM: 'warning',
+    POOR: 'danger',
+  }
   return m[lv] || ''
 }
 

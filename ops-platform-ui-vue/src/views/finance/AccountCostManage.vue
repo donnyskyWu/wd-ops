@@ -218,7 +218,7 @@
         <template #header><span>采购成本（一次性）</span></template>
         <el-form :model="purchaseForm" label-width="100px" inline>
           <el-form-item label="金额">
-            <el-input-number v-model="purchaseForm.amount" :min="0.01" :precision="2" />
+            <el-input-number v-model="purchaseForm.amount" :min="0" :precision="2" />
           </el-form-item>
           <el-form-item label="支付日期">
             <el-date-picker v-model="purchaseForm.payDate" type="date" value-format="YYYY-MM-DD" />
@@ -270,7 +270,7 @@
           <DictSelect v-model="processForm.costType" dict-type="dict_cost_type" placeholder="请选择" />
         </el-form-item>
         <el-form-item label="金额" prop="amount">
-          <el-input-number v-model="processForm.amount" :min="0.01" :precision="2" style="width: 100%" />
+          <el-input-number v-model="processForm.amount" :min="0" :precision="2" style="width: 100%" />
         </el-form-item>
         <el-form-item label="支付日期" prop="payDate">
           <el-date-picker v-model="processForm.payDate" type="date" value-format="YYYY-MM-DD" style="width: 100%" />

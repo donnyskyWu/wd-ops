@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.oa.api.dto.ipgroup;
 
 import cn.iocoder.yudao.module.oa.framework.dict.InDict;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -15,7 +16,9 @@ public class IpGroupUpdateReq {
      * P-GATE-UNMOCK S-E: 后端补字段，原 spec 缺漏
      */
     private Long parentId;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long leaderId;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long leaderUserId;
     private Integer sortOrder;
     private Integer status;

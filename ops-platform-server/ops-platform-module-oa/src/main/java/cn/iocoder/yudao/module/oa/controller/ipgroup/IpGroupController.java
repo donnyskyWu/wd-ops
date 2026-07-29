@@ -8,7 +8,9 @@ import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupAnchorBindReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupAnchorVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupDetailVO;
+import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupLeaderCandidateVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupListVO;
+import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberCandidateVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberVO;
@@ -31,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/admin-api/oa/ip-group")
@@ -55,10 +58,24 @@ public class IpGroupController {
         return CommonResult.success(ipGroupService.listLedByCurrentUser());
     }
 
-    /** 具备 IP组长(ip_group_leader) 角色的用户 id，供前端组长选择器过滤 */
+    /** 具备 IP组长(ip_group_leader) 角色的用户 id（字符串，避免前端 JS 雪花 id 精度丢失） */
     @GetMapping("/leader-candidate-ids")
-    public CommonResult<List<Long>> leaderCandidateIds() {
-        return CommonResult.success(ipGroupService.listLeaderCandidateUserIds());
+    public CommonResult<List<String>> leaderCandidateIds() {
+        return CommonResult.success(ipGroupService.listLeaderCandidateUserIds().stream()
+                .map(String::valueOf)
+                .collect(Collectors.toList()));
+    }
+
+    /** 具备 IP组长 角色的用户（含昵称；UserSelect 主数据源，不依赖 Football simple-list 交集） */
+    @GetMapping("/leader-candidates")
+    public CommonResult<List<IpGroupLeaderCandidateVO>> leaderCandidates() {
+        return CommonResult.success(ipGroupService.listLeaderCandidates());
+    }
+
+    /** 租户内全部启用用户（添加成员 UserSelect；不受 Football simple-list 部门/本人数据权限限制） */
+    @GetMapping("/member-candidates")
+    public CommonResult<List<IpGroupMemberCandidateVO>> memberCandidates() {
+        return CommonResult.success(ipGroupService.listMemberCandidates());
     }
 
     /**

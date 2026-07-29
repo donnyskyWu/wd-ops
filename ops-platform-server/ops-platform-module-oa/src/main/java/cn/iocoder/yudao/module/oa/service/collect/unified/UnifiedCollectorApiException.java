@@ -13,7 +13,7 @@ public class UnifiedCollectorApiException extends RuntimeException {
     }
 
     public UnifiedCollectorApiException(String connStatus, String message, int businessCode) {
-        super(message);
+        super(CollectorErrorMessages.enrich(message, businessCode));
         this.connStatus = connStatus;
         this.businessCode = businessCode;
     }

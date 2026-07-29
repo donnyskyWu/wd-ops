@@ -14,8 +14,8 @@ public final class DataScopeSupport {
     }
 
     /**
-     * 非 admin：ip_group_id IN memberIpGroupIds；空集合 → id=-1（fail-closed）。
-     * SELF 档同样执行成员组过滤。
+     * 非 admin：ip_group_id IN (memberIpGroupIds ∪ ledIpGroupIds)；空集合 → id=-1（fail-closed）。
+     * SELF 档同样执行「所在 IP 组」过滤。
      */
     public static <T> void applyIpGroupScope(LambdaQueryWrapper<T> wrapper, SFunction<T, Long> ipGroupColumn) {
         OpsDataScopeSupport support = OpsDataScopeSupport.getInstance();

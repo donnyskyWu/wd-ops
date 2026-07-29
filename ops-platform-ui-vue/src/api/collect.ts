@@ -61,6 +61,7 @@ export interface CollectLogVO {
   id: number
   taskId: number
   taskName: string
+  accountName?: string
   status: string
   startAt: string
   durationMs: number

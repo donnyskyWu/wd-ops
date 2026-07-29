@@ -303,11 +303,12 @@ export const mockDictMap: Record<string, Array<{ label: string; value: string; c
     { label: '时效性', value: 'TIMELINESS' },
     { label: '唯一性', value: 'UNIQUENESS' },
   ],
-  // 质量级别
+  // 质量等级（PRD-M10：优/良/中/差）
   dict_quality_level: [
-    { label: '错误', value: 'ERROR', colorType: 'danger' },
-    { label: '警告', value: 'WARN', colorType: 'warning' },
-    { label: '信息', value: 'INFO', colorType: 'info' },
+    { label: '优', value: 'EXCELLENT', colorType: 'success' },
+    { label: '良', value: 'GOOD', colorType: 'primary' },
+    { label: '中', value: 'MEDIUM', colorType: 'warning' },
+    { label: '差', value: 'POOR', colorType: 'danger' },
   ],
   // AI 模型
   dict_ai_model: [

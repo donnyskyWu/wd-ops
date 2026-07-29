@@ -24,6 +24,7 @@ class M2ContentListDataScopeIT extends OaITBase {
 
     private static final String ADMIN = "Bearer dev-token-oa-admin";
     private static final String OPERATOR = "Bearer dev-token-oa-operator";
+    private static final String LEADER = "Bearer dev-token-oa-leader";
     private static final String TENANT = "1";
     private static final String CONTENT_BASE = "/admin-api/oa/content";
 
@@ -57,6 +58,22 @@ class M2ContentListDataScopeIT extends OaITBase {
     }
 
     @Test
+    @DisplayName("内容列表：IP 组长不可见管辖组外内容（6117）")
+    void leaderSeesOnlyLedIpGroupContent() throws Exception {
+        long foreignContentId = insertForeignContentWithIpGroup(9999L);
+
+        mockMvc.perform(get(CONTENT_BASE + "/list")
+                        .header("Authorization", LEADER)
+                        .header("X-Tenant-Id", TENANT)
+                        .param("title", "IT-SCOPE-FOREIGN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.total").value(0));
+
+        productionContentMapper.deleteById(foreignContentId);
+    }
+
+    @Test
     @DisplayName("内容列表：运营专员不可见他人创建的内容")
     void operatorSeesOnlyOwnContent() throws Exception {
         long foreignContentId = insertForeignContent();
@@ -77,12 +94,17 @@ class M2ContentListDataScopeIT extends OaITBase {
     }
 
     private long insertForeignContent() {
+        return insertForeignContentWithIpGroup(null);
+    }
+
+    private long insertForeignContentWithIpGroup(Long ipGroupId) {
         ProductionContentDO entity = new ProductionContentDO();
         entity.setTenantId(1L);
         entity.setTitle("IT-SCOPE-FOREIGN");
         entity.setBody("scope-it");
         entity.setBodyFormat("PLAIN");
         entity.setCreatorUserId(1001L);
+        entity.setIpGroupId(ipGroupId);
         entity.setContentType("ARTICLE");
         entity.setDocumentType("MATCH_PREVIEW");
         entity.setStatus("DRAFT");

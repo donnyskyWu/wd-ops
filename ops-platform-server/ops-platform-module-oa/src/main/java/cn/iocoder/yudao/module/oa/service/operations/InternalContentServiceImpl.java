@@ -27,6 +27,7 @@ import cn.iocoder.yudao.module.oa.service.account.WechatOfficialAccountResolver;
 import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataMergeSupport;
 import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataQueryService;
 import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
+import cn.iocoder.yudao.module.oa.service.home.TodoReminderSupport;
 import com.mzt.logapi.context.LogRecordContext;
 import com.mzt.logapi.starter.annotation.LogRecord;
 
@@ -62,6 +63,7 @@ public class InternalContentServiceImpl implements InternalContentService {
     private final PlatformAccountService platformAccountService;
     private final WechatOfficialAccountResolver wechatOfficialAccountResolver;
     private final OpsDataScopeSupport opsDataScopeSupport;
+    private final TodoReminderSupport todoReminderSupport;
 
     @Override
     public PageResult<InternalContentVO> list(String platformType, String dataSource, String contentType,
@@ -246,6 +248,7 @@ public class InternalContentServiceImpl implements InternalContentService {
         if (req.getReviewStatus() != null && req.getReviewStatus() == REVIEW_APPROVED) {
             upsertContentDaily(existing);
         }
+        todoReminderSupport.onImportReviewStateChanged(existing.getTenantId());
     }
 
     /**

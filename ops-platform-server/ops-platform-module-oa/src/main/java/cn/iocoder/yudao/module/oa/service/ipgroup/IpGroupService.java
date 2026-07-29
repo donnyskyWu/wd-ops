@@ -6,7 +6,9 @@ import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupAnchorBindReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupAnchorVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupDetailVO;
+import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupLeaderCandidateVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupListVO;
+import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberCandidateVO;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberUpdateReq;
 import cn.iocoder.yudao.module.oa.api.dto.ipgroup.IpGroupMemberVO;
@@ -26,6 +28,12 @@ public interface IpGroupService {
 
     /** 具备内置角色 ip_group_leader 的用户 id（供组长 UserSelect 过滤） */
     List<Long> listLeaderCandidateUserIds();
+
+    /** 具备内置角色 ip_group_leader 的用户（含昵称；UserSelect 主数据源） */
+    List<IpGroupLeaderCandidateVO> listLeaderCandidates();
+
+    /** 租户内全部启用用户（添加成员 UserSelect；不受 Football simple-list 数据权限限制） */
+    List<IpGroupMemberCandidateVO> listMemberCandidates();
 
     /** 当前用户可绑定的 IP 组树（成员组 ∪ 组长组；系统管理员为全树） */
     List<IpGroupTreeVO> getAccessibleTree();

@@ -114,24 +114,22 @@ test.describe('配置管理测试 @regression', () => {
 })
 
 test.describe('系统管理测试 @regression', () => {
-  test.beforeEach(async ({ page }) => {
+  // Phase A：平行用户管理页已删；书签路由挂载 FootballAdminRedirect
+  test('SYSTEM-001: /system-user 挂载 Admin 跳转页', async ({ page }) => {
     await page.goto('/system-user')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
+    await expect(page.locator('.football-admin-redirect')).toBeVisible()
   })
 
-  test('SYSTEM-001: 用户管理列表', async ({ page }) => {
-    await expect(page.locator('.user-manage')).toBeVisible()
-    await expect(page.locator('.user-manage .el-table')).toBeVisible()
+  test('SYSTEM-002: /system-role 挂载 Admin 跳转页', async ({ page }) => {
+    await page.goto('/system-role')
+    await page.waitForLoadState('domcontentloaded')
+    await expect(page.locator('.football-admin-redirect')).toBeVisible()
   })
 
-  test('SYSTEM-002: 新增用户按钮', async ({ page }) => {
-    const addButton = page.locator('.user-manage button:has-text("新增用户")')
-    await expect(addButton).toBeVisible()
-  })
-
-  test('SYSTEM-003: 搜索与分页', async ({ page }) => {
-    await expect(page.locator('.user-manage .el-form')).toBeVisible()
-    await expect(page.locator('.user-manage button:has-text("查询")')).toBeVisible()
-    await expect(page.locator('.user-manage .el-pagination')).toBeVisible()
+  test('SYSTEM-003: /system-tenant 挂载 Admin 跳转页', async ({ page }) => {
+    await page.goto('/system-tenant')
+    await page.waitForLoadState('domcontentloaded')
+    await expect(page.locator('.football-admin-redirect')).toBeVisible()
   })
 })

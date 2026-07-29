@@ -20,6 +20,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.operations.ContentMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.operations.FollowerDailyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.perf.OrderAttributionMapper;
 import cn.iocoder.yudao.module.oa.framework.audit.AuditLog;
+import cn.iocoder.yudao.module.oa.service.collect.display.CollectedDataQueryService;
 import cn.iocoder.yudao.module.oa.service.support.OaTenantSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -48,6 +49,7 @@ public class ReportServiceImpl implements ReportService {
     private final OrderAttributionMapper orderAttributionMapper;
     private final IpGroupMemberMapper ipGroupMemberMapper;
     private final IpGroupMapper ipGroupMapper;
+    private final CollectedDataQueryService collectedDataQueryService;
 
     // ==================== 2.1 全平台账号视图 ====================
 
@@ -56,11 +58,7 @@ public class ReportServiceImpl implements ReportService {
                                                                 LocalDate startDate, LocalDate endDate,
                                                                 Integer pageNum, Integer pageSize) {
         Long tenantId = OaTenantSupport.requireTenantId();
-        LambdaQueryWrapper<AccountDO> wrapper = new LambdaQueryWrapper<AccountDO>()
-                .eq(AccountDO::getTenantId, tenantId)
-                .eq(accountId != null, AccountDO::getId, accountId)
-                .eq(ipGroupId != null, AccountDO::getIpGroupId, ipGroupId)
-                .eq(platformType != null, AccountDO::getPlatformType, platformType)
+        LambdaQueryWrapper<AccountDO> wrapper = accountFilterWrapper(tenantId, ipGroupId, accountId, platformType)
                 .orderByDesc(AccountDO::getId);
         Page<AccountDO> page = accountMapper.selectPage(new Page<>(safePage(pageNum), safeSize(pageSize)), wrapper);
         Map<Long, String> ipGroupNames = ipGroupNameMap(tenantId);
@@ -74,8 +72,8 @@ public class ReportServiceImpl implements ReportService {
             row.put("account_name", acc.getAccountName());
             row.put("platform_type", acc.getPlatformType());
             row.put("ip_group_name", acc.getIpGroupId() == null ? "-" : ipGroupNames.getOrDefault(acc.getIpGroupId(), "-"));
-            row.put("follower_count", latestFollower(tenantId, acc.getId()));
-            row.put("content_count", contentCount(tenantId, acc.getId()));
+            row.put("follower_count", latestFollower(acc));
+            row.put("content_count", contentCount(acc));
             row.put("revenue", revenue);
             row.put("cost", cost);
             row.put("roi", roi(revenue, cost));
@@ -91,15 +89,11 @@ public class ReportServiceImpl implements ReportService {
     public ReportStatsVO unifiedAccountStats(Long ipGroupId, Long accountId, String platformType,
                                              LocalDate startDate, LocalDate endDate) {
         Long tenantId = OaTenantSupport.requireTenantId();
-        LambdaQueryWrapper<AccountDO> wrapper = new LambdaQueryWrapper<AccountDO>()
-                .eq(AccountDO::getTenantId, tenantId)
-                .eq(accountId != null, AccountDO::getId, accountId)
-                .eq(ipGroupId != null, AccountDO::getIpGroupId, ipGroupId)
-                .eq(platformType != null, AccountDO::getPlatformType, platformType);
-        List<AccountDO> accounts = accountMapper.selectList(wrapper);
+        LambdaQueryWrapper<AccountDO> wrapper = accountFilterWrapper(tenantId, ipGroupId, accountId, platformType);
         ReportStatsVO vo = new ReportStatsVO();
-        vo.setTotalAccounts((long) accounts.size());
-        vo.setTotalFollowers(accounts.stream().mapToLong(a -> latestFollower(tenantId, a.getId())).sum());
+        vo.setTotalAccounts(accountMapper.selectCount(wrapper));
+        List<AccountDO> accounts = listAllAccounts(wrapper);
+        vo.setTotalFollowers(accounts.stream().mapToLong(this::latestFollower).sum());
         List<ContentDO> contents = queryContents(tenantId, accountId);
         vo.setTotalContents((long) contents.size());
         vo.setTotalReads(contents.stream().mapToLong(c -> c.getReadCount() == null ? 0 : c.getReadCount()).sum());
@@ -115,7 +109,7 @@ public class ReportServiceImpl implements ReportService {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("accountId", acc.getId());
             item.put("accountName", acc.getAccountName());
-            item.put("followerCount", latestFollower(tenantId, acc.getId()));
+            item.put("followerCount", latestFollower(acc));
             vo.getItems().add(item);
         }
         return vo;
@@ -552,12 +546,39 @@ public class ReportServiceImpl implements ReportService {
 
     // ==================== 私有辅助方法 ====================
 
+    private static final int ACCOUNT_BATCH_SIZE = 500;
+
     private int safePage(Integer pageNum) {
         return pageNum == null ? 1 : pageNum;
     }
 
     private int safeSize(Integer pageSize) {
         return pageSize == null ? 20 : pageSize;
+    }
+
+    private LambdaQueryWrapper<AccountDO> accountFilterWrapper(Long tenantId, Long ipGroupId, Long accountId,
+                                                               String platformType) {
+        return new LambdaQueryWrapper<AccountDO>()
+                .eq(AccountDO::getTenantId, tenantId)
+                .eq(accountId != null, AccountDO::getId, accountId)
+                .eq(ipGroupId != null, AccountDO::getIpGroupId, ipGroupId)
+                .eq(platformType != null, AccountDO::getPlatformType, platformType);
+    }
+
+    /** Stats 需遍历全量账号，分批 selectPage 避免单次拉取被截断或内存过大。 */
+    private List<AccountDO> listAllAccounts(LambdaQueryWrapper<AccountDO> wrapper) {
+        List<AccountDO> accounts = new ArrayList<>();
+        int pageNum = 1;
+        while (true) {
+            Page<AccountDO> page = accountMapper.selectPage(
+                    new Page<>(pageNum, ACCOUNT_BATCH_SIZE, false), wrapper);
+            accounts.addAll(page.getRecords());
+            if (page.getRecords().size() < ACCOUNT_BATCH_SIZE) {
+                break;
+            }
+            pageNum++;
+        }
+        return accounts;
     }
 
     private LocalDate[] defaultRange(LocalDate startDate, LocalDate endDate) {
@@ -627,19 +648,30 @@ public class ReportServiceImpl implements ReportService {
         return result;
     }
 
-    private long latestFollower(Long tenantId, Long accountId) {
+    private long latestFollower(AccountDO account) {
         FollowerDailyDO latest = followerDailyMapper.selectOne(new LambdaQueryWrapper<FollowerDailyDO>()
-                .eq(FollowerDailyDO::getTenantId, tenantId)
-                .eq(FollowerDailyDO::getAccountId, accountId)
+                .eq(FollowerDailyDO::getTenantId, account.getTenantId())
+                .eq(FollowerDailyDO::getAccountId, account.getId())
                 .orderByDesc(FollowerDailyDO::getStatDate)
                 .last("LIMIT 1"));
-        return latest == null || latest.getFollowerCount() == null ? 0L : latest.getFollowerCount();
+        long followerCount = latest != null && latest.getFollowerCount() != null ? latest.getFollowerCount() : 0L;
+        if (followerCount == 0L && collectedDataQueryService.supportsPlatform(account.getPlatformType())) {
+            Long collectedFollowers = collectedDataQueryService.latestFollowerCount(account.getTenantId(), account.getId());
+            if (collectedFollowers != null) {
+                followerCount = collectedFollowers;
+            }
+        }
+        return followerCount;
     }
 
-    private long contentCount(Long tenantId, Long accountId) {
-        return contentMapper.selectCount(new LambdaQueryWrapper<ContentDO>()
-                .eq(ContentDO::getTenantId, tenantId)
-                .eq(ContentDO::getAccountId, accountId));
+    private long contentCount(AccountDO account) {
+        long count = contentMapper.selectCount(new LambdaQueryWrapper<ContentDO>()
+                .eq(ContentDO::getTenantId, account.getTenantId())
+                .eq(ContentDO::getAccountId, account.getId()));
+        if (collectedDataQueryService.supportsPlatform(account.getPlatformType())) {
+            count += collectedDataQueryService.workCount(account.getTenantId(), account.getId(), account.getPlatformType());
+        }
+        return count;
     }
 
     private List<ContentDO> queryContents(Long tenantId, Long accountId) {

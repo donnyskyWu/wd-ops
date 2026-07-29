@@ -1,11 +1,5 @@
 <template>
   <div class="task-page">
-    <!-- 二级Tab -->
-    <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="task-tabs">
-      <el-tab-pane label="我的任务" name="my" />
-      <el-tab-pane label="全部任务" name="all" />
-    </el-tabs>
-
     <!-- 筛选区 -->
     <TableSearch v-model="searchForm" @search="handleSearch" @reset="handleReset">
       <el-form-item label="模板">
@@ -75,7 +69,7 @@
           <template #default="{ row }">
             <!-- 我的任务：执行页入口（AC-M2-002-5） -->
             <el-button
-              v-if="activeTab === 'my' && canOpenExecute(row)"
+              v-if="canOpenExecute(row)"
               link
               type="primary"
               @click="handleExecute(row)"
@@ -162,7 +156,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getTaskList, getMyTasks, startTask, completeTask, submitTaskReview } from '@/api/task'
+import { getMyTasks, startTask, completeTask, submitTaskReview } from '@/api/task'
 import { TaskStatus } from '@/types/task'
 import type { TaskQuery, TaskVO } from '@/types/task'
 import { formatDateTime } from '@/utils/index'
@@ -176,9 +170,6 @@ import { opsRouteTo } from '@/utils/ops-route'
 const router = useRouter()
 
 // ==================== 响应式数据 ====================
-
-// 当前Tab
-const activeTab = ref('my')
 
 // 搜索表单
 const searchForm = reactive({
@@ -220,9 +211,7 @@ const loadData = async () => {
       pageSize: pagination.pageSize,
     }
 
-    const result = activeTab.value === 'my'
-      ? await getMyTasks(params)
-      : await getTaskList(params)
+    const result = await getMyTasks(params)
 
     tableData.value = result.list
     pagination.total = result.total
@@ -232,12 +221,6 @@ const loadData = async () => {
   } finally {
     loading.value = false
   }
-}
-
-// Tab切换
-const handleTabChange = () => {
-  pagination.pageNo = 1
-  loadData()
 }
 
 // 搜索
@@ -359,10 +342,6 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .task-page {
-  .task-tabs {
-    margin-bottom: 16px;
-  }
-
   :deep(.overdue-row) {
     background-color: #fef0f0 !important;
   }

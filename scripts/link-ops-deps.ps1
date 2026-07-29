@@ -10,9 +10,29 @@ if (-not (Test-Path $OpsNm)) {
     Write-Error "Missing $OpsNm — run npm/pnpm install in ops-platform-ui-vue first."
 }
 
-# Legacy junction fallbacks only (not imported in web-ele or covered by catalog deps).
+# Junction fallbacks for OPS pages that import libs directly (not only via @vben/plugins/echarts).
 $packages = @(
-    'vue-echarts'
+    'echarts',
+    'vue-echarts',
+    'zrender',
+    'markdown-it',
+    '@element-plus\icons-vue',
+    '@logicflow\core',
+    '@tiptap\core',
+    '@tiptap\vue-3',
+    '@tiptap\starter-kit',
+    '@tiptap\extension-placeholder',
+    '@tiptap\extension-text-align',
+    '@tiptap\extension-underline',
+    '@tiptap\extension-color',
+    '@tiptap\extension-table',
+    '@tiptap\extension-table-row',
+    '@tiptap\extension-table-cell',
+    '@tiptap\extension-table-header',
+    '@tiptap\extension-paragraph',
+    '@tiptap\extension-highlight',
+    '@tiptap\extension-image',
+    '@tiptap\extension-text-style'
 )
 
 function Link-Package($name) {

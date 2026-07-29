@@ -8,6 +8,7 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.api.dto.account.AccountCreateReq;
 import cn.iocoder.yudao.module.oa.api.dto.account.AccountRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.account.AccountUpdateReq;
+import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.MpAccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.OaAccountExtDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
@@ -17,6 +18,8 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.realname.RealnameDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.company.CompanyMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.realname.RealnameMapper;
+import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.util.AesUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -29,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,6 +50,8 @@ public class PlatformAccountSyncServiceImpl implements PlatformAccountSyncServic
     private final IpGroupMapper ipGroupMapper;
     private final FootballSystemUserValidator footballSystemUserValidator;
     private final AesUtil aesUtil;
+    private final OpsDataScopeSupport opsDataScopeSupport;
+    private final WechatOfficialAccountResolver wechatOfficialAccountResolver;
 
     @Override
     public PageResult<AccountRespVO> listWechatOfficial(String accountName, Long companyId, Long realnameId,
@@ -60,14 +66,30 @@ public class PlatformAccountSyncServiceImpl implements PlatformAccountSyncServic
             wrapper.eq(MpAccountDO::getStatus, mpStatus);
         }
 
+        // 非 admin：先按 oa_account_ext.ip_group_id ∈ 所在IP组（成员∪组长）缩小 mp_account，再分页
+        if (!opsDataScopeSupport.isOaTenantAdmin(LoginUserContext.get())) {
+            Set<Long> groupIds = opsDataScopeSupport.narrowIpGroupIds(null);
+            if (groupIds != null && groupIds.size() == 1 && groupIds.contains(-1L)) {
+                return new PageResult<>(Collections.emptyList(), 0L);
+            }
+            if (groupIds != null) {
+                List<Long> scopedMpIds = oaAccountExtDataService.listMpAccountIdsByIpGroupIds(tenantId, groupIds);
+                if (scopedMpIds.isEmpty()) {
+                    return new PageResult<>(Collections.emptyList(), 0L);
+                }
+                wrapper.in(MpAccountDO::getId, scopedMpIds);
+            }
+        }
+
         Page<MpAccountDO> page = mpAccountDataService.selectPage(
                 new Page<>(pageNo == null ? 1 : pageNo, pageSize == null ? 10 : pageSize), wrapper);
 
         List<Long> mpIds = page.getRecords().stream().map(MpAccountDO::getId).toList();
         Map<Long, OaAccountExtDO> extMap = oaAccountExtDataService.loadExtMap(tenantId, mpIds);
 
+        List<MpAccountDO> scopedRecords = page.getRecords();
         if (companyId != null || realnameId != null) {
-            page.setRecords(page.getRecords().stream()
+            scopedRecords = scopedRecords.stream()
                     .filter(mp -> {
                         OaAccountExtDO ext = extMap.get(mp.getId());
                         if (ext == null) {
@@ -78,21 +100,25 @@ public class PlatformAccountSyncServiceImpl implements PlatformAccountSyncServic
                         }
                         return realnameId == null || Objects.equals(ext.getRealnameId(), realnameId);
                     })
-                    .toList());
+                    .toList();
         }
 
         Map<Long, String> companyNames = loadCompanyNames(extMap.values());
         Map<Long, String> realNames = loadRealNames(extMap.values());
 
-        List<AccountRespVO> list = page.getRecords().stream()
+        List<AccountRespVO> list = scopedRecords.stream()
                 .map(mp -> toResp(mp, extMap.get(mp.getId()), companyNames, realNames))
                 .collect(Collectors.toList());
-        return new PageResult<>(list, page.getTotal());
+        // company/realname 仍为页内过滤时 total 取当前页结果；无附加过滤时用 DB 分页 total
+        long total = (companyId != null || realnameId != null) ? list.size() : page.getTotal();
+        return new PageResult<>(list, total);
     }
 
     @Override
     public AccountRespVO getWechatOfficial(Long mpAccountId) {
         Long tenantId = requireTenantId();
+        AccountDO readable = wechatOfficialAccountResolver.requireTenantAccount(mpAccountId, tenantId);
+        opsDataScopeSupport.assertAccountReadable(readable);
         MpAccountDO mp = mpAccountDataService.requireById(mpAccountId, tenantId);
         OaAccountExtDO ext = oaAccountExtDataService.findByMpAccountId(tenantId, mpAccountId);
         return toResp(mp, ext, loadCompanyNames(ext), loadRealNames(ext));
@@ -189,7 +215,7 @@ public class PlatformAccountSyncServiceImpl implements PlatformAccountSyncServic
         ext.setTrademarkName(req.getTrademarkName());
         ext.setQualificationType(req.getQualificationType());
         ext.setUsageStatus(req.getUsageStatus());
-        ext.setAdminUserId(req.getAdminUserId());
+        ext.setAdminUserId(resolveStorableAdminUserId(req.getAdminUserId(), tenantId));
         ext.setSyncStatus(SYNC_SYNCED);
         ext.setCreator(TenantContextHolder.getUsername());
         ext.setUpdater(TenantContextHolder.getUsername());
@@ -233,7 +259,7 @@ public class PlatformAccountSyncServiceImpl implements PlatformAccountSyncServic
             ext.setUsageStatus(req.getUsageStatus());
         }
         if (req.getAdminUserId() != null) {
-            ext.setAdminUserId(req.getAdminUserId());
+            ext.setAdminUserId(resolveStorableAdminUserId(req.getAdminUserId(), ext.getTenantId()));
         }
     }
 
@@ -345,5 +371,13 @@ public class PlatformAccountSyncServiceImpl implements PlatformAccountSyncServic
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED);
         }
         return tenantId;
+    }
+
+    private Long resolveStorableAdminUserId(Long adminUserId, Long tenantId) {
+        if (adminUserId == null) {
+            return null;
+        }
+        footballSystemUserValidator.assertEnabledInTenant(adminUserId, tenantId, "管理员用户不存在");
+        return footballSystemUserValidator.resolveStorableUserId(adminUserId, tenantId);
     }
 }

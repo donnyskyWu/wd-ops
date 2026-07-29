@@ -256,22 +256,7 @@ public class ContentReviewConfigService {
     }
 
     private void addUsersByRoleCode(Set<Long> userIds, Long tenantId, String roleCode) {
-        for (SysUserDO user : sysUserTokenMapper.selectUsersByRoleCode(tenantId, roleCode)) {
-            if (user.getId() != null) {
-                userIds.add(user.getId());
-            }
-        }
-        if (!userIds.isEmpty()) {
-            return;
-        }
-        try {
-            List<Long> footballUserIds = footballOAuth2MasterTokenMapper.selectUserIdsByRoleCode(tenantId, roleCode);
-            if (footballUserIds != null) {
-                userIds.addAll(footballUserIds);
-            }
-        } catch (Exception ignored) {
-            // H2 test profile has no Football system_users on master DS.
-        }
+        userIds.addAll(footballSystemUserValidator.listPresentableUserIdsByRoleCode(tenantId, roleCode));
     }
 
     public String formatReviewerDisplay(String roleLabel, List<String> userNames) {
@@ -313,17 +298,8 @@ public class ContentReviewConfigService {
     }
 
     private boolean hasRoleForUserId(Long userId, String roleCode) {
-        if (sysUserTokenMapper.selectRolesByUserId(userId).stream()
-                .anyMatch(role -> roleCode.equals(role.getCode()))) {
-            return true;
-        }
-        try {
-            List<FootballSystemRoleDO> footballRoles = footballOAuth2MasterTokenMapper.selectRolesByUserId(userId);
-            return footballRoles.stream().anyMatch(role -> roleCode.equals(role.getCode()));
-        } catch (Exception ignored) {
-            // H2 test profile has no Football overlay tables.
-            return false;
-        }
+        Long tenantId = TenantContextHolder.getTenantId();
+        return footballSystemUserValidator.hasRoleCode(userId, tenantId, roleCode);
     }
 
     private boolean isIpGroupLeader(Long userId, ProductionContentDO content) {

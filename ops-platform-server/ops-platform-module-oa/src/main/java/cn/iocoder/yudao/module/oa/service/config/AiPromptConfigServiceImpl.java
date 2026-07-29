@@ -142,6 +142,7 @@ public class AiPromptConfigServiceImpl implements AiPromptConfigService {
         vo.setStatus(entity.getStatus());
         vo.setRemark(entity.getRemark());
         vo.setCreateTime(entity.getCreateTime());
+        vo.setUpdateTime(entity.getUpdateTime());
         return vo;
     }
 }

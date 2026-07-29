@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.oa.api.dto.ipgroup;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -15,6 +16,8 @@ public class IpGroupTreeVO {
     private Integer groupType;
     private Long parentId;
     private String parentName;
+    /** UserSelect id (string in JSON to avoid JS snowflake precision loss) */
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long leaderId;
     private String leaderName;
     private Integer memberCount;

@@ -47,6 +47,9 @@
             <DictLabel dict-type="dict_platform_type" :value="row.platformType" />
           </template>
         </el-table-column>
+        <el-table-column prop="authorName" label="作者" width="100">
+          <template #default="{ row }">{{ row.authorName || '—' }}</template>
+        </el-table-column>
         <el-table-column prop="submitter" label="提交人" width="100" />
         <el-table-column prop="submittedAt" label="提交时间" width="170" align="center" />
         <el-table-column prop="stage" label="当前阶段" width="100" align="center">
@@ -105,16 +108,15 @@
             <DictLabel dict-type="dict_platform_type" :value="current.platformType" />
           </el-descriptions-item>
           <el-descriptions-item label="发布账号">{{ current.accountName || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="创作者">{{ current.creatorUserName || current.submitter || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="作者">{{ current.authorName || '—' }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ current.submittedAt || '—' }}</el-descriptions-item>
           <el-descriptions-item label="状态">
             <DictLabel dict-type="dict_content_status" :value="current.status" />
           </el-descriptions-item>
         </el-descriptions>
 
-        <el-divider content-position="left">{{ current.bodyFormat === 'LAYOUT' ? '富版式正文' : '正文' }}</el-divider>
-        <LayoutViewer v-if="current.bodyFormat === 'LAYOUT'" :html="current.layoutHtml" />
-        <div v-else class="body">{{ current.body || '—' }}</div>
+        <el-divider content-position="left">内容</el-divider>
+        <LayoutViewer :html="displayContentHtml" />
 
         <el-divider />
         <el-form v-if="current && isPendingReview(current.status)" label-width="80px">
@@ -133,6 +135,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getContentList, reviewContent, getContent, getContentReviewConfig } from '@/api/content'
 import { formatDateTime } from '@/utils'
@@ -142,6 +145,11 @@ import Pagination from '@/components/Pagination.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import DictLabel from '@/components/DictLabel.vue'
 import LayoutViewer from '@/components/layout/LayoutViewer.vue'
+import {
+  combineContentHtml,
+  resolveFreeContentHtml,
+  resolvePaidContentHtml,
+} from '@/utils/layoutSync'
 
 const STAGE_STATUS: Record<string, string> = {
   FIRST: 'PENDING_FIRST_REVIEW',
@@ -155,6 +163,8 @@ const STAGE_LABEL: Record<string, string> = {
   FIRST: '一级审核',
   SECOND: '二级审核',
 }
+
+const route = useRoute()
 
 const reviewConfig = ref({
   level1Enabled: true,
@@ -194,6 +204,21 @@ const pendingStatuses = computed(() =>
 )
 
 const isPendingReview = (status: string) => pendingStatuses.value.includes(status)
+
+const displayContentHtml = computed(() => {
+  const detail = current.value
+  if (!detail) return '<p></p>'
+  return combineContentHtml(
+    resolveFreeContentHtml({ freeBody: detail.freeBody }),
+    resolvePaidContentHtml({
+      bodyFormat: detail.bodyFormat,
+      layoutHtml: detail.layoutHtml,
+      layoutJson: detail.layoutJson,
+      paidBody: detail.paidBody,
+      body: detail.body,
+    }),
+  )
+})
 
 const loadReviewConfig = async () => {
   try {
@@ -324,6 +349,10 @@ const submitReview = async (action: 'APPROVED' | 'REJECTED') => {
 
 onMounted(async () => {
   await loadReviewConfig()
+  const stageFromQuery = typeof route.query.stage === 'string' ? route.query.stage : undefined
+  if (stageFromQuery && enabledStages.value.some((s) => s.key === stageFromQuery)) {
+    activeStage.value = stageFromQuery
+  }
   await loadData()
 })
 </script>

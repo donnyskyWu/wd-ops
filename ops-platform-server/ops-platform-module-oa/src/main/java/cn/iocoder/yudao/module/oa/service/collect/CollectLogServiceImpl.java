@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.oa.api.dto.collect.CollectLogDetailRespVO;
 import cn.iocoder.yudao.module.oa.api.dto.collect.CollectLogRespVO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.account.AccountDO;
+import cn.iocoder.yudao.module.oa.dal.dataobject.account.MpAccountDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.CollectLogDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.collect.CollectTaskDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.personal.PersonalWechatAccountDO;
@@ -14,6 +15,7 @@ import cn.iocoder.yudao.module.oa.dal.mysql.collect.CollectLogMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.collect.CollectTaskMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.PersonalWechatAccountMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.personal.WeworkAccountMapper;
+import cn.iocoder.yudao.module.oa.service.account.MpAccountDataService;
 import cn.iocoder.yudao.module.oa.service.config.ConfigTenantSupport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -35,6 +37,7 @@ public class CollectLogServiceImpl implements CollectLogService {
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final String SOURCE_AOCHUANG = "AOCHUANG_API";
     private static final String SOURCE_WECOM_API = "WECOM_API";
+    private static final String PLATFORM_WECHAT_OFFICIAL = "WECHAT_OFFICIAL";
     private static final String PLATFORM_PERSONAL_WECHAT = "WECHAT_PERSONAL";
     private static final String PLATFORM_WEWORK = "WEWORK";
 
@@ -42,6 +45,7 @@ public class CollectLogServiceImpl implements CollectLogService {
     private final CollectTaskMapper collectTaskMapper;
     private final CollectLogResultBuilder collectLogResultBuilder;
     private final AccountMapper accountMapper;
+    private final MpAccountDataService mpAccountDataService;
     private final PersonalWechatAccountMapper personalWechatAccountMapper;
     private final WeworkAccountMapper weworkAccountMapper;
 
@@ -88,6 +92,7 @@ public class CollectLogServiceImpl implements CollectLogService {
         vo.setRecordCount(base.getRecordCount());
         vo.setErrorMessage(base.getErrorMessage());
         vo.setRetryCount(base.getRetryCount());
+        vo.setAccountName(base.getAccountName());
         vo.setEndAt(log.getEndAt());
         vo.setResult(collectLogResultBuilder.parse(log.getResultJson()));
         if (task != null) {
@@ -115,6 +120,13 @@ public class CollectLogServiceImpl implements CollectLogService {
             PersonalWechatAccountDO personal = personalWechatAccountMapper.selectById(task.getAccountId());
             if (personal != null && ConfigTenantSupport.requireTenantId().equals(personal.getTenantId())) {
                 return personal.getAccountName();
+            }
+            return null;
+        }
+        if (PLATFORM_WECHAT_OFFICIAL.equals(task.getPlatformType())) {
+            MpAccountDO mp = mpAccountDataService.selectById(task.getAccountId());
+            if (mp != null && ConfigTenantSupport.requireTenantId().equals(mp.getTenantId())) {
+                return mp.getName();
             }
             return null;
         }
@@ -155,6 +167,7 @@ public class CollectLogServiceImpl implements CollectLogService {
         vo.setTaskId(log.getTaskId());
         if (task != null) {
             vo.setTaskName(task.getTaskName());
+            vo.setAccountName(resolveAccountName(task));
         }
         vo.setStatus(log.getStatus());
         vo.setStartAt(log.getStartAt());

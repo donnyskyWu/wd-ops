@@ -43,7 +43,8 @@
           <el-menu-item index="/sop">SOP管理</el-menu-item>
           <el-menu-item index="/sop/review">SOP审核</el-menu-item>
           <el-menu-item index="/plan">计划管理</el-menu-item>
-          <el-menu-item index="/task">任务管理</el-menu-item>
+          <el-menu-item index="/task">我的任务</el-menu-item>
+          <el-menu-item index="/task/all">全部任务</el-menu-item>
           <el-menu-item index="/content">内容管理</el-menu-item>
           <el-menu-item index="/content/review">内容审核</el-menu-item>
           <el-menu-item index="/knowledge">内容知识库</el-menu-item>

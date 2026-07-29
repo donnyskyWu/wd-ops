@@ -381,7 +381,8 @@ public class ContentPlanServiceImpl implements ContentPlanService {
             step.setCompetitionId(competitionIds.get(0));
             step.setCompetitionName(competitionNameMap.get(competitionIds.get(0)));
             step.setCompetitionIdsJson(JSONUtil.toJsonStr(competitionIds));
-            step.setAssigneeIdsJson(JSONUtil.toJsonStr(stepReq.getAssigneeIds()));
+            List<Long> storableAssigneeIds = resolveStorableAssigneeIds(stepReq.getAssigneeIds(), tenantId);
+            step.setAssigneeIdsJson(JSONUtil.toJsonStr(storableAssigneeIds));
             step.setScheduledStart(stepStart);
             step.setScheduledEnd(stepEnd);
             step.setCreator(TenantContextHolder.getUsername());
@@ -393,13 +394,14 @@ public class ContentPlanServiceImpl implements ContentPlanService {
             List<ContentPlanTaskReq> nodeTasks = tasksByNode.get(stepReq.getNodeId());
             if (nodeTasks != null && !nodeTasks.isEmpty()) {
                 for (ContentPlanTaskReq taskReq : nodeTasks) {
-                    insertTask(plan, node, taskReq.getCompetitionId(), taskReq.getAssigneeId(),
+                    insertTask(plan, node, taskReq.getCompetitionId(),
+                            resolveStorableAssigneeId(taskReq.getAssigneeId(), tenantId),
                             taskReq.getScheduledStart() != null ? taskReq.getScheduledStart() : stepStart,
                             taskReq.getScheduledEnd() != null ? taskReq.getScheduledEnd() : stepEnd,
                             tenantId);
                 }
             } else {
-                for (Long assigneeId : stepReq.getAssigneeIds()) {
+                for (Long assigneeId : storableAssigneeIds) {
                     for (String competitionId : competitionIds) {
                         insertTask(plan, node, competitionId, assigneeId, stepStart, stepEnd, tenantId);
                     }
@@ -519,7 +521,9 @@ public class ContentPlanServiceImpl implements ContentPlanService {
                         stepVO.setNodeOrder(node.getNodeOrder());
                         stepVO.setExecutorRole(node.getExecutorRole());
                     }
-                    stepVO.setAssigneeIds(JSONUtil.toList(step.getAssigneeIdsJson(), Long.class));
+                    stepVO.setAssigneeIds(JSONUtil.toList(step.getAssigneeIdsJson(), Long.class).stream()
+                            .map(footballSystemUserValidator::resolvePresentableUserId)
+                            .collect(Collectors.toList()));
                     if (step.getScheduledStart() != null) {
                         stepVO.setScheduledStart(step.getScheduledStart().format(DT_FMT));
                     }
@@ -696,6 +700,22 @@ public class ContentPlanServiceImpl implements ContentPlanService {
             throw new ServiceException(OaErrorCodes.UNAUTHORIZED);
         }
         return tenantId;
+    }
+
+    private Long resolveStorableAssigneeId(Long assigneeId, Long tenantId) {
+        if (assigneeId == null) {
+            return null;
+        }
+        return footballSystemUserValidator.resolveStorableUserId(assigneeId, tenantId);
+    }
+
+    private List<Long> resolveStorableAssigneeIds(List<Long> assigneeIds, Long tenantId) {
+        if (assigneeIds == null) {
+            return Collections.emptyList();
+        }
+        return assigneeIds.stream()
+                .map(id -> resolveStorableAssigneeId(id, tenantId))
+                .collect(Collectors.toList());
     }
 
     private List<ContentPlanStepReq> resolveEffectiveSteps(List<ContentPlanStepReq> steps,

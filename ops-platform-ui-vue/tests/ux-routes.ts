@@ -36,7 +36,8 @@ export const ALL_ROUTES: RouteEntry[] = [
   { module: 'M2', path: '/sop', title: 'SOP管理' },
   { module: 'M2', path: '/sop/review', title: 'SOP审核' },
   { module: 'M2', path: '/sop/1/edit', title: 'SOP编辑', skip: true, skipReason: 'LogicFlow 拖拽需宽屏' },
-  { module: 'M2', path: '/task', title: '任务管理' },
+  { module: 'M2', path: '/task', title: '我的任务' },
+  { module: 'M2', path: '/task/all', title: '全部任务' },
   { module: 'M2', path: '/task/1/execute', title: '任务执行', skip: true, skipReason: '需有效任务 ID 与执行人权限' },
   { module: 'M2', path: '/content', title: '内容管理' },
   { module: 'M2', path: '/content/edit', title: '内容新增' },
@@ -110,7 +111,7 @@ export const ALL_ROUTES: RouteEntry[] = [
   { module: 'M8', path: '/config-ai-model', title: 'AI模型配置' },
   { module: 'M8', path: '/config-ai-prompt', title: 'AI提示词配置' },
 
-  // M9 系统管理
+  // M9 系统管理（user/role/tenant = FootballAdminRedirect 书签兼容，非 CRUD 页）
   { module: 'M9', path: '/system-user', title: '用户管理' },
   { module: 'M9', path: '/system-role', title: '角色权限' },
   { module: 'M9', path: '/system-tenant', title: '租户管理' },

@@ -86,6 +86,7 @@ public class PhoneServiceImpl implements PhoneService {
         assertRealnameInTenant(req.getRealnameId(), tenantId);
         assertKeeperInTenant(req.getKeeperId(), tenantId);
         assertPhoneUnique(tenantId, req.getPhoneNumber(), null);
+        Long keeperId = footballSystemUserValidator.resolveStorableUserId(req.getKeeperId(), tenantId);
 
         PhoneDO entity = new PhoneDO();
         entity.setTenantId(tenantId);
@@ -104,7 +105,7 @@ public class PhoneServiceImpl implements PhoneService {
         entity.setDeviceNumber(req.getDeviceNumber());
         entity.setIsAochuang(req.getIsAochuang());
         entity.setPhoneType(req.getPhoneType());
-        entity.setKeeperId(req.getKeeperId());
+        entity.setKeeperId(keeperId);
         entity.setWechatBound(req.getWechatBound());
         entity.setStatus(StrUtil.blankToDefault(req.getStatus(), "ENABLED"));
         entity.setAccountBoundCount(0);
@@ -171,7 +172,8 @@ public class PhoneServiceImpl implements PhoneService {
         }
         if (req.getKeeperId() != null) {
             assertKeeperInTenant(req.getKeeperId(), existing.getTenantId());
-            existing.setKeeperId(req.getKeeperId());
+            existing.setKeeperId(footballSystemUserValidator.resolveStorableUserId(
+                    req.getKeeperId(), existing.getTenantId()));
         }
         if (req.getWechatBound() != null) {
             existing.setWechatBound(req.getWechatBound());

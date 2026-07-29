@@ -47,6 +47,7 @@ import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
 import cn.iocoder.yudao.module.oa.dal.mysql.plan.ContentPlanStepMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.sop.TaskMapper;
 import cn.iocoder.yudao.module.oa.service.notification.NotificationService;
+import cn.iocoder.yudao.module.oa.service.home.TodoReminderSupport;
 import com.mzt.logapi.context.LogRecordContext;
 import com.mzt.logapi.starter.annotation.LogRecord;
 import cn.iocoder.yudao.module.oa.util.LayoutJsonHelper;
@@ -93,6 +94,7 @@ public class ProductionContentServiceImpl implements ProductionContentService {
     private final ContentPlanCompetitionMapper contentPlanCompetitionMapper;
     private final ContentReviewConfigService contentReviewConfigService;
     private final NotificationService notificationService;
+    private final TodoReminderSupport todoReminderSupport;
     private final FootballSystemUserValidator footballSystemUserValidator;
     private final AiLlmInvokeSupport aiLlmInvokeSupport;
     private final FootballArticleBridgeService footballArticleBridgeService;
@@ -262,7 +264,9 @@ public class ProductionContentServiceImpl implements ProductionContentService {
             existing.setCoverImage(req.getCoverImage());
         }
         if (req.getCreatorUserId() != null) {
-            existing.setCreatorUserId(req.getCreatorUserId());
+            footballSystemUserValidator.assertInTenant(req.getCreatorUserId(), existing.getTenantId(), "创作者不存在");
+            existing.setCreatorUserId(footballSystemUserValidator.resolveStorableUserId(
+                    req.getCreatorUserId(), existing.getTenantId()));
         }
         if (req.getAccountIds() != null) {
             List<Long> accountIds = normalizeAccountIds(req.getAccountIds());
@@ -354,6 +358,7 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         saveReviewRecord(content, contentReviewConfigService.resolveSubmitStage(),
                 "SUBMIT", TenantContextHolder.getUserId(), null);
         notifyAfterSubmitReview(content);
+        todoReminderSupport.onContentReviewSubmitted(content);
     }
 
     private void notifyAfterSubmitReview(ProductionContentDO content) {
@@ -408,6 +413,12 @@ public class ProductionContentServiceImpl implements ProductionContentService {
         content.setUpdater(TenantContextHolder.getUsername());
         content.setUpdateTime(LocalDateTime.now());
         productionContentMapper.updateById(content);
+        if ("REJECT".equals(req.getAction())) {
+            todoReminderSupport.onContentReviewRejected(content);
+        } else if ("APPROVE".equals(req.getAction())) {
+            todoReminderSupport.onContentReviewApproved(content, req.getStage(),
+                    "PENDING_PUBLISH".equals(content.getStatus()));
+        }
     }
 
     private void notifyAfterReviewApprove(ProductionContentDO content, String nextStatus) {
