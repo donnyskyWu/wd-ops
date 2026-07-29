@@ -1,11 +1,15 @@
 # Local multidb profile (ADR-050 §4). Activate with profile dev-local-multidb.
 # Usage: mvn spring-boot:run "-Dspring-boot.run.profiles=dev,dev-nacos,dev-nacos-local,dev-local-multidb"
 #
-# C-WP7 partial cutover (2026-07-29):
-# - member / mp / pay 已 Feign-only，数据源已移除
-# - system 保留：C-WP1 鉴权 Token Mapper、字典管理 CRUD、roleCode→roleId 映射（待 C-WP1 后删）
+# C-WP7 cutover (2026-07-29):
+# - member / mp / pay / system 已 Feign-only 或移除 multidb
+# - legacy @DS token 仅 IT：oa.auth.legacy-ds-token.enabled=true
 oa:
   auth:
+    gateway-login-user:
+      enabled: true
+    legacy-ds-token:
+      enabled: true
     football-redis:
       enabled: true
       host: 127.0.0.1
@@ -25,12 +29,6 @@ spring:
       datasource:
         master:
           url: jdbc:mysql://localhost:3306/wd?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-          username: root
-          password: root
-          driver-class-name: com.mysql.cj.jdbc.Driver
-        # C-WP1 deferred: FootballOAuth2TokenMapper / FootballSystemRoleLookupMapper / dict admin @DS
-        system:
-          url: jdbc:mysql://localhost:3306/shenyu-system?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
           username: root
           password: root
           driver-class-name: com.mysql.cj.jdbc.Driver

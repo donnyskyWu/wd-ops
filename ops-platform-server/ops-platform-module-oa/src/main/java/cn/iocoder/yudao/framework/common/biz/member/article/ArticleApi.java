@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 /**
  * Football member-server article write RPC (vendored subset, G-MEM-03).
  */
-@FeignClient(name = RpcConstants.MEMBER_NAME, primary = false)
+@FeignClient(contextId = "articleApi", name = RpcConstants.MEMBER_NAME, primary = false)
 public interface ArticleApi {
 
     String PREFIX = RpcConstants.MEMBER_PREFIX + "/article";

@@ -7,12 +7,11 @@ import cn.iocoder.yudao.module.oa.dal.dataobject.auth.SysUserDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupDO;
 import cn.iocoder.yudao.module.oa.dal.dataobject.ipgroup.IpGroupMemberDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.FootballOAuth2MasterTokenMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.auth.FootballOAuth2TokenMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.SysUserTokenMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMapper;
 import cn.iocoder.yudao.module.oa.dal.mysql.ipgroup.IpGroupMemberMapper;
+import cn.iocoder.yudao.module.oa.service.auth.OpsDataScopeSupport;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
-import cn.iocoder.yudao.module.oa.framework.auth.DataScopeSupport;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUser;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -37,25 +36,11 @@ public class IpGroupAccessSupport {
     private final IpGroupMemberMapper ipGroupMemberMapper;
     private final SysUserTokenMapper sysUserTokenMapper;
     private final FootballOAuth2MasterTokenMapper footballOAuth2MasterTokenMapper;
-    private final FootballOAuth2TokenMapper footballOAuth2TokenMapper;
     private final FootballSystemUserValidator footballSystemUserValidator;
 
     public boolean hasUnrestrictedIpGroupAccess() {
-        return isSystemAdmin(LoginUserContext.get());
-    }
-
-    private boolean isSystemAdmin(LoginUser user) {
-        if (user == null) {
-            return false;
-        }
-        if (DataScopeSupport.ALL.equals(user.getDataScope())) {
-            return true;
-        }
-        Set<String> authorities = user.getAuthorities();
-        if (authorities == null || authorities.isEmpty()) {
-            return false;
-        }
-        return authorities.contains("ROLE_OA_ADMIN") || authorities.contains("OA_ADMIN");
+        LoginUser user = LoginUserContext.get();
+        return OpsDataScopeSupport.hasOaTenantAdminAuthority(user != null ? user.getAuthorities() : null);
     }
 
     public Set<Long> resolveMembershipUserIds(Long tenantId) {
@@ -129,13 +114,9 @@ public class IpGroupAccessSupport {
         } catch (Exception ignored) {
             // H2 integration tests have no Football overlay tables.
         }
-        try {
-            FootballSystemUserDO systemUser = footballOAuth2TokenMapper.selectUserByUsername(username);
-            if (systemUser != null && systemUser.getId() != null) {
-                userIds.add(systemUser.getId());
-            }
-        } catch (Exception ignored) {
-            // H2 integration tests have no Football overlay tables.
+        FootballSystemUserDO systemUser = footballSystemUserValidator.findFootballUserByUsername(username);
+        if (systemUser != null && systemUser.getId() != null) {
+            userIds.add(systemUser.getId());
         }
     }
 

@@ -66,7 +66,55 @@ public class FootballSystemUserValidator {
         } catch (Exception ignored) {
             // H2 integration tests have no Football overlay tables.
         }
+        FootballSystemUserDO feignUser = findFootballUserViaFeign(userId);
+        if (feignUser != null) {
+            return feignUser;
+        }
         return findMasterFootballUser(userId);
+    }
+
+    public FootballSystemUserDO findFootballUserByUsername(String username) {
+        if (StrUtil.isBlank(username)) {
+            return null;
+        }
+        try {
+            FootballSystemUserDO systemUser = footballSystemUserSystemReader.findByUsername(username);
+            if (systemUser != null) {
+                return systemUser;
+            }
+        } catch (Exception ignored) {
+            // H2 / no shenyu-system datasource
+        }
+        try {
+            FootballSystemUserDO masterUser = footballOAuth2MasterTokenMapper.selectUserByUsername(username);
+            if (masterUser != null) {
+                return masterUser;
+            }
+        } catch (Exception ignored) {
+            // H2 test profile has no wd.system_users overlay.
+        }
+        return null;
+    }
+
+    private FootballSystemUserDO findFootballUserViaFeign(Long userId) {
+        if (adminUserApi == null || userId == null) {
+            return null;
+        }
+        try {
+            CommonResult<AdminUserRespDTO> result = adminUserApi.getUser(userId);
+            if (result == null || !result.isSuccess() || result.getData() == null) {
+                return null;
+            }
+            AdminUserRespDTO dto = result.getData();
+            FootballSystemUserDO user = new FootballSystemUserDO();
+            user.setId(dto.getId());
+            user.setTenantId(dto.getTenantId());
+            user.setNickname(dto.getNickname());
+            user.setStatus(dto.getStatus());
+            return user;
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private FootballSystemUserDO findMasterFootballUser(Long userId) {
@@ -321,15 +369,24 @@ public class FootballSystemUserValidator {
             return Collections.emptyMap();
         }
         Map<Long, String> names = new HashMap<>();
-        try {
-            List<FootballSystemUserDO> footballUsers = footballSystemUserLookupMapper.selectNicknamesByIds(ids);
-            if (footballUsers != null) {
-                footballUsers.forEach(user -> putResolvedNickname(names, user));
+        for (Long id : ids) {
+            FootballSystemUserDO feignUser = findFootballUserViaFeign(id);
+            if (feignUser != null) {
+                putResolvedNickname(names, feignUser);
             }
-        } catch (Exception ignored) {
-            // H2 test profile has no shenyu-system system_users.
         }
         List<Long> missingIds = ids.stream().filter(id -> !names.containsKey(id)).collect(Collectors.toList());
+        if (!missingIds.isEmpty()) {
+            try {
+                List<FootballSystemUserDO> footballUsers = footballSystemUserLookupMapper.selectNicknamesByIds(missingIds);
+                if (footballUsers != null) {
+                    footballUsers.forEach(user -> putResolvedNickname(names, user));
+                }
+            } catch (Exception ignored) {
+                // H2 test profile has no shenyu-system system_users.
+            }
+        }
+        missingIds = ids.stream().filter(id -> !names.containsKey(id)).collect(Collectors.toList());
         if (!missingIds.isEmpty()) {
             try {
                 List<FootballSystemUserDO> masterUsers = footballOAuth2MasterTokenMapper.selectDisplayUsersByIds(missingIds);

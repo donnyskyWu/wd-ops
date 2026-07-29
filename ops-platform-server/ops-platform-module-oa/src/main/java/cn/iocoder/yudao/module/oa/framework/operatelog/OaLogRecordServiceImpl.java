@@ -6,7 +6,6 @@ import cn.iocoder.yudao.framework.common.biz.system.logger.dto.OperateLogCreateR
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.oa.dal.dataobject.auth.FootballSystemUserDO;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.FootballOAuth2MasterTokenMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.auth.FootballOAuth2TokenMapper;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUser;
 import cn.iocoder.yudao.module.oa.framework.auth.LoginUserContext;
 import cn.iocoder.yudao.module.oa.service.auth.FootballOAuth2TokenSnapshot;
@@ -38,7 +37,6 @@ public class OaLogRecordServiceImpl implements ILogRecordService {
     private final OperateLogCommonApi operateLogApi;
     private final FootballSystemUserValidator footballSystemUserValidator;
     private final FootballOAuth2MasterTokenMapper footballOAuth2MasterTokenMapper;
-    private final FootballOAuth2TokenMapper footballOAuth2TokenMapper;
 
     @Override
     public void record(LogRecord logRecord) {
@@ -105,15 +103,11 @@ public class OaLogRecordServiceImpl implements ILogRecordService {
         return rawUserId;
     }
 
-    /** Prefer shenyu-system id (operate-log + @Trans target) over wd master overlay. */
+    /** Prefer wd master overlay; Feign/Validator paths avoid {@code @DS("system")}. */
     private FootballSystemUserDO lookupFootballUserByUsername(String username) {
-        try {
-            FootballSystemUserDO systemUser = footballOAuth2TokenMapper.selectUserByUsername(username);
-            if (systemUser != null) {
-                return systemUser;
-            }
-        } catch (Exception ignored) {
-            // H2 / no shenyu-system overlay
+        FootballSystemUserDO footballUser = footballSystemUserValidator.findFootballUserByUsername(username);
+        if (footballUser != null) {
+            return footballUser;
         }
         try {
             return footballOAuth2MasterTokenMapper.selectUserByUsername(username);

@@ -127,7 +127,18 @@ public class AuthorResolveSupport {
     public long countActiveAuthors(Long tenantId, Collection<Long> ipGroupIds) {
         boolean scoped = ipGroupIds != null && !ipGroupIds.isEmpty();
         if (!scoped) {
-            return memberAuthorReadService.countActiveAuthors(tenantId);
+            // G-MEM-02 阻塞：无 tenant 级 count RPC；以 anchor_rel 绑定作者数为代理指标
+            List<IpGroupAnchorRelDO> rels = ipGroupAnchorRelMapper.selectList(new LambdaQueryWrapper<IpGroupAnchorRelDO>()
+                    .eq(IpGroupAnchorRelDO::getTenantId, tenantId));
+            Set<Long> authorUserIds = rels.stream()
+                    .map(IpGroupAnchorRelDO::getAnchorUserId)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            if (authorUserIds.isEmpty()) {
+                return 0L;
+            }
+            return memberAuthorReadService.loadByIds(authorUserIds).values().stream()
+                    .filter(this::isActiveAuthor)
+                    .count();
         }
         List<IpGroupAnchorRelDO> rels = ipGroupAnchorRelMapper.selectList(new LambdaQueryWrapper<IpGroupAnchorRelDO>()
                 .eq(IpGroupAnchorRelDO::getTenantId, tenantId)

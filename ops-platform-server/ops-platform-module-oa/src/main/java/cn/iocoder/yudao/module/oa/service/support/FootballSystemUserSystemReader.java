@@ -52,6 +52,9 @@ public class FootballSystemUserSystemReader {
             return null;
         }
         JdbcTemplate jdbc = systemJdbc();
+        if (jdbc == null) {
+            return null;
+        }
         return jdbc.query(USERNAME_BY_ID_SQL, rs -> rs.next() ? rs.getString(1) : null, userId);
     }
 
@@ -63,17 +66,20 @@ public class FootballSystemUserSystemReader {
         return queryUser(USER_BY_USERNAME_SQL, username);
     }
 
-    private FootballSystemUserDO queryUser(String sql, Object arg) {
-        JdbcTemplate jdbc = systemJdbc();
-        return jdbc.query(sql, rs -> rs.next() ? mapUser(rs) : null, arg);
-    }
-
     private JdbcTemplate systemJdbc() {
         DataSource system = dynamicRoutingDataSource.getDataSource("system");
         if (system == null) {
-            throw new IllegalStateException("system datasource is not configured");
+            return null;
         }
         return new JdbcTemplate(system);
+    }
+
+    private FootballSystemUserDO queryUser(String sql, Object arg) {
+        JdbcTemplate jdbc = systemJdbc();
+        if (jdbc == null) {
+            return null;
+        }
+        return jdbc.query(sql, rs -> rs.next() ? mapUser(rs) : null, arg);
     }
 
     private static FootballSystemUserDO mapUser(ResultSet rs) throws SQLException {

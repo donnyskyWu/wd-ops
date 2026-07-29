@@ -2,14 +2,15 @@ package cn.iocoder.yudao.module.oa.config;
 
 import cn.iocoder.yudao.framework.common.biz.infra.file.FileApi;
 import cn.iocoder.yudao.framework.common.biz.member.article.ArticleApi;
+import cn.iocoder.yudao.framework.common.biz.member.author.AuthorApi;
 import cn.iocoder.yudao.framework.common.biz.mp.user.MpAccountInfoApi;
 import cn.iocoder.yudao.framework.common.biz.pay.order.PayOrderApi;
 import cn.iocoder.yudao.framework.common.biz.system.dict.DictDataApi;
 import cn.iocoder.yudao.framework.common.biz.system.logger.OperateLogCommonApi;
+import cn.iocoder.yudao.framework.common.biz.system.oauth2.OAuth2TokenCommonApi;
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.framework.common.biz.system.user.AdminUserApi;
 import cn.iocoder.yudao.module.oa.dal.mysql.auth.FootballOAuth2MasterTokenMapper;
-import cn.iocoder.yudao.module.oa.dal.mysql.auth.FootballOAuth2TokenMapper;
 import cn.iocoder.yudao.module.oa.framework.feign.OaTenantFeignRequestInterceptor;
 import cn.iocoder.yudao.module.oa.framework.operatelog.OaLogRecordServiceImpl;
 import cn.iocoder.yudao.module.oa.service.support.FootballSystemUserValidator;
@@ -31,8 +32,10 @@ import org.springframework.context.annotation.Primary;
         DictDataApi.class,
         PayOrderApi.class,
         ArticleApi.class,
+        AuthorApi.class,
         MpAccountInfoApi.class,
-        FileApi.class
+        FileApi.class,
+        OAuth2TokenCommonApi.class
 })
 @EnableLogRecord(tenant = "")
 public class OaOperateLogConfiguration {
@@ -46,9 +49,8 @@ public class OaOperateLogConfiguration {
     @Primary
     public ILogRecordService oaLogRecordService(OperateLogCommonApi operateLogCommonApi,
                                                 FootballSystemUserValidator footballSystemUserValidator,
-                                                FootballOAuth2MasterTokenMapper footballOAuth2MasterTokenMapper,
-                                                FootballOAuth2TokenMapper footballOAuth2TokenMapper) {
+                                                FootballOAuth2MasterTokenMapper footballOAuth2MasterTokenMapper) {
         return new OaLogRecordServiceImpl(operateLogCommonApi, footballSystemUserValidator,
-                footballOAuth2MasterTokenMapper, footballOAuth2TokenMapper);
+                footballOAuth2MasterTokenMapper);
     }
 }

@@ -30,7 +30,10 @@ mybatis-plus:
 
 oa:
   auth:
-    mode: dev-fixed
+    gateway-login-user:
+      enabled: true
+    legacy-ds-token:
+      enabled: false
   crypto:
     aes-key: MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=
   unified-collector:
