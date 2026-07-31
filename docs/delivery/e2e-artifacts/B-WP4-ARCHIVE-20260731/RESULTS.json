@@ -1,0 +1,40 @@
+{
+  "login": {
+    "code": 0,
+    "hasToken": true,
+    "userId": "1749825673829120001"
+  },
+  "probes": {
+    "probe-ip-group-list": {
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "status": null,
+      "list": 5,
+      "total": 20
+    },
+    "probe-content-list": {
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "status": null,
+      "list": 5,
+      "total": 38
+    },
+    "probe-account-list": {
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "status": null,
+      "list": 5,
+      "total": 183
+    },
+    "ops-health": {
+      "http": 200,
+      "code": null,
+      "msg": null,
+      "status": "UP"
+    },
+    "FootballOAuth2MasterTokenMapper_present": true
+  }
+}

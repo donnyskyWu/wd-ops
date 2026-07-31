@@ -780,3 +780,20 @@ curl http://localhost:8080/oa/...
 | 8 | **Post-MDB 本地签收** | 2026-07-05 | [POST-MDB-LOCAL-SIGNOFF-20260705](./gates/POST-MDB-LOCAL-SIGNOFF-20260705.md) · E2E 58/58 · DB SSOT ✅ |
 
 > **用户场景**（2026-07-04）：**Ops standalone only** → `start-ops-standalone.ps1`（:3000 + :8080 · `dev-token-oa-admin` · 无 Gateway/system/member）；**非 GATE-MDB 验收路径**。待办见 [INTEGRATION-PROGRESS §21](./INTEGRATION-PROGRESS.md#21-待办清单--按用户场景2026-07-04-修订)。**Football 全栈集成（Gate 唯一路径）** → `start-integration-all.ps1` → `:5777` 登录签收；member mock 见 §20 · 后续见 [INTEGRATION-PROGRESS §23](./INTEGRATION-PROGRESS.md#23-本地-football-集成路线图post-mdb--2026-07-05)。
+
+---
+
+## 20. OPS × Football 合并清理（Phase C · 2026-07-30 同步）
+
+> **SSOT**：[OPS-FOOTBALL-MERGE-WORK-PLAN.md](./OPS-FOOTBALL-MERGE-WORK-PLAN.md) · [OPS-FOOTBALL-INTEGRATION-FEIGN-CHECKLIST.md](./OPS-FOOTBALL-INTEGRATION-FEIGN-CHECKLIST.md) · [ADR-057](../adr/ADR-057-G-PAY-01-page-for-ops.md)  
+> **手验证据**：[G-STAR-HANDVERIFY-20260730/REPORT.md](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md)（Pass 7 / Fail 0 / Skip G-DING）
+
+| Gate / 维度 | 状态 | 备注 |
+|-------------|------|------|
+| G-* Integration 业务手验（除 G-DING） | ✅ | 含 G-PAY-01 ADR-057 `page-for-ops` |
+| C-WP0 410 / C-WP1 鉴权 / C-WP7 getById / C-WP7-PHYS 代码 | ✅ | TokenMapper/Redis/死 Mapper 已删；dev-token 仅 IT |
+| Runtime merge E2E（:5777 + GW + ops-server） | ⚠️ **条件签收** | [MERGE-RUNTIME-E2E-签收报告-20260731](./gates/MERGE-RUNTIME-E2E-签收报告-20260731.md) · 78/88；**不**代签 B-WP4 |
+| **Phase C 整包** | ✅ **GO**（localhost Integration） | C-WP7-PHYS ✅ + **B-WP4-ARCHIVE** 签收/备份/归档/探测 ✅ 2026-07-31 |
+| 下一动作 | — | B-WP3 Flyway 政策；远程归档另窗；ADR-056 全量切轨后再删 MasterTokenMapper |
+
+> **诚实边界**：Phase C 整包 GO 仅覆盖 Integration localhost `wd` 归档范围（见 [B-WP4-ARCHIVE-20260731](./e2e-artifacts/B-WP4-ARCHIVE-20260731/REPORT.md)）；**不**等于远程/生产已归档。正式 `GATE-S*` 报告不适用本轨；手验以 FEIGN-CHECKLIST §3 + e2e-artifacts 为准。

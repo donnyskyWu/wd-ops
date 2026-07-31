@@ -3,12 +3,12 @@
 | 字段 | 值 |
 |------|---|
 | 文档性质 | **合并后去冗余清理清单**（可执行；非 Slice 实现规格） |
-| 版本 | v1.0 |
-| 日期 | 2026-07-23 |
+| 版本 | v1.1 |
+| 日期 | 2026-07-30 |
 | 决策 SSOT | [OPS-FOOTBALL-RPC-MUST-HAVE.md](./OPS-FOOTBALL-RPC-MUST-HAVE.md) · [OPS-FOOTBALL-FULL-MERGE-RPC-ANALYSIS.md](./OPS-FOOTBALL-FULL-MERGE-RPC-ANALYSIS.md) v1.8 |
-| **执行工作计划** | **[OPS-FOOTBALL-MERGE-WORK-PLAN.md](./OPS-FOOTBALL-MERGE-WORK-PLAN.md)**（v1.0 · 2026-07-24）— 清理项按 **A 前端 → B 数据库 → C 后端** 落地；§7 分阶段与工作包对照见该文 §9 |
-| 关联 ADR | ADR-047 · ADR-050（§3.1 待 Supersede）· ADR-056 |
-| 状态 | Draft — 基于仓库 grep 盘点；**删除动作须按 §7 分阶段**，勿在 Football API 未就绪时硬删 |
+| **执行工作计划** | **[OPS-FOOTBALL-MERGE-WORK-PLAN.md](./OPS-FOOTBALL-MERGE-WORK-PLAN.md)**（v1.3 · 2026-07-30）— 清理项按 **A 前端 → B 数据库 → C 后端** 落地；§7 分阶段与工作包对照见该文 §9 |
+| 关联 ADR | ADR-047 · ADR-050 · [ADR-050-REV1](../adr/ADR-050-REV1-Football-G-RPC-Supersede.md) · ADR-056 · [ADR-057](../adr/ADR-057-G-PAY-01-page-for-ops.md) |
+| 状态 | Active — G-* 手验 Pass；**B-DS-RESIDUE ✅**；**C-WP7-PHYS 代码物理删 ✅**（2026-07-30）；**Phase C 整包仍 NO-GO** 直至 **B-WP4 表归档** 产品签收 |
 
 > **读法**：本清单回答「合并后哪些代码 / 配置 / 表 / 页面会变成冗余」。接口缺口与人日见 MUST-HAVE；本文只列 **清理对象**。
 
@@ -43,15 +43,15 @@
 
 | 对象 | DS | 现状用途 | 替换目标（MUST-HAVE） | 时机 |
 |------|-----|----------|----------------------|------|
-| `dal/mysql/auth/FootballOAuth2TokenMapper` | system | Token / 角色读 | Gateway 透传或 `OAuth2TokenCommonApi.checkAccessToken`（D-SYS-03） | 依赖 Football 就绪后删除 |
-| `dal/mysql/system/FootballSystemUserLookupMapper` | system | 用户 lookup | G-SYS-01/02 Feign | 依赖 Football 就绪后删除 |
-| `dal/mysql/dict/FootballSystemDictTypeMapper` · `FootballSystemDictDataMapper` | system | 字典读 | G-DICT-01 `DictDataApi` | 依赖 Football 就绪后删除 |
-| `service/system/SystemDictAdapter`（经上 Mapper） | system | `@InDict` / DictService | 同上 | 依赖 Football 就绪后删除 |
-| `service/author/MemberAuthorReadService` · `dal/mysql/author/AuthorUserMapper` | member | 作者读 | G-MEM-02 只读 Feign | 依赖 Football 就绪后删除 |
-| `service/football/MemberArticleWriteService` · `dal/mysql/football/AuthorArticleMapper` | member | 文章 insert/update | G-MEM-03 写 Feign | 依赖 Football 就绪后删除 |
-| `service/account/MpAccountDataService` · `MpUserDataService` · `MpAccountMapper` · `MpUserMapper` | mp | 公众号读写 | G-MP-01 Feign | 依赖 Football 就绪后删除 |
-| `dal/mysql/football/FootballPayAllOrderReadMapper` | pay | 订单只读 | G-PAY-01 | 依赖 Football 就绪后删除 |
-| `dal/mysql/smoke/SystemDsSmokeMapper` · `PayDsSmokeMapper` | system/pay | 多库 smoke | cutover 后整包删除 | RPC cutover 后删除 |
+| ~~`dal/mysql/auth/FootballOAuth2TokenMapper`~~ | system | Token / 角色读（legacy 回滚） | Gateway/`check`（D-SYS-03） | **已删**（**C-WP7-PHYS** 2026-07-30） |
+| ~~`dal/mysql/system/FootballSystemUserLookupMapper`~~ · ~~`FootballSystemRoleLookupMapper`~~ · ~~`FootballSystemUserSystemReader`~~ | system | 用户 lookup / nickname / roleCode | G-SYS-01/02 Feign | **已删**（**B-DS-RESIDUE** 2026-07-30）；nickname=`getByIds`；roleCode→roleId=wd master |
+| ~~`dal/mysql/dict/FootballSystemDictTypeMapper`~~ · ~~`FootballSystemDictDataMapper`~~ | system | 字典读/管理 | G-DICT-01 `DictDataApi` | **已删**（B-DS-RESIDUE）；`@InDict`/data Feign-only；admin/types → **410** |
+| `service/system/SystemDictAdapter` | — | `@InDict` / DictService | 同上 | **Feign-only**；管理方法 410（无 Mapper） |
+| `service/author/MemberAuthorReadService` · ~~`AuthorUserMapper`~~ | — | 作者读 | G-MEM-02 Feign | **Feign-only**（早切）；AuthorUserMapper 已不存在 |
+| `service/football/MemberArticleWriteService` · ~~`AuthorArticleMapper`~~ | member | 文章 insert/update | G-MEM-03 写 Feign | **Mapper/`getById`/member DS 已删**（C-WP7 2026-07-30）；写 Feign-only ✅ |
+| `service/account/MpAccountDataService` · `MpUserDataService` · ~~`MpAccountMapper`~~ · ~~`MpUserMapper`~~ | mp | 公众号读写 | G-MP-01 Feign | **服务 Feign-only + 手验 Pass**；死 `MpAccountMapper` **已删**（C-WP7-PHYS） |
+| ~~`dal/mysql/football/FootballPayAllOrderReadMapper`~~ | pay | 订单只读 | G-PAY-01 / ADR-057 | **已删**（2026-07-29）；Feign `pageForOps` 手验 Pass |
+| ~~`dal/mysql/smoke/SystemDsSmokeMapper`~~ · ~~`PayDsSmokeMapper`~~ | system/pay | 多库 smoke | cutover 后整包删除 | **均已删**（C-WP7-PHYS / 先前） |
 
 **保留（非清理）**：`@DS("master")` — `OaAuthorExtMapper`、`OaAccountExtMapper`、`OaAccountExtDataService`、`FootballOAuth2MasterTokenMapper`（仅过渡期；见 1.2）。
 
@@ -59,18 +59,18 @@
 
 | 对象 | 包/文件 | 动作 | 时机 |
 |------|---------|------|------|
-| `FootballAuthProvider` | `service/auth/` | 改为消费 Gateway login-user 头，或调用 `checkAccessToken` | 依赖 Football 就绪后删除（直读路径） |
-| `FootballOAuth2TokenRedisReader` · `FootballOAuth2RedisProperties` | `service/auth/` · `config/` | Redis 直读 token 快照下线 | RPC cutover 后删除 |
-| `FootballOAuth2TokenMapper`（@DS system） | 见上 | 停用 | 同上 |
+| ~~`FootballAuthProvider`~~ → `GatewayAuthProvider` | `service/auth/` | Gateway login-user / `checkAccessToken` | **C-WP1 ✅**；旧直读类 **已删**（C-WP7-PHYS） |
+| ~~`FootballOAuth2TokenRedisReader`~~ · ~~`FootballOAuth2RedisProperties`~~ | `service/auth/` · `config/` | Redis 直读 token 快照 | **已删**（C-WP7-PHYS）；`FootballOAuth2TokenSnapshot` 常量保留给操作日志 |
+| ~~`FootballOAuth2TokenMapper`~~（@DS system） | 见上 | 停用 | **已删**（C-WP7-PHYS） |
 | `FootballOAuth2MasterTokenMapper`（@DS master · `system_users` overlay） | `dal/mysql/auth/` | 停用「wd 内 system_users 桥」 | 依赖 ADR-056 全量切轨后删除 |
-| `DevAuthProvider` · `DevAuthFilter` · `CompositeAuthProvider`（dev 分支） | `framework/auth/` · `service/auth/` | **生产路径废弃**；IT/standalone harness 可暂留 | 可立即标记废弃（生产）；物理删依赖 harness 退役 |
-| `oa.auth.football-redis`（`application-dev-local-multidb.yml`） | 配置 | 随 Redis 直读下线 | RPC cutover 后删除 |
+| `DevAuthProvider`（条件装配）· `DevAuthFilter`（历史名）· `CompositeAuthProvider` | `framework/auth/` · `service/auth/` | 生产：`oa.auth.dev-token.enabled=false`；IT：`application-test.yml` 开启 | **C-WP7-PHYS ✅** 生产路径下线 |
+| ~~`oa.auth.legacy-ds-token`~~ / ~~`football-redis`~~ | 配置 | 已移除 | **C-WP7-PHYS** 去紧急回滚开关 |
 
 #### 1.3 文件：LocalFileStorageService / `/oa/file` → FileApi
 
 | 对象 | 动作 | 时机 |
 |------|------|------|
-| `service/file/LocalFileStorageService` | 淘汰本地盘；改 `FileApi` / `/admin-api/infra/file`（D-INF-01） | 依赖 Football 就绪后删除（API 已有，OPS 未切轨） |
+| `service/file/LocalFileStorageService` | 上传 Feign-only（G-INF-01 cutover）；legacy key 本地读保留 | 存量迁移 / 长期只读代理待办；手验 Pass 2026-07-30 |
 | `controller/file/FileController`（`/admin-api/oa/file/*`） | 过渡期可代理→FileApi；终态下线 | 过渡可代理；终态 RPC cutover 后删除 |
 | `util/ImageKeyHelper.FILE_VIEW_PREFIX`（`/admin-api/oa/file/view?key=`） | 改 infra URL | 随切轨 |
 | `TaskServiceImpl` 等对 `LocalFileStorageService` 的注入 | 改调用 | 同上 |
@@ -80,7 +80,7 @@
 
 | 对象 | 动作 | 时机 |
 |------|------|------|
-| `SystemDictAdapter` · `SystemDictServiceImpl` · `DictService` | 后端读改 Feign；**管理写已 410 / 菜单已摘** | 依赖 G-DICT-01 |
+| `SystemDictAdapter` · `SystemDictServiceImpl` · `DictService` | 后端读 Feign-only；**管理写/type-list/admin-list 均 410**（B-DS-RESIDUE） | ✅ |
 | `controller/dict/DictController`（`/admin-api/oa/dict`） | 前端 DictSelect 改 Football Admin 后可删薄封装，或保留代理一层 | 可立即标记废弃（管理）；读代理依赖前端切轨 |
 | `controller/system/SystemDictController`（`/admin-api/oa/system/dict` 别名） | 同上 | 同上 |
 | `dal/mysql/dict/SysDictDataMapper`（wd `sys_dict_*`） | 业务字典若已全部 merge 到 shenyu-system，停写 wd；读走 Feign | 见 §3；依赖字典 merge 完成 |
@@ -90,7 +90,7 @@
 | 对象 | 动作 | 时机 |
 |------|------|------|
 | `AuthorServiceImpl` 中对 member `author_user` 的 **create/update/status**（若仍存在） | **禁止新写**；管理归 Football Admin | 可立即标记废弃（写 API）；读改 Feign 后删 `@DS` |
-| `controller/author/AuthorController` 写接口 | 隐藏/410；保留 `AuthorExtController` 写 `oa_author_ext` | 可立即标记废弃（主数据 CUD） |
+| `controller/author/AuthorController` 写接口 | **业务码 410** ✅ C-WP0；保留 `AuthorExtController` 写 `oa_author_ext` | 物理删属 P2 |
 | `MemberAuthorReadService` | 只读 → Feign 后删除直连 | 依赖 G-MEM-02 |
 | 菜单 6155「作者管理」 | **已移除**（seed 注释 · V145） | 已完成 |
 
@@ -109,11 +109,11 @@
 
 | Controller | 路径模式 | 处置 |
 |------------|----------|------|
-| `UserController` | `/admin-api/oa/system/user` · `/admin-api/system/user` | **删除或永久 410**（Football Admin SSOT） |
-| `RoleController` | `…/system/role` | 同上 |
-| `DeptController`（含钉钉 sync） | `…/system/dept` | 删除；**D-DING-02** 通讯录同步不做 |
-| `PermissionController` | `…/system/permission` | 删除平行权限管理 |
-| `TenantController` | `…/system/tenant` | 删除 |
+| `UserController` | `/admin-api/oa/system/user` · `/admin-api/system/user` | **永久 410** ✅ C-WP0（`/profile` 仍可用）；物理删属 P2 |
+| `RoleController` | `…/system/role` | **永久 410** ✅ C-WP0；物理删属 P2 |
+| `DeptController`（含钉钉 sync） | `…/system/dept` | **永久 410** ✅ C-WP0（含 sync-*，D-DING-02）；物理删属 P2 |
+| `PermissionController` | `…/system/permission` | 删除平行权限管理（**C-WP0 未强制 410**；残留读 list） |
+| `TenantController` | `…/system/tenant` | 删除（**C-WP0 未强制 410**；GateS2 仍测权限） |
 | `ParamController` | `/admin-api/oa/system/param` | **保留**（`sys_param` 属 OPS） |
 | `MessageController` | `…/system/message` | 产品二选一：Football Notify 或 OPS 自建；勿平行管理台（分析 G-NTF-01） |
 | `SystemDictController` / `DictController` | 见 1.4 | 管理不下沉；读切 Feign/Admin |
@@ -125,7 +125,7 @@
 | 对象 | 现状 | 处置 | 时机 |
 |------|------|------|------|
 | `OaLogRecordServiceImpl` → `OperateLogCommonApi` | **已接 Feign 写**（保留） | 保留 | — |
-| `OperationLogRecorder` + `SysOperationLogMapper` → `wd.sys_operation_log` | 旧本地写 | **删除双写**，统一 Feign | 可立即标记废弃；确认无读依赖后删 |
+| `OperationLogRecorder` + `SysOperationLogMapper` → `wd.sys_operation_log` | **C-WP0 已停 insert**（recorder no-op `@Deprecated`） | Mapper/表物理删 | P2 确认无读依赖后删 |
 | 操作日志 **读** Controller / UI | 菜单 6139 **已移除**（V147）；无平行读 Controller | 确认无残留后结案 | 已基本完成 |
 | `OaLogRecordServiceImpl` 内 query 抛 `UnsupportedOperationException` | 正确（禁止平行读） | 保留断言 | — |
 
@@ -249,15 +249,15 @@
 | P0-2 | 前端：确认 User/Role/Tenant/Author 管理路由保持 hide；API `system-user` CRUD 标 deprecated |
 | P0-3 | 菜单：环境抽检 6137–6139/6155 已不存在；角色勿绑平行权限 |
 | P0-4 | 停写：`oa_author`（非 ext）、wd `system_users` 新写、wd `sys_dict_*` 作为 SSOT 新写 |
-| P0-5 | 钉钉通讯录 sync API/按钮隐藏或 410（D-DING-02） |
-| P0-6 | 操作日志：审计是否仍双写 `sys_operation_log`；计划去掉 `OperationLogRecorder` 本地写 |
+| P0-5 | ~~钉钉通讯录 sync API/按钮隐藏或 410（D-DING-02）~~ ✅ C-WP0 2026-07-30（业务码 410） |
+| P0-6 | ~~操作日志：审计是否仍双写 `sys_operation_log`；计划去掉 `OperationLogRecorder` 本地写~~ ✅ C-WP0 2026-07-30（停 insert；Mapper 物理删属 P2） |
 | P0-7 | Standalone 脚本/E2E 标注非 Gate |
 
 #### P1 — Football 缺口就绪后切轨（按 G-*）
 
 | # | 依赖 | 删除/替换 |
 |---|------|-----------|
-| P1-1 | D-SYS-03 Gateway/`check` | `FootballAuthProvider` DB/Redis 直读；`FootballOAuth2TokenMapper` |
+| P1-1 | D-SYS-03 Gateway/`check` | ~~`FootballAuthProvider` / TokenMapper / Redis~~ **已删**（C-WP7-PHYS） |
 | P1-2 | G-SYS-01/02 | `FootballSystemUserLookupMapper`；Validator 去 `@DS`；收敛 `SysUserMapper` |
 | P1-3 | G-DICT-01 | `SystemDictAdapter` + Football Dict Mappers；前端 DictSelect 改 Admin |
 | P1-4 | G-INF-01 | `LocalFileStorageService` / `/oa/file` |
@@ -271,7 +271,7 @@
 | P2-1 | 删除 `application-dev-local-multidb.yml` 中非 master 数据源；删除 remote-multidb 配置与推送脚本 |
 | P2-2 | 删除 smoke Mapper、无用 Controller、deprecated Vue 页、mount 脚本（若单源完成） |
 | P2-3 | Flyway 政策：禁止再跨库写 shenyu-*；字典所有权移交 |
-| P2-4 | Standalone `:3000/:8080` 与 dev-token 生产路径下线（IT 另建 profile） |
+| P2-4 | ~~Standalone `:3000/:8080` 与 dev-token 生产路径下线~~ **代码侧 ✅**（C-WP7-PHYS：`dev-token` 仅 test）；前端 standalone 脚本标非 Gate 仍属 A-WP5 |
 | P2-5 | 正式 ADR：**Supersede ADR-050 §3.1**（允许 Football 补 Feign；OPS 禁直连） |
 
 ---

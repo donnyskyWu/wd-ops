@@ -3,10 +3,11 @@
 | 字段 | 值 |
 |------|---|
 | 文档性质 | **Integration 手验记录模板**（G-* Feign 双跑 / cutover 验收） |
-| 版本 | v1.0 |
-| 日期 | 2026-07-28 |
-| 关联 | [WORK-PLAN §8.6](./OPS-FOOTBALL-MERGE-WORK-PLAN.md#86-阻塞表blockers) · [D-FEIGN-IT](./OPS-FOOTBALL-MERGE-DECISIONS.md#d-feign-ith2-it-与-feign-路径验证策略86-b-feign-it) · [OPS-DEV-DEPLOY-GUIDE](./OPS-DEV-DEPLOY-GUIDE.md) |
+| 版本 | v1.1 |
+| 日期 | 2026-07-30 |
+| 关联 | [WORK-PLAN §8.6](./OPS-FOOTBALL-MERGE-WORK-PLAN.md#86-阻塞表blockers) · [D-FEIGN-IT](./OPS-FOOTBALL-MERGE-DECISIONS.md#d-feign-ith2-it-与-feign-路径验证策略86-b-feign-it) · [ADR-057](../adr/ADR-057-G-PAY-01-page-for-ops.md) · [OPS-DEV-DEPLOY-GUIDE](./OPS-DEV-DEPLOY-GUIDE.md) |
 | IT 边界 | H2 `mvn verify` **不**断言 Feign 真调通；Feign 路径以本文 Integration 手验为准 |
+| **Phase C 整包** | **GO**（localhost）— G-* 手验 Pass 7/0 ✅；**B-DS-RESIDUE ✅**；**C-WP7-PHYS 代码 ✅**；**B-WP4-ARCHIVE ✅** 2026-07-31（[REPORT](./e2e-artifacts/B-WP4-ARCHIVE-20260731/REPORT.md)） |
 
 ---
 
@@ -94,12 +95,12 @@ oa-server 须激活：`dev,dev-nacos,dev-nacos-local`（及 multidb 若需五库
 
 | 项 | 内容 |
 |----|------|
-| **Feign 路径** | `POST http://127.0.0.1:48085/rpc-api/pay/order/page` · Body: `OrderPageReqDTO` |
-| **OPS 消费** | `FootballOrderReadService` · `PayOrderApi.getOrderPage` |
-| **@DS 回退** | `FootballPayAllOrderReadMapper` @DS pay |
+| **Feign 路径** | `POST http://127.0.0.1:48085/rpc-api/pay/order/page-for-ops` · Body: `OrderOpsPageReqDTO`（`startTime`/`endTime` 半开区间） |
+| **OPS 消费** | `FootballOrderReadService` · `PayOrderApi.pageForOps`（ADR-057 / D-G-PAY-01 REV1 假设 B） |
+| **@DS 回退** | 已 cutover Feign-only（pay DS 已删） |
 | **前置** | **pay-server :48085 必须 UP**；`application-dev-nacos-local.yml` 已配置 `pay-server.url` |
-| **手验步骤** | 1) `curl -X POST .../pay/order/page -d '{"pageNo":1,"pageSize":10}'` 返回 200；2) OPS 订单归因/列表页有数据；3) 对比 Feign 与 @DS 列字段（§8.8 对表） |
-| **期望** | 10 列 100% 覆盖；tenant-id Header 生效 |
+| **手验步骤** | 1) `POST .../pay/order/page-for-ops` + `tenant-id` + 时间窗 → code=0；2) Gateway `football-order/list?startDate&endDate` + admin token → code=0；3) 不依赖 Admin `getOrderPage` 富化 |
+| **期望** | OPS 10 列；tenant-id 隔离；无 permitted-ids / finance_channel 富化 |
 
 ### G-MEM-03　文章写
 
@@ -107,9 +108,9 @@ oa-server 须激活：`dev,dev-nacos,dev-nacos-local`（及 multidb 若需五库
 |----|------|
 | **Feign 路径** | `POST http://127.0.0.1:48087/rpc-api/member/article/create` · `PUT .../update` · `POST .../status-change` |
 | **OPS 消费** | `MemberArticleWriteService` |
-| **@DS 回退** | `AuthorArticleMapper` @DS member |
+| **@DS 回退** | **已清**（C-WP7 getById Slice 2026-07-30：删 `AuthorArticleMapper` / member DS；`shelfStatus` 无 get RPC 降级为空） |
 | **手验步骤** | 1) 内容生产同步创建文章；2) 更新标题/状态；3) Football Admin 侧可见 |
-| **期望** | 写路径 Feign 成功；member 库与 RPC 一致 |
+| **期望** | 写路径 Feign 成功；列表 `authorArticleId`/`footballSyncError` 可用；`shelfStatus` 可空 |
 
 ### G-MP-01　公众号
 
@@ -129,13 +130,16 @@ oa-server 须激活：`dev,dev-nacos,dev-nacos-local`（及 multidb 若需五库
 
 | 日期 | 环境 | 执行人 | G-* | Feign 路径抽检 | OPS 业务步骤 | 结果 | 备注 |
 |------|------|--------|-----|----------------|--------------|------|------|
-| YYYY-MM-DD | dev-nacos-local / Integration | | G-SYS-01 | `GET :48081/.../simple-list` → HTTP ___ | IP 组 UserSelect | ☐ Pass ☐ Fail ☐ 待手验 | |
-| | | | G-SYS-02 | `has-any-roles` / `getUser` | IP 组保存 | ☐ Pass ☐ Fail ☐ 待手验 | |
-| | | | G-DICT-01 | `dict-data/list` | DictSelect 表单 | ☐ Pass ☐ Fail ☐ 待手验 | |
-| | | | G-INF-01 | `infra/file/create` | 内容配图上传 | ☐ Pass ☐ Fail ☐ 待手验 | |
-| | | | G-PAY-01 | `POST :48085/.../order/page` | 订单列表 | ☐ Pass ☐ Fail ☐ 待手验 | pay-server 需单独启动 |
-| | | | G-MEM-03 | `member/article/create` | 内容同步 | ☐ Pass ☐ Fail ☐ 待手验 | |
-| | | | G-MP-01 | `mp/accountInfo/page` | 微信账号 | ☐ Pass ☐ Fail ☐ 待手验 | |
+| 2026-07-30 | Integration localhost（无 -Beta） | AI hand-verify | G-SYS-01 | `GET :48081/.../simple-list` → code=0 n=65 | IP 组 member-candidates n=62 | **Pass** | 见 [G-STAR-HANDVERIFY-20260730](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md) |
+| | | | G-SYS-02 | `has-any-roles` code=0 | IP 组 update code=0；非法 leader→1004；无角色→1500 | **Pass** | Feign 角色校验生效 |
+| | | | G-DICT-01 | `dict-data/list` dict_ip_group_level code=0 | 非法枚举 → **1503** | **Pass** | 非 500 |
+| | | | G-INF-01 | infra :48082 UP | 内容配图上传 → upload.shenyu.com | **Pass** | |
+| | | | G-PAY-01 | `POST :48085/.../order/page-for-ops` + tenant-id → **code=0** total≈183485 | `football-order/list` → **code=0** total≈183485 | **Pass** | ADR-057 假设 B；见 [G-PAY-01-FIX](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/G-PAY-01-FIX.md) |
+| | | | G-MEM-03 | member :48087 UP | content 36 → article 1000319，syncError=null | **Pass** | |
+| | | | G-MP-01 | accountInfo/page total=166；followers RPC total=13 | account/list=182；followers OPS total=13 | **Pass** | 会话修 MpUserDTO epoch millis |
+| | | | G-DING | — | — | 跳过 | 延期 |
+
+**2026-07-30 业务手验结论**：Pass **7** / Fail **0** / Skip G-DING。G-PAY-01 已按假设 B 切 `page-for-ops`（ADR-057）— [G-PAY-01-FIX.md](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/G-PAY-01-FIX.md)。详细证据：[G-STAR-HANDVERIFY-20260730/REPORT.md](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md)。
 
 ---
 
@@ -153,24 +157,24 @@ oa-server 须激活：`dev,dev-nacos,dev-nacos-local`（及 multidb 若需五库
 | G-PAY-01 | `POST :48085/rpc-api/pay/order/page` | **待手验** | :48085 无监听（curl `000`）；**配置已补** `pay-server.url` |
 | G-SYS-02 | — | **待手验** | 需 OPS 业务步骤 + 日志 |
 
-**结论**：Phase C cutover 2026-07-29 — OPS 业务域 Feign-only + fail-fast；multidb 已移除 member/mp/pay。**G-PAY-01 Integration 手验仍阻塞**（pay-server 未启）。
+**结论（当时）**：Phase C cutover 2026-07-29 — OPS 业务域 Feign-only + fail-fast；multidb 已移除 member/mp/pay。~~**G-PAY-01 Integration 手验仍阻塞**（pay-server 未启）~~ — **已废止**（2026-07-30 手验 Pass；见 §3 / [G-STAR-HANDVERIFY-20260730](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md)）。
 
 ---
 
 ## 6. 2026-07-29 cutover 抽检
 
-> 环境：`start-integration-all` 终态（system/infra/mp/member/oa/gateway UP）；**pay-server 未启动**。
+> 环境：`start-integration-all` 终态（system/infra/mp/member/oa/gateway UP）；**pay-server 未启动**（当日）。**业务手验已于 2026-07-30 补齐**（§3）。
 
 | G-* | RPC / Health 抽检 | cutover 代码 | 结果 |
 |-----|-------------------|--------------|------|
-| G-SYS-01/02 | :48081 HTTP 200 | `FootballSystemUserValidator` Feign-only | **代码 cutover ✅** · 业务手验待 |
-| G-DICT-01 | :48081 HTTP 200 | `SystemDictAdapter` 读 Feign-only | **代码 cutover ✅** |
-| G-INF-01 | :48082 HTTP 200 | `LocalFileStorageService` 上传 Feign-only | **代码 cutover ✅** |
-| G-MEM-03 | :48087 HTTP 200 | `MemberArticleWriteService` 写 Feign-only | **代码 cutover ✅** |
-| G-MP-01 | :48086 HTTP 200 | `MpAccountDataService` Feign-only | **代码 cutover ✅** |
-| G-PAY-01 | :48085 DOWN | `FootballOrderReadServiceImpl` Feign-only | **代码 cutover ✅** · Integration **阻塞** |
+| G-SYS-01/02 | :48081 HTTP 200 | `FootballSystemUserValidator` Feign-only | **代码 cutover ✅** · **业务手验 Pass**（2026-07-30） |
+| G-DICT-01 | :48081 HTTP 200 | `SystemDictAdapter` 读 Feign-only | **代码 cutover ✅** · **业务手验 Pass** |
+| G-INF-01 | :48082 HTTP 200 | `LocalFileStorageService` 上传 Feign-only | **代码 cutover ✅** · **业务手验 Pass** |
+| G-MEM-03 | :48087 HTTP 200 | `MemberArticleWriteService` 写 Feign-only | **代码 cutover ✅** · **业务手验 Pass** |
+| G-MP-01 | :48086 HTTP 200 | `MpAccountDataService` Feign-only | **代码 cutover ✅** · **业务手验 Pass**（含 MpUser epoch 修复） |
+| G-PAY-01 | :48085 DOWN（当日） | `FootballOrderReadServiceImpl` Feign-only | **代码 cutover ✅** · ~~Integration 阻塞~~ → **2026-07-30 Pass**（ADR-057 `page-for-ops`） |
 
-详细记录：[CUTOVER-20260729-PHASE-C.md](./e2e-artifacts/CUTOVER-20260729-PHASE-C.md)
+详细记录：[CUTOVER-20260729-PHASE-C.md](./e2e-artifacts/CUTOVER-20260729-PHASE-C.md) · 业务签字：[G-STAR-HANDVERIFY-20260730/REPORT.md](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md)
 
 ---
 
@@ -181,11 +185,16 @@ oa-server 须激活：`dev,dev-nacos,dev-nacos-local`（及 multidb 若需五库
 | 签字项 | 日期 | 签字人 | 备注 |
 |--------|------|--------|------|
 | G-SYS-01/02 cutover | 2026-07-29 | AI cutover | RPC :48081 200；Validator Feign-only |
-| G-DICT-01 cutover | 2026-07-29 | AI cutover | list/valid Feign-only；admin 写仍 @DS |
+| G-DICT-01 cutover | 2026-07-29 | AI cutover | list/valid Feign-only |
+| B-DS-RESIDUE | 2026-07-30 | AI | nickname=`getByIds`；roleCode→master；dict admin/types=410；删 Lookup/Dict Mapper/SystemReader；unit+烟测 Pass |
 | G-INF-01 cutover | 2026-07-29 | AI cutover | 上传 Feign-only；legacy key 本地读保留 |
-| G-PAY-01 cutover | 2026-07-29 | AI cutover | Feign-only；pay DS 已删；:48085 手验待 pay-server |
-| G-MEM-03 cutover | 2026-07-29 | AI cutover | 写 Feign-only；getById 仍 @DS member |
+| G-PAY-01 cutover | 2026-07-29 | AI cutover | Feign-only；pay DS 已删 |
+| G-PAY-01 业务手验 | 2026-07-30 | AI hand-verify | **Pass** · ADR-057 `page-for-ops`；见 [G-PAY-01-FIX](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/G-PAY-01-FIX.md) |
+| G-MEM-03 cutover | 2026-07-29 | AI cutover | 写 Feign-only |
+| G-MEM-03 getById 清除 | 2026-07-30 | AI C-WP7 Slice | 删 `getById`/`AuthorArticleMapper`/member DS；shelfStatus 降级；MUST-HAVE 无 article get RPC |
+| G-MEM-03 业务手验 | 2026-07-30 | AI hand-verify | **Pass** · content→article syncError=null |
 | G-MP-01 cutover | 2026-07-29 | AI cutover | MpAccountDataService Feign-only；IN 分页抛错 |
+| G-MP-01 业务手验 | 2026-07-30 | AI hand-verify | **Pass** · followers total 对齐；`MpUserDTO` epoch millis |
 
 ### 5.1 Integration RPC 抽检（2026-07-29）
 
@@ -196,8 +205,8 @@ oa-server 须激活：`dev,dev-nacos,dev-nacos-local`（及 multidb 若需五库
 | G-INF-01 | `GET :48082/.../presigned-url?path=test` | **HTTP 200** | |
 | G-MP-01 | `GET :48086/.../accountInfo/page` | **HTTP 200** | |
 | G-MEM-03 | `POST :48087/.../article/create` | **HTTP 200** | |
-| G-PAY-01 | `POST :48085/.../order/page` | **HTTP 200 · code 500** | pay-server UP；member-server :48087 DOWN 导致 permitted-ids Feign 失败 |
-| G-SYS-02 | `has-any-roles` / `simple-list` | **Pass（RPC）** | IP 组保存业务步骤待手验；见 [G-PAY-G-SYS-20260729.md](./e2e-artifacts/G-PAY-G-SYS-20260729.md) |
+| G-PAY-01 | `POST :48085/.../order/page` | **HTTP 200 · code 500**（当日） | Admin `getOrderPage` 富化路径；~~业务阻塞~~ → **废止**，改 `page-for-ops`（ADR-057 · 2026-07-30 Pass） |
+| G-SYS-02 | `has-any-roles` / `simple-list` | **Pass（RPC）** | ~~IP 组保存待手验~~ → **2026-07-30 业务 Pass**；见 [G-PAY-G-SYS-20260729.md](./e2e-artifacts/G-PAY-G-SYS-20260729.md) |
 
 ### 5.2 MpUser 粉丝列表 Feign 手验（2026-07-29）
 
@@ -213,13 +222,39 @@ oa-server 须激活：`dev,dev-nacos,dev-nacos-local`（及 multidb 若需五库
 
 | 项 | 原因 |
 |----|------|
-| C-WP1 FootballAuthProvider token @DS | 需 Gateway/check 切轨（D-SYS-03） |
-| MemberAuthorReadService | 无 Feign 读路径 |
+| ~~C-WP1 FootballAuthProvider token @DS~~ | **cutover + PHYS**：`GatewayAuthProvider`；TokenMapper/Redis/`FootballAuthProvider` **已删** |
+| MemberAuthorReadService | 无 Feign 读路径（部分已 AuthorApi） |
 | MpUserDataService | ~~无 Feign~~ → **2026-07-29 已 cutover** | 见 [MP-USER-FEIGN-20260729.md](./e2e-artifacts/MP-USER-FEIGN-20260729.md) |
-| SystemDictAdapter admin CRUD / typeExists | 平行字典管理 deprecated；仍 @DS |
-| FootballSystemUserValidator loadNicknames / resolveRoleIdByCode | roleId 映射与昵称批量读仍需 system @DS |
-| DevAuth / H2 legacy sys_user 桥接 | master DS；非 Football 库直连业务路径 |
+| SystemDictAdapter admin CRUD / typeExists | 平行字典管理 deprecated → **410**（B-DS-RESIDUE）；无 Mapper |
+| FootballSystemUserValidator loadNicknames / resolveRoleIdByCode | **B-DS-RESIDUE**：nickname=`getByIds`；roleCode→roleId=wd master |
+| DevAuth / H2 legacy sys_user 桥接 | **C-WP7-PHYS**：生产 `dev-token.enabled=false`；仅 `application-test.yml` 开启 |
+| C-WP0 平行 User/Role/Dept / 钉钉 sync / 作者 CUD | **✅ 业务码 410**（2026-07-30）；IT：`M9UserRoleS01IT`/`M9DeptS01IT`/`M1AuthorS04IT` |
+
+### 5.3 C-WP1 鉴权切轨手验（2026-07-30）
+
+| 项 | 结果 | 备注 |
+|----|------|------|
+| Gateway login | **Pass** | `POST :48080/.../auth/login` → accessToken |
+| OA via Gateway | **Pass** | `GET .../oa/content/review-config` code=0；`.../oa/ip-group/list` code=0 |
+| OA direct check fallback | **Pass** | 直连 `:48094` + Bearer（无 login-user）→ `checkAccessToken` code=0 |
+| login-user / check expiresTime | **Pass** | epoch millis（DTO `Long`）；unit test 绿 |
+| legacy-ds-token | **已移除** | C-WP7-PHYS 删配置与类；不可紧急回滚 |
+| checkAccessToken Feign URL | **已配** | `oauth2TokenCommonApi` → `:48081` |
+| C-WP7 getById→member DS | ✅ | `MemberArticleWriteService#getById` / `AuthorArticleMapper` / member DS 已删 |
+| C-WP7-PHYS | ✅ 代码 | TokenMapper/Redis/`FootballAuthProvider`/死 `MpAccountMapper`/`SystemDsSmokeMapper` 已删；dev-token 仅 IT |
+| C-WP7 / B-WP4 | ✅ | 表归档 localhost 签收执行 + 探测（[B-WP4-ARCHIVE-20260731](./e2e-artifacts/B-WP4-ARCHIVE-20260731/REPORT.md)） |
+
+### 5.4 Phase C 整包 Gate 状态（2026-07-31 · B-WP4-ARCHIVE）
+
+| 项 | 状态 |
+|----|------|
+| G-* Integration 业务手验（除 G-DING） | ✅ Pass 7 / Fail 0 / Skip 1 — [REPORT](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md) |
+| C-WP0 410 / C-WP1 鉴权 / C-WP7 getById | ✅ |
+| 无生产路径 `@DS("system\|member\|mp\|pay")` | ✅ **满足**（main 源无上述 `@DS`；master overlay 保留） |
+| C-WP7-PHYS 代码（dev-token 下线 · Mapper 物理删） | ✅ |
+| B-WP4 表归档 | ✅ **localhost 完成**（签收 + 备份 + 停写 trigger + `sys_operation_log`→`archive_wd` + 探测） |
+| **Phase C 整包** | **GO**（Integration localhost；远程/生产归档另窗） |
 
 ---
 
-**版本** v1.0 · **日期** 2026-07-28
+**版本** v1.1 · **日期** 2026-07-31

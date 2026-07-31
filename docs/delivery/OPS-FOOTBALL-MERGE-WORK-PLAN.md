@@ -3,11 +3,11 @@
 | 字段 | 值 |
 |------|---|
 | 文档性质 | **团队执行工作计划**（按阶段落地；非 Slice 实现规格） |
-| 版本 | **v1.2** |
-| 日期 | **2026-07-28** |
+| 版本 | **v1.3** |
+| 日期 | **2026-07-30** |
 | 决策 SSOT | [OPS-FOOTBALL-RPC-MUST-HAVE.md](./OPS-FOOTBALL-RPC-MUST-HAVE.md) · [OPS-FOOTBALL-MERGE-CLEANUP-INVENTORY.md](./OPS-FOOTBALL-MERGE-CLEANUP-INVENTORY.md) · 完整分析 [OPS-FOOTBALL-FULL-MERGE-RPC-ANALYSIS.md](./OPS-FOOTBALL-FULL-MERGE-RPC-ANALYSIS.md) v1.8 |
-| 关联 ADR | ADR-047 · ADR-049 · ADR-050 · [ADR-050-REV1](../adr/ADR-050-REV1-Football-G-RPC-Supersede.md) · ADR-056 |
-| 状态 | **部分可执行**（Phase A/B 可推进；Phase C 整包 **NO-GO** 直至 G-* cutover 验收 + 删 `@DS`；§3.1 **已有限 Supersede** 2026-07-28） |
+| 关联 ADR | ADR-047 · ADR-049 · ADR-050 · [ADR-050-REV1](../adr/ADR-050-REV1-Football-G-RPC-Supersede.md) · ADR-056 · [ADR-057](../adr/ADR-057-G-PAY-01-page-for-ops.md) · [ADR-058](../adr/ADR-058-OPS后端单仓与football-module-ops命名.md)（monorepo ops 命名；§4.1 sibling 废止） |
+| 状态 | **部分可执行**（Phase A/B 可推进；G-* 业务手验 Pass 7/0 ✅ 2026-07-30；**C-WP7-PHYS 代码物理删 ✅**；**B-WP4-ARCHIVE 签收+本地归档+探测 ✅** 2026-07-31 → Phase C 整包 **GO**（localhost `wd`）；§3.1 **已有限 Supersede**） |
 | 执行优先级（已拍板） | **Phase A 前端 → Phase B 数据库 → Phase C 后端** |
 
 > **读法**：本文回答「按什么顺序做、谁先做、做到什么算完」。缺口 API 与接口说明书见 MUST-HAVE §7；清理对象明细见 CLEANUP Inventory。  
@@ -107,7 +107,16 @@ OPS UI 以 **football-front 为唯一源**；去掉平行管理页与废弃路�
 - [x] 完成首轮源合并（或确立「football-front 为主、OPS 仓同步」的单向流程）（过渡单向：改 ui-vue → mount；终态单源待退役 mount）
 - [x] 梳理 `ops-route.ts` standalone 分支；壳内前缀行为文档化（平行管理 URL → Football Admin）
 - [x] 冒烟：登录 → OPS 业务菜单 → 至少 2 个 P0 页可打开（Gate 走 `:5777` + Gateway；M6 E2E 2026-07-27 已绿主路径）
-- [ ] 单源稳定后：计划删除/归档 `mount-ops-all.py`（CLEANUP P2-2）
+- [x] 单源稳定后：删除 `ops-platform-ui-vue`；mount/sync/link 脚本 fail-fast 退役（CLEANUP P2-2）
+
+#### A-WP1 终态 SSOT（2026-07-31）
+
+- **`ops-platform-ui-vue` 已删除** — 禁止再双树维护 / sync-from-ui-vue。
+- **OPS UI SSOT** = `football-front/apps/web-ele`（`src/views/ops/**`、`src/components/ops/**`）。
+- **Gate Playwright** = `football-front/apps/web-ele/tests/` + `playwright.config.ts`（`baseURL: http://localhost:5777`）；一键：`.\scripts\run-gate-football-e2e.ps1`。
+- **Remount 退役**：`mount-ops-all.py` / `sync-ops-layout-components.py` / `link-ops-deps.ps1` / `-MountOps` → 打印 retired 并非零退出。
+- **Standalone `:3000`**（`start-ops-standalone.ps1`、`run-uat-browser-e2e.ps1`、`restart-all.*`）→ fail-fast，指向 `start-ops-dev.ps1`。
+- 历史 Gate 报告中的 `ops-platform-ui-vue` 路径**不改写**。
 
 ---
 
@@ -284,9 +293,22 @@ OPS UI 以 **football-front 为唯一源**；去掉平行管理页与废弃路�
 
 **任务清单**
 
-- [ ] 列出待归档表与依赖查询
-- [ ] 备份 → 归档 → 应用只读探测
-- [ ] 更新 `docs/sql` / schema 导出（若团队在用）
+- [x] 列出待归档表与依赖查询（签收表 Q1 + CLEANUP §3.1）
+- [x] 备份 → 归档 → 应用只读探测（2026-07-31 localhost `wd`：[B-WP4-ARCHIVE-20260731](./e2e-artifacts/B-WP4-ARCHIVE-20260731/REPORT.md)）
+- [ ] 更新 `docs/sql` / schema 导出（若团队在用）— 非强制；远程/生产另窗
+
+#### 阻塞问题清单（B-WP4-ARCHIVE · C-WP7-PHYS 2026-07-30）
+
+> **已签收并执行（2026-07-31）**：Q1 采纳建议（停写只读 + `#4` RENAME `archive_wd`；`#6` 暂不纳入）；Q2 Yes（本 Slice 不删 seed）；Q3 备份后执行、无回滚窗口；Q4 不删 MasterTokenMapper；Q5 立即执行。  
+> **签收表**：[gates/B-WP4-ARCHIVE-签收表-20260731.md](./gates/B-WP4-ARCHIVE-签收表-20260731.md) · 产物 [e2e-artifacts/B-WP4-ARCHIVE-20260731](./e2e-artifacts/B-WP4-ARCHIVE-20260731/REPORT.md)
+
+| # | 问题 | 需要谁 | 候选（CLEANUP §3.1，**非**已批准删除清单） |
+|---|------|--------|---------------------------------------------|
+| Q1 | 归档范围：仅停写只读？还是物理 DROP？保留期限？ | 产品 + DBA | `wd.sys_user` / `sys_user_token` / legacy 角色；`wd.sys_operation_log`；已 merge 的 `wd.sys_dict_*`；§3.4 桥接列 |
+| Q2 | H2 IT / SeedVerificationIT 是否改写后再删 `sys_user_token` seed？ | OPS 工程 | 当前 IT 仍依赖 `dev-token-*` + Flyway seed（`oa.auth.dev-token.enabled=true` 仅 test） |
+| Q3 | 备份介质与回滚窗口（建议 ≥7 天） | 运维 | 库级 dump / 表级 rename+archive schema — 未指定 |
+| Q4 | `FootballOAuth2MasterTokenMapper`（`@DS("master")` overlay）是否随 B-WP4 一并下线？ | 产品 + ADR-056 | CLEANUP §1.2：ADR-056 全量切轨后删 — **非本 Slice** |
+| Q5 | 执行窗口？ | 排期 | 代码 PHYS 已完；**表物理删另会话**，禁止与业务发布同窗 |
 
 ---
 
@@ -294,7 +316,7 @@ OPS UI 以 **football-front 为唯一源**；去掉平行管理页与废弃路�
 
 - [x] 停写规范落地（B-WP1 文档 + checklist；抽检待办）
 - [ ] Flyway 跨库写政策生效（B-WP3）
-- [ ] 物理删除仅在 C cutover 后按清单执行（B-WP4）
+- [x] 物理归档按签收清单执行（B-WP4 · localhost 2026-07-31；远程另窗）
 - [ ] CLEANUP §3「可立即」项完成；「依赖/cutover」项未提前勾删
 
 ### Phase B 建议人周
@@ -340,11 +362,11 @@ OPS UI 以 **football-front 为唯一源**；去掉平行管理页与废弃路�
 **任务清单**
 
 - [x] 平行 system 管理 Controller 标 `@Deprecated`（User/Role/Dept；钉钉 sync 方法已标废弃，C-WP0 2026-07-28）
-- [ ] 平行 system 管理 Controller：410 或隐藏（保留 `ParamController`）
-- [ ] 钉钉通讯录 sync：**删除/410**（D-DING-02）
-- [ ] 作者主数据 CUD：禁止新写；保留 `AuthorExtController`
-- [ ] 审计并去掉 `sys_operation_log` 双写计划落地
-- [ ] DevAuth 生产路径标注废弃（IT 可暂留）
+- [x] 平行 system 管理 Controller：410 或隐藏（保留 `ParamController`；业务码 410 via `ParallelSystemDeprecatedSupport`，2026-07-30）
+- [x] 钉钉通讯录 sync：**删除/410**（D-DING-02；`DeptController` sync-* → `DINGTALK_SYNC_DEPRECATED`；`DingTalkDevController` 仅 `@Profile("dev")`）
+- [x] 作者主数据 CUD：禁止新写；保留 `AuthorExtController`（`AUTHOR_CRUD_DEPRECATED` / M1AuthorS04IT）
+- [x] 审计并去掉 `sys_operation_log` 双写计划落地（`OperationLogRecorder` 停本地 insert；SSOT=`OaLogRecordServiceImpl` Feign）
+- [x] DevAuth 生产路径标注废弃（IT 可暂留；`DevAuthProvider`/`DevAuthFilter` `@Deprecated`）
 
 ---
 
@@ -360,10 +382,10 @@ OPS UI 以 **football-front 为唯一源**；去掉平行管理页与废弃路�
 
 **任务清单**
 
-- [ ] 实现 Gateway 头消费（推荐）或 `check` 调用
-- [ ] 双跑对比（旧直读 vs 新路径）抽样
-- [ ] 停用 Token Mapper / Redis 直读
-- [ ] **勿**在验证前删除 multidb `system` 数据源
+- [x] 实现 Gateway 头消费（推荐）或 `check` 调用（`GatewayAuthProvider` · `login-user` 优先 + `OAuth2TokenCommonApi.checkAccessToken`）
+- [x] 双跑对比（旧直读 vs 新路径）抽样（2026-07-30 Integration：Gateway 登录 + OA `review-config`/`ip-group/list` code=0；legacy-ds-token 已关）
+- [x] 停用 Token Mapper / Redis 直读（`oa.auth.legacy-ds-token.enabled=false` 默认 + multidb；紧急回滚可翻回）
+- [x] **勿**在验证前删除 multidb `system` 数据源（system DS 已于 C-WP7 partial 移除；C-WP1 验证在仅 master 下完成）
 
 ---
 
@@ -382,8 +404,8 @@ OPS UI 以 **football-front 为唯一源**；去掉平行管理页与废弃路�
 - [x] 接入 Feign simple-list（G-SYS-01 首切片：`AdminUserApi` vendored + `listEnabledUsersInTenant` 双跑，2026-07-28）
 - [x] 接入 assert / hasAnyRoles（G-SYS-02 第二切片：`PermissionCommonApi` + `getUser`/`validateUserList`/`getUserListByRoleId` 双跑，2026-07-28）
 - [x] Validator G-SYS-01/02 生产路径 Feign-only cutover（2026-07-29；legacy union 仅 roleCode 列表 username 桥接）
-- [ ] 删除 `FootballSystemUserLookupMapper`（nickname 批量读仍用）
-- [ ] 昵称展示类改 UserApi（禁止 SysUserMapper 作唯一写入校验）
+- [x] 删除 `FootballSystemUserLookupMapper` / `FootballSystemRoleLookupMapper` / `FootballSystemUserSystemReader`（**B-DS-RESIDUE** 2026-07-30）
+- [x] 昵称批量改 `AdminUserApi.getByIds`；roleCode→roleId 改 wd master `system_role`（D-G-SYS-02 选项 B）
 
 ---
 
@@ -400,7 +422,7 @@ OPS UI 以 **football-front 为唯一源**；去掉平行管理页与废弃路�
 **任务清单**
 
 - [x] 接入 Feign `DictDataApi` list + valid 双跑（G-DICT-01：`SystemDictAdapter` `@InDict` 读路径，2026-07-28）
-- [ ] 删除 Football Dict `@DS` Mapper（验证后）
+- [x] 删除 Football Dict `@DS` Mapper；admin/type-list → 410（**B-DS-RESIDUE** 2026-07-30）
 
 ---
 
@@ -437,9 +459,12 @@ OPS UI 以 **football-front 为唯一源**；去掉平行管理页与废弃路�
 **任务清单（按依赖排序建议）**
 
 - [ ] G-MEM-01/02 作者只读 + authorLevel → 删 member 读直连
-- [x] G-MEM-03 文章写 Feign-only cutover（2026-07-29；getById 仍 @DS）
+- [x] G-MEM-03 文章写 Feign-only cutover（2026-07-29）
+- [x] G-MEM-03 getById / member DS 清除（C-WP7 Slice 2026-07-30；shelfStatus 无 get RPC 降级；未新增 Football API）
 - [x] G-MP-01 公众号 MpAccountDataService Feign-only cutover（2026-07-29；MpUser/AuthorService 仍 @DS）
 - [x] G-PAY-01 订单列表 Feign-only cutover（2026-07-29；pay DS 已删）
+- [x] G-PAY-01 Integration 手验 Pass（2026-07-30 · ADR-057 `page-for-ops`；见 [G-STAR-HANDVERIFY](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md)）
+- [x] G-MEM-03 / G-MP-01 Integration 业务手验 Pass（同上；MpUserDTO epoch 修复）
 
 ---
 
@@ -468,21 +493,36 @@ OPS UI 以 **football-front 为唯一源**；去掉平行管理页与废弃路�
 **任务清单**
 
 - [x] 移除 member/mp/pay 数据源（C-WP7 partial，2026-07-29）；system 保留至 C-WP1
-- [ ] 删除 system 数据源与推送脚本目标态（2026-07-29：**pay DS 已删**；system/member/mp 仍过渡）
+- [x] 删除 system 数据源与推送脚本目标态（`application-dev-local-multidb.yml` 仅 master→wd；C-WP1 2026-07-30 验收后确认）
 - [x] 删除 pay smoke Mapper / FootballPayAllOrderReadMapper（2026-07-29）
-- [ ] Standalone/dev-token 生产路径下线（IT 另 profile）
+- [x] 清除 G-MEM-03 `getById` / `AuthorArticleMapper` / 临时恢复的 member DS（2026-07-30；enrich `shelfStatus` 降级）
+- [x] Standalone/dev-token 生产路径下线（IT 另 profile）（**C-WP7-PHYS** 2026-07-30：`oa.auth.dev-token.enabled` 默认 false；`application-test.yml` 开启；`DevAuthProvider` `@ConditionalOnProperty`；已删 `FootballAuthProvider` / legacy-ds-token 回滚）
 - [x] 正式 ADR：Supersede ADR-050 §3.1（[ADR-050-REV1](../adr/ADR-050-REV1-Football-G-RPC-Supersede.md) 2026-07-28）
-- [ ] 联动 Phase B-WP4 表归档
+- [x] 联动 Phase B-WP4 表归档 — **已解除**（2026-07-31 localhost；见 §8.6 ~~B-WP4-ARCHIVE~~）
+
+### C-WP7 Ready Checklist
+
+| 项 | 状态 | 备注 |
+|----|------|------|
+| system DS 已从 multidb 移除 | ✅ | 仅 master |
+| member DS / `AuthorArticleMapper` / `getById` | ✅ | C-WP7 Slice 2026-07-30；`shelfStatus` 可空 |
+| legacy-ds-token / football-redis 生产关 | ✅ | C-WP1；**C-WP7-PHYS 已物理删类 + 去回滚开关** |
+| 删除 `FootballOAuth2TokenMapper` / Redis reader 类 | ✅ | C-WP7-PHYS 2026-07-30；`FootballAuthProvider` 同删 |
+| 删除 `SystemDsSmokeMapper` 等 system smoke | ✅ | C-WP7-PHYS；死 `MpAccountMapper` 同删 |
+| Standalone/dev-token 生产下线 | ✅ | IT：`application-test.yml` `dev-token.enabled=true` |
+| B-WP4 表归档联动 | ✅ | 2026-07-31：签收 + localhost 备份/停写 trigger/`sys_operation_log`→`archive_wd` + 探测绿 |
 
 ---
 
 ### Phase C 验收门禁
 
-- [ ] 无生产路径 `@DS("system|member|mp|pay")`
-- [ ] 鉴权无 token 表/Redis 快照直读
-- [ ] MUST-HAVE 必须域（除可选延期的 G-DING-01）切轨绿
-- [ ] 配置仅 wd；CLEANUP P1/P2 勾选
+- [x] 无**业务**生产路径 `@DS("system|member|mp|pay")`（**B-DS-RESIDUE** + **C-WP7-PHYS** 2026-07-30：Token/smoke/死 mp Mapper 已物理删；main 源无上述 `@DS`）
+- [x] 鉴权无 token 表/Redis 快照直读（C-WP1 + C-WP7-PHYS：类已删；生产仅 Gateway/`check`）
+- [x] MUST-HAVE 必须域（除可选延期的 G-DING-01）切轨 + Integration 手验绿（2026-07-30：[G-STAR-HANDVERIFY](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md) Pass 7/0）
+- [x] 配置仅 wd（multidb 仅 master）✅；CLEANUP P1/P2 代码项 ✅；**B-WP4 表归档**（localhost 签收执行 + 探测）✅ 2026-07-31
 - [x] ADR-050 §3.1 已有限 Supersede（ADR-050-REV1 G-* 白名单）
+
+> **整包结论（2026-07-31 · B-WP4-ARCHIVE）**：**GO**（Integration localhost）— C-WP7-PHYS + B-WP4 签收/备份/归档/探测完成。远程/生产归档另窗；`FootballOAuth2MasterTokenMapper` 仍保留至 ADR-056 全量切轨。
 
 ### Phase C 建议人周（OPS）
 
@@ -545,13 +585,13 @@ Phase C 标记废弃(C-WP0) ──────┤──────────�
 | **G-INF-01** | ✅ OPS 双跑 | `FileApi` / Admin `/infra/file` 已有；OPS `LocalFileStorageService` Feign 双跑 ✅（2026-07-28）；本地盘待 cutover 删除 |
 | **G-MEM-01** | ✅ | `AuthorSimpleRespDTO.authorLevel` 已在 Football `ops` 交付 |
 | **G-MEM-02** | ⚠️ | 前端可走 Football `AuthorUserController`/VO；服务端 RPC `simple-list` **可选**（只读够用 Admin 时可后置） |
-| **G-MEM-03** | ✅ Football已有 / OPS未接 | `ArticleApi` create/update/status-change 已在 Football `ops` 实码；OPS 仍 `@DS` 写 |
-| **G-MP-01** | ✅ Football已有 / OPS未接 | `MpAccountInfoApi` page/create/update/get 已在 Football `ops` 实码；OPS 仍 mp `@DS` |
-| **G-PAY-01** | ✅ Football已有 / OPS未接 | `PayOrderApi.getOrderPage` 已在 Football `ops` 实码；OPS 未接 Feign，字段对表后切轨 |
-| **G-DING-01** | ⚠️ | OPS 本地 DingTalk Client **不阻塞**整包；`ding_user_id` 桥接待做 |
-| **D-SYS-03** | ⚠️ | Gateway/`check` 路径未切轨；token 仍 @DS 直读 |
+| **G-MEM-03** | ✅ Feign-only + 手验 Pass | `ArticleApi` 写路径；`getById`/member DS 已清（2026-07-30）；CONTENT-LIST 列表修复见 [CONTENT-LIST-20260730](./e2e-artifacts/CONTENT-LIST-20260730/REPORT.md) |
+| **G-MP-01** | ✅ Feign-only + 手验 Pass | `MpAccountInfoApi` + MpUser followers；会话修 `MpUserDTO` epoch millis |
+| **G-PAY-01** | ✅ Feign-only + 手验 Pass | ADR-057 `page-for-ops`（**废止**复用 `getOrderPage`）；订单归因 UI 见 hand-verify 截图 |
+| **G-DING-01** | ⚠️ 延后 | OPS 本地 DingTalk Client **不阻塞**整包；`ding_user_id` 桥接待做 |
+| **D-SYS-03** | ✅ C-WP1 + PHYS | Gateway/`check`；legacy TokenMapper/Redis/`FootballAuthProvider` **已物理删**（2026-07-30） |
 
-> **Phase C 整包 NO-GO**：OPS 侧 G-* Feign 未 cutover（删 `@DS`/multidb 未完成）+ §8.7 仍缺 Integration 验收；**单片** C-WP0 / C-WP2（G-SYS-01 双跑）可执行。**B-ADR-050 已解除**（2026-07-28 ADR-050-REV1）。
+> **Phase C 整包 GO（2026-07-31 · B-WP4-ARCHIVE）**：G-* 手验 + B-DS-RESIDUE + 代码 PHYS + **localhost 表归档/探测 ✅**。~~B-WP4-ARCHIVE~~ / ~~B-C-WP7-PHYS~~ / ~~B-DS-RESIDUE~~ / ~~MEM/MP/PAY Feign~~ **已废止**。
 
 ### Week 1
 
@@ -595,9 +635,9 @@ Phase C 标记废弃(C-WP0) ──────┤──────────�
 | 维度 | 结论 |
 |------|------|
 | **Phase A** | **部分可执行** — 单源/mount 过渡、平行页、DictSelect、文件前端已完成；E2E/standalone 标非 Gate 待办 |
-| **Phase B** | **可启动停写/政策**（B-WP1/B-WP3）；物理删等 C cutover |
-| **Phase C 整包** | **NO-GO** — OPS 未 cutover G-MEM-03/MP/PAY Feign + 删 `@DS`/multidb；Integration 验收未完成；**禁止**整包抢跑删 multidb |
-| **Phase C 单片** | **GO** — C-WP0 标记废弃；C-WP2 G-SYS-01 Feign 双跑（本日已落地首切片） |
+| **Phase B** | **停写/归档进行中**（B-WP1 ✅ / B-WP3 待；**B-WP4-ARCHIVE localhost ✅** 2026-07-31） |
+| **Phase C 整包** | **GO**（2026-07-31）— G-* / C-WP0–5 / B-DS-RESIDUE / C-WP7-PHYS / **B-WP4-ARCHIVE** 齐；证据 [B-WP4-ARCHIVE-20260731](./e2e-artifacts/B-WP4-ARCHIVE-20260731/REPORT.md) |
+| **Phase C 单片** | **GO** — 代码 PHYS + 表归档（本地）已完 |
 
 ### 8.2 用户反馈纳入（2026-07-28）
 
@@ -609,7 +649,7 @@ Phase C 标记废弃(C-WP0) ──────┤──────────�
 | **G-MEM-01** | `AuthorSimpleRespDTO.authorLevel` **已有** | Football 已交付；OPS C-WP5 读路径可排期 |
 | **G-MEM-02** | 前端 `AuthorUserController`/VO；服务端 RPC simple-list **可选** | Phase A 够用 Admin；member `@DS` 删除仍等 Feign 或 Admin 代理决策 |
 | **G-DING-01** | OPS 本地钉钉 **不阻塞**；`ding_user_id` 桥接 **待做** | G-DING-01 可后置；通讯录 sync 仍 D-DING-02 不做 |
-| **G-PAY-01** | `PayOrderApi.getOrderPage` **Football 已有** | C-WP5 阻塞在 OPS Feign 接入 + 字段对表，非 Football API 缺口 |
+| **G-PAY-01** | ~~复用 `getOrderPage`~~ → **ADR-057 `page-for-ops`**（2026-07-30） | C-WP5 Feign + 手验 **Pass**；字段对表 §8.8 ✅ |
 
 ### 8.3 Football `ops` 分支已交付 API（2026-07-27 ~ 07-28）
 
@@ -627,7 +667,7 @@ Phase C 标记废弃(C-WP0) ──────┤──────────�
 |------|----------------------|------|
 | **A** | 平行页 Redirect/hideInMenu；DictSelect→Admin；`api/file.ts`→infra；mount 过渡文档化；P0 冒烟主路径 | standalone/E2E 标非 Gate；mount 脚本退役；菜单权限抽检 |
 | **B** | — | B-WP1 停写规范 ✅（2026-07-28）；B-WP3 Flyway 跨库写政策；物理删等 C |
-| **C** | C-WP0：`User/Role/Dept` `@Deprecated`；C-WP2：**G-SYS-01/02** Feign **cutover** ✅（2026-07-29）；C-WP3：**G-DICT-01** `@InDict` 读 **cutover** ✅；C-WP4：**G-INF-01** 上传 **cutover** ✅；C-WP5：**G-PAY-01** + **G-MEM-03** + **G-MP-01** **cutover** ✅；C-WP7 partial：multidb 移除 member/mp/pay | C-WP1 鉴权；MemberAuthorRead @DS；C-WP7 删 system DS + smoke |
+| **C** | **C-WP0–5** ✅；**G-* 手验 Pass 7/0**；C-WP7 getById/member DS ✅；**B-DS-RESIDUE ✅**；**C-WP7-PHYS 代码 ✅**；**B-WP4-ARCHIVE localhost ✅**；multidb 仅 master；ADR-057 Accepted | **整包 GO**（localhost）；远程归档另窗；Permission/Tenant Controller 物理删（P2） |
 
 ### 8.5 推荐执行顺序
 
@@ -641,32 +681,36 @@ C-WP0（标记废弃，可与 A 并行）
 
 ### 8.6 阻塞表（Blockers）
 
-> **2026-07-28 决策更新**：D-ADR-050 **选项 C**（ADR-050-REV1 有限 Supersede §3.1 ✅）；D-G-SYS-01 **选项 B**（沿用 Admin 数据权限）；D-G-SYS-02 **选项 B**（Feign 双跑已落地）；D-G-PAY-01 **选项 A**（下一切片 C-WP5）；D-G-MEM-02 前端 Admin 够用；D-G-DING **延后**。
+> **2026-07-28 决策更新**：D-ADR-050 **选项 C**；D-G-SYS-01/02 **选项 B**；D-G-MEM-02 前端 Admin 够用；D-G-DING **延后**。  
+> **2026-07-30**：D-G-PAY-01 **REV1 假设 B**（[ADR-057](../adr/ADR-057-G-PAY-01-page-for-ops.md)）；G-* 手验 Pass — [G-STAR-HANDVERIFY-20260730](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md)。
 
 | ID | 阻塞项 | 类型 | 影响 | 解除条件 / 状态 |
 |----|--------|------|------|-----------------|
 | ~~**B-ADR-050**~~ | ~~ADR-050 §3.1 未 Supersede~~ | ~~流程~~ | ~~Phase C 整包 NO-GO；Football 拒扩 API 风险~~ | **已解除**（2026-07-28）：[ADR-050-REV1](../adr/ADR-050-REV1-Football-G-RPC-Supersede.md) 选项 C — G-* 白名单 Supersede |
-| ~~**B-G-SYS-02a**~~ | ~~`assert-enabled` RPC~~ | ~~Football API~~ | ~~写入前启用/租户校验仍 @DS~~ | **部分解除**：D-G-SYS-02 选项 B → `getUser`+`validateUserList` Feign 双跑 ✅；删 `@DS` 待 cutover |
-| ~~**B-G-SYS-02b**~~ | ~~按 roleCode 列用户 RPC~~ | ~~Football API / OPS 映射~~ | ~~`listPresentableUserIdsByRoleCode` 仍 @DS~~ | **部分解除**：D-G-SYS-02 选项 B → roleCode→roleId + `getUserListByRoleId` Feign + legacy union ✅ |
-| **B-G-MEM-03** | 文章写 Feign 未接入 | **OPS 集成** | 内容生产同步仍 `@DS` 写 | **部分解除**：C-WP5 `ArticleApi` create/update/status-change 双跑 ✅；删 `@DS` 待 cutover |
-| **B-G-MP-01** | 公众号 Feign 未接入 | **OPS 集成** | mp `@DS` 不可删 | **部分解除**：C-WP5 `MpAccountInfoApi` get/create/update/appId 双跑 ✅；page 仍 @DS |
-| **B-G-PAY-01** | 订单 Feign 未接入 | **OPS 集成** | pay 读 Mapper 不可删 | **部分解除**：D-G-PAY-01 字段对表 ✅ + `getOrderPage` 双跑 ✅；删 `@DS` 待 cutover |
-| **B-GW-DEV** | 本地 `system-server` Feign URL | 环境 | Feign 双跑仅 dev-nacos-local 直连 `:48081`；无 Nacos 时走 @DS 回退 | Integration 起 system-server 或 Nacos 发现 |
-| **B-FEIGN-IT** | H2 IT 无 system-server | 测试 | IT 自动回退 @DS（设计如此）；Feign 路径需 integration 手验 | `dev-nacos-local` + system-server 联调记录 |
+| ~~**B-G-SYS-02a**~~ | ~~`assert-enabled` RPC~~ | ~~Football API~~ | ~~写入前启用/租户校验仍 @DS~~ | **已解除**（校验路径 Feign）：D-G-SYS-02 选项 B；手验 Pass 2026-07-30 |
+| ~~**B-G-SYS-02b**~~ | ~~按 roleCode 列用户 RPC~~ | ~~Football API / OPS 映射~~ | ~~`listPresentableUserIdsByRoleCode` 仍 @DS~~ | **已解除**（B-DS-RESIDUE）：roleCode→roleId=wd master + `getUserListByRoleId`；nickname=`getByIds` |
+| ~~**B-G-MEM-03**~~ | ~~文章写 Feign 未接入~~ | ~~OPS 集成~~ | ~~内容生产同步仍 `@DS` 写~~ | **已解除**（2026-07-30）：Feign-only + getById/member DS 清 + 手验 Pass |
+| ~~**B-G-MP-01**~~ | ~~公众号 Feign 未接入~~ | ~~OPS 集成~~ | ~~mp `@DS` 不可删~~ | **已解除**（2026-07-30）：MpAccount/MpUser Feign 手验 Pass（Mapper 物理删属 C-WP7-PHYS） |
+| ~~**B-G-PAY-01**~~ | ~~订单 Feign 未接入 / getOrderPage 500~~ | ~~OPS 集成~~ | ~~pay 读 Mapper / Admin 富化~~ | **已解除**（2026-07-30）：ADR-057 `page-for-ops` 手验 Pass；pay DS/Mapper 已删 |
+| ~~**B-DS-RESIDUE**~~ | ~~生产路径残留 `@DS`~~ | ~~OPS 清理~~ | ~~Phase C 整包 NO-GO~~ | **已解除**（2026-07-30）：nickname=`getByIds`；roleCode→roleId=master；dict admin/types=410；MemberAuthorRead 早 Feign-only；Lookup/Dict Mapper 已删 |
+| ~~**B-C-WP7-PHYS**~~ | ~~C-WP7 代码物理删未完~~ | ~~OPS 清理~~ | ~~整包 NO-GO~~ | **已解除**（2026-07-30）：TokenMapper/Redis/`FootballAuthProvider`/死 `MpAccountMapper`/`SystemDsSmokeMapper` 已删；dev-token 仅 IT |
+| ~~**B-WP4-ARCHIVE**~~ | ~~B-WP4 表归档未签收~~ | ~~产品 + OPS~~ | ~~整包 NO-GO~~ | **已解除**（2026-07-31）：签收 Q1–Q5 + localhost 备份/停写/`sys_operation_log` RENAME + 探测绿；远程另窗 |
+| **B-GW-DEV** | 本地 Feign URL | 环境 | 无 Nacos 时须 `dev-nacos-local` 直连 | Integration 起全栈或 Nacos 发现（手验已在直连栈完成） |
+| **B-FEIGN-IT** | H2 IT 无 system-server | 测试 | IT 不断言 Feign 真调通 | 手验清单为准（[FEIGN-CHECKLIST](./OPS-FOOTBALL-INTEGRATION-FEIGN-CHECKLIST.md) §3 ✅） |
 | ~~**G-SYS-01 开放**~~ | ~~simple-list 忽略数据权限~~ | ~~产品~~ | ~~IP 组候选可能少于预期~~ | **已关闭**：D-G-SYS-01 **选项 B** — 与 Admin 同权限 |
 
 ### 8.7 Football RPC 实码审计（2026-07-28）
 
 > 依据 `football-backend-saas` **`ops` 分支实码**（非 MUST-HAVE §7 提案状态）。§7 实现状态以此为准；MUST-HAVE 仍作契约说明书。
 
-**Football 已有、OPS 未接（阻塞在 OPS 集成，见 §8.6 B-G-MEM-03 / B-G-MP-01 / B-G-PAY-01）**
+**Football 已有、OPS 已接（2026-07-30 手验 Pass；~~原 B-G-MEM-03 / B-G-MP-01 / B-G-PAY-01~~ 已解除）**
 
 | G-* | Football 实码 | OPS 现状 |
 |-----|---------------|----------|
-| G-MEM-03 | `ArticleApi` create / update / status-change | `@DS("member")` 写 `AuthorArticleMapper` |
-| G-MP-01 | `MpAccountInfoApi` page / create / update / get | `@DS("mp")` |
-| G-PAY-01 | `PayOrderApi.getOrderPage` | `@DS("pay")` 读 Mapper |
-| G-SYS-02（部分） | `PermissionCommonApi.hasAnyRoles` | `hasRoleCode` Feign 双跑 ✅（2026-07-28）；legacy union 仍过渡 |
+| G-MEM-03 | `ArticleApi` create / update / status-change | **Feign-only**；`AuthorArticleMapper`/`getById`/`member` DS 已清；手验 Pass |
+| G-MP-01 | `MpAccountInfoApi` + `MpUserApi` | **Feign-only** 账号/粉丝；手验 Pass；死 `MpAccountMapper` 已删（C-WP7-PHYS） |
+| G-PAY-01 | `PayOrderApi.pageForOps`（ADR-057） | **Feign-only**；pay DS/Mapper 已删；手验 Pass |
+| G-SYS-02（部分） | `PermissionCommonApi.hasAnyRoles` · `getByIds` · master roleId | 校验/nickname Feign ✅；roleCode→roleId=wd master（D-G-SYS-02 B）；legacy username 桥接保留 |
 
 **Football 仍缺（真 API 缺口）**
 
@@ -676,7 +720,7 @@ C-WP0（标记废弃，可与 A 并行）
 | G-DING-01 | `DingTalkMessageApi` 通用推送 | **延后**（D-G-DING）；通讯录 sync 仍不做 |
 | ~~G-SYS-01（可选）~~ | ~~simple-list `ignoreDataPermission`~~ | **已关闭**（D-G-SYS-01 选项 B） |
 
-**非 Football 新 API、但阻塞整包 cutover**：D-SYS-03 Gateway/`check` 切轨 · OPS 各域 Feign 双跑与 Integration 验收 · 物理删 `@DS`/multidb。
+**非 Football 新 API、曾阻塞整包 cutover**：~~D-SYS-03 / G-* 手验 / B-DS-RESIDUE / B-C-WP7-PHYS / B-WP4-ARCHIVE~~ **均已完成**（B-WP4 于 2026-07-31 localhost）。
 
 ---
 
@@ -699,10 +743,11 @@ C-WP0（标记废弃，可与 A 并行）
 | [OPS-FOOTBALL-MERGE-DECISIONS.md](./OPS-FOOTBALL-MERGE-DECISIONS.md) | **待拍板决策清单**（§8 阻点/选项；拍板前必读） |
 | [OPS-FOOTBALL-STOP-WRITE-POLICY.md](./OPS-FOOTBALL-STOP-WRITE-POLICY.md) | **B-WP1 停写规范 SSOT**（PR checklist · grep 模式） |
 | [OPS-FOOTBALL-INTEGRATION-FEIGN-CHECKLIST.md](./OPS-FOOTBALL-INTEGRATION-FEIGN-CHECKLIST.md) | **G-* Integration 手验清单**（Feign vs @DS · cutover 签字） |
+| [e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md) | **2026-07-30 G-* 业务手验签字**（Pass 7/0） |
 | [OPS-FOOTBALL-RPC-MUST-HAVE.md](./OPS-FOOTBALL-RPC-MUST-HAVE.md) | 原则、拍板、缺口、接口说明书；**执行顺序以本文为准** |
 | [OPS-FOOTBALL-MERGE-CLEANUP-INVENTORY.md](./OPS-FOOTBALL-MERGE-CLEANUP-INVENTORY.md) | 清理对象与时机标签；工作包任务勾选时回写 Inventory |
 | [OPS-FOOTBALL-FULL-MERGE-RPC-ANALYSIS.md](./OPS-FOOTBALL-FULL-MERGE-RPC-ANALYSIS.md) | 完整分析归档；日常不以此排期 |
-| ADR-056 / ADR-050 / ADR-050-REV1 | 用户 SSOT；多库总纲；§3.1 G-* 有限 Supersede |
+| ADR-056 / ADR-050 / ADR-050-REV1 / ADR-057 | 用户 SSOT；多库总纲；§3.1 G-* 有限 Supersede；G-PAY-01 `page-for-ops` |
 
 ### 工作包 ↔ CLEANUP / MUST-HAVE 速查
 
@@ -730,12 +775,33 @@ C-WP0（标记废弃，可与 A 并行）
 
 ---
 
-**版本** v1.2 · **日期** 2026-07-28  
-**下一步**：Integration 手验 G-PAY-01（须先起 pay-server :48085）；G-MEM/MP OPS 业务双跑；B-WP3 Flyway 政策 / C-WP1 鉴权切轨。手验清单 → [OPS-FOOTBALL-INTEGRATION-FEIGN-CHECKLIST.md](./OPS-FOOTBALL-INTEGRATION-FEIGN-CHECKLIST.md)。
+**版本** v1.3 · **日期** 2026-07-31  
+**下一步**：B-WP3 Flyway 政策；远程/生产归档另窗（若需要）；ADR-056 全量切轨后再删 `FootballOAuth2MasterTokenMapper`。手验证据 → [G-STAR-HANDVERIFY-20260730](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md) · [B-WP4-ARCHIVE-20260731](./e2e-artifacts/B-WP4-ARCHIVE-20260731/REPORT.md) · [FEIGN-CHECKLIST](./OPS-FOOTBALL-INTEGRATION-FEIGN-CHECKLIST.md)。  
+**Runtime E2E（2026-07-31）**：条件签收 → [gates/MERGE-RUNTIME-E2E-签收报告-20260731.md](./gates/MERGE-RUNTIME-E2E-签收报告-20260731.md)（78/88）。**B-WP4-ARCHIVE** 已签收执行（localhost）。
 
-### 8.8 G-PAY-01 字段对表（D-G-PAY-01 选项 A · 2026-07-28 ✅）
+> **ADR-058 注（2026-07-30，不改写 Phase C）**：产品锁定 OPS 后端进 Football monorepo（`football-module-ops`）、终态 `ops-server` + `/admin-api/ops/**`、DB 仍仅 `wd`。工程搬迁与 oa→ops 双路由切流见 [ADR-058 §4](../adr/ADR-058-OPS后端单仓与football-module-ops命名.md)；**不**并入当前 Phase C 整包 GO 门禁。建议后续增 **Phase D（命名/单仓）** 工作包，与 B-WP4 / C 整包解耦。
 
-> Football 实码：`PayOrderApi.getOrderPage` · `POST /rpc-api/pay/order/page` · 入参 `OrderPageReqDTO` · 出参 `PageResult<AllOrderRespDTO>`。
+### 8.9 Phase D — 命名 / 单仓（ADR-058）
+
+| 阶段 | 状态 | 说明 |
+|------|------|------|
+| **P0** 文档锁定 | ✅ | ADR-058 Accepted |
+| **P1** Gateway 双路由 | ✅ 2026-07-30 | `/admin-api/oa/**` + `/admin-api/ops/**` → 同后端 :48094；ops 经 Gateway `RewritePath` → `/admin-api/oa/**`（Controller 未改）。配置：`scripts/integration-config/gateway-integration-{local,beta}.yaml` + `football-gateway/.../application.yaml`。冒烟：两前缀 `ip-group/tree` / `content/list` code=0 |
+| **P2** 服务改名 `ops-server` | ✅ 2026-07-30 | `spring.application.name=ops-server`；Gateway `grayLb://ops-server`；本地 overlay 仍直连 `:48094`；discovery/knife4j/脚本日志改 ops-server；端口 48094 |
+| **P3** 前端 API 切流 | ✅ 2026-07-30 | football-front `api/ops` + ops-platform-ui-vue：`/oa/`→`/ops/`；`VITE_API_BASE_URL=/admin-api/ops`；权限仍 `oa:*`；Gateway oa 路由保留（P4） |
+| **P4** 关闭 oa 路径 | ✅ 2026-07-30 | 移除 Gateway `/admin-api/oa/**`；保留 `ops→oa` Rewrite（Controller 仍 `/admin-api/oa`）；ADR-009 Historical。冒烟：ops code=0；oa 无路由/404 |
+| **P5-POC** Monorepo 空壳接入 | ✅ 2026-07-30 | `football-module-ops{,-api,-server}`；health-only；POC **:48095**；现网仍 `ops-platform-module-oa:48094` |
+| **P5-MIGRATE-1..7** 域切片 | ✅ 2026-07-30/31 | Foundation→IP→Content→Account→SOP→System→Order；双运行 `:48095` |
+| **P5-MIGRATE-8 Cutover** | ✅ 2026-07-31 | monorepo JAR **:48094** + Nacos；旧 oa DEPRECATED；延后域 stub；回滚 `-UseLegacyOa` |
+| **P5-MIGRATE-9 Analytics / ROI** | ✅ 2026-07-31 | FinanceRoi + AccountCost + OrderAttribution 实装；Nacos `cutover-p5-migrate-9`；Dashboard/Screen/Perf 仍 stub |
+| **P5-MIGRATE 剩余域** | 🟡 | Dashboard/Screen/Analysis/Perf/layout/collector/message 等仍 stub；真实现另切片；旧模块未物理删 |
+| **P6** 权限码 `ops:*`（可选） | ⬜ | **勿与 P3 捆绑** |
+
+### 8.8 G-PAY-01 字段对表（D-G-PAY-01 REV1 假设 B · ADR-057 · 2026-07-30 ✅）
+
+> Football 实码：`PayOrderApi.pageForOps` · `POST /rpc-api/pay/order/page-for-ops` · 入参 `OrderOpsPageReqDTO` · 出参 `PageResult<AllOrderRespDTO>`（仅 OPS 10 列语义；**无** Admin permitted-ids / `finance_channel` 富化）。
+>
+> ~~原 D-G-PAY-01 选项 A：复用 `getOrderPage`~~ — **已废止**（见 [ADR-057](../adr/ADR-057-G-PAY-01-page-for-ops.md)）。
 
 | OPS 侧（`FootballPayAllOrderReadDO` / `FootballOrderListVO`） | Football `AllOrderRespDTO` | 对表 |
 |--------------------------------------------------------------|---------------------------|------|
@@ -752,7 +818,7 @@ C-WP0（标记废弃，可与 A 并行）
 | `sourceTable`（VO 固定 `"pay_all_order"`） | — | ✅ OPS 本地填充，非 RPC 字段 |
 | `tenantId`（Mapper WHERE） | Header `tenant-id` | ✅ Feign 租户拦截器 |
 
-**入参映射**（OPS `listPayAllOrders` → `OrderPageReqDTO`）
+**入参映射**（OPS `listPayAllOrders` → `OrderOpsPageReqDTO`）
 
 | OPS | Football | 备注 |
 |-----|----------|------|
@@ -760,7 +826,7 @@ C-WP0（标记废弃，可与 A 并行）
 | `pageSize` | `pageSize` | ✅ max 100 |
 | `authorId` | `authorId` | ✅ |
 | `status` | `status` | ✅ |
-| `startDate`/`endDate` | `createTime[0]`/`createTime[1]` | ✅ OPS 右开区间 → Feign 末秒 `endExclusive-1ns` |
+| `startDate`/`endDate` | `startTime`/`endTime` | ✅ 半开区间 `[startOfDay, nextDayStart)` |
 | `tenantId` | Header | ✅ |
 
-**结论**：OPS 列表所需 10 列 **100% 覆盖**；Feign 响应额外字段（`articleId`、`privilegeId`、`payType` 等）OPS 不使用。**D-G-PAY-01 字段对表签字 ✅**。
+**结论**：OPS 列表所需 10 列 **100% 覆盖**；不依赖 Admin 富化列。**D-G-PAY-01 REV1 字段对表签字 ✅**。

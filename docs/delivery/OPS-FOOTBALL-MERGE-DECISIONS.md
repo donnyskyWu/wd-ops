@@ -186,6 +186,19 @@
 
 > **已拍板（2026-07-28）**：**选项 A** — 字段对表通过后立即切 Feign（复用 `getOrderPage`）；**下一切片** C-WP5 执行。
 
+### D-G-PAY-01 REV1（2026-07-30 · **假设 B** · Supersede 选项 A）
+
+| 字段 | 值 |
+|------|---|
+| 触发 | Integration 手验：Admin `getOrderPage` 绑定 permitted-ids + `finance_channel*` 富化，local schema 漂移 → 裸 RPC 500；见 [G-PAY-01-FIX](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/G-PAY-01-FIX.md) |
+| 拍板 | 用户明确 **按假设 B** |
+| 决策 | **废止**「复用 `getOrderPage`」；改走 [MUST-HAVE §7.8](./OPS-FOOTBALL-RPC-MUST-HAVE.md) `POST /rpc-api/pay/order/page-for-ops` |
+| ADR | [ADR-057](../adr/ADR-057-G-PAY-01-page-for-ops.md) **Accepted** |
+| 入参 | `startTime`/`endTime`（半开 `[start,end)`）+ 可选 `authorId`/`status` + 分页；Header `tenant-id` |
+| 出参 | OPS 10 列（§8.8 对表仍有效）；**无** Admin 作者权限 / 渠道富化 |
+| OPS | `FootballOrderReadService` → `PayOrderApi.pageForOps` |
+| 手验 | **Pass**（2026-07-30）— [G-STAR-HANDVERIFY](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md)；~~B-G-PAY-01~~ 已解除 |
+
 ---
 
 ## D-G-MEM-02　作者只读（前端 Admin vs RPC simple-list）
@@ -310,11 +323,11 @@
   WORK-PLAN 已定 **Phase A 前端 → B 数据库 → C 后端**。§8.1：Phase C **整包 NO-GO**，**单片 GO**（C-WP0、G-SYS-01 双跑已落地）。  
   B-WP1「停写规范」可与 A 并行，防止继续写 `wd.system_users`、`wd.oa_author` 等非 SSOT 表（ADR-056 / D-AUTHOR-01）。
 
-- **现状**  
+- **现状（2026-07-30 修订）**  
   - Phase A：大部分完成；E2E/mount 退役待办。  
   - Phase B：**B-WP1 停写规范 ✅**（2026-07-28）；B-WP3 Flyway 政策待办。  
-  - Phase C：C-WP0 部分完成；C-WP2 G-SYS-01 双跑 ✅；其余 G-* **OPS Feign 未接**或 Football 仍缺（§8.7）。  
-  - §8.5 推荐顺序：C-WP0 → C-WP2 切片 → **B-WP1** → A-WP5/B-WP3 → 其余 C。
+  - Phase C：C-WP0/1/2/3/4/5 cutover ✅；G-* 业务手验 Pass 7/0（Skip G-DING）；**C-WP7-PHYS 代码 ✅**；**整包仍 NO-GO**（仅余 B-WP4-ARCHIVE，见 WORK-PLAN §8.1 / §8.6）。  
+  - 下一步：B-WP4 产品签收 → 再评估整包 GO。
 
 - **选项 A：严格单片推进（当前 §8.5）+ 立即启动 B-WP1 停写**  
   - **优点**：风险可控；不抢跑删 @DS；停写减污染。  
@@ -527,30 +540,38 @@
 | D-ADR-050 | Supersede §3.1 | **C**：有限 Supersede（G-* 白名单） | **B-ADR-050 已解除**（2026-07-28）；Football 扩 API 依据 ✅ |
 | D-G-SYS-02 | roleCode 列用户 + assert-enabled | **B**：`hasAnyRoles` Feign + roleCode→roleId + `getUserListByRoleId`；assert-enabled = `getUser`+`validateUserList` | B-G-SYS-02a/b **部分解除**（C-WP2 G-SYS-02 ✅；删 system @DS 仍待 cutover） |
 | D-G-SYS-01 | IP 组数据权限开关 | **B**：沿用 Admin 默认数据权限 | G-SYS-01 切轨闭环 ✅；§7.1 开放问题关闭 |
-| D-G-PAY-01 | OPS 切 getOrderPage Feign | **A**：对表后立即切 Feign | **字段对表 ✅** · 双跑 ✅（2026-07-28 C-WP5） |
-| D-G-MEM-02 | 作者只读路径 | **前端 Admin + AuthorApi 够用**；暂不需要 RPC simple-list | member 读 @DS 删除推迟 C-WP5 |
+| D-G-PAY-01 | OPS 切订单 Feign | **A→REV1 假设 B**：`page-for-ops`（ADR-057 Accepted） | **B-G-PAY-01 已解除**；手验 Pass 2026-07-30 |
+| D-G-MEM-02 | 作者只读路径 | **前端 Admin + AuthorApi 够用**；暂不需要 RPC simple-list | MemberAuthorRead Feign-only ✅（B-DS-RESIDUE 核实） |
 | D-G-DING | 钉钉推送与 ding_user_id | **延后** | C-WP6 可选；不阻塞整包 |
-| D-GW-DEV | Integration Feign 环境 | | B-GW-DEV |
+| D-GW-DEV | Integration Feign 环境 | | B-GW-DEV（手验已在直连栈完成） |
 | D-PHASE-C | 执行节奏 / B-WP1 | **A**：立即 B-WP1 ✅ | 停写污染；整包抢跑风险 |
 | D-FOOTBALL-PUSH | ops 推远端 | | 联调/Beta 契约一致 |
-| D-G-MEM-03 | OPS 切 ArticleApi Feign | | **部分解除** — create/update/status-change 双跑 ✅（2026-07-28） |
-| D-G-MP-01 | OPS 切 MpAccount Feign | | B-G-MP-01（OPS 集成） |
-| D-FEIGN-IT | IT vs Feign 验证 | | B-FEIGN-IT |
-| D-G-DICT-01 | 字典 sort / 后端 Feign | | C-WP3（partial） |
+| D-G-MEM-03 | OPS 切 ArticleApi Feign | **已 cutover + 手验 Pass** | **B-G-MEM-03 已解除**（2026-07-30） |
+| D-G-MP-01 | OPS 切 MpAccount Feign | **已 cutover + 手验 Pass** | **B-G-MP-01 已解除**（2026-07-30） |
+| D-FEIGN-IT | IT vs Feign 验证 | **A**：IT 回退；手验清单 | FEIGN-CHECKLIST §3 ✅ |
+| D-G-DICT-01 | 字典 sort / 后端 Feign | 读 Feign-only；admin/types 410 | C-WP3 + B-DS-RESIDUE ✅ |
 
 ---
 
 ## 拍板后 OPS 可立即执行的下一步
 
-1. ~~**若 D-ADR-050 选 A/C**~~ **D-ADR-050 已选 C**（2026-07-28）：[ADR-050-REV1](../adr/ADR-050-REV1-Football-G-RPC-Supersede.md) 已 Accepted；Football §7 G-* 按 MUST-HAVE 排期；OPS 单片 cutover。  
-2. ~~**若 D-PHASE-C 选 A/C**~~ **D-PHASE-C 已选 A**（2026-07-28）：**B-WP1 停写规范** 已发布 → [OPS-FOOTBALL-STOP-WRITE-POLICY.md](./OPS-FOOTBALL-STOP-WRITE-POLICY.md)；待 PR 抽检。  
-3. **继续 C-WP2 切片**：接入 **`hasAnyRoles` Feign**（Football 已有）；**D-G-SYS-02** 拍板 assert-enabled / roleCode 列用户方案。  
-4. **Phase A 收尾**：A-WP5 standalone/E2E 标非 Gate；菜单平行权限抽检（A-WP2 待办）。  
-5. **C-WP5 前置**：**D-G-MEM-03 / D-G-MP-01 / D-G-PAY-01** 拍板 OPS Feign 切轨节奏（Football API 已有，见 WORK-PLAN §8.7）。  
-6. **若 D-FOOTBALL-PUSH 选 A/B**：同步 `origin/ops`，更新 WORK-PLAN §8.3 API 快照，并在 Integration 复验 G-SYS-01 双跑。
+1. ~~**若 D-ADR-050 选 A/C**~~ **D-ADR-050 已选 C**（2026-07-28）：[ADR-050-REV1](../adr/ADR-050-REV1-Football-G-RPC-Supersede.md) 已 Accepted。  
+2. ~~**若 D-PHASE-C 选 A/C**~~ **D-PHASE-C 已选 A**（2026-07-28）：**B-WP1** → [OPS-FOOTBALL-STOP-WRITE-POLICY.md](./OPS-FOOTBALL-STOP-WRITE-POLICY.md)。  
+3. ~~继续 C-WP2 / C-WP5 Feign 切轨~~ **已完成**（2026-07-29/30 cutover + [G-STAR-HANDVERIFY](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md)）。  
+4. **Phase A 收尾**：A-WP5 standalone/E2E 标非 Gate；菜单平行权限抽检。  
+5. **清整包阻塞**：~~B-DS-RESIDUE~~ + ~~B-C-WP7-PHYS~~ **已解除** → 剩余 **B-WP4-ARCHIVE**（表归档产品签收）→ 再评估 Phase C 整包 GO。  
+6. **若 D-FOOTBALL-PUSH 选 A/B**：同步 `origin/ops`（含 ADR-057 `page-for-ops`）。
 
 ---
 
 **维护**：拍板后请在本文件「决策栏」填写结果，并回写 `docs/delivery/OPS-FOOTBALL-MERGE-WORK-PLAN.md` §8.6–§8.7 阻塞表状态（勾选/关闭对应 B-*）。
 
-**版本** v1.2 · **日期** 2026-07-28 · **状态** 部分已拍板
+---
+
+## D-ADR-058　OPS 单仓 + ops 命名（产品 mandate · 2026-07-30）
+
+- **已拍板**：见正式 ADR [ADR-058](../adr/ADR-058-OPS后端单仓与football-module-ops命名.md)。
+- **要点**：废除 ADR-047 §4.1 sibling；monorepo `football-module-ops`；DB 仅 `wd`；终态 `ops-server` + `/admin-api/ops/**`；权限 `oa:*` 过渡保留（独立 Slice 再迁 `ops:*`）。
+- **对 Phase C**：正交；不改写 C 整包门禁；命名/搬迁另开 Phase D。
+
+**版本** v1.3 · **日期** 2026-07-30 · **状态** 部分已拍板（G-PAY REV1 / 手验已回写 · ADR-058 Accepted）

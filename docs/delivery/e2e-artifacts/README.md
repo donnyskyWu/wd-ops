@@ -2,7 +2,7 @@
 
 > **SSOT 关联**：[`E2E-AGENT-METHOD.md`](../../engineering/E2E-AGENT-METHOD.md) §5.3 · §8 · §11.4 M2
 
-Playwright 运行时截图默认落在 `ops-platform-ui-vue/test-results/`（**gitignore，不入库**）。Gate 通过或 E2E 报告归档时，将 **关键 Pass/Fail 截图** 复制到本目录，供报告引用与人工复核。
+Playwright 运行时截图默认落在 `football-front/apps/web-ele/test-results/`（**gitignore，不入库**）。Gate 通过或 E2E 报告归档时，将 **关键 Pass/Fail 截图** 复制到本目录，供报告引用与人工复核。
 
 ---
 
@@ -58,9 +58,9 @@ M2-CONTENT-012_view_fail_1730000000.png
 # 示例：内容 Gate 归档
 $dest = "docs/delivery/e2e-artifacts/CONTENT-GATE-20260727"
 New-Item -ItemType Directory -Force -Path $dest
-Copy-Item ops-platform-ui-vue/test-results/content-edit-*.png `
+Copy-Item football-front/apps/web-ele/test-results/content-edit-*.png `
   "$dest/CONTENT-GATE-004_edit_pass_<timestamp>.png"
-Copy-Item ops-platform-ui-vue/test-results/content-view-*.png `
+Copy-Item football-front/apps/web-ele/test-results/content-view-*.png `
   "$dest/CONTENT-GATE-004_view_pass_<timestamp>.png"
 ```
 
