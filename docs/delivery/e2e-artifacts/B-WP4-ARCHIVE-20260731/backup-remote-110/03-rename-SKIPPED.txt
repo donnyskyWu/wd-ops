@@ -1,0 +1,1 @@
+SKIPPED: CREATE DATABASE archive_wd failed; shenyu-ops only has ALL on shenyu-ops.*; no root creds in project env.
