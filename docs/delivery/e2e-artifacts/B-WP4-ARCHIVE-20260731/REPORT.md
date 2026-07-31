@@ -4,7 +4,7 @@
 |----|-----|
 | **签收表** | [B-WP4-ARCHIVE-签收表-20260731.md](../../gates/B-WP4-ARCHIVE-签收表-20260731.md) |
 | **环境（localhost）** | `localhost:3306/wd`（integration；root/root）✅ 已归档 |
-| **环境（远程测试）** | `110.42.49.224:3306/shenyu-ops`（MySQL 5.7.44；`ops-test-remote.env`）— **备份 ✅；归档 SQL ⛔ 权限阻塞** |
+| **环境（远程测试）** | `110.42.49.224:3306/shenyu-ops`（MySQL 5.7.44；`ops-test-remote.env`）— **备份 ✅；同库 `archive_*` RENAME ✅（partial：`system_users` 保留）** |
 | **顺序** | 备份 → 归档 SQL → 只读探测 |
 | **Q3 回滚窗口** | **0 天**（用户决定：备份后执行，不要回滚窗口） |
 | **Q4** | **未删** `FootballOAuth2MasterTokenMapper`（ADR-056 全量切轨后） |
@@ -101,38 +101,37 @@ SQL 脚本：
 | sys_dict_data | 392 |
 | system_users | 19 |
 
-### 5.2 归档执行结果（按表）
+### 5.2 归档执行结果（按表）· 同库 `archive_*`（用户澄清 2026-07-31）
 
-| # | 对象 | 处置（与 localhost 同） | 远程结果 |
-|---|------|-------------------------|----------|
-| 1 | `shenyu-ops.sys_user` | 停写 trigger | ⛔ **未落地** — `ERROR 1419`（binlog 开启且无 SUPER / 未开 `log_bin_trust_function_creators`） |
-| 2 | `sys_user_token` | 停写 trigger | ⛔ 同上 |
-| 3 | legacy role 表 | 停写 trigger | ⛔ 同上 |
-| 4 | `sys_operation_log` | RENAME → `archive_wd` | ⛔ **未执行** — `CREATE DATABASE archive_wd` → `ERROR 1044` Access denied；**未**做同库另名 RENAME（保持与 localhost `archive_wd` 对等，避免擅自改处置） |
-| 5 | `sys_dict_*` | 停写 trigger | ⛔ 同 #1 |
+> 澄清：不建 `archive_wd`；trigger 因无 SUPER 失败 → 同库 `RENAME TABLE … TO archive_<name>`；可删数据/表。  
+> 备份复验：`backup-remote-110/shenyu-ops-q1-candidates-20260731.sql` = **205611 bytes**（非空）后执行。
+
+| # | 对象 | 处置（远程适配） | 远程结果 |
+|---|------|------------------|----------|
+| 1 | `sys_user` / `sys_user_token` / `sys_user_role` | 同库 RENAME `archive_*` | ✅ `archive_sys_user`(6) / `_token`(2) / `_role`(8) |
+| 3 | `sys_role` / `sys_role_permission` / `sys_permission` | 同库 RENAME | ✅ `archive_sys_role`(7) / `_permission`(36) / `archive_sys_permission`(16) |
+| 4 | `sys_operation_log` | 同库 RENAME | ✅ → `archive_sys_operation_log`（**613** 行；原名 GONE） |
+| 5 | `sys_dict_type` / `sys_dict_data` | 同库 RENAME | ✅ `archive_sys_dict_type`(98) / `_data`(392) |
 | 6 | §3.4 桥接列 | 暂不纳入 | ✅ 未改 |
-| 7 | `system_users` | 停写 trigger | ⛔ 同 #1 |
+| 7 | `system_users` overlay | **SKIP RENAME** | ⚠ 保留（19 行）— `FootballOAuth2MasterTokenMapper` @DS master 仍读；SSOT=`shenyu-system.system_users`；**未删** Mapper 代码（Q4） |
 
-日志：`backup-remote-110/03-rename-SKIPPED.txt`（`*.log` 被 gitignore；错误原文见上表 / `sql/remote-110/00-README.md`）
+DROP：无（全部 RENAME 成功，未走 DROP fallback）。  
+日志：`backup-remote-110/04-rename-same-schema-RESULTS.txt`  
+SQL：`sql/remote-110/03-rename-sys-operation-log.sql` · `04-rename-q1-legacy-same-schema.sql` · `05-rollback-same-schema.sql`（`02-stop-write-readonly.sql` remote **DEPRECATED**）
 
-### 5.3 SQL 校验（归档后现状）
+### 5.3 SQL 校验（归档后）
 
 | 检查 | 结果 |
 |------|------|
-| `SHOW DATABASES LIKE 'archive_wd'` | 不存在 |
-| `shenyu-ops.sys_operation_log` | **仍存在**（613 行可读） |
-| `information_schema.TRIGGERS` `trg_bwp4%` | **0 条** |
-| 写阻断抽检 | 未生效（trigger 未建）；试 INSERT 因缺 `tenant_id` 被表约束拒绝，**非** B-WP4 stop-write |
-| `SELECT` 候选表 | ✅ 仍可读 |
+| `sys_operation_log` | **GONE** |
+| `archive_sys_operation_log` | **EXISTS** · `COUNT(*)=613` |
+| live legacy (`sys_user*` / role / dict / operation_log) | **NULL**（均已改名） |
+| `archive_sys_%` | 9 张：user×3 · role/perm×3 · dict×2 · operation_log |
+| `system_users` | **仍存在**（19；主动保留） |
+| `archive_wd` DB | **未创建**（按澄清） |
+| `trg_bwp4%` | 0（未用 trigger） |
 
-### 5.4 阻塞（需 DBA / 提升权限后重跑）
+### 5.4 状态
 
-`shenyu-ops@%` 仅有 `USAGE` + `ALL PRIVILEGES ON shenyu-ops.*`。项目 env **无** root/elevated 凭据，故停止继续破坏性尝试。
-
-解阻任一路径即可重跑 `sql/remote-110/`：
-
-1. DBA：`SET GLOBAL log_bin_trust_function_creators = 1;`（或 SUPER）→ 再执行 `02-stop-write-readonly.sql`
-2. DBA：`CREATE DATABASE archive_wd …;` + `GRANT ALL ON archive_wd.* TO 'shenyu-ops'@'%';`（或 elevated 用户直接跑 `03-rename-sys-operation-log.sql`）
-3. 或提供 elevated MySQL 账号写入本地 `ops-test-remote.env`（勿入库）后由 OPS 重跑
-
-**状态**：远程 = **备份完成 + 归档挂起（权限）**；localhost Phase C GO 证据不受影响。
+**远程 = 备份 ✅ + 同库归档 ✅（partial：`system_users` 与 `system_*` overlay 集群因应用依赖保留）**。  
+localhost Phase C GO 证据不受影响。`FootballOAuth2MasterTokenMapper` 未删。
