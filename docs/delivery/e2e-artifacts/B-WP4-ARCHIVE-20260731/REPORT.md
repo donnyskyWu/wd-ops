@@ -113,7 +113,7 @@ SQL 脚本：
 | 6 | §3.4 桥接列 | 暂不纳入 | ✅ 未改 |
 | 7 | `system_users` | 停写 trigger | ⛔ 同 #1 |
 
-日志：`backup-remote-110/02-stop-write.log` · `03-create-archive-wd.log` · `03-rename-SKIPPED.txt`
+日志：`backup-remote-110/03-rename-SKIPPED.txt`（`*.log` 被 gitignore；错误原文见上表 / `sql/remote-110/00-README.md`）
 
 ### 5.3 SQL 校验（归档后现状）
 
