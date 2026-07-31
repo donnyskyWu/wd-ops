@@ -1,0 +1,8 @@
+﻿{
+    "name":  "gw-ops-ip-group-tree",
+    "url":  "http://127.0.0.1:48080/admin-api/ops/ip-group/tree",
+    "http":  200,
+    "code":  0,
+    "ok":  false,
+    "bodyPreview":  "{\"code\":0,\"msg\":\"ok\",\"data\":[{\"id\":9005,\"groupName\":\"IT-Debug-Big\",\"groupType\":1,\"parentId\":null,\"parentName\":null,\"leaderId\":\"1749825673829120202\",\"leaderName\":\"å¼ æ­¦\",\"memberCount\":1,\"accountCount\":0,\"anchorCount\":1,\"status\":1,\"level\":null,\"createTime\":1784685495000,\"children\":[{\"id\":9006,\"groupN"
+}

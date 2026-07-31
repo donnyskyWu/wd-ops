@@ -1,0 +1,199 @@
+{
+  "slice": "P-A-UNSTUB-20260731",
+  "via": "gateway-login+ops-direct",
+  "checks": [
+    {
+      "name": "dashboard-home-metrics",
+      "path": "/admin-api/oa/dashboard/home/metrics",
+      "http": 200,
+      "code": 0,
+      "total": null,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "dashboard-home-todos",
+      "path": "/admin-api/oa/dashboard/home/todos",
+      "http": 200,
+      "code": 0,
+      "total": 9,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "dashboard-home-todo-list",
+      "path": "/admin-api/oa/dashboard/home/todo-list",
+      "http": 200,
+      "code": 0,
+      "total": 3,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "dashboard-config-list",
+      "path": "/admin-api/oa/dashboard-config/list?pageNum=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "total": 3,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "account-analysis-list",
+      "path": "/admin-api/oa/account-analysis/list?page=1&size=5",
+      "http": 200,
+      "code": 0,
+      "total": 183,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "content-analysis-list",
+      "path": "/admin-api/oa/content-analysis/list?page=1&size=5",
+      "http": 200,
+      "code": 0,
+      "total": 133,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "follower-analysis-list",
+      "path": "/admin-api/oa/follower-analysis/list?page=1&size=5",
+      "http": 200,
+      "code": 0,
+      "total": 0,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "funnel-list",
+      "path": "/admin-api/oa/funnel/list",
+      "http": 200,
+      "code": 0,
+      "total": 5,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "query-list",
+      "path": "/admin-api/oa/query/list",
+      "http": 200,
+      "code": 0,
+      "total": 4,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "report-unified-account",
+      "path": "/admin-api/oa/report/unified-account/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 21,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "monitor-external-list",
+      "path": "/admin-api/oa/monitor/external/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 0,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "ops-anchor-list",
+      "path": "/admin-api/oa/ops-anchor/list",
+      "http": 200,
+      "code": 0,
+      "total": 0,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "metadata-list",
+      "path": "/admin-api/oa/metadata/list",
+      "http": 200,
+      "code": 0,
+      "total": 10,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "system-param-list",
+      "path": "/admin-api/oa/system/param/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "total": 11,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "system-message-unread-count",
+      "path": "/admin-api/oa/system/message/unread-count",
+      "http": 200,
+      "code": 403,
+      "total": null,
+      "msg": "没有该操作权限",
+      "ok": true,
+      "note": "rbac-403-controller-mounted"
+    },
+    {
+      "name": "wechat-analysis-wework-list",
+      "path": "/admin-api/oa/wechat-analysis/wework/list?page=1&size=5",
+      "http": 200,
+      "code": 0,
+      "total": 0,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "wechat-analysis-personal-list",
+      "path": "/admin-api/oa/wechat-analysis/personal/list?page=1&size=5",
+      "http": 200,
+      "code": 0,
+      "total": 0,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "control-collector-bind-get",
+      "path": "/admin-api/oa/collector-bind",
+      "http": 200,
+      "code": 0,
+      "total": 0,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "control-collect-task",
+      "path": "/admin-api/oa/collect/task/list",
+      "http": 200,
+      "code": 0,
+      "total": 0,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "control-dashboard-create",
+      "path": "/admin-api/oa/dashboard/create",
+      "method": "POST",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "control-collector-bind-write",
+      "path": "/admin-api/oa/collector-bind",
+      "method": "POST",
+      "http": 200,
+      "code": 410,
+      "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+      "ok": true
+    }
+  ],
+  "ops_health_http": 200,
+  "ops_health_body": "{\"status\":\"UP\"}",
+  "all_ok": true
+}

@@ -1,0 +1,64 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "id": 9864,
+          "tenantId": 1,
+          "creator": "admin",
+          "createTime": 1784094767000,
+          "updater": "admin",
+          "updateTime": 1784094767000,
+          "deleted": 0,
+          "queryName": "0715cx",
+          "status": "DRAFT",
+          "sqlText": "SELECT t.platform_type, t.account_name, t.external_account_id FROM oa_account t WHERE t.tenant_id = :tenantId AND t.deleted = 0",
+          "paramsJson": "{\"builder\":{\"dataSource\":\"oa_account\",\"displayFields\":[\"platform_type\",\"account_name\",\"external_account_id\"],\"calcMethod\":\"\",\"calcField\":\"\",\"groupByFields\":[],\"joinTables\":[],\"conditions\":[]}}"
+        },
+        {
+          "id": 9863,
+          "tenantId": 1,
+          "creator": "oa-admin",
+          "createTime": 1781162458000,
+          "updater": "oa-admin",
+          "updateTime": 1781162458000,
+          "deleted": 0,
+          "queryName": "内容查询",
+          "status": "DRAFT",
+          "sqlText": "SELECT t.account_id, t.title, t.platform_type, t.content_type, t.publish_time, t.read_count, t.like_count, t.comment_count, t.forward_count, t.is_hit, t.status FROM oa_content t WHERE t.tenant_id = :tenantId AND t.deleted = 0",
+          "paramsJson": "{\"builder\":{\"dataSource\":\"oa_content\",\"displayFields\":[\"account_id\",\"title\",\"platform_type\",\"content_type\",\"publish_time\",\"read_count\",\"like_count\",\"comment_count\",\"forward_count\",\"is_hit\",\"status\"],\"calcMethod\":\"\",\"calcField\":\"\",\"groupByFields\":[\"account_id\"],\"joinTables\":[],\"conditions\":[]}}"
+        },
+        {
+          "id": 9862,
+          "tenantId": 1,
+          "creator": "oa-admin",
+          "createTime": 1781158846000,
+          "updater": "oa-admin",
+          "updateTime": 1781158846000,
+          "deleted": 0,
+          "queryName": "测试查询1",
+          "status": "DRAFT",
+          "sqlText": "SELECT t.id, COUNT(*) AS metric_value FROM oa_content_daily t WHERE t.tenant_id = :tenantId AND t.deleted = 0 GROUP BY t.id",
+          "paramsJson": null
+        },
+        {
+          "id": 9861,
+          "tenantId": 1,
+          "creator": "seed-analytics",
+          "createTime": 1780993929000,
+          "updater": "oa-admin",
+          "updateTime": 1780993929000,
+          "deleted": 0,
+          "queryName": "SEED-近30天内容列表",
+          "status": "PUBLISHED",
+          "sqlText": "SELECT t.title, t.platform_type, t.content_type, t.publish_time, t.read_count, t.like_count, t.comment_count, t.forward_count, t.is_hit FROM oa_content t WHERE t.tenant_id = :tenantId AND t.deleted = 0 LIMIT 0, 10",
+          "paramsJson": "{\"builder\":{\"dataSource\":\"oa_content\",\"displayFields\":[\"title\",\"platform_type\",\"content_type\",\"publish_time\",\"read_count\",\"like_count\",\"comment_count\",\"forward_count\",\"is_hit\"],\"calcMethod\":\"\",\"calcField\":\"\",\"groupByFields\":[],\"joinTables\":[],\"conditions\":[]}}"
+        }
+      ],
+      "total": 4
+    }
+  }
+}

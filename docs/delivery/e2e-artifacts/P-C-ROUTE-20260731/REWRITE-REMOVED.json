@@ -1,0 +1,14 @@
+﻿[
+    {
+        "file":  "football-backend-saas\\football-gateway\\src\\main\\resources\\application.yaml",
+        "opsToOaRewritePresent":  false
+    },
+    {
+        "file":  "scripts\\integration-config\\gateway-integration-local.yaml",
+        "opsToOaRewritePresent":  false
+    },
+    {
+        "file":  "scripts\\integration-config\\gateway-integration-beta.yaml",
+        "opsToOaRewritePresent":  false
+    }
+]

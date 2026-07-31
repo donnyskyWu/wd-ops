@@ -9,7 +9,8 @@
 | 状态 | **Accepted**（§已确认决策 2026-07-04） |
 | 日期 | 2026-07-04 |
 | 决策人 | 架构 / 产品 |
-| 关联 | [ADR-047](./ADR-047-Football-Ops平台集成决策.md) · [OPS-FOOTBALL-DATA-OWNERSHIP-ANALYSIS](../delivery/OPS-FOOTBALL-DATA-OWNERSHIP-ANALYSIS.md) |
+| 关联 | [ADR-047](./ADR-047-Football-Ops平台集成决策.md) · [ADR-058](./ADR-058-OPS后端单仓与football-module-ops命名.md) · [OPS-FOOTBALL-DATA-OWNERSHIP-ANALYSIS](../delivery/OPS-FOOTBALL-DATA-OWNERSHIP-ANALYSIS.md) |
+| 修订 | **D1 Cancelled** — [ADR-058](./ADR-058-OPS后端单仓与football-module-ops命名.md)（2026-07-30：目标改为 monorepo `football-module-ops`，不再延期 sibling） |
 
 ---
 
@@ -25,7 +26,7 @@ Football × Ops 集成 S4 前端挂载（58/58）已满足联调；S3 后端 sib
 
 | # | 决策 | 说明 |
 |---|------|------|
-| D1 | **S3 延期** | `football-module-oa` sibling 工程迁移 **⏸ Deferred**；待表归属与用户 ID 迁移范围确认后再启动 |
+| D1 | ~~**S3 延期**~~ **Cancelled** | ~~`football-module-oa` sibling 工程迁移 Deferred~~ → **废止**。工程目标改由 [ADR-058](./ADR-058-OPS后端单仓与football-module-ops命名.md)：monorepo **`football-module-ops`** + 命名切流阶段，**不再**推进 sibling `football-module-oa` |
 | D2 | **`sys_dict_*` = Ops SSOT** | 业务字典（`dict_*` 类型）由 Ops 维护；**不**合并至 Football `system_dict_*`；类型命名空间并存 |
 | D3 | **`sys_param` = Ops-only** | Ops 业务调参；Football/infra 运行时键保留 `infra_config` |
 | D4 | **M9 `sys_user` 等废弃** | 身份以 Football `system_users` / `system_menu` 为准；`sys_user`、`sys_role`、`sys_tenant`、`sys_permission` 停止写入，只读过渡 |

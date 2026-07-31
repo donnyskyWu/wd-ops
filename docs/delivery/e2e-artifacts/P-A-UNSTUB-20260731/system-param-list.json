@@ -1,0 +1,112 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "id": 11,
+          "paramName": "二级审核角色",
+          "paramKey": "content.review.level2.role",
+          "paramValue": "DEPT_HEAD",
+          "paramType": "STRING",
+          "category": "CONTENT_REVIEW",
+          "remark": "部门负责人角色",
+          "updateTime": 1783149626000
+        },
+        {
+          "id": 10,
+          "paramName": "一级审核角色",
+          "paramKey": "content.review.level1.role",
+          "paramValue": "OPS_LEADER",
+          "paramType": "STRING",
+          "category": "CONTENT_REVIEW",
+          "remark": "默认 IP 组长角色；也可匹配内容所属 IP 组的组长用户",
+          "updateTime": 1781315164000
+        },
+        {
+          "id": 9,
+          "paramName": "开启二级审核",
+          "paramKey": "content.review.level2.enabled",
+          "paramValue": "true",
+          "paramType": "BOOLEAN",
+          "category": "CONTENT_REVIEW",
+          "remark": "关闭后一级通过后直接发布；两级均关闭则提交后直接发布",
+          "updateTime": 1781315164000
+        },
+        {
+          "id": 8,
+          "paramName": "开启一级审核",
+          "paramKey": "content.review.level1.enabled",
+          "paramValue": "true",
+          "paramType": "BOOLEAN",
+          "category": "CONTENT_REVIEW",
+          "remark": "关闭后提交审核将跳过一级审核",
+          "updateTime": 1781315164000
+        },
+        {
+          "id": 7,
+          "paramName": "系统开关",
+          "paramKey": "opN",
+          "paramValue": "开启关闭",
+          "paramType": "STRING",
+          "category": "BASIC",
+          "remark": "",
+          "updateTime": 1781180592000
+        },
+        {
+          "id": 6,
+          "paramName": "API请求超时时间（毫秒）",
+          "paramKey": "api.timeout.milliseconds",
+          "paramValue": "30000",
+          "paramType": "NUMBER",
+          "category": "BASIC",
+          "remark": "外部API请求的超时时间",
+          "updateTime": 1781180471000
+        },
+        {
+          "id": 5,
+          "paramName": "数据保留天数",
+          "paramKey": "data.retention.days",
+          "paramValue": "365",
+          "paramType": "NUMBER",
+          "category": "BASIC",
+          "remark": "历史数据保留的天数，超过自动清理",
+          "updateTime": 1781180471000
+        },
+        {
+          "id": 4,
+          "paramName": "默认AI模型",
+          "paramKey": "ai.default.model",
+          "paramValue": "QWEN",
+          "paramType": "STRING",
+          "category": "AI",
+          "remark": "系统默认使用的AI模型类型",
+          "updateTime": 1781180471000
+        },
+        {
+          "id": 3,
+          "paramName": "AI生成内容审核开关",
+          "paramKey": "ai.content.review.enabled",
+          "paramValue": "true",
+          "paramType": "BOOLEAN",
+          "category": "AI",
+          "remark": "是否启用AI生成内容的自动审核流程",
+          "updateTime": 1781180471000
+        },
+        {
+          "id": 2,
+          "paramName": "最大并发采集数",
+          "paramKey": "collect.max.concurrency",
+          "paramValue": "10",
+          "paramType": "NUMBER",
+          "category": "COLLECT",
+          "remark": "同时进行的采集任务最大数量",
+          "updateTime": 1781180471000
+        }
+      ],
+      "total": 11
+    }
+  }
+}

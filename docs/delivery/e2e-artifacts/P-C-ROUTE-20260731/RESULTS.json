@@ -1,0 +1,66 @@
+﻿{
+    "slice":  "P-C-ROUTE-20260731",
+    "decision":  "full cut; no dual-route Controllers; /admin-api/oa returns 404 (biz or HTTP); Gateway RewritePath ops→oa removed",
+    "rewriteRemoved":  true,
+    "db":  "football-ops (local)",
+    "checks":  [
+                   {
+                       "name":  "gw-ops-account-list",
+                       "url":  "http://127.0.0.1:48080/admin-api/ops/account/list?pageNo=1\u0026pageSize=10",
+                       "http":  200,
+                       "code":  0,
+                       "ok":  true
+                   },
+                   {
+                       "name":  "gw-ops-content-list",
+                       "url":  "http://127.0.0.1:48080/admin-api/ops/content/list?pageNo=1\u0026pageSize=10",
+                       "http":  200,
+                       "code":  0,
+                       "ok":  true
+                   },
+                   {
+                       "name":  "gw-ops-ip-group-tree",
+                       "url":  "http://127.0.0.1:48080/admin-api/ops/ip-group/tree",
+                       "http":  200,
+                       "code":  0,
+                       "ok":  true
+                   },
+                   {
+                       "name":  "gw-ops-task-list",
+                       "url":  "http://127.0.0.1:48080/admin-api/ops/task/list?pageNo=1\u0026pageSize=10",
+                       "http":  200,
+                       "code":  0,
+                       "ok":  true
+                   },
+                   {
+                       "name":  "direct-ops-account-list",
+                       "url":  "http://127.0.0.1:48094/admin-api/ops/account/list?pageNo=1\u0026pageSize=10",
+                       "http":  200,
+                       "code":  0,
+                       "ok":  true
+                   },
+                   {
+                       "name":  "direct-ops-content-list",
+                       "url":  "http://127.0.0.1:48094/admin-api/ops/content/list?pageNo=1\u0026pageSize=10",
+                       "http":  200,
+                       "code":  0,
+                       "ok":  true
+                   },
+                   {
+                       "name":  "direct-oa-account-list-expect-404",
+                       "url":  "http://127.0.0.1:48094/admin-api/oa/account/list?pageNo=1\u0026pageSize=10",
+                       "http":  200,
+                       "code":  404,
+                       "ok":  true
+                   },
+                   {
+                       "name":  "gw-oa-account-list-expect-404",
+                       "url":  "http://127.0.0.1:48080/admin-api/oa/account/list?pageNo=1\u0026pageSize=10",
+                       "http":  200,
+                       "code":  404,
+                       "ok":  true
+                   }
+               ],
+    "passCount":  8,
+    "total":  8
+}

@@ -79,7 +79,7 @@
 | 操作/登录日志**读** UI | **可砍 / 复用现有** | **不平行建设** OPS 读页 | **0** | Football Admin 已有操作/登录日志菜单；OPS 壳内改挂原生页即可，**不**再做平行分页 API/UI |
 | OPS UI：用户/部门/菜单/字典**管理** | **可砍 / 不下沉** | **不下沉到 OPS** | **0** | 一律 Football Admin；OPS 仅消费选择器/只读校验 |
 | G-NTF-01 站内消息 | **可选降级** | 优先 Football Notify；或 OPS 自建保留 | **0**（本期不扩 Feign） | 已有 `NotifyMessageSendApi`；产品二选一，不做平行管理台 |
-| G-MATCH-01 / G-WECOM-01 | **可选降级** / 自建 | 复用 match Feign；企微保持分离 | — | 非本期缺口主力 |
+| ~~G-MATCH-01~~ / G-WECOM-01 | ~~可选降级~~ / 自建 | **G-MATCH-01 Closed-Accept** 外部 HTTP 代理（[ADR-059](../adr/ADR-059-G-MATCH-01-external-proxy.md)）；企微保持分离 | — | Match 非 Feign 缺口 |
 
 **裁剪后人日（Football）**：**约 16–38**（相对 v1.7 的 16–43：去掉 Token introspect 上限 5；作者 CUD / 通讯录 / 操作日志读平行 / 平台管理 UI **不计**）。是否做 **G-DING-01** 仍主导上限；**不含** OPS 切轨与联调。
 
@@ -420,7 +420,7 @@ flowchart TB
 | 服务 | Feign 代表 | Admin 前缀 | OPS 相关性 |
 |------|------------|------------|------------|
 | infra-server | `FileApi`、`ConfigApi`、`WebSocketSenderApi` | `/infra/**` | 文件：**已拍板** OPS 统一接入 `FileApi` / `/infra/file`（§3.7.2） |
-| match-server | `MatchScheduleApi`、`NewsApi`… | `/match/**` | OPS `MatchController` / 内容赛事 |
+| match-server | `MatchScheduleApi`、`NewsApi`… | `/match/**` | OPS **不**走 Feign；`MatchController`→外部 HTTP 代理（[ADR-059](../adr/ADR-059-G-MATCH-01-external-proxy.md) / G-MATCH-01 Closed） |
 | wecom-server | `WecomUserApi`、LiveCode* | `/wecom/**` | 企微；OPS 另有自建 `oa_wework_*` |
 | live / bpm / report | 各 `*Api` | `/live` `/bpm` `/report` | 非 OPS 主链路 |
 
@@ -577,7 +577,7 @@ flowchart TB
 | G-DICT-01 | 字典**后端**读/校验仍 `@DS("system")` | `SystemDictAdapter`；Feign `DictDataApi` 缺 `sort` 等；前端可直调 Admin dict | 契约补齐后 Adapter→Feign；**管理 UI 不下沉**；前端可走 Football dict | `@InDict`（必须 RPC）；`DictSelect`（可 Admin） | [§11.4](#114-g-dict-01-字典-list-by-type-契约补齐) |
 | G-DICT-02 | 业务 `dict_*` 数据迁移与残留 `sys_dict_*` | [OPS-DICT-MERGE-FOOTBALL-PLAN](./OPS-DICT-MERGE-FOOTBALL-PLAN.md) | 按 DM-01/DM-07 收敛 | 种子/IT | — |
 | G-INF-01 | 文件存储未统一；本地盘 vs infra | `LocalFileStorageService`；`FileApi` 未接 | **已拍板 D-INF-01**：统一 `FileApi`/`/infra/file` | 富文本图、封面、附件 | [§11.5](#115-g-inf-01-文件-fileapi--ops-调用契约d-inf-01) |
-| G-MATCH-01 | 赛事选择器 | 确认走 match Feign 还是继续 OPS 封装 | — | `MatchController` | — |
+| ~~G-MATCH-01~~ | ~~赛事选择器~~ | **Accepted / Closed**（2026-07-31）：继续外部 HTTP 代理，**不**切 match-server Feign | [ADR-059](../adr/ADR-059-G-MATCH-01-external-proxy.md) | `MatchController` → `MatchProxyService` | — |
 | G-WECOM-01 | 企微双轨 | Football wecom vs OPS `oa_wework_*` | ADR-049 倾向分离 | 企微运营页 | — |
 
 ---

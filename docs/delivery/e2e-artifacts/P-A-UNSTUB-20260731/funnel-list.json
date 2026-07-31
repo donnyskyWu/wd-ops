@@ -1,0 +1,42 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "id": 99401,
+          "funnelName": "SEED-私域转化漏斗",
+          "funnelType": "PRIVATE_DOMAIN",
+          "status": 1
+        },
+        {
+          "id": 99301,
+          "funnelName": "E2E-DF-转化漏斗",
+          "funnelType": "CUSTOM",
+          "status": 1
+        },
+        {
+          "id": 9803,
+          "funnelName": "SEED-内容互动漏斗(真实指标)",
+          "funnelType": "CUSTOM",
+          "status": 1
+        },
+        {
+          "id": 9802,
+          "funnelName": "SEED-粉丝增长漏斗",
+          "funnelType": "CUSTOM",
+          "status": 1
+        },
+        {
+          "id": 9801,
+          "funnelName": "SEED-内容转化漏斗",
+          "funnelType": "CONVERSION",
+          "status": 1
+        }
+      ],
+      "total": 5
+    }
+  }
+}

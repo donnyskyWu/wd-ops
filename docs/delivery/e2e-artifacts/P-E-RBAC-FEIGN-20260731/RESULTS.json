@@ -1,0 +1,104 @@
+{
+  "slice": "P-E-RBAC-FEIGN-20260731",
+  "login_code": 0,
+  "userId": "1749825673829120001",
+  "ops_health": 200,
+  "passCount": 7,
+  "total": 7,
+  "checks": [
+    {
+      "name": "gw-ops-account-list",
+      "url": "http://127.0.0.1:48080/admin-api/ops/account/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "dataHint": "present",
+      "ok": true
+    },
+    {
+      "name": "gw-ops-content-list",
+      "url": "http://127.0.0.1:48080/admin-api/ops/content/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "dataHint": "present",
+      "ok": true
+    },
+    {
+      "name": "gw-ops-ip-group-list",
+      "url": "http://127.0.0.1:48080/admin-api/ops/ip-group/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "dataHint": "present",
+      "ok": true
+    },
+    {
+      "name": "direct-ops-account-list",
+      "url": "http://127.0.0.1:48094/admin-api/ops/account/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "dataHint": "present",
+      "ok": true
+    },
+    {
+      "name": "direct-ops-content-list",
+      "url": "http://127.0.0.1:48094/admin-api/ops/content/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "dataHint": "present",
+      "ok": true
+    },
+    {
+      "name": "direct-ops-ip-group-list",
+      "url": "http://127.0.0.1:48094/admin-api/ops/ip-group/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "dataHint": "present",
+      "ok": true
+    },
+    {
+      "name": "rpc-has-any-permissions",
+      "url": "http://127.0.0.1:48081/rpc-api/system/permission/has-any-permissions?userId=1749825673829120001&permissions=ops:account:list",
+      "http": 200,
+      "code": 0,
+      "dataHint": true,
+      "ok": true
+    }
+  ],
+  "notes": [
+    "FootballOAuth2MasterTokenMapper deleted from main",
+    "PreAuthorize via @opsPerm -> PermissionCommonApi.hasAnyPermissions",
+    "LoginUserAssemblySupport: Feign AdminUser + hasAnyRoles + Gateway isAdmin; no master system_menu/system_users RBAC"
+  ],
+  "no_overlay_system_users": {
+    "renamed_to": "system_users_pe_bak_20260731",
+    "restored": true,
+    "passCount": 4,
+    "total": 4,
+    "checks": [
+      {
+        "name": "no-overlay-gw-account",
+        "http": 200,
+        "code": 0,
+        "ok": true
+      },
+      {
+        "name": "no-overlay-gw-content",
+        "http": 200,
+        "code": 0,
+        "ok": true
+      },
+      {
+        "name": "no-overlay-gw-ip-group",
+        "http": 200,
+        "code": 0,
+        "ok": true
+      },
+      {
+        "name": "no-overlay-direct-account",
+        "http": 200,
+        "code": 0,
+        "ok": true
+      }
+    ],
+    "ops_log_system_users_sql_errors": 0
+  }
+}

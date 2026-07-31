@@ -1,0 +1,28 @@
+{
+  "slice": "P-G",
+  "date": "2026-07-31",
+  "removed_tracked": 422,
+  "removed_untracked_disk": 158,
+  "removed_total_files": 580,
+  "rollback_commit_with_archive": "7e5f1b709636f8c2b0a2392c178858631639870a",
+  "rollback_note": "git -C football-backend-saas checkout 7e5f1b709 -- football-module-ops/football-module-ops-server/legacy-archive",
+  "maven_compile_path": "default src/main/java only; legacy-archive never on classpath",
+  "checks": [
+    {
+      "name": "direct-ops-account-list",
+      "url": "http://127.0.0.1:48094/admin-api/ops/account/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "pass": true
+    },
+    {
+      "name": "gw-ops-account-list",
+      "url": "http://127.0.0.1:48080/admin-api/ops/account/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "pass": true
+    }
+  ],
+  "ops_health": 200,
+  "pass": "3/3"
+}

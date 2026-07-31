@@ -1,79 +1,86 @@
-# ADR-009：API 路径前缀分配（oa vs system�?
+# ADR-009?API ???????oa vs system?
 
-| 字段 | �?|
+| ?? | ? |
 |------|---|
-| 编号 | ADR-009 |
-| 标题 | `ops-platform-module-oa` 全部 HTTP API 统一�?`/admin-api/oa/` �?|
-| 状�?| �?Accepted |
-| 日期 | 2026-06-10 |
-| 触发 | S-R17 B19 · S-R23-Mike |
-| 决策�?| 后端架构 |
+| ?? | ADR-009 |
+| ?? | `ops-platform-module-oa` ?? HTTP API ??? `/admin-api/oa/` ????? |
+| ?? | **Accepted?Historical?** ? ?????? **Superseded by [ADR-058](./ADR-058-OPS?????football-module-ops??.md)**??? `/admin-api/ops/**`? |
+| ?? | 2026-06-10 |
+| ?? | S-R17 B19 � S-R23-Mike |
+| ??? | ???? |
+| ?? | 2026-07-31 · ADR-058 **P-C ✅**：Controller+Gateway 均为 `/admin-api/ops/**`，无 Rewrite |
+
+> **2026-07-31 · ADR-058 P-C ✅**：OPS HTTP 规范前缀与 Controller 均为 **`/admin-api/ops/**`**；Gateway **无** `ops→oa` RewritePath（直挂 `ops-server`）。历史 `/admin-api/oa/**` 已下线。权限码过渡仍 `oa:*`（ADR-058 D5 / P-D）。见 [ADR-058 §2 D4](./ADR-058-OPS后端单仓与football-module-ops命名.md)。
 
 ---
 
-## 1. 背景
+## 1. ??
 
-`ops-platform-module-oa` 内同时存在两套顶层前缀�?
+`ops-platform-module-oa` ????????????
 
-| 前缀 | 示例 | 模块 |
+| ?? | ?? | ?? |
 |------|------|------|
-| `/admin-api/oa/*` | `/oa/config/threshold`、`/oa/dict/data` | M0–M8、M10 |
-| `/admin-api/system/*` | `/system/user/list` | M9 用户/角色/租户 |
+| `/admin-api/oa/*` | `/oa/config/threshold`?`/oa/dict/data` | M0?M8?M10 |
+| `/admin-api/system/*` | `/system/user/list` | M9 ??/??/?? |
 
-前后端虽一致，但新人易误以�?M9 也在 `/oa/` 下，且与「单模块单前缀」直觉不符�?
+?????????????? M9 ?? `/oa/` ?????????????????
 
 ---
 
-## 2. 决策
+## 2. ???Historical ? 2026-06-10 ???
 
-### 2.1 规范路径（Canonical�?
+### 2.1 ?????Canonical?? ?? ADR-058 ??????
 
-**`ops-platform-module-oa` 全部端点�?`/admin-api/oa/` 为唯一规范前缀**�?
+**????2026-06-10?**?`ops-platform-module-oa` ????? `/admin-api/oa/` ????????
 
-| �?| 规范路径 | 说明 |
+| ? | ???????? | ?? |
 |----|----------|------|
-| 业务�?M0–M7 | `/admin-api/oa/{resource}` | 不变 |
-| 配置 M8 | `/admin-api/oa/config/{type}` | 不变 |
-| 系统治理 M9 | `/admin-api/oa/system/{user,role,tenant,permission}` | **S-R23 迁入** |
-| 字典横切 | `/admin-api/oa/dict/*` | ADR-006 已定 |
-| 待建 M9 扩展 | `/admin-api/oa/system/{param,log,message}` | Phase 2 占位 |
+| ??? M0?M7 | `/admin-api/oa/{resource}` | ???Controller ???????? Gateway Rewrite? |
+| ?? M8 | `/admin-api/oa/config/{type}` | ?? |
+| ???? M9 | `/admin-api/oa/system/{user,role,tenant,permission}` | **S-R23 ??** |
+| ???? | `/admin-api/oa/dict/*` | ADR-006 ?? |
+| ?? M9 ?? | `/admin-api/oa/system/{param,log,message}` | Phase 2 ?? |
 
-### 2.2 兼容别名（Deprecated�?
+> **???ADR-058?**???? / Gateway ????? **`/admin-api/ops/**`**???? `oa:*` ????? ADR-058 P6?
 
-M9 四个 Controller 保留 **�?`@RequestMapping`**�?
+### 2.2 ?????Deprecated?
+
+M9 ?? Controller ?? **? `@RequestMapping`**?
 
 ```java
 @RequestMapping({"/admin-api/oa/system/user", "/admin-api/system/user"})
 ```
 
-- 旧路�?`/admin-api/system/*` 仍可用，避免外部脚本断裂
-- 新代码、前�?`api/*.ts`、IT **必须使用** `/oa/system/*`
-- 计划�?Phase 2 移除别名
+- ??? `/admin-api/system/*` ????????????
+- ?????? `api/*.ts`?IT **????** ?? `/ops/system/*`?Gateway Rewrite ??? `/oa/system/*`?
+- ????? Slice ?? `/admin-api/system/*` ??
 
 ---
 
-## 3. 影响�?
+## 3. ???
 
-| �?| 变更 |
+| ? | ?? |
 |----|------|
-| 后端 | User/Role/Tenant/PermissionController 双路�?|
-| 前端 | `system-user.ts`、`system-tenant.ts`、`UserSelect.vue` �?`/oa/system/*` |
-| IT | M9*、GateS2AuthIT 改用规范路径；`M9SystemPathPrefixIT` 测双路径 |
-| 文档 | PRD §3A.2.10、API-M9 v1.1、GLOBAL-CONVENTIONS 字典 URL |
+| ?? | User/Role/Tenant/PermissionController ??? |
+| ?? | `system-user.ts`?`system-tenant.ts`?`UserSelect.vue` ? `/ops/system/*`?P3? |
+| IT | M9*?GateS2AuthIT ???????`M9SystemPathPrefixIT` ???? |
+| ?? | PRD �3A.2.10?API-M9 v1.1?GLOBAL-CONVENTIONS ?? URL |
 
 ---
 
-## 4. 不改动项
+## 4. ????
 
-- 前端 **路由** `/system/user`（Vue Router）与 API 前缀无关，不�?
-- M8 `/oa/config/*` 已在规范前缀下，不改
-- `DictController` 保持 `/oa/dict`（ADR-006�?
+- ?? **??** `/system/user`?Vue Router?? API ???????
+- M8 `/oa/config/*` ?? Controller ????????
+- `DictController` ?? `/oa/dict`?ADR-006????? `/ops/dict`
 
 ---
 
 ## 5. Sign-off
 
-| 角色 | 签字 |
+| ?? | ?? |
 |------|------|
-| 架构 | �?S-R23 |
-| 产品 | �?|
+| ?? | ? S-R23 |
+| ?? | ? |
+| ???? ops | ? ADR-058 � 2026-07-30 |
+| P4 ?? Gateway oa | ? ADR-058 � 2026-07-30 |

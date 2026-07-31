@@ -1,0 +1,57 @@
+{
+  "slice": "P-B-PACKAGE-20260731",
+  "checks": [
+    {
+      "name": "gw-ops-account-list",
+      "url": "http://127.0.0.1:48080/admin-api/ops/account/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "ok": true
+    },
+    {
+      "name": "gw-ops-content-list",
+      "url": "http://127.0.0.1:48080/admin-api/ops/content/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "ok": true
+    },
+    {
+      "name": "gw-ops-ip-group-tree",
+      "url": "http://127.0.0.1:48080/admin-api/ops/ip-group/tree",
+      "http": 200,
+      "code": 0,
+      "ok": true
+    },
+    {
+      "name": "gw-ops-task-list",
+      "url": "http://127.0.0.1:48080/admin-api/ops/task/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "ok": true
+    },
+    {
+      "name": "gw-ops-football-order-list",
+      "url": "http://127.0.0.1:48080/admin-api/ops/football-order/list?startDate=2026-07-01&endDate=2026-07-31&pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "ok": true
+    },
+    {
+      "name": "direct-ops-account-list",
+      "url": "http://127.0.0.1:48094/admin-api/ops/account/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "ok": true
+    },
+    {
+      "name": "direct-ops-content-list",
+      "url": "http://127.0.0.1:48094/admin-api/ops/content/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "ok": true
+    }
+  ],
+  "ops_health": 200,
+  "passCount": 7,
+  "total": 7
+}

@@ -1,0 +1,26 @@
+﻿[
+    {
+        "name":  "no-overlay-gw-account",
+        "http":  200,
+        "code":  0,
+        "ok":  true
+    },
+    {
+        "name":  "no-overlay-gw-content",
+        "http":  200,
+        "code":  0,
+        "ok":  true
+    },
+    {
+        "name":  "no-overlay-gw-ip-group",
+        "http":  200,
+        "code":  0,
+        "ok":  true
+    },
+    {
+        "name":  "no-overlay-direct-account",
+        "http":  200,
+        "code":  0,
+        "ok":  true
+    }
+]

@@ -1,0 +1,8 @@
+﻿{
+    "name":  "gw-ops-task-list",
+    "url":  "http://127.0.0.1:48080/admin-api/ops/task/list?pageNo=1\u0026pageSize=10",
+    "http":  200,
+    "code":  0,
+    "ok":  false,
+    "bodyPreview":  "{\"code\":0,\"msg\":\"ok\",\"data\":{\"list\":[{\"id\":84,\"templateId\":9408,\"nodeId\":9430,\"competitionId\":\"4591005\",\"competitionName\":null,\"planName\":\"0720è®¡å1\",\"nodeName\":\"ç´æ­\",\"assigneeId\":1,\"assigneeName\":\"èéæºç \",\"executorRole\":\"ANCHOR\",\"executorRoleText\":null,\"status\":\"PENDING\",\"needReview\":0,\""
+}

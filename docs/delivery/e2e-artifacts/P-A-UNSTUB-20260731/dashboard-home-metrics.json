@@ -1,0 +1,13 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "totalAuthors": 4,
+      "totalContent": 0,
+      "sopCompletionRate": 0.0,
+      "avgPerfGrade": "D"
+    }
+  }
+}

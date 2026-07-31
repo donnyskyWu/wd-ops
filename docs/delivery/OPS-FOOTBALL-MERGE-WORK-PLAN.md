@@ -3,11 +3,11 @@
 | 字段 | 值 |
 |------|---|
 | 文档性质 | **团队执行工作计划**（按阶段落地；非 Slice 实现规格） |
-| 版本 | **v1.3** |
-| 日期 | **2026-07-30** |
+| 版本 | **v1.4** |
+| 日期 | **2026-07-31** |
 | 决策 SSOT | [OPS-FOOTBALL-RPC-MUST-HAVE.md](./OPS-FOOTBALL-RPC-MUST-HAVE.md) · [OPS-FOOTBALL-MERGE-CLEANUP-INVENTORY.md](./OPS-FOOTBALL-MERGE-CLEANUP-INVENTORY.md) · 完整分析 [OPS-FOOTBALL-FULL-MERGE-RPC-ANALYSIS.md](./OPS-FOOTBALL-FULL-MERGE-RPC-ANALYSIS.md) v1.8 |
 | 关联 ADR | ADR-047 · ADR-049 · ADR-050 · [ADR-050-REV1](../adr/ADR-050-REV1-Football-G-RPC-Supersede.md) · ADR-056 · [ADR-057](../adr/ADR-057-G-PAY-01-page-for-ops.md) · [ADR-058](../adr/ADR-058-OPS后端单仓与football-module-ops命名.md)（monorepo ops 命名；§4.1 sibling 废止） |
-| 状态 | **部分可执行**（Phase A/B 可推进；G-* 业务手验 Pass 7/0 ✅ 2026-07-30；**C-WP7-PHYS 代码物理删 ✅**；**B-WP4-ARCHIVE 签收+本地归档+探测 ✅** 2026-07-31 → Phase C 整包 **GO**（localhost `wd`）；§3.1 **已有限 Supersede**） |
+| 状态 | **部分可执行**（Phase A/B 可推进；G-* 业务手验 Pass 7/0 ✅ 2026-07-30；**C-WP7-PHYS 代码物理删 ✅**；**B-WP4-ARCHIVE 签收+本地归档+探测 ✅** 2026-07-31 → Phase C 整包 **GO**（localhost；OPS master 现 **`football-ops`**，历史 `wd` 备份）；§3.1 **已有限 Supersede**） |
 | 执行优先级（已拍板） | **Phase A 前端 → Phase B 数据库 → Phase C 后端** |
 
 > **读法**：本文回答「按什么顺序做、谁先做、做到什么算完」。缺口 API 与接口说明书见 MUST-HAVE §7；清理对象明细见 CLEANUP Inventory。  
@@ -775,8 +775,8 @@ C-WP0（标记废弃，可与 A 并行）
 
 ---
 
-**版本** v1.3 · **日期** 2026-07-31  
-**下一步**：B-WP3 Flyway 政策；远程/生产归档另窗（若需要）；ADR-056 全量切轨后再删 `FootballOAuth2MasterTokenMapper`。手验证据 → [G-STAR-HANDVERIFY-20260730](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md) · [B-WP4-ARCHIVE-20260731](./e2e-artifacts/B-WP4-ARCHIVE-20260731/REPORT.md) · [FEIGN-CHECKLIST](./OPS-FOOTBALL-INTEGRATION-FEIGN-CHECKLIST.md)。  
+**版本** v1.4 · **日期** 2026-07-31  
+**下一步**：终态收口按 [终态缺口执行计划-20260731](./OPS-FOOTBALL-终态缺口执行计划-20260731.md)（推荐首刀 **P-A**）；并行可排 B-WP3 Flyway 政策、远程归档另窗；ADR-056 全量后再 **P-E** 删 `FootballOAuth2MasterTokenMapper`。手验证据 → [G-STAR-HANDVERIFY-20260730](./e2e-artifacts/G-STAR-HANDVERIFY-20260730/REPORT.md) · [B-WP4-ARCHIVE-20260731](./e2e-artifacts/B-WP4-ARCHIVE-20260731/REPORT.md) · [FEIGN-CHECKLIST](./OPS-FOOTBALL-INTEGRATION-FEIGN-CHECKLIST.md)。  
 **Runtime E2E（2026-07-31）**：条件签收 → [gates/MERGE-RUNTIME-E2E-签收报告-20260731.md](./gates/MERGE-RUNTIME-E2E-签收报告-20260731.md)（78/88）。**B-WP4-ARCHIVE** 已签收执行（localhost）。
 
 > **ADR-058 注（2026-07-30，不改写 Phase C）**：产品锁定 OPS 后端进 Football monorepo（`football-module-ops`）、终态 `ops-server` + `/admin-api/ops/**`、DB 仍仅 `wd`。工程搬迁与 oa→ops 双路由切流见 [ADR-058 §4](../adr/ADR-058-OPS后端单仓与football-module-ops命名.md)；**不**并入当前 Phase C 整包 GO 门禁。建议后续增 **Phase D（命名/单仓）** 工作包，与 B-WP4 / C 整包解耦。
@@ -794,8 +794,14 @@ C-WP0（标记废弃，可与 A 并行）
 | **P5-MIGRATE-1..7** 域切片 | ✅ 2026-07-30/31 | Foundation→IP→Content→Account→SOP→System→Order；双运行 `:48095` |
 | **P5-MIGRATE-8 Cutover** | ✅ 2026-07-31 | monorepo JAR **:48094** + Nacos；旧 oa DEPRECATED；延后域 stub；回滚 `-UseLegacyOa` |
 | **P5-MIGRATE-9 Analytics / ROI** | ✅ 2026-07-31 | FinanceRoi + AccountCost + OrderAttribution 实装；Nacos `cutover-p5-migrate-9`；Dashboard/Screen/Perf 仍 stub |
-| **P5-MIGRATE 剩余域** | 🟡 | Dashboard/Screen/Analysis/Perf/layout/collector/message 等仍 stub；真实现另切片；旧模块未物理删 |
-| **P6** 权限码 `ops:*`（可选） | ⬜ | **勿与 P3 捆绑** |
+| **P5-MIGRATE 剩余域** | 🟡 | Dashboard/Screen/Analysis/… 仍 stub（Perf/layout 等已 UNSTUB）；明细与切片见 [终态缺口执行计划](./OPS-FOOTBALL-终态缺口执行计划-20260731.md) **P-A** |
+| **P6** 权限码 `ops:*`（可选） | ✅ 2026-07-31 | 执行计划 **P-D**；证据 `e2e-artifacts/P-D-PERM-20260731` |
+
+### 8.10 Phase E — 终态缺口收口（四标准审计 2026-07-31）
+
+> **SSOT**：[OPS-FOOTBALL-终态缺口执行计划-20260731.md](./OPS-FOOTBALL-终态缺口执行计划-20260731.md)（P-A stub → P-B 包名 → P-C `/oa`→`/ops` 去 Rewrite → P-D P6 → P-E RBAC 纯 Feign → P-F Match 决策 → P-G 清 `legacy-archive`）。  
+> **已完成**：P-A ✅ · P-B ✅ · P-C ✅ · P-D ✅ · **P-F ✅**（[ADR-059](../adr/ADR-059-G-MATCH-01-external-proxy.md)：G-MATCH-01 Closed-Accept 外部代理，无 Feign）· **P-G ✅**（`legacy-archive` 已 `git rm -r`；证据 `e2e-artifacts/P-G-LEGACY-ARCHIVE-20260731`）。  
+> **剩余**：无（P-E ✅ 2026-07-31 — 删 `FootballOAuth2MasterTokenMapper`；证据 [P-E-RBAC-FEIGN-20260731](./e2e-artifacts/P-E-RBAC-FEIGN-20260731/REPORT.md)）。
 
 ### 8.8 G-PAY-01 字段对表（D-G-PAY-01 REV1 假设 B · ADR-057 · 2026-07-30 ✅）
 

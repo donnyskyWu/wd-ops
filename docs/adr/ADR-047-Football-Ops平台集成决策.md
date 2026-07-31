@@ -7,7 +7,8 @@
 | 状态 | **Accepted** |
 | 日期 | 2026-07-02 |
 | 决策人 | 产品 / 架构（用户锁定） |
-| 关联 | [ADR-003](./ADR-003-模拟鉴权与外部平台SSO对接.md) · [ADR-009](./ADR-009-API路径前缀分配.md) · [INTEGRATION-S0-Football-Ops](../delivery/INTEGRATION-S0-Football-Ops.md) |
+| 关联 | [ADR-003](./ADR-003-模拟鉴权与外部平台SSO对接.md) · [ADR-009](./ADR-009-API路径前缀分配.md) · [ADR-058](./ADR-058-OPS后端单仓与football-module-ops命名.md) · [INTEGRATION-S0-Football-Ops](../delivery/INTEGRATION-S0-Football-Ops.md) |
+| 修订 | **§4.1 Superseded** — [ADR-058](./ADR-058-OPS后端单仓与football-module-ops命名.md)（2026-07-30：monorepo `football-module-ops`；终态 `ops-server` + `/admin-api/ops/**`） |
 
 > **编号说明**：仓库内已有 ADR-047-M4（M10 采集凭证）。本 ADR 使用后缀 `-INT` 标识集成主题，文件名为 `ADR-047-Football-Ops平台集成决策.md`。
 
@@ -26,7 +27,7 @@
 | D1 | **部署：直连微服务** | 采用 Nacos 服务发现 + Spring Cloud Gateway（端口 **48080**），**不走** monolith-first（`football-server` 聚合启动仅作本地参考，非集成目标） |
 | D2 | **数据库：单库统一** | ~~全部业务表位于 MySQL **`101.37.161.136:3306/wd`**~~ → **Superseded by [ADR-050](./ADR-050-Ops与Football多库复用总纲.md) D1**（localhost 五库；远程单库暂保留至 cutover） |
 | D3 | **M9：Football system 模块 SSOT** | 用户 / 角色 / 租户 / 菜单 / 权限以 **`football-module-system`** 为准；**废弃** Ops 侧 M9 用户/角色/租户页面与 API |
-| D4 | **权限前缀：保留 `oa:*`** | 业务模块权限码不变（如 `oa:ip-group:list`）；写入 Football `system_menu.permission` / `system_role_menu`；与 Football 内置 `system:*` 并存 |
+| D4 | **权限前缀：保留 `oa:*`** | 业务模块权限码不变（如 `oa:ip-group:list`）；写入 Football `system_menu.permission` / `system_role_menu`；与 Football 内置 `system:*` 并存。**过渡期仍有效**（[ADR-058](./ADR-058-OPS后端单仓与football-module-ops命名.md) D5：路径/服务先改名；`ops:*` 另 Slice） |
 | D5 | **数据权限：OA 扩展规则** | 基于 Football `football-spring-boot-starter-biz-data-permission` 配置 OA 专属数据范围；**禁止**修改 `football-front/`、`football-backend-saas/` 内 Java/Vue **逻辑**代码 |
 | D6 | **前端路由：沿用 Football 默认** | 使用 Football / Vben **hash 路由**（`createWebHashHistory`）；Ops 页面以子应用或路由挂载方式接入；**禁止**改 `football-front` 业务逻辑 |
 
@@ -39,7 +40,7 @@
 | **禁止改逻辑** | `football-front/**` 下 `.vue/.ts/.tsx` 业务逻辑；`football-backend-saas/**` 下 `.java` 业务与框架逻辑 |
 | **允许改配置/数据** | `application*.yaml`、`.env*`、Nacos 配置项、Gateway 路由 YAML、DB seed / Flyway、Nacos 注册数据 |
 | **DB 目标** | `jdbc:mysql://101.37.161.136:3306/wd`（Ops `application-dev.yml` 已指向该实例） |
-| **API 前缀** | OA 业务 API 保持 **`/admin-api/oa/**`**（[ADR-009](./ADR-009-API路径前缀分配.md)） |
+| **API 前缀** | ~~OA 业务 API 保持 `/admin-api/oa/**`~~ → **终态** `/admin-api/ops/**`（[ADR-058](./ADR-058-OPS后端单仓与football-module-ops命名.md)；过渡双路由见该 ADR §4；历史 [ADR-009](./ADR-009-API路径前缀分配.md)） |
 
 ---
 
@@ -74,6 +75,9 @@ flowchart LR
 ```
 
 ### 4.1 模块边界：`football-module-oa`
+
+> ⚠️ **Superseded by [ADR-058](./ADR-058-OPS后端单仓与football-module-ops命名.md)（2026-07-30）**  
+> 本节「sibling `football-module-oa` + 禁止改 Football 根 POM」**废止**。目标态改为 monorepo **`football-module-ops`**（api/server）、Nacos **`ops-server`**、Gateway **`/admin-api/ops/**`**；OPS 数据源仍仅 **`wd`**。下文保留为历史决策原文。
 
 | 层级 | 路径 | 职责 |
 |------|------|------|

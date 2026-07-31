@@ -1,0 +1,49 @@
+{
+  "slice": "P-D-PERM-20260731",
+  "checks": [
+    {
+      "name": "gw-ops-account-list",
+      "url": "http://127.0.0.1:48080/admin-api/ops/account/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "ok": true
+    },
+    {
+      "name": "gw-ops-content-list",
+      "url": "http://127.0.0.1:48080/admin-api/ops/content/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "ok": true
+    },
+    {
+      "name": "direct-ops-account-list",
+      "url": "http://127.0.0.1:48094/admin-api/ops/account/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "ok": true
+    },
+    {
+      "name": "direct-ops-content-list",
+      "url": "http://127.0.0.1:48094/admin-api/ops/content/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "ok": true
+    },
+    {
+      "name": "gw-ops-ip-group-tree",
+      "url": "http://127.0.0.1:48080/admin-api/ops/ip-group/tree",
+      "http": 200,
+      "code": 0,
+      "ok": true
+    }
+  ],
+  "ops_health": 200,
+  "passCount": 5,
+  "total": 5,
+  "db": {
+    "football_ops_menu": "oa=0 ops=60",
+    "shenyu_system_menu": "oa=0 ops=60",
+    "flyway_v166": "success=1 rename permission oa to ops",
+    "sys_permission": "B-WP4 stop-write; left as oa:* (not used for PreAuthorize SSOT)"
+  }
+}

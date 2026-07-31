@@ -1,0 +1,27 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": [
+      {
+        "type": "TASK",
+        "title": "绩效草稿待处理",
+        "count": 6,
+        "route": "/ops/perf/record"
+      },
+      {
+        "type": "REVIEW",
+        "title": "内容一级待审",
+        "count": 1,
+        "route": "/ops/content/review?stage=FIRST"
+      },
+      {
+        "type": "REVIEW",
+        "title": "内容二级待审",
+        "count": 2,
+        "route": "/ops/content/review?stage=SECOND"
+      }
+    ]
+  }
+}

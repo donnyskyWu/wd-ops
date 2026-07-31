@@ -132,7 +132,7 @@ flowchart LR
 
 1. **开启**：Gateway 增加 ops 路由，**保留** oa 路由；后端接受两前缀（或 Gateway 将 `/admin-api/ops/**` Rewrite 为现有 Controller 前缀）。
 2. **切换消费方**：前端与自动化先切 ops；观察错误率 / 404。
-3. **关闭**：确认无流量后删除 oa 路由与兼容映射；Nacos 仅保留 `ops-server`。（**P4 ✅ 2026-07-30**：Gateway 对外 `/admin-api/oa/**` 已下线；对内仍 Rewrite → Controller `/admin-api/oa/**`。）
+3. **关闭**：确认无流量后删除 oa 路由与兼容映射；Nacos 仅保留 `ops-server`。（**P4 ✅ 2026-07-30**：Gateway 对外 `/admin-api/oa/**` 已下线。**P-C ✅ 2026-07-31**：Controller 亦切 `/admin-api/ops/**`，Gateway **无** Rewrite。）
 
 **禁止**：无双路由窗口的「大爆炸」改名（服务名 + 路径 + 前端 + 权限同一发布）。
 
@@ -156,7 +156,7 @@ flowchart LR
 | **P5-MIGRATE-8 Cutover** ✅ | monorepo `:48094` + Nacos + 脚本切流；旧 oa DEPRECATED | ✅ Gateway smoke；`DeferredCutoverStubController`；回滚 `-UseLegacyOa` |
 | **P5-MIGRATE-9 Analytics / ROI** ✅ | FinanceRoi / AccountCost / OrderAttribution（wd `oa_*`） | ✅ Gateway ROI/cost/归因 code=0；空归因 ROI 防 `selectBatchIds([])`；Dashboard/Screen/Perf 仍 stub |
 
-**Foundation / 域切片延后项（Cutover 后仍开放）**：Football `Security`/`Swagger`/`ApiLogRpc` AutoConfig 排除；`biz-tenant` 未引入；~~Flyway 未搬~~ → **CLEANUP 2026-07-31**：Flyway SSOT 已在 `football-module-ops-server`（`enabled=true`，含 V113 Java migration；`ignore-migration-patterns: "*:missing"` 兼容历史 DELETE 行）；`ops-platform-server` 已删；未迁源码/IT 见 `legacy-archive/`。Content layout/publish/typeset/AI 部分已迁；Account collector-bind / douyin；消息中心 / Metadata；**Dashboard / Screen / Analysis / Funnel / Report / Monitor** — 仍 stub（GET 空 / 写 410），见 `e2e-artifacts/P5-MIGRATE-8-cutover/GAP-INVENTORY.md`。权限仍 `oa:*`（P6）。
+**Foundation / 域切片延后项（Cutover 后仍开放）**：Football `Security`/`Swagger`/`ApiLogRpc` AutoConfig 排除；`biz-tenant` 未引入；~~Flyway 未搬~~ → **CLEANUP 2026-07-31**：Flyway SSOT 已在 `football-module-ops-server`（`enabled=true`，含 V113 Java migration；`ignore-migration-patterns: "*:missing"` 兼容历史 DELETE 行）；`ops-platform-server` 已删；~~未迁源码/IT 见 `legacy-archive/`~~ → **P-G ✅ 2026-07-31** 已 `git rm -r`（仅 git 历史；回滚 `checkout 7e5f1b709 -- …/legacy-archive`）。Content layout/publish/typeset/AI + P-A 分析/大屏等已迁；剩余 stub 见 GAP-INVENTORY（M10 OOS 等）。权限已 `ops:*`（**P-D ✅**）。
 
 ---
 
@@ -223,3 +223,8 @@ flowchart LR
 | 2026-07-31 | Agent | **P5-MIGRATE-8 Cutover ✅**：`application.yaml` 端口 **48094** + Nacos `local` 注册；停旧 `ops-platform-module-oa`；启 monorepo JAR；`DeferredCutoverStubController`（GET 空 / 写 410）覆盖未迁域；`start-integration-oa.ps1` 默认 JAR、`-UseLegacyOa` 回滚；旧 README DEPRECATED。冒烟 Gateway：`ip-group/tree`/`content/list`/`account/list`/`task/list`/`football-order/list`/`dict/data` 均 code=0；Nacos `ops-server` healthy `version=cutover-p5-migrate-8`。权限仍 `oa:*`（P6）；未删旧模块（CLEANUP 另 Slice） |
 | 2026-07-31 | Agent | **P5-MIGRATE-9 Analytics / ROI ✅**：迁入 `FinanceRoi`/`AccountCost`/`OrderAttribution` Controllers+Services+Mappers/DO（wd `oa_account_cost`/`oa_order_attribution`/`oa_order`）；从 stub 移除 `/finance/roi|cost`、`/order-attribution`；订单列表仍 Feign `pageForOps`；空归因 ROI 防护 `selectBatchIds([])`。冒烟 Gateway：`finance/roi/analysis|trend|breakdown`、`finance/cost/list`（total=5）、`order-attribution/list|roi` code=0；回归 `football-order/list`/`content/list`/`account/list` 绿；Nacos `version=cutover-p5-migrate-9`。Dashboard/Screen/Perf 全套延后；回滚仍 `-UseLegacyOa`；未删旧模块；未做 P6 |
 | 2026-07-31 | Agent | **CLEANUP ✅（用户授权删除）**：162 条 Flyway `V*.sql` 迁入 `football-module-ops-server/src/main/resources/db/migration/`；`spring.flyway.enabled=true`（table=`flyway_schema_history`，baseline-on-migrate / out-of-order 同 legacy）。未迁 Controller/Service/IT 归档至 `legacy-archive/`（不进编译路径；Gate E2E 为运行时 SSOT）。`start-integration-oa.ps1 -UseLegacyOa` fail-fast；ROLLBACK → git history。**`git rm -r ops-platform-server`**。脚本路径改指向 monorepo migration。Dashboard/Screen/Analysis 等仍 stub（见 GAP-INVENTORY）。权限仍 `oa:*`（P6） |
+| 2026-07-31 | Agent | **P-C ✅（路径全切）**：全部 Controllers / helpers `/admin-api/oa`→`/admin-api/ops`（62 Java）；Gateway jar + local/beta overlay **移除** `RewritePath` ops→oa，直挂 `/admin-api/ops/**`；**无** Controllers 双路由别名。冒烟见 `e2e-artifacts/P-C-ROUTE-20260731`（GW+直连 code=0；旧 oa 业务 404）。权限仍 `oa:*`（P6 / 终态计划 P-D） |
+| 2026-07-31 | Agent | **P-B ✅（包改名）**：生产源 `cn.iocoder.yudao.module.oa.**`→`football.module.ops.**`；ops 模块内 vendored `cn.iocoder.yudao.framework.**`→`football.module.ops.framework.**`；`OpsServerApplication` 单包扫描 + MapperScan；`legacy-archive` 未动。冒烟见 `e2e-artifacts/P-B-PACKAGE-20260731`（7/7）。HTTP 路径/权限未改（P-C 已完成；P-D 另 Slice） |
+| 2026-07-31 | Agent | **P-B ✅（包改名）**：`football-module-ops-server` 生产源 `cn.iocoder.yudao.module.oa.**`→`football.module.ops.**`；ops-local `cn.iocoder.yudao.framework.**`→`football.module.ops.framework.**`；`OpsServerApplication` 单 `scanBasePackages` + MapperScan。`legacy-archive` 仍旧包（P-G）。冒烟见 `e2e-artifacts/P-B-PACKAGE-20260731`（GW account/content list code=0）。**未**改 HTTP 路径、**未**改 `oa:*`（P-D） |
+| 2026-07-31 | Agent | **P6 / P-D ✅**：权限码 `oa:*`→`ops:*`；`@PreAuthorize` 已 `ops:*`；Flyway `V166` 改 `system_menu.permission`（跳过 B-WP4 stop-write 的 `sys_permission`）；本地 football-ops + shenyu-system 菜单 oa=0/ops=60；seeds 同步；冒烟见 `e2e-artifacts/P-D-PERM-20260731`（5/5）。路径仍 `/admin-api/ops/**` |
+| 2026-07-31 | Agent | **P-G ✅**：`git rm -r football-module-ops-server/legacy-archive/`（422 tracked + 158 untracked disk = 580）；从未进 Maven classpath；回滚 `git checkout 7e5f1b709 -- …/legacy-archive`；冒烟见 `e2e-artifacts/P-G-LEGACY-ARCHIVE-20260731`（3/3）。**未**做 P-E |

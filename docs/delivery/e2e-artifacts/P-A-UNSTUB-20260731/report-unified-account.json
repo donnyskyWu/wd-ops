@@ -1,0 +1,77 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "account_id": 9018,
+          "account_name": "学习1",
+          "platform_type": "KUAISHOU",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9018,
+          "accountName": "学习1"
+        },
+        {
+          "account_id": 9017,
+          "account_name": "专员绑定9001",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9017,
+          "accountName": "专员绑定9001"
+        },
+        {
+          "account_id": 9016,
+          "account_name": "专员绑定9001",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9016,
+          "accountName": "专员绑定9001"
+        },
+        {
+          "account_id": 9015,
+          "account_name": "专员绑定9001",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9015,
+          "accountName": "专员绑定9001"
+        },
+        {
+          "account_id": 9014,
+          "account_name": "专员绑定9001",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9014,
+          "accountName": "专员绑定9001"
+        }
+      ],
+      "total": 21
+    }
+  }
+}

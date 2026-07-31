@@ -1,0 +1,87 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "accountId": 1000006,
+          "accountName": "翕蔚热说-公众号",
+          "platformType": "WECHAT_OFFICIAL",
+          "ipGroupId": 9001,
+          "ipGroupName": "功能测试A",
+          "accountType": null,
+          "status": "NORMAL",
+          "followerCount": 3,
+          "contentCount": 1,
+          "messagesSent": null,
+          "messagesReceived": null,
+          "collectStatus": null,
+          "statDate": null
+        },
+        {
+          "accountId": 1000005,
+          "accountName": "测试",
+          "platformType": "WECHAT_OFFICIAL",
+          "ipGroupId": 9004,
+          "ipGroupName": "系统小组",
+          "accountType": null,
+          "status": "NORMAL",
+          "followerCount": 0,
+          "contentCount": 0,
+          "messagesSent": null,
+          "messagesReceived": null,
+          "collectStatus": null,
+          "statDate": null
+        },
+        {
+          "accountId": 1000004,
+          "accountName": "欣哥侃足球",
+          "platformType": "WECHAT_OFFICIAL",
+          "ipGroupId": 9003,
+          "ipGroupName": "IP小组1",
+          "accountType": null,
+          "status": "NORMAL",
+          "followerCount": 243,
+          "contentCount": 0,
+          "messagesSent": null,
+          "messagesReceived": null,
+          "collectStatus": null,
+          "statDate": null
+        },
+        {
+          "accountId": 1000003,
+          "accountName": "学弈乐",
+          "platformType": "WECHAT_OFFICIAL",
+          "ipGroupId": 9018,
+          "ipGroupName": "张武测试小组1",
+          "accountType": null,
+          "status": "NORMAL",
+          "followerCount": 3,
+          "contentCount": 1,
+          "messagesSent": null,
+          "messagesReceived": null,
+          "collectStatus": null,
+          "statDate": null
+        },
+        {
+          "accountId": 1000002,
+          "accountName": "神鱼体育",
+          "platformType": "WECHAT_OFFICIAL",
+          "ipGroupId": null,
+          "ipGroupName": null,
+          "accountType": null,
+          "status": "NORMAL",
+          "followerCount": 0,
+          "contentCount": 0,
+          "messagesSent": null,
+          "messagesReceived": null,
+          "collectStatus": null,
+          "statDate": null
+        }
+      ],
+      "total": 183
+    }
+  }
+}

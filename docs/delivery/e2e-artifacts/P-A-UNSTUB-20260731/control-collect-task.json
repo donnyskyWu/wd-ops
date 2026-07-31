@@ -1,0 +1,11 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [],
+      "total": 0
+    }
+  }
+}

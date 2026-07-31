@@ -53,7 +53,7 @@
 | ~~`dal/mysql/football/FootballPayAllOrderReadMapper`~~ | pay | 订单只读 | G-PAY-01 / ADR-057 | **已删**（2026-07-29）；Feign `pageForOps` 手验 Pass |
 | ~~`dal/mysql/smoke/SystemDsSmokeMapper`~~ · ~~`PayDsSmokeMapper`~~ | system/pay | 多库 smoke | cutover 后整包删除 | **均已删**（C-WP7-PHYS / 先前） |
 
-**保留（非清理）**：`@DS("master")` — `OaAuthorExtMapper`、`OaAccountExtMapper`、`OaAccountExtDataService`、`FootballOAuth2MasterTokenMapper`（仅过渡期；见 1.2）。
+**保留（非清理）**：`@DS("master")` — `OaAuthorExtMapper`、`OaAccountExtMapper`、`OaAccountExtDataService`（OPS 业务表）。~~`FootballOAuth2MasterTokenMapper`~~ 见 1.2 **已删**（P-E）。
 
 #### 1.2 鉴权：FootballAuthProvider DB/Redis 直读 token
 
@@ -62,7 +62,7 @@
 | ~~`FootballAuthProvider`~~ → `GatewayAuthProvider` | `service/auth/` | Gateway login-user / `checkAccessToken` | **C-WP1 ✅**；旧直读类 **已删**（C-WP7-PHYS） |
 | ~~`FootballOAuth2TokenRedisReader`~~ · ~~`FootballOAuth2RedisProperties`~~ | `service/auth/` · `config/` | Redis 直读 token 快照 | **已删**（C-WP7-PHYS）；`FootballOAuth2TokenSnapshot` 常量保留给操作日志 |
 | ~~`FootballOAuth2TokenMapper`~~（@DS system） | 见上 | 停用 | **已删**（C-WP7-PHYS） |
-| `FootballOAuth2MasterTokenMapper`（@DS master · `system_users` overlay） | `dal/mysql/auth/` | 停用「wd 内 system_users 桥」 | 依赖 ADR-056 全量切轨后删除 |
+| ~~`FootballOAuth2MasterTokenMapper`~~（@DS master · `system_users` overlay） | `dal/mysql/auth/` | 停用「wd 内 system_users 桥」 | **已删**（**P-E** 2026-07-31）；RBAC→Feign `hasAnyPermissions` / `hasAnyRoles` + Gateway login-user；证据 [P-E-RBAC-FEIGN-20260731](./e2e-artifacts/P-E-RBAC-FEIGN-20260731/REPORT.md) |
 | `DevAuthProvider`（条件装配）· `DevAuthFilter`（历史名）· `CompositeAuthProvider` | `framework/auth/` · `service/auth/` | 生产：`oa.auth.dev-token.enabled=false`；IT：`application-test.yml` 开启 | **C-WP7-PHYS ✅** 生产路径下线 |
 | ~~`oa.auth.legacy-ds-token`~~ / ~~`football-redis`~~ | 配置 | 已移除 | **C-WP7-PHYS** 去紧急回滚开关 |
 

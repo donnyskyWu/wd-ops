@@ -1,0 +1,8 @@
+﻿{
+    "name":  "gw-oa-account-list-expect-404",
+    "url":  "http://127.0.0.1:48080/admin-api/oa/account/list?pageNo=1\u0026pageSize=10",
+    "http":  200,
+    "code":  404,
+    "ok":  true,
+    "bodyPreview":  "{\"code\":404,\"msg\":\"No static resource admin-api/oa/account/list.\",\"data\":null}"
+}

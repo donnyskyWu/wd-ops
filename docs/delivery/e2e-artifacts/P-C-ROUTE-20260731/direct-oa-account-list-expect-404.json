@@ -1,0 +1,8 @@
+﻿{
+    "name":  "direct-oa-account-list-expect-404",
+    "url":  "http://127.0.0.1:48094/admin-api/oa/account/list?pageNo=1\u0026pageSize=10",
+    "http":  200,
+    "code":  404,
+    "ok":  true,
+    "bodyPreview":  "{\"code\":404,\"msg\":\"è¯·æ±å°åä¸å­å¨:admin-api/oa/account/list\",\"data\":null}"
+}

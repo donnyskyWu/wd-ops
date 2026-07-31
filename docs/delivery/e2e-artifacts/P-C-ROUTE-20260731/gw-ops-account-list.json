@@ -1,0 +1,8 @@
+﻿{
+    "name":  "gw-ops-account-list",
+    "url":  "http://127.0.0.1:48080/admin-api/ops/account/list?pageNo=1\u0026pageSize=10",
+    "http":  200,
+    "code":  0,
+    "ok":  false,
+    "bodyPreview":  "{\"code\":0,\"msg\":\"ok\",\"data\":{\"list\":[{\"id\":1000006,\"platformType\":\"WECHAT_OFFICIAL\",\"accountType\":null,\"accountName\":\"ç¿èç­è¯´-å\u0085¬ä¼å·\",\"externalAccountId\":\"xwrs\",\"companyId\":9003,\"companyName\":\"æ¥å»å\u0085¬å¸\",\"realnameId\":null,\"realName\":null,\"phoneId\":null,\"phoneNumberMasked\":null,\"simCardId\""
+}
