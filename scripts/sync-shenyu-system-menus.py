@@ -7,7 +7,7 @@ Compares Football menus in the dump against:
   - Optional baseline dump (shenyu-system.sql) when present
 
 Outputs:
-  - ops-platform-server/.../db/migration/V137__sync_shenyu_system_menus.sql
+  - football-module-ops-server/.../db/migration/V137__sync_shenyu_system_menus.sql
   - scripts/integration-config/sync-shenyu-system-menus-standalone.sql
 """
 from __future__ import annotations
@@ -21,7 +21,8 @@ DUMP_BASELINE = ROOT / "docs/sql/shenyu-system.sql"
 OPS_SEED = ROOT / "scripts/integration-config/seed-oa-system-menu.sql"
 MIGRATION_OUT = (
     ROOT
-    / "ops-platform-server/ops-platform-module-oa/src/main/resources/db/migration/V137__sync_shenyu_system_menus.sql"
+    / "football-backend-saas/football-module-ops/football-module-ops-server"
+    / "src/main/resources/db/migration/V137__sync_shenyu_system_menus.sql"
 )
 STANDALONE_OUT = ROOT / "scripts/integration-config/sync-shenyu-system-menus-standalone.sql"
 

@@ -9,7 +9,8 @@ ROOT = Path(__file__).resolve().parents[2]
 SEED = ROOT / "scripts/integration-config/seed-oa-system-menu.sql"
 OUT = (
     ROOT
-    / "ops-platform-server/ops-platform-module-oa/src/main/resources/db/migration/V164__repair_ops_system_menu_charset.sql"
+    / "football-backend-saas/football-module-ops/football-module-ops-server"
+    / "src/main/resources/db/migration/V164__repair_ops_system_menu_charset.sql"
 )
 
 PATTERN = re.compile(r"INSERT INTO system_menu .*? VALUES \((\d+), '([^']*)'", re.MULTILINE)

@@ -1,11 +1,14 @@
 # start-ops-dev.ps1 - One-click Ops dev stack (Football integration Gate path)
 #
+# ADR-058 P5-MIGRATE-8: ops-server = monorepo football-module-ops-server JAR :48094
+# (via start-integration-all → start-integration-oa.ps1). Legacy ops-platform-server deleted (ADR-058 CLEANUP).
+#
 # Fixes recurring "system error" in UI: auto-check Redis password, MySQL, Docker,
 # then restart full integration stack with health table.
 #
 # Gate UI: http://localhost:5777 (football-front pnpm dev:ele → Gateway :48080).
-# ops-platform-ui-vue :3000 is NOT required for this path (Phase A / FOOTBALL-OPS-BRANCH).
-# Preflight: warn if football-* not on ops branch; ensure views/ops mounted (mount-ops-all.py).
+# OPS UI SSOT: football-front :5777 (views/ops). ops-platform-ui-vue / :3000 retired (A-WP1).
+# Preflight: warn if football-* not on ops branch; verify views/ops present (remount retired).
 # Default DB: localhost five schemas (dev-local-multidb). Beta remote is a separate profile.
 #
 # member-server (:48087): DEFAULT = real football-module-member-server JAR (FullMemberServer).
@@ -18,7 +21,7 @@
 #   .\scripts\start-ops-dev.ps1 -FirstRun    # first run / big changes: Maven build (+ member)
 #   .\scripts\start-ops-dev.ps1 -NoRestart   # start missing services only
 #   .\scripts\start-ops-dev.ps1 -UseMemberMock  # Python mock :48087 (no 方案列表)
-#   .\scripts\start-ops-dev.ps1 -MountOps   # force remount OPS pages into football-front
+#   .\scripts\start-ops-dev.ps1 -MountOps   # RETIRED — fails with SSOT message
 #   .\scripts\start-ops-dev.ps1 -SkipMountOps
 #   .\scripts\start-ops-dev.ps1 -Beta       # remote test DB 110.42.49.224 (ops-test-remote.env)
 #   .\scripts\start-ops-dev.ps1 -TestRemote # alias of -Beta
@@ -43,6 +46,11 @@ param(
 
 $ErrorActionPreference = "Continue"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+if ($MountOps) {
+    Write-Host "[retired] -MountOps: remount from ops-platform-ui-vue ended (A-WP1)." -ForegroundColor Red
+    Write-Host "          OPS UI SSOT = football-front/apps/web-ele/src/views/ops — edit there directly." -ForegroundColor Yellow
+    exit 1
+}
 $LogDir = Join-Path $PSScriptRoot "logs"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
@@ -176,5 +184,5 @@ if ($down.Count -eq 0) {
 Write-Host ""
 Write-Host "Quick restart: .\scripts\start-ops-dev.ps1$(if ($Beta) { ' -Beta' })"
 Write-Host "Beta remote:   .\scripts\start-ops-dev.ps1 -Beta"
-Write-Host "Remount OPS:   .\scripts\start-ops-dev.ps1 -MountOps"
+Write-Host "FE edits:      football-front/apps/web-ele/src/views/ops (remount retired)"
 Write-Host "Stop:          .\scripts\stop-integration-all.ps1"

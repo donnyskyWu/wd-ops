@@ -1,0 +1,79 @@
+{
+  "slice": "P5-MIGRATE-8 Cutover",
+  "port": 48094,
+  "via": "gateway",
+  "checks": [
+    {
+      "name": "ip-group-tree",
+      "path": "/admin-api/ops/ip-group/tree",
+      "http": 200,
+      "code": 0,
+      "total": 10,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "content-list",
+      "path": "/admin-api/ops/content/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 38,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "account-list",
+      "path": "/admin-api/ops/account/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 183,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "task-list",
+      "path": "/admin-api/ops/task/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 52,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "football-order-list",
+      "path": "/admin-api/ops/football-order/list?startDate=2026-01-01&endDate=2026-07-30&pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 26341,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "dict-data",
+      "path": "/admin-api/ops/dict/data?type=dict_platform_type&pageNum=1&pageSize=20",
+      "http": 200,
+      "code": 0,
+      "total": 9,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "name": "stub-dashboard",
+      "path": "/admin-api/ops/dashboard/home/summary",
+      "http": 200,
+      "code": 0,
+      "total": null,
+      "msg": "ok",
+      "ok": true
+    }
+  ],
+  "ops_direct_health": "UP",
+  "ok": true,
+  "deferred": [
+    "Dashboard/Screen/Analysis → DeferredCutoverStubController (source in legacy-archive)",
+    "collector-bind / douyin-followers / message / metadata / collect OOS → stub",
+    "P6 oa:* → ops:* permission rename",
+    "ops-platform-server DELETED 2026-07-31 (ADR-058 CLEANUP); Flyway SSOT=football-module-ops"
+  ],
+  "rollback": "git checkout <CLEANUP_PARENT> -- ops-platform-server  # see ROLLBACK.md"
+}

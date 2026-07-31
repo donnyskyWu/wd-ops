@@ -20,8 +20,8 @@ mysql -h 101.37.161.136 -P 3306 -u shenyu -e "SELECT version, description, succe
 
 ```powershell
 # Option A: start oa-server once (Flyway auto-migrate) — preferred
-# Option B: manual via Maven (from ops-platform-module-oa, point datasource to remote — user only)
-mvn -pl ops-platform-module-oa flyway:migrate `
+# Option B: manual via Maven (from football-module-ops-server, point datasource to remote — user only)
+mvn -pl football-module-ops/football-module-ops-server flyway:migrate `
   -Dflyway.url="jdbc:mysql://101.37.161.136:3306/wd?..." `
   -Dflyway.user=shenyu -Dflyway.password=<pwd>
 ```
@@ -45,7 +45,7 @@ SELECT COUNT(*) FROM shenyu-member.author_user;  -- SSOT must exist
 Apply: restart oa-server with remote multidb profile → Flyway runs V132, OR manual:
 
 ```powershell
-mysql -h 101.37.161.136 -P 3306 -u shenyu -p wd < ops-platform-server/ops-platform-module-oa/src/main/resources/db/migration/V132__mdb_s4_cutover_drop_replicas.sql
+mysql -h 101.37.161.136 -P 3306 -u shenyu -p wd < football-backend-saas/football-module-ops/football-module-ops-server/src/main/resources/db/migration/V132__mdb_s4_cutover_drop_replicas.sql
 # Then insert flyway_schema_history row if not using Flyway auto — prefer auto via oa-server start
 ```
 

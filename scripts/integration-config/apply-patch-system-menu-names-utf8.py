@@ -24,7 +24,8 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SEEDS = [
     ROOT / "scripts/integration-config/import-football-system-tables.sql",
     ROOT
-    / "ops-platform-server/ops-platform-module-oa/src/main/resources/db/migration"
+    / "football-backend-saas/football-module-ops/football-module-ops-server"
+    / "src/main/resources/db/migration"
     / "V137__sync_shenyu_system_menus.sql",
     ROOT / "scripts/integration-config/sync-shenyu-system-menus-standalone.sql",
     ROOT / "docs/sql/shenyu-system.sql",
