@@ -1,0 +1,78 @@
+{
+  "req": {
+    "planName": "交付测试1-草稿-smoke2",
+    "templateId": 9408,
+    "ipGroupId": 9022,
+    "startDate": "2026-08-02",
+    "endDate": "2026-08-03",
+    "competitions": [
+      {
+        "competitionId": "e2e-plan-fix2",
+        "competitionName": "E2E-2026-08-03 20:00"
+      }
+    ],
+    "steps": [
+      {
+        "nodeId": 9428,
+        "competitionIds": [
+          "e2e-plan-fix2"
+        ],
+        "assigneeIds": [
+          9163
+        ],
+        "scheduledStart": "2026-08-02 20:32:35",
+        "scheduledEnd": "2026-08-03 20:32:35"
+      },
+      {
+        "nodeId": 9429,
+        "competitionIds": [
+          "e2e-plan-fix2"
+        ],
+        "assigneeIds": [
+          9163
+        ],
+        "scheduledStart": "2026-08-02 20:32:35",
+        "scheduledEnd": "2026-08-03 20:32:35"
+      },
+      {
+        "nodeId": 9430,
+        "competitionIds": [
+          "e2e-plan-fix2"
+        ],
+        "assigneeIds": [
+          9160
+        ],
+        "scheduledStart": "2026-08-02 20:32:35",
+        "scheduledEnd": "2026-08-03 20:32:35"
+      }
+    ],
+    "tasks": [
+      {
+        "nodeId": 9428,
+        "competitionId": "e2e-plan-fix2",
+        "assigneeId": 9163,
+        "scheduledStart": "2026-08-02 20:32:35",
+        "scheduledEnd": "2026-08-03 20:32:35"
+      },
+      {
+        "nodeId": 9429,
+        "competitionId": "e2e-plan-fix2",
+        "assigneeId": 9163,
+        "scheduledStart": "2026-08-02 20:32:35",
+        "scheduledEnd": "2026-08-03 20:32:35"
+      },
+      {
+        "nodeId": 9430,
+        "competitionId": "e2e-plan-fix2",
+        "assigneeId": 9160,
+        "scheduledStart": "2026-08-02 20:32:35",
+        "scheduledEnd": "2026-08-03 20:32:35"
+      }
+    ]
+  },
+  "body": {
+    "code": 500,
+    "msg": "数据保存失败，请检查内容长度或联系管理员",
+    "data": null
+  }
+}

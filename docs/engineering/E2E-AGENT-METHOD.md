@@ -101,13 +101,15 @@
 **推荐目录**
 
 ```
-ops-platform-ui-vue/tests/              # Gate :5777 用例脚本（playwright.football.config.ts）
-ops-platform-ui-vue/test-results/       # 截图、trace（gitignore）
-ops-platform-ui-vue/playwright-report/  # HTML 报告（gitignore）
-football-front/apps/web-ele/tests/      # 58 路由 UAT 基线（ops 分支，run-uat-football-e2e.ps1）
-scripts/logs/                           # oa-server、gateway 等日志
-docs/delivery/e2e-artifacts/{date}/     # 归档用截图索引（建议，见 §11）
+football-front/apps/web-ele/tests/           # Gate :5777 用例（含静态扫描）— SSOT
+football-front/apps/web-ele/playwright.config.ts  # baseURL :5777，无 webServer
+football-front/apps/web-ele/test-results/    # 截图、trace（gitignore）
+football-front/apps/web-ele/playwright-report/  # HTML 报告（gitignore）
+scripts/logs/                                # ops-server、gateway 等日志
+docs/delivery/e2e-artifacts/{date}/          # 归档用截图索引（建议，见 §11）
 ```
+
+> **A-WP1 cutover**：`ops-platform-ui-vue` 已删除；Gate Playwright 仅维护 `football-front/apps/web-ele/tests/`。Standalone `:3000` 路径已退役。
 
 **常用命令**
 
@@ -115,9 +117,12 @@ docs/delivery/e2e-artifacts/{date}/     # 归档用截图索引（建议，见 �
 # 环境（Gate 路径）
 .\scripts\start-ops-dev.ps1
 
+# Gate Playwright（推荐一键）
+.\scripts\run-gate-football-e2e.ps1
+
 # Football 集成内容冒烟（示例）
-cd ops-platform-ui-vue
-npx playwright test tests/football-content-smoke.spec.ts --config=playwright.football.config.ts
+cd football-front/apps/web-ele
+npx playwright test tests/football-content-smoke.spec.ts --config=playwright.config.ts
 
 # 58 路由 UAT 基线
 .\scripts\run-uat-football-e2e.ps1
@@ -309,7 +314,7 @@ Gate 级报告可复用 [`gates/GATE-报告模板.md`](../delivery/gates/GATE-�
 | Checklist | `docs/delivery/CHECKLIST-M*`、`gates/GATE-S*` |
 | 测试用例 | `docs/delivery/TESTCASES-M*` |
 | 阶段 Gate SSOT | [`MASTER-EXECUTION-TRACKER.md`](../delivery/MASTER-EXECUTION-TRACKER.md) |
-| 浏览器自动化（:5777） | `ops-platform-ui-vue/tests/*.spec.ts`、`playwright.football.config.ts` |
+| 浏览器自动化（:5777） | `football-front/apps/web-ele/tests/*.spec.ts`、`playwright.config.ts` |
 | 58 路由 UAT | `scripts/run-uat-football-e2e.ps1`、`football-front/apps/web-ele/tests/uat-football-ops-login.spec.ts` |
 | API 路由探针 | `scripts/verify-ops-pages-per-menu.py` |
 | 截图（运行时） | `ops-platform-ui-vue/test-results/`（`.gitignore`） |
@@ -333,7 +338,7 @@ Gate 级报告可复用 [`gates/GATE-报告模板.md`](../delivery/gates/GATE-�
 
 | 维度 | 现状 | 与方法的关系 |
 |------|------|--------------|
-| **Playwright** | `ops-platform-ui-vue` 已有 20+ spec；`playwright.football.config.ts` 指向 `:5777` 且 `screenshot: 'on'` | ✅ 可直接承载 §5.2 |
+| **Playwright** | `football-front/apps/web-ele/tests` 20+ spec；`playwright.config.ts` 指向 `:5777` 且 `screenshot: 'on'` | ✅ 可直接承载 §5.2 |
 | **Gate 环境** | `start-ops-dev.ps1` → :5777 / :48080 / :48094；文档完备 | ✅ §3 环境检查可执行 |
 | **Checklist / TESTCASES** | 各模块 `CHECKLIST-M*`、`TESTCASES-M*` 已存在 | ✅ SSOT 已有 |
 | **缺陷闭环** | Gate 报告模板、§13 阻塞表、walkthrough DEF 实践（S-R*）、[`defects/`](../delivery/defects/README.md) | ✅ 已建（2026-07-27） |
@@ -349,7 +354,7 @@ Gate 级报告可复用 [`gates/GATE-报告模板.md`](../delivery/gates/GATE-�
 | `verify-ops-pages-per-menu.py` 58/58 API + Vite 探针 | 多数页面 **无逐步 AC 自动化** |
 | Gate 报告模板、`MASTER-EXECUTION-TRACKER`、[`defects/`](../delivery/defects/README.md) | ✅ 已建（2026-07-27） |
 | walkthrough 截图 / 报告自查规则、[`e2e-artifacts/`](../delivery/e2e-artifacts/README.md) | Pass 截图运行时仍在 gitignore；Gate 归档复制到 e2e-artifacts |
-| `run-uat-football-e2e.ps1` | spec 在 `football-front` **ops 分支**，与 `ops-platform-ui-vue/tests` **双轨**，Agent 易选错目录 |
+| `run-uat-football-e2e.ps1` / `run-gate-football-e2e.ps1` | 均指向 `football-front/apps/web-ele/tests`（ui-vue 双轨已结束） |
 | S-R* 走查报告（19+ 页经验） | E2E Agent Prompt **未写入 `.cursor/rules/`**（本文首次落盘） |
 
 ### 11.3 主要风险
@@ -370,7 +375,7 @@ Gate 级报告可复用 [`gates/GATE-报告模板.md`](../delivery/gates/GATE-�
 |---|------|------|
 | **M1** | ✅ [`docs/delivery/defects/`](../delivery/defects/README.md) + [`DEF-TEMPLATE.md`](../delivery/defects/DEF-TEMPLATE.md)；Open DEF 必须入 §13 或 defects 文件 | 已落地 2026-07-27 |
 | **M2** | ✅ **证据归档**：[`docs/delivery/e2e-artifacts/`](../delivery/e2e-artifacts/README.md)（如 `CONTENT-GATE-20260727/`）；Gate 通过时复制关键 Pass 截图 | §8 报告 §5 |
-| **M3** | Playwright 用 **`test.describe('TC-M2-CONTENT-012')`** 或 tag `@p0` 对齐 TESTCASES ID；`playwright.football.config.ts` 保持 `screenshot: 'on'` | `ops-platform-ui-vue/tests/` |
+| **M3** | Playwright 用 **`test.describe('TC-M2-CONTENT-012')`** 或 tag `@p0` 对齐 TESTCASES ID；`playwright.config.ts` 保持 `screenshot: 'on'` | `football-front/apps/web-ele/tests/` |
 | **M4** | E2E 会话 **强制** 先跑 `start-ops-dev.ps1` 健康检查脚本（或 §3 checklist）；Beta 单独标记 `-Beta`，缺陷单注明环境 | 会话开场 SOP |
 | **M5** | 明确 **L3 Gate（PHASE-DEV-METHOD）为主闸门**，本文 **L2.5 E2E 证据层**；Gate 报告 §自动化 引用 E2E 报告路径，不重复定义通过标准 | 文档关系 |
 | **M6** | E2E Agent 规则写入 **`.cursor/rules/e2e-agent-method.mdc`**（`alwaysApply: false`，E2E 任务触发） | 后续迭代 |

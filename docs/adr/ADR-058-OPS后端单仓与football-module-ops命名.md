@@ -51,6 +51,20 @@ ADR-047 §4.1 锁定 OPS 后端目标为 **sibling** 工程 `wd/football-module-
 | 前端 Vue 路由 | 可继续 `/ops/*`（页面路径已 ops） | API base 从 `/admin-api/oa` 切到 `/admin-api/ops` |
 | 端口 | **48094**（初始不变） | Standalone `:8080` 仍非生产路径 |
 
+### 2.2 人类可读名 vs 注册名（2026-08-03 补充）
+
+产品/脚本/文档面向开发者时使用 **`football-module-ops`**（Maven 模块 + JAR `football-module-ops-server.jar` + 健康检查表显示名）。**基础设施注册标识保持不变**，避免联调与 Nacos/Gateway 配置大面积改动：
+
+| 用途 | 名称 | 说明 |
+|------|------|------|
+| 人类可读 / 脚本输出 / 文档 | **`football-module-ops`** | 如 `start-integration-oa.ps1` 启动横幅、健康表 Service 列 |
+| Nacos / `spring.application.name` | **`ops-server`** | Gateway `grayLb://ops-server`、knife4j `service-name` |
+| 可执行 JAR | **`football-module-ops-server.jar`** | 路径 `football-module-ops/football-module-ops-server/target/` |
+| HTTP 规范前缀 | **`/admin-api/ops/**`** | 与 system-server 的 `/admin-api/system/**` 对称 |
+| 进程日志文件（历史） | `ops-server-nacos-run.log` | 文件名可保留；内容来自 football-module-ops 进程 |
+
+**禁止**在本 Slice 将 Nacos 注册名改为 `football-module-ops-server` 或修改 `:48094` 端口，除非单独 ADR + 联调 Slice。
+
 **选型理由（简）**：
 
 - **`football-module-ops`**：与 `football-module-system|member|mp|pay` 对称；产品名是 Ops，不是历史缩写 OA。
@@ -227,4 +241,5 @@ flowchart LR
 | 2026-07-31 | Agent | **P-B ✅（包改名）**：生产源 `cn.iocoder.yudao.module.oa.**`→`football.module.ops.**`；ops 模块内 vendored `cn.iocoder.yudao.framework.**`→`football.module.ops.framework.**`；`OpsServerApplication` 单包扫描 + MapperScan；`legacy-archive` 未动。冒烟见 `e2e-artifacts/P-B-PACKAGE-20260731`（7/7）。HTTP 路径/权限未改（P-C 已完成；P-D 另 Slice） |
 | 2026-07-31 | Agent | **P-B ✅（包改名）**：`football-module-ops-server` 生产源 `cn.iocoder.yudao.module.oa.**`→`football.module.ops.**`；ops-local `cn.iocoder.yudao.framework.**`→`football.module.ops.framework.**`；`OpsServerApplication` 单 `scanBasePackages` + MapperScan。`legacy-archive` 仍旧包（P-G）。冒烟见 `e2e-artifacts/P-B-PACKAGE-20260731`（GW account/content list code=0）。**未**改 HTTP 路径、**未**改 `oa:*`（P-D） |
 | 2026-07-31 | Agent | **P6 / P-D ✅**：权限码 `oa:*`→`ops:*`；`@PreAuthorize` 已 `ops:*`；Flyway `V166` 改 `system_menu.permission`（跳过 B-WP4 stop-write 的 `sys_permission`）；本地 football-ops + shenyu-system 菜单 oa=0/ops=60；seeds 同步；冒烟见 `e2e-artifacts/P-D-PERM-20260731`（5/5）。路径仍 `/admin-api/ops/**` |
+| 2026-08-03 | Agent | **§2.2 补充**：人类可读名 `football-module-ops` vs 注册名 `ops-server` 分工；脚本/健康表/OPS-DEV-DEPLOY-GUIDE 显示名统一，Nacos/Gateway/端口不变 |
 | 2026-07-31 | Agent | **P-G ✅**：`git rm -r football-module-ops-server/legacy-archive/`（422 tracked + 158 untracked disk = 580）；从未进 Maven classpath；回滚 `git checkout 7e5f1b709 -- …/legacy-archive`；冒烟见 `e2e-artifacts/P-G-LEGACY-ARCHIVE-20260731`（3/3）。**未**做 P-E |

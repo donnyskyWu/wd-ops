@@ -1,15 +1,14 @@
-﻿# start-integration-oa.ps1 — Start ops-server (ADR-058 CLEANUP)
+﻿# start-integration-oa.ps1 — Start football-module-ops (ADR-058 CLEANUP)
 #
-# Monorepo football-module-ops-server JAR on :48094, Nacos namespace=local.
-# Legacy ops-platform-server was DELETED 2026-07-31 — use git history to restore.
-#
-# Prerequisites: MySQL localhost:3306 wd; Nacos 127.0.0.1:8848 for Gateway grayLb.
-# Gateway route: football-gateway → grayLb://ops-server · Path=/admin-api/ops/**
+# Monorepo football-module-ops-server JAR on :48094 (Nacos registry id: ops-server).
+# Default: local MySQL wd + Nacos namespace=local (application.yaml).
+# Beta: when -Profiles includes dev-test-beta (from start-integration-all -Beta),
+#       load ops-test-remote.env + ops-test-beta-multidb.yml (remote DB/Nacos/Redis).
 #
 # Usage (from repo root):
 #   .\scripts\start-integration-oa.ps1
 #   .\scripts\start-integration-oa.ps1 -Rebuild
-#   .\scripts\start-integration-stack.ps1
+#   .\scripts\start-integration-all.ps1 -Beta
 
 [CmdletBinding()]
 param(
@@ -29,6 +28,13 @@ $BackendLog = Join-Path $LogDir "ops-server-nacos-run.log"
 
 $MonorepoServerDir = Join-Path $Root "football-backend-saas\football-module-ops\football-module-ops-server"
 $MonorepoJar = Join-Path $MonorepoServerDir "target\football-module-ops-server.jar"
+$BetaOverlay = Join-Path $Root "scripts\integration-config\ops-test-beta-multidb.yml"
+$UseBeta = ($Profiles -match "dev-test-beta") -or ($env:OPS_TEST_DB_HOST -and (Test-Path -LiteralPath $BetaOverlay) -and $Profiles -match "beta")
+
+# Prefer explicit profile token from start-integration-all -Beta
+if ($Profiles -match "dev-test-beta") {
+    $UseBeta = $true
+}
 
 function Stop-ListenersOnPort {
     param([int]$Port)
@@ -50,7 +56,19 @@ See docs/delivery/e2e-artifacts/P5-MIGRATE-8-cutover/ROLLBACK.md
     exit 2
 }
 
-if (-not $SkipNacosPrerequisiteCheck) {
+if ($UseBeta) {
+    if (Get-Command Import-OpsTestRemoteEnv -ErrorAction SilentlyContinue) {
+        if (-not (Import-OpsTestRemoteEnv -Root $Root -Required)) { exit 1 }
+    } elseif (-not $env:OPS_TEST_DB_HOST) {
+        Write-Error "Beta mode requires ops-test-remote.env (OPS_TEST_DB_HOST). See docs/delivery/OPS-TEST-DB.md"
+        exit 1
+    }
+    if (-not (Test-Path -LiteralPath $BetaOverlay)) {
+        Write-Error "Missing beta overlay: $BetaOverlay"
+        exit 1
+    }
+    Write-Host "[beta] football-module-ops (:48094, Nacos ops-server) -> $($env:OPS_TEST_DB_HOST) / $($env:OPS_TEST_MASTER_DB) ; Nacos $($env:OPS_TEST_NACOS_ADDR) ns=$($env:OPS_TEST_NACOS_NAMESPACE)" -ForegroundColor Yellow
+} elseif (-not $SkipNacosPrerequisiteCheck) {
     $nacosUp = $false
     try {
         $null = Invoke-WebRequest -Uri "http://127.0.0.1:8848/nacos/" -UseBasicParsing -TimeoutSec 3
@@ -58,7 +76,7 @@ if (-not $SkipNacosPrerequisiteCheck) {
     } catch { }
     if (-not $nacosUp) {
         Write-Warning "Local Nacos (127.0.0.1:8848) not reachable. Run .\scripts\start-nacos-local.ps1 first (or use -SkipNacosPrerequisiteCheck)."
-        Write-Host "ops-server will still start (fail-fast=false) but will not register until Nacos is up."
+        Write-Host "football-module-ops will still start (fail-fast=false) but will not register as ops-server until Nacos is up."
     }
 }
 
@@ -67,7 +85,7 @@ Stop-ListenersOnPort -Port 48094
 Stop-ListenersOnPort -Port 48095
 Start-Sleep -Seconds 2
 
-Write-Host "=== Start ops-server monorepo football-module-ops-server :48094 ==="
+Write-Host "=== Start football-module-ops (football-module-ops-server.jar :48094) ==="
 if ($Rebuild -or -not (Test-Path -LiteralPath $MonorepoJar)) {
     Write-Host "[build] mvn -pl football-module-ops/football-module-ops-server -am package -DskipTests"
     $saas = Join-Path $Root "football-backend-saas"
@@ -88,9 +106,18 @@ if (-not (Test-Path -LiteralPath $MonorepoJar)) {
 }
 $javaExe = (Get-Command java -ErrorAction SilentlyContinue).Source
 if (-not $javaExe) { Write-Error "java not on PATH"; exit 1 }
+
+$extraCfg = ""
+$titleNote = "Nacos local"
+if ($UseBeta) {
+    $extraCfg = "--spring.config.additional-location=optional:file:$BetaOverlay --spring.flyway.enabled=false"
+    $titleNote = "BETA $($env:OPS_TEST_DB_HOST)"
+    Write-Host "        config: $BetaOverlay" -ForegroundColor DarkGray
+}
+
 $inner = @"
-`$host.UI.RawUI.WindowTitle = 'ops-server monorepo :48094 (Nacos local)'
-& '$javaExe' -jar '$MonorepoJar' *>&1 | Tee-Object -FilePath '$BackendLog' -Append
+`$host.UI.RawUI.WindowTitle = 'football-module-ops :48094 ($titleNote)'
+& '$javaExe' '-Dfile.encoding=UTF-8' -jar '$MonorepoJar' $extraCfg *>&1 | Tee-Object -FilePath '$BackendLog' -Append
 "@
 
 Start-Process -FilePath "powershell.exe" -ArgumentList @(
@@ -98,11 +125,16 @@ Start-Process -FilePath "powershell.exe" -ArgumentList @(
 ) -WindowStyle Minimized | Out-Null
 
 Write-Host "Log: $BackendLog"
-$ok = Wait-HttpEndpoint -Url "http://127.0.0.1:48094/actuator/health" -TimeoutSec $WaitSeconds -Label "ops-server"
+$ok = Wait-HttpEndpoint -Url "http://127.0.0.1:48094/actuator/health" -TimeoutSec $WaitSeconds -Label "football-module-ops"
 if (-not $ok) {
-    Write-Warning "ops-server log: $BackendLog"
+    Write-Warning "football-module-ops log: $BackendLog"
 }
 Write-Host ""
-Write-Host "Verify Nacos: service ops-server in namespace local (when Nacos is up)"
-Write-Host "Via Gateway: curl http://localhost:48080/admin-api/ops/... (ADR-058 P4)"
+if ($UseBeta) {
+    Write-Host "Verify Nacos: service ops-server in namespace $($env:OPS_TEST_NACOS_NAMESPACE) @ $($env:OPS_TEST_NACOS_ADDR)"
+} else {
+    Write-Host "Verify Nacos: service ops-server in namespace local (when Nacos is up)"
+}
+Write-Host "Via Gateway: curl http://localhost:48080/admin-api/ops/... (ADR-058 P-C; no Rewrite)"
 Write-Host "Rollback:    git history restore of ops-platform-server (see ROLLBACK.md)"
+if ($ok) { exit 0 } else { exit 1 }

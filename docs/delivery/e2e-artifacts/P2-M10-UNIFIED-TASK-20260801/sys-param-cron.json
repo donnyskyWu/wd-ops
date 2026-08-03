@@ -1,0 +1,19 @@
+﻿{
+    "code":  0,
+    "msg":  "ok",
+    "data":  {
+                 "list":  [
+                              {
+                                  "id":  12,
+                                  "paramName":  "ç»ä¸ééè°åº¦Cron",
+                                  "paramKey":  "collect.schedule.cron",
+                                  "paramValue":  "0 0 23 * * ?",
+                                  "paramType":  "STRING",
+                                  "category":  "COLLECT",
+                                  "remark":  "ADR-061 ç§æ·ç»ä¸ééä»»å¡é»è®¤æ¯æ¥ 23:00",
+                                  "updateTime":  1785519589000
+                              }
+                          ],
+                 "total":  1
+             }
+}

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Apply patch-system-role-menu-user-type.sql to localhost wd (Gate multidb path)."""
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ def main() -> int:
     parser.add_argument("--port", default="3306")
     parser.add_argument("--user", default="root")
     parser.add_argument("--password", default="root")
-    parser.add_argument("--database", default="wd")
+    parser.add_argument("--database", default="shenyu-ops")
     args = parser.parse_args()
     return apply(args.host, args.port, args.user, args.password, args.database)
 

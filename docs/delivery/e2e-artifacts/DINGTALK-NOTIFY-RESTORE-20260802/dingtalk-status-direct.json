@@ -1,0 +1,19 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "workNotifyEnabled": false,
+      "workNotifySkipReason": "dingtalk.enabled=false（请在系统参数中启用）",
+      "agentIdConfigured": false,
+      "robotFallbackEnabled": false,
+      "webhookConfigured": false,
+      "secretConfigured": false,
+      "platformBaseUrlConfigured": false,
+      "primaryChannel": "none",
+      "sendEnabled": false,
+      "skipReason": "dingtalk.enabled=false（请在系统参数中启用）"
+    }
+  }
+}

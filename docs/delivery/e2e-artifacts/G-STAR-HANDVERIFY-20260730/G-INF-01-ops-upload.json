@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "resp": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "name": "handverify.png",
+      "key": "https://upload.shenyu.com/1/content/20260730/handverify_1785397627416.png",
+      "url": "https://upload.shenyu.com/1/content/20260730/handverify_1785397627416.png"
+    }
+  }
+}

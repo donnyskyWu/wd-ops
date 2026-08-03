@@ -1,0 +1,57 @@
+{
+  "slice": "P5-MIGRATE-5 SOP / Task",
+  "port": 48095,
+  "checks": [
+    {
+      "path": "/admin-api/oa/task/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 52,
+      "msg": "ok"
+    },
+    {
+      "path": "/admin-api/oa/sop/template/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 8,
+      "msg": "ok"
+    },
+    {
+      "path": "/admin-api/oa/ip-group/tree",
+      "http": 200,
+      "code": 0,
+      "total": 10,
+      "msg": "ok"
+    },
+    {
+      "path": "/admin-api/oa/ip-group/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 20,
+      "msg": "ok"
+    },
+    {
+      "path": "/admin-api/oa/content/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 37,
+      "msg": "ok"
+    },
+    {
+      "path": "/admin-api/oa/account/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 182,
+      "msg": "ok"
+    }
+  ],
+  "production_48094": "UP",
+  "ok": true,
+  "deferred": [
+    "task execute upload (FileApi → P5-MIGRATE-6)",
+    "HomeDashboard / TodoReminder real notify",
+    "绩效/Performance domain",
+    "ContentPlan generator wiring (plan UI)"
+  ],
+  "next": "P5-MIGRATE-6 System 支撑（dict/param/message/file/metadata）"
+}

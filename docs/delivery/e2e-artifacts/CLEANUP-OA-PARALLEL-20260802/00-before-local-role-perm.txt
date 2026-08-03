@@ -1,0 +1,81 @@
++---------------+-------------+------+-----+-------------------+-------------------+
+| Field         | Type        | Null | Key | Default           | Extra             |
++---------------+-------------+------+-----+-------------------+-------------------+
+| id            | bigint      | NO   | PRI | NULL              | auto_increment    |
+| role_id       | bigint      | NO   | MUL | NULL              |                   |
+| permission_id | bigint      | NO   |     | NULL              |                   |
+| creator       | varchar(64) | YES  |     | system            |                   |
+| create_time   | timestamp   | NO   |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
++---------------+-------------+------+-----+-------------------+-------------------+
++---------------+
+| section       |
++---------------+
+| ALL_ROLE_PERM |
++---------------+
++----+---------+--------------+---------------+--------------------------+
+| id | role_id | role_code    | permission_id | perm_code                |
++----+---------+--------------+---------------+--------------------------+
+| 19 |       1 | OA_ADMIN     |          1607 | oa:account-analysis:list |
+|  9 |       1 | OA_ADMIN     |            16 | oa:account:create        |
+|  8 |       1 | OA_ADMIN     |            15 | oa:account:list          |
+| 17 |       1 | OA_ADMIN     |          1605 | oa:cost:list             |
+| 14 |       1 | OA_ADMIN     |          1602 | oa:custom-query:list     |
+| 16 |       1 | OA_ADMIN     |          1604 | oa:metric-analysis:list  |
+| 15 |       1 | OA_ADMIN     |          1603 | oa:metric:list           |
+|  3 |       1 | OA_ADMIN     |            10 | oa:permission:list       |
+| 13 |       1 | OA_ADMIN     |          1601 | oa:plan:list             |
+| 18 |       1 | OA_ADMIN     |          1606 | oa:platform-account:list |
+|  2 |       1 | OA_ADMIN     |             5 | oa:role:list             |
+|  5 |       1 | OA_ADMIN     |            12 | oa:tenant:create         |
+|  7 |       1 | OA_ADMIN     |            14 | oa:tenant:delete         |
+|  4 |       1 | OA_ADMIN     |            11 | oa:tenant:list           |
+|  6 |       1 | OA_ADMIN     |            13 | oa:tenant:update         |
+|  1 |       1 | OA_ADMIN     |             1 | oa:user:list             |
+| 26 |       3 | OPS_LEADER   |          1607 | oa:account-analysis:list |
+| 24 |       3 | OPS_LEADER   |          1605 | oa:cost:list             |
+| 21 |       3 | OPS_LEADER   |          1602 | oa:custom-query:list     |
+| 23 |       3 | OPS_LEADER   |          1604 | oa:metric-analysis:list  |
+| 22 |       3 | OPS_LEADER   |          1603 | oa:metric:list           |
+| 20 |       3 | OPS_LEADER   |          1601 | oa:plan:list             |
+| 25 |       3 | OPS_LEADER   |          1606 | oa:platform-account:list |
+| 33 |       4 | OPS_OPERATOR |          1607 | oa:account-analysis:list |
+| 12 |       4 | OPS_OPERATOR |            16 | oa:account:create        |
+| 11 |       4 | OPS_OPERATOR |            15 | oa:account:list          |
+| 31 |       4 | OPS_OPERATOR |          1605 | oa:cost:list             |
+| 28 |       4 | OPS_OPERATOR |          1602 | oa:custom-query:list     |
+| 30 |       4 | OPS_OPERATOR |          1604 | oa:metric-analysis:list  |
+| 29 |       4 | OPS_OPERATOR |          1603 | oa:metric:list           |
+| 27 |       4 | OPS_OPERATOR |          1601 | oa:plan:list             |
+| 32 |       4 | OPS_OPERATOR |          1606 | oa:platform-account:list |
+| 10 |       4 | OPS_OPERATOR |             1 | oa:user:list             |
+| 36 |       5 | FINANCE      |          1607 | oa:account-analysis:list |
+| 34 |       5 | FINANCE      |          1605 | oa:cost:list             |
+| 35 |       5 | FINANCE      |          1606 | oa:platform-account:list |
++----+---------+--------------+---------------+--------------------------+
++---------------+
+| section       |
++---------------+
+| PARALLEL_ONLY |
++---------------+
++----+---------+--------------+---------------+--------------------+
+| id | role_id | role_code    | permission_id | perm_code          |
++----+---------+--------------+---------------+--------------------+
+|  3 |       1 | OA_ADMIN     |            10 | oa:permission:list |
+|  2 |       1 | OA_ADMIN     |             5 | oa:role:list       |
+|  5 |       1 | OA_ADMIN     |            12 | oa:tenant:create   |
+|  7 |       1 | OA_ADMIN     |            14 | oa:tenant:delete   |
+|  4 |       1 | OA_ADMIN     |            11 | oa:tenant:list     |
+|  6 |       1 | OA_ADMIN     |            13 | oa:tenant:update   |
+|  1 |       1 | OA_ADMIN     |             1 | oa:user:list       |
+| 10 |       4 | OPS_OPERATOR |             1 | oa:user:list       |
++----+---------+--------------+---------------+--------------------+
++--------------+
+| section      |
++--------------+
+| TABLE_STATUS |
++--------------+
++---------------------------------------+
+| Tables_in_shenyu-ops (sys_permission) |
++---------------------------------------+
+| sys_permission                        |
++---------------------------------------+

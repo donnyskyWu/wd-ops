@@ -1,0 +1,50 @@
+{
+  "code": 0,
+  "msg": "ok",
+  "data": {
+    "list": [
+      {
+        "id": 30,
+        "title": "E2E-content-list-fix-20260730",
+        "body": "e2e body after data-scope fix",
+        "paidBody": "e2e body after data-scope fix",
+        "freeBody": null,
+        "shelfStatus": null,
+        "authorArticleId": null,
+        "footballSyncError": "同步 Football 方案须指定作者",
+        "bodyFormat": "PLAIN",
+        "layoutJson": null,
+        "layoutHtml": null,
+        "layoutTemplateId": null,
+        "coverImage": null,
+        "creatorUserId": 1749825673829120001,
+        "creatorUserName": null,
+        "accountId": null,
+        "accountName": null,
+        "accountIds": [],
+        "accountNames": [],
+        "platformType": null,
+        "platformTypes": [],
+        "contentType": "SHORT_VIDEO",
+        "status": "DRAFT",
+        "aiGenerated": 0,
+        "taskId": null,
+        "competitionId": "e2e-comp-20260730",
+        "competitionName": "E2E 赛事占位",
+        "documentType": null,
+        "schemeTypes": [],
+        "ipGroupId": 9004,
+        "ipGroupName": "系统小组",
+        "authorId": null,
+        "authorName": null,
+        "generatedVideoUrl": null,
+        "finalVideoUrl": null,
+        "createTime": "2026-07-30T09:41:45",
+        "transferredToKnowledge": 0,
+        "knowledgeId": null,
+        "reviewProgress": null
+      }
+    ],
+    "total": 1
+  }
+}

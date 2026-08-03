@@ -1,0 +1,23 @@
+﻿{
+    "date":  "2026-08-02",
+    "rootCause":  "UnifiedCollectorProbeClient.checkLive() called GET /health (404); collector liveness is GET /livez (200). start-collector.ps1 /livez UP was a false green.",
+    "fix":  "Probe path /health -\u003e /livez; drop Bearer on livez (auth-free). Rebuilt+restarted beta ops-server :48094.",
+    "collector":  {
+                      "tokenAligned":  "test-key-2026",
+                      "healthWithToken":  404,
+                      "pid":  12640,
+                      "baseUrl":  "http://127.0.0.1:8000",
+                      "apiHealth":  200,
+                      "livez":  200
+                  },
+    "smoke":  {
+                  "login":  0,
+                  "latestLogId":  21,
+                  "runData":  true,
+                  "latestErrorPreview":  "ééå¤±è´¥: account:1000112/MP_FOLLOWER_STATS: collector HTTP 404 /api/v1/internal/wechat-mp/acc_wechat_mp_22556c49301482a3/followers/stats; account:1000112/MP_ARTICLE_LIST: collector HTTP 404 /api/v1/internal/wechat-mp/acc_wechat_mp_22556c49301482a3/articles?offset=0\u0026count=1; ...",
+                  "latestStatus":  "FAILED",
+                  "runCode":  0,
+                  "unreachableGone":  true,
+                  "ensureUnifiedTaskId":  8
+              }
+}

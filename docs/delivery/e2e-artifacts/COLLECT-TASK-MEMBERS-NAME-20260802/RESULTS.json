@@ -1,0 +1,31 @@
+{
+  "ok": true,
+  "memberCount": 4,
+  "nullAccountName": 0,
+  "members": [
+    {
+      "accountId": 1,
+      "accountName": "翕蔚热说",
+      "platformType": "WECHAT_VIDEO",
+      "collectEnabled": true
+    },
+    {
+      "accountId": 1000112,
+      "accountName": "翕蔚热说-公众号",
+      "platformType": "WECHAT_OFFICIAL",
+      "collectEnabled": true
+    },
+    {
+      "accountId": 1000109,
+      "accountName": "星城翌立",
+      "platformType": "WECHAT_OFFICIAL",
+      "collectEnabled": true
+    },
+    {
+      "accountId": 1000111,
+      "accountName": "研意竞行",
+      "platformType": "WECHAT_OFFICIAL",
+      "collectEnabled": true
+    }
+  ]
+}

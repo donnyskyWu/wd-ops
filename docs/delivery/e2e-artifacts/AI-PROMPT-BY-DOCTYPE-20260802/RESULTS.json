@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "distinctPromptIds": true,
+  "distinctTemplateNames": true,
+  "results": [
+    {
+      "documentType_req": "POST_MATCH_REVIEW",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "promptId": 12,
+      "promptTemplateName": "AI内容对话-赛后复盘",
+      "documentType_resp": "POST_MATCH_REVIEW",
+      "mock": false,
+      "contentPrefix": "兄弟们，冒烟作者来交底了！\n先亮战绩：近10场实战6胜2平2负，胜率稳超6成。\n不玩虚的，咱们靠的就是长期稳健的研判体系，红时不飘，黑时不慌！\n\n今晚重头戏，英超焦点战：曼联 vs 切尔西！\n这场“红蓝大战”热度拉满，但里面的水很深。\n曼联"
+    },
+    {
+      "documentType_req": "PREHEAT_PREVIEW",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "promptId": 13,
+      "promptTemplateName": "AI内容对话-预热前瞻",
+      "documentType_resp": "PREHEAT_PREVIEW",
+      "mock": false,
+      "contentPrefix": "冒烟作者近期状态稳健，近10场拿下6胜2平2负！\n熟悉冒烟的兄弟都知道，咱们做分析主打综合研判，不盲目追热，只做长期胜率！\n没有极高把握绝不轻易出手，兄弟们放心跟上，咱们稳扎稳打！\n——\n今日冒烟前瞻：曼联主场迎战切尔西，红蓝对决火星撞地球"
+    }
+  ]
+}

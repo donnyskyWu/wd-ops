@@ -1,0 +1,5 @@
+{
+  "http": 200,
+  "code": 404,
+  "body": "{\"code\":404,\"msg\":\"请求地址不存在:admin-api/ops/system/metadata/entity/list\",\"data\":null}"
+}

@@ -1,0 +1,55 @@
+﻿{
+    "roles":  [
+                  {
+                      "review_6118":  true,
+                      "code":  "ip_group_leader",
+                      "task_all_6175":  true,
+                      "id":  160,
+                      "menus":  48
+                  },
+                  {
+                      "review_6118":  true,
+                      "code":  "ops_manager",
+                      "task_all_6175":  true,
+                      "id":  161,
+                      "menus":  71
+                  },
+                  {
+                      "review_6118":  false,
+                      "code":  "finance",
+                      "task_all_6175":  false,
+                      "id":  162,
+                      "menus":  34
+                  },
+                  {
+                      "review_6118":  false,
+                      "code":  "content_editor",
+                      "task_all_6175":  false,
+                      "id":  163,
+                      "menus":  29
+                  },
+                  {
+                      "review_6118":  false,
+                      "code":  "ops_operator",
+                      "task_all_6175":  false,
+                      "id":  164,
+                      "menus":  34
+                  },
+                  {
+                      "review_6118":  false,
+                      "code":  "data_analyst",
+                      "task_all_6175":  false,
+                      "id":  165,
+                      "menus":  54
+                  }
+              ],
+    "host":  "110.42.49.224",
+    "adr":  "ADR-064",
+    "params":  {
+                   "content.review.level1.role":  "ip_group_leader",
+                   "content.review.level2.role":  "ops_manager"
+               },
+    "date":  "2026-08-02",
+    "status":  "PASS",
+    "super_admin_ops_menu_cnt":  71
+}

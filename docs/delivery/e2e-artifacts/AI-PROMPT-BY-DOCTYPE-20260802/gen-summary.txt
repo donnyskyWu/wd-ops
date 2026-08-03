@@ -1,0 +1,6 @@
+POST_MATCH_REVIEW	2985
+PREHEAT_PREVIEW	3088
+NEW_ACCOUNT_TRAFFIC	3029
+SHORT_VIDEO_SCRIPT	2596
+OFFICIAL_PLAN	3028
+sql=D:\self\sy\运营数据平台\202606\wd\football-backend-saas\football-module-ops\football-module-ops-server\src\main\resources\db\migration\V168__ai_content_chat_prompt_by_document_type.sql

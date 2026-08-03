@@ -1,0 +1,57 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "id": 5,
+          "platform": "KUAISHOU",
+          "keyword": "老铁经济",
+          "matchType": "FUZZY",
+          "status": "DISABLED",
+          "createTime": 1781169993000,
+          "updateTime": 1781169993000
+        },
+        {
+          "id": 4,
+          "platform": "WECHAT_OFFICIAL",
+          "keyword": "行业周报",
+          "matchType": "FUZZY",
+          "status": "ENABLED",
+          "createTime": 1781169993000,
+          "updateTime": 1781169993000
+        },
+        {
+          "id": 3,
+          "platform": "XIAOHONGSHU",
+          "keyword": "种草测评",
+          "matchType": "FUZZY",
+          "status": "ENABLED",
+          "createTime": 1781169993000,
+          "updateTime": 1781169993000
+        },
+        {
+          "id": 2,
+          "platform": "DOUYIN",
+          "keyword": "神鱼运营",
+          "matchType": "EXACT",
+          "status": "ENABLED",
+          "createTime": 1781169993000,
+          "updateTime": 1781169993000
+        },
+        {
+          "id": 1,
+          "platform": "DOUYIN",
+          "keyword": "直播带货",
+          "matchType": "FUZZY",
+          "status": "ENABLED",
+          "createTime": 1781169993000,
+          "updateTime": 1781169993000
+        }
+      ],
+      "total": 5
+    }
+  }
+}

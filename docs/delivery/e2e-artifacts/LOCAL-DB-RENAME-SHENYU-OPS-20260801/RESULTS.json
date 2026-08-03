@@ -1,0 +1,16 @@
+{
+  "db": "shenyu-ops",
+  "mode": "local",
+  "checks": [
+    {
+      "name": "ip-group-list",
+      "code": 0,
+      "total": 20
+    },
+    {
+      "name": "param-list",
+      "code": 0,
+      "total": 11
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "http": 200,
+  "code": 0,
+  "body": "{\"code\":0,\"msg\":\"ok\",\"data\":{\"id\":\"1\",\"username\":\"admin\",\"nickname\":\"admin\",\"email\":null,\"phoneMasked\":null,\"position\":null,\"ipGroupId\":\"9004\",\"deptId\":null,\"deptName\":null,\"dingUserId\":null,\"status\":\"ENABLED\",\"remark\":null,\"roleIds\":null,\"roleNames\":null,\"createTime\":null}}"
+}

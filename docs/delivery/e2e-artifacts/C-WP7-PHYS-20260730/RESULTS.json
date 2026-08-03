@@ -1,0 +1,6 @@
+[
+  {"name": "login", "pass": true, "notes": "Gateway admin/admin123"},
+  {"name": "content/list", "http": 200, "code": 0, "pass": true},
+  {"name": "ip-group/list", "http": 200, "code": 0, "pass": true},
+  {"name": "football-order/list", "http": 200, "code": 0, "pass": true, "notes": "with startDate/endDate; total=0"}
+]

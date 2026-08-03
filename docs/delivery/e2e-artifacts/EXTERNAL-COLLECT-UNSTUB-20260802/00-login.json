@@ -1,0 +1,13 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "",
+    "data": {
+      "userId": "1749825673829120001",
+      "accessToken": "c28dad3366614b8aac5d007630c3984e",
+      "refreshToken": "2029dddd8dfa453489c3d08036a27bc7",
+      "expiresTime": 1801228382827
+    }
+  }
+}

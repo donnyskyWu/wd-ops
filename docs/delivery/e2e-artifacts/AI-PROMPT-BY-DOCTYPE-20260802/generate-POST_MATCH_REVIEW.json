@@ -1,0 +1,31 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "sessionId": "8c50bf68-407a-45a5-af1d-35afc9582abc",
+      "content": "兄弟们，冒烟作者来交底了！\n先亮战绩：近10场实战6胜2平2负，胜率稳超6成。\n不玩虚的，咱们靠的就是长期稳健的研判体系，红时不飘，黑时不慌！\n\n今晚重头戏，英超焦点战：曼联 vs 切尔西！\n这场“红蓝大战”热度拉满，但里面的水很深。\n曼联主场看似气势如虹，但防线身后的隐患一直没解决；\n切尔西青年军冲劲足，反击刀刀见血，绝不是来走过场的。\n\n这种强强对话，最忌讳盲目跟风追热。\n战术克制、临场战意、甚至数据机构的诱盘套路，都是决定走向的暗线。\n具体的“冒烟”综合推荐方案，我已经深度推演完毕。\n\n老规矩，好钢用在刀刃上，只做精选高把握对局。\n想要这场红蓝大战的最终“冒烟”精选方向，直接进直播间！\n兄弟们，跟上节奏，咱们今晚一起稳稳拿捏！",
+      "modelId": 8,
+      "roundCount": 1,
+      "tokensUsed": 160,
+      "generatedAt": 1785648186096,
+      "mock": false,
+      "message": "AI 生成完成",
+      "promptId": 12,
+      "promptTemplateName": "AI内容对话-赛后复盘",
+      "documentType": "POST_MATCH_REVIEW"
+    }
+  },
+  "summary": {
+    "documentType_req": "POST_MATCH_REVIEW",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "promptId": 12,
+    "promptTemplateName": "AI内容对话-赛后复盘",
+    "documentType_resp": "POST_MATCH_REVIEW",
+    "mock": false,
+    "contentPrefix": "兄弟们，冒烟作者来交底了！\n先亮战绩：近10场实战6胜2平2负，胜率稳超6成。\n不玩虚的，咱们靠的就是长期稳健的研判体系，红时不飘，黑时不慌！\n\n今晚重头戏，英超焦点战：曼联 vs 切尔西！\n这场“红蓝大战”热度拉满，但里面的水很深。\n曼联"
+  }
+}

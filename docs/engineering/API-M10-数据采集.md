@@ -48,6 +48,10 @@
 - `status` `@InDict(type="dict_collect_status")`
 - `apiConfig` AES-256 加密
 
+> **Delta · ADR-061（假设 A1）**：Channel-A **租户统一任务**路径 — `isUnified=true` / `accountId=null`，成员经 `GET/POST …/task/{id}/members` 与账号 `collectEnabled` 同步；`POST /admin-api/ops/collect/task/ensure-unified` 自动创建。单账号任务创建规则不变。路径前缀在 football 为 `/admin-api/ops/collect/...`。
+>
+> **`GET …/task/{id}/members` 响应字段**：`accountId` · **`accountName`（展示名，必填语义：oa 平台账号取 `oa_account.account_name`，公众号 mp SSOT 取 `mp_account.name`）** · `platformType` · `collectEnabled` · `createTime`。UI 以名称为主、编号为辅。
+
 ### 1.3 PUT `/admin-api/oa/collect/task/update`
 
 ### 1.4 DELETE `/admin-api/oa/collect/task/{id}`

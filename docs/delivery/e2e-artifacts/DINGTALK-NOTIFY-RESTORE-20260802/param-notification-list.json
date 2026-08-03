@@ -1,0 +1,22 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "id": 21,
+          "paramName": "通知平台根 URL",
+          "paramKey": "notification.platform-base-url",
+          "paramValue": "",
+          "paramType": "STRING",
+          "category": "NOTIFICATION",
+          "remark": "钉钉消息跳转链接前缀（如 https://ops.example.com/#/ops）",
+          "updateTime": 1785677617000
+        }
+      ],
+      "total": 1
+    }
+  }
+}

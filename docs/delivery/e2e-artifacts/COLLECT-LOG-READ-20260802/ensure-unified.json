@@ -1,0 +1,31 @@
+{
+  "code": 0,
+  "msg": "ok",
+  "data": {
+    "id": 8,
+    "name": "租户统一采集任务",
+    "taskName": "租户统一采集任务",
+    "platformType": "MULTI",
+    "accountId": null,
+    "accountName": null,
+    "isUnified": true,
+    "memberCount": 3,
+    "memberAccountIds": [
+      1000112,
+      1,
+      3
+    ],
+    "method": "INTERNAL",
+    "source": "UNIFY_COLLECTOR",
+    "dataType": null,
+    "frequency": "DAILY",
+    "cron": "0 0 23 * * ?",
+    "status": "PENDING",
+    "lastRunAt": 1785643800000,
+    "nextRunAt": null,
+    "runCount": 0,
+    "failCount": 2,
+    "createTime": 1785595802000,
+    "createdAt": 1785595802000
+  }
+}

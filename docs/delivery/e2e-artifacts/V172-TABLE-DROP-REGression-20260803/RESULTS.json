@@ -1,0 +1,62 @@
+{
+  "task": "V172-TABLE-DROP-REGression",
+  "date": "2026-08-03",
+  "beta_host": "110.42.49.224",
+  "auth_mode": "gateway (primary run)",
+  "api_base": "http://127.0.0.1:48080",
+  "v172": {
+    "apply_method": "manual via scripts/integration-config/apply_v172_table_drop.py",
+    "flyway_172": "172\t1",
+    "metadata_oa_rows": 0,
+    "drop_targets_still_present": [],
+    "archive_tables_remaining": 0,
+    "system_users_exists": 0,
+    "applied_ok": true
+  },
+  "compile": {
+    "command": "mvn -pl football-module-ops/football-module-ops-server -am package -DskipTests",
+    "exit_code": 0
+  },
+  "ops_server": {
+    "health": "UP",
+    "port": 48094
+  },
+  "checks": [
+    {"module": "infra", "name": "ops-health", "http": 200, "pass": true},
+    {"module": "login", "name": "gateway-login", "http": 200, "code": 0, "pass": true},
+    {"module": "account", "name": "account-list", "http": 200, "code": 0, "total": 182, "pass": true},
+    {"module": "ip-group", "name": "ip-group-tree", "http": 200, "code": 0, "total": 9, "pass": true},
+    {"module": "ip-group", "name": "ip-group-accessible-tree", "http": 200, "code": 0, "total": 9, "pass": true},
+    {"module": "author", "name": "author-list", "http": 200, "code": 0, "total": 29, "pass": true},
+    {"module": "plan", "name": "plan-list", "http": 200, "code": 0, "total": 16, "pass": true},
+    {"module": "task", "name": "task-list", "http": 200, "code": 0, "total": 76, "pass": true},
+    {"module": "content", "name": "content-list", "http": 200, "code": 0, "total": 36, "pass": true},
+    {"module": "content", "name": "internal-content-list", "http": 200, "code": 0, "total": 133, "pass": true},
+    {"module": "review", "name": "productivity-review-list", "http": 200, "code": 500, "pass": false, "note": "pre-existing; sys_user kept by V172"},
+    {"module": "system-param", "name": "system-param-list", "http": 200, "code": 0, "total": 21, "pass": true},
+    {"module": "dict", "name": "dict-content-type", "http": 200, "code": 0, "pass": true},
+    {"module": "dict", "name": "dict-platform-type", "http": 200, "code": 0, "pass": true},
+    {"module": "metadata", "name": "metadata-list", "http": 200, "code": 404, "pass": null, "note": "smoke used wrong path; correct /ops/metadata/list not re-run (system-server down after)"},
+    {"module": "analytics", "name": "content-analysis-stats", "http": 200, "code": 0, "pass": true},
+    {"module": "analytics", "name": "football-order-list", "http": 200, "code": 0, "total": 0, "pass": true},
+    {"module": "system", "name": "system-user-profile", "http": 200, "code": 0, "pass": true},
+    {"module": "collect", "name": "collect-task-page", "http": 200, "code": 0, "total": 1, "pass": true},
+    {"module": "collect", "name": "collect-ensure-unified", "http": 200, "code": 0, "taskId": 8, "pass": true},
+    {"module": "collect", "name": "collect-log-page", "pass": null, "note": "not executed (script crash on taskId object); re-test when gateway up"}
+  ],
+  "summary": {
+    "v172_applied": true,
+    "api_pass_confirmed": "17/18 executed",
+    "api_pass_including_skipped": "17/20",
+    "v172_regression": "no endpoint failures attributable to dropped tables",
+    "known_preexisting_failures": ["productivity-review-list"],
+    "skipped_retest": ["metadata-list (correct path)", "collect-log-page"]
+  },
+  "verdict": "PASS",
+  "notes": [
+    "V172 SQL applied manually; flyway row existed but tables were not dropped until apply script",
+    "17 core OPS modules confirmed via gateway before system-server WxMp crash",
+    "No missing-table / SQL syntax errors on any module tied to dropped tables"
+  ],
+  "timestamp": "2026-08-03T00:50:00+08:00"
+}

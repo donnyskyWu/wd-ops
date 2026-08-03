@@ -1,0 +1,98 @@
+{
+  "path_probes": [
+    {
+      "name": "NESTED_MP_BAD",
+      "http": 404,
+      "code": "Not Found",
+      "msg": "Not Found",
+      "path404_fastapi": true,
+      "ok": false
+    },
+    {
+      "name": "FLAT_MP_FOLLOWER",
+      "http": 200,
+      "code": 0,
+      "msg": "success",
+      "path404_fastapi": false,
+      "ok": true
+    },
+    {
+      "name": "FLAT_MP_PUBLISH",
+      "http": 200,
+      "code": 0,
+      "msg": "success",
+      "path404_fastapi": false,
+      "ok": true
+    },
+    {
+      "name": "NESTED_DY_BAD",
+      "http": 404,
+      "code": "Not Found",
+      "msg": "Not Found",
+      "path404_fastapi": true,
+      "ok": false
+    },
+    {
+      "name": "FLAT_DY_FOLLOWER",
+      "http": 200,
+      "code": 0,
+      "msg": "success",
+      "path404_fastapi": false,
+      "ok": true
+    },
+    {
+      "name": "FLAT_DY_VIDEO",
+      "http": 200,
+      "code": 0,
+      "msg": "success",
+      "path404_fastapi": false,
+      "ok": true
+    },
+    {
+      "name": "NESTED_DY_VIDEO_BAD",
+      "http": 404,
+      "code": "Not Found",
+      "msg": "Not Found",
+      "path404_fastapi": true,
+      "ok": false
+    }
+  ],
+  "task": {
+    "run": {
+      "code": 0,
+      "msg": "ok",
+      "data": true
+    },
+    "logStatus": null,
+    "logId": 23,
+    "latestLog": {
+      "id": 23,
+      "status": "PARTIAL",
+      "recordCount": 7,
+      "durationMs": 14492,
+      "errorMessage": "部分采集失败: account:1/WECHAT_VIDEO: Collector 账号需重新登录或凭证失效: acc_wechat_channels_2e205365ffd7266c"
+    },
+    "previousFailedLog": {
+      "id": 22,
+      "status": "FAILED",
+      "recordCount": 0,
+      "errorMessage": "采集失败: account:1000112/MP_FOLLOWER_STATS: collector HTTP 404 /api/v1/internal/wechat-mp/acc_wechat_mp_22556c49301482a3/followers/stats; account:1000112/MP_ARTICLE_LIST: collector HTTP 404 /api/v1/internal/wechat-mp/acc_wechat_mp_22556c49301482a3/articles?offset=0&count=1; account:1000112/MP_ARTICLE_STATS: collector HTTP 404 /api/v1/internal/wechat-mp/acc_wechat_mp_22556c49301482a3/articles?offset=0&count=1; account:1000112/MP_ARTICLE_CONTENT: collector HTTP 404 /api/v1/internal/wechat-mp/acc_wechat_mp_22556c49301482a3/articles?offset=0&count=1; account:1/WECHAT_VIDEO: Collector 账号需重新登录或凭证失效: ac"
+    },
+    "outcomesSample": []
+  },
+  "notes": [
+    "WECHAT_VIDEO relogin_needed is credential/status (alive=false), not path mismatch."
+  ],
+  "path_mismatch_remaining": [],
+  "relogin_needed": [],
+  "other_http404": [],
+  "verdict": {
+    "nested_path_still_404_in_logs": false,
+    "flat_collector_probes_ok": true,
+    "nested_collector_probes_path404": true,
+    "run_status_after": "PARTIAL",
+    "recordCount": 7,
+    "mp_douyin_path404_gone": true,
+    "wechat_video_relogin_only_remaining": true
+  }
+}

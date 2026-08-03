@@ -1,0 +1,8 @@
+{
+  "status": 200,
+  "resp": {
+    "code": 1503,
+    "msg": "documentType: 字典值不合法; contentType: 字典值不合法; creatorUserId: 不能为null",
+    "data": null
+  }
+}

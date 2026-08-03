@@ -1,0 +1,92 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "id": 9003,
+          "companyName": "来去公司",
+          "creditCode": "556611223344455555",
+          "industry": "new_media",
+          "address": null,
+          "legalName": "章33",
+          "legalIdCardMasked": null,
+          "mpCapacityStandard": 5,
+          "mpRegisteredCount": 0,
+          "mpRemaining": 5,
+          "status": "ENABLED",
+          "businessLicenseKeys": [],
+          "businessLicenseUrls": [],
+          "createTime": 1784563478000
+        },
+        {
+          "id": 9002,
+          "companyName": "SEED-Company-B",
+          "creditCode": "91110000MA0SEED002",
+          "industry": "Media",
+          "address": null,
+          "legalName": null,
+          "legalIdCardMasked": null,
+          "mpCapacityStandard": 15,
+          "mpRegisteredCount": 3,
+          "mpRemaining": 12,
+          "status": "ENABLED",
+          "businessLicenseKeys": [],
+          "businessLicenseUrls": [],
+          "createTime": 1784217472000
+        },
+        {
+          "id": 9001,
+          "companyName": "SEED-Company-A",
+          "creditCode": "91110000MA0SEED001",
+          "industry": "Internet",
+          "address": null,
+          "legalName": null,
+          "legalIdCardMasked": null,
+          "mpCapacityStandard": 20,
+          "mpRegisteredCount": 5,
+          "mpRemaining": 15,
+          "status": "ENABLED",
+          "businessLicenseKeys": [],
+          "businessLicenseUrls": [],
+          "createTime": 1784217472000
+        },
+        {
+          "id": 4,
+          "companyName": "神鱼体育",
+          "creditCode": "123456789098765432",
+          "industry": "mcn",
+          "address": null,
+          "legalName": "啊风格",
+          "legalIdCardMasked": null,
+          "mpCapacityStandard": 5,
+          "mpRegisteredCount": 0,
+          "mpRemaining": 5,
+          "status": "ENABLED",
+          "businessLicenseKeys": [],
+          "businessLicenseUrls": [],
+          "createTime": 1783409708000
+        },
+        {
+          "id": 3,
+          "companyName": "测试1",
+          "creditCode": "112211223344556622",
+          "industry": "mcn",
+          "address": null,
+          "legalName": "啊啊啊",
+          "legalIdCardMasked": null,
+          "mpCapacityStandard": 5,
+          "mpRegisteredCount": 0,
+          "mpRemaining": 5,
+          "status": "ENABLED",
+          "businessLicenseKeys": [],
+          "businessLicenseUrls": [],
+          "createTime": 1783407677000
+        }
+      ],
+      "total": 7
+    }
+  }
+}

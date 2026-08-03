@@ -16,3 +16,14 @@ WHERE NOT EXISTS (
     SELECT 1 FROM system_role r
     WHERE r.code = 'ip_group_leader' AND r.tenant_id = 1 AND r.deleted = b'0'
 );
+
+-- Repair prior charset-corrupted rows (literal '?' / HEX 3F)
+UPDATE system_role
+SET name = 'IP组长',
+    remark = 'OPS 内置：IP 组组长候选人',
+    updater = 'integration',
+    update_time = NOW()
+WHERE code = 'ip_group_leader'
+  AND tenant_id = 1
+  AND deleted = b'0'
+  AND (HEX(name) LIKE '%3F%' OR name LIKE '%?%' OR name <> 'IP组长');

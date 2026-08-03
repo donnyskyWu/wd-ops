@@ -1,0 +1,152 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "id": 9019,
+          "groupName": "bugfix-ok-011228",
+          "groupType": 1,
+          "parentId": null,
+          "parentName": null,
+          "leaderName": null,
+          "memberCount": 0,
+          "accountCount": 0,
+          "anchorCount": 0,
+          "status": 1,
+          "level": "S",
+          "createTime": "2026-07-30T01:12:29"
+        },
+        {
+          "id": 9018,
+          "groupName": "张武测试小组1",
+          "groupType": 2,
+          "parentId": 9009,
+          "parentName": "test-zw-shenyu-id",
+          "leaderName": "张武",
+          "memberCount": 0,
+          "accountCount": 0,
+          "anchorCount": 0,
+          "status": 1,
+          "level": null,
+          "createTime": "2026-07-22T13:56:27"
+        },
+        {
+          "id": 9017,
+          "groupName": "curl-zw-leader-test",
+          "groupType": 1,
+          "parentId": null,
+          "parentName": null,
+          "leaderName": "张武",
+          "memberCount": 0,
+          "accountCount": 0,
+          "anchorCount": 0,
+          "status": 1,
+          "level": null,
+          "createTime": "2026-07-22T13:38:11"
+        },
+        {
+          "id": 9016,
+          "groupName": "SSOT-Snow-小组",
+          "groupType": 2,
+          "parentId": 9015,
+          "parentName": "SSOT-Snow-大组",
+          "leaderName": "芋道源码",
+          "memberCount": 0,
+          "accountCount": 0,
+          "anchorCount": 0,
+          "status": 1,
+          "level": null,
+          "createTime": "2026-07-22T11:33:33"
+        },
+        {
+          "id": 9015,
+          "groupName": "SSOT-Snow-大组",
+          "groupType": 1,
+          "parentId": null,
+          "parentName": null,
+          "leaderName": null,
+          "memberCount": 0,
+          "accountCount": 0,
+          "anchorCount": 0,
+          "status": 1,
+          "level": null,
+          "createTime": "2026-07-22T11:33:33"
+        },
+        {
+          "id": 9014,
+          "groupName": "SSOT-Test-小组2",
+          "groupType": 2,
+          "parentId": 9013,
+          "parentName": "SSOT-Test-大组2",
+          "leaderName": "狗蛋",
+          "memberCount": 0,
+          "accountCount": 0,
+          "anchorCount": 0,
+          "status": 1,
+          "level": null,
+          "createTime": "2026-07-22T11:33:25"
+        },
+        {
+          "id": 9013,
+          "groupName": "SSOT-Test-大组2",
+          "groupType": 1,
+          "parentId": null,
+          "parentName": null,
+          "leaderName": null,
+          "memberCount": 0,
+          "accountCount": 0,
+          "anchorCount": 0,
+          "status": 1,
+          "level": null,
+          "createTime": "2026-07-22T11:33:25"
+        },
+        {
+          "id": 9012,
+          "groupName": "test-zw-string-id",
+          "groupType": 1,
+          "parentId": null,
+          "parentName": null,
+          "leaderName": "zw",
+          "memberCount": 0,
+          "accountCount": 0,
+          "anchorCount": 0,
+          "status": 1,
+          "level": null,
+          "createTime": "2026-07-22T10:54:51"
+        },
+        {
+          "id": 9011,
+          "groupName": "test-zw-corrupt-id",
+          "groupType": 1,
+          "parentId": null,
+          "parentName": null,
+          "leaderName": "芋道源码",
+          "memberCount": 0,
+          "accountCount": 0,
+          "anchorCount": 0,
+          "status": 1,
+          "level": null,
+          "createTime": "2026-07-22T10:53:35"
+        },
+        {
+          "id": 9010,
+          "groupName": "test-zw-wd-id",
+          "groupType": 1,
+          "parentId": null,
+          "parentName": null,
+          "leaderName": "zw",
+          "memberCount": 0,
+          "accountCount": 0,
+          "anchorCount": 0,
+          "status": 1,
+          "level": null,
+          "createTime": "2026-07-22T10:53:34"
+        }
+      ],
+      "total": 20
+    }
+  }
+}

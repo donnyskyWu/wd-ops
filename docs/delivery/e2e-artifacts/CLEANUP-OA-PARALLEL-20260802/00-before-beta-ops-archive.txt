@@ -1,0 +1,21 @@
++------------------+
+| section          |
++------------------+
+| ARCHIVE_PARALLEL |
++------------------+
++----+--------------------+---------------+--------+---------+
+| id | code               | name          | module | deleted |
++----+--------------------+---------------+--------+---------+
+| 10 | oa:permission:list | perm list     | M9     |       0 |
+|  5 | oa:role:list       | role list     | M9     |       0 |
+| 12 | oa:tenant:create   | tenant create | M9     |       0 |
+| 14 | oa:tenant:delete   | tenant delete | M9     |       0 |
+| 11 | oa:tenant:list     | tenant list   | M9     |       0 |
+| 13 | oa:tenant:update   | tenant update | M9     |       0 |
+|  1 | oa:user:list       | user list     | M9     |       0 |
++----+--------------------+---------------+--------+---------+
++-------------+
+| section     |
++-------------+
+| LIVE_TABLES |
++-------------+

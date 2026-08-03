@@ -1,0 +1,50 @@
+{
+  "slice": "P5-MIGRATE-7 Analytics / 订单只读",
+  "port": 48095,
+  "checks": [
+    {
+      "path": "/admin-api/oa/football-order/list?startDate=2026-01-01&endDate=2026-07-30&pageNum=1&pageSize=20",
+      "http": 200,
+      "code": 0,
+      "total": 26341,
+      "list_len": 20,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "path": "/admin-api/oa/content/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 37,
+      "list_len": 5,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "path": "/admin-api/oa/account/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 182,
+      "list_len": 5,
+      "msg": "ok",
+      "ok": true
+    },
+    {
+      "path": "/admin-api/oa/task/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 52,
+      "list_len": 5,
+      "msg": "ok",
+      "ok": true
+    }
+  ],
+  "production_48094": "UP",
+  "ok": true,
+  "deferred": [
+    "Analytics / ROI / dashboard full suite",
+    "Screen / AI / fullscreen stubs (not needed for order list)",
+    "Gateway cutover / P6 permissions"
+  ],
+  "next": "P5-MIGRATE-8 Cutover / remaining domains"
+}

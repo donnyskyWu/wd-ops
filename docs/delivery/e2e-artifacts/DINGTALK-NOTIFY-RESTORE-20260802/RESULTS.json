@@ -1,0 +1,23 @@
+{
+  "checks": [
+    {
+      "name": "dingtalk_params_seeded",
+      "ok": true,
+      "missing": []
+    },
+    {
+      "name": "dev_status_direct",
+      "http": 200,
+      "code": 0,
+      "primaryChannel": "none",
+      "sendEnabled": false,
+      "skipReason": "dingtalk.enabled=false（请在系统参数中启用）"
+    },
+    {
+      "name": "plan_start",
+      "skipped": true,
+      "reason": "no DRAFT plan"
+    }
+  ],
+  "pass": true
+}

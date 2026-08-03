@@ -1,0 +1,29 @@
+﻿{
+    "code":  0,
+    "msg":  "ok",
+    "data":  {
+                 "id":  10,
+                 "name":  "ç§æ·ç»ä¸ééä»»å¡",
+                 "taskName":  "ç§æ·ç»ä¸ééä»»å¡",
+                 "platformType":  "MULTI",
+                 "accountId":  null,
+                 "accountName":  null,
+                 "isUnified":  true,
+                 "memberCount":  0,
+                 "memberAccountIds":  [
+
+                                      ],
+                 "method":  "INTERNAL",
+                 "source":  "UNIFY_COLLECTOR",
+                 "dataType":  null,
+                 "frequency":  "DAILY",
+                 "cron":  "0 0 23 * * ?",
+                 "status":  "PENDING",
+                 "lastRunAt":  null,
+                 "nextRunAt":  null,
+                 "runCount":  0,
+                 "failCount":  0,
+                 "createTime":  1785519791000,
+                 "createdAt":  1785519791000
+             }
+}

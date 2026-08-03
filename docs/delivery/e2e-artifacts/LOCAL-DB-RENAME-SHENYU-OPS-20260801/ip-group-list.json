@@ -1,0 +1,23 @@
+{
+  "code": 0,
+  "msg": "ok",
+  "data": {
+    "list": [
+      {
+        "id": 9019,
+        "groupName": "bugfix-ok-011228",
+        "groupType": 1,
+        "parentId": null,
+        "parentName": null,
+        "leaderName": null,
+        "memberCount": 0,
+        "accountCount": 0,
+        "anchorCount": 0,
+        "status": 1,
+        "level": "S",
+        "createTime": 1785345149000
+      }
+    ],
+    "total": 20
+  }
+}

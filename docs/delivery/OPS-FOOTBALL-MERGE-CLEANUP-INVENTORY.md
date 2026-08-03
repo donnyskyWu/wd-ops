@@ -3,8 +3,8 @@
 | 字段 | 值 |
 |------|---|
 | 文档性质 | **合并后去冗余清理清单**（可执行；非 Slice 实现规格） |
-| 版本 | v1.1 |
-| 日期 | 2026-07-30 |
+| 版本 | v1.2 |
+| 日期 | 2026-08-03 |
 | 决策 SSOT | [OPS-FOOTBALL-RPC-MUST-HAVE.md](./OPS-FOOTBALL-RPC-MUST-HAVE.md) · [OPS-FOOTBALL-FULL-MERGE-RPC-ANALYSIS.md](./OPS-FOOTBALL-FULL-MERGE-RPC-ANALYSIS.md) v1.8 |
 | **执行工作计划** | **[OPS-FOOTBALL-MERGE-WORK-PLAN.md](./OPS-FOOTBALL-MERGE-WORK-PLAN.md)**（v1.3 · 2026-07-30）— 清理项按 **A 前端 → B 数据库 → C 后端** 落地；§7 分阶段与工作包对照见该文 §9 |
 | 关联 ADR | ADR-047 · ADR-050 · [ADR-050-REV1](../adr/ADR-050-REV1-Football-G-RPC-Supersede.md) · ADR-056 · [ADR-057](../adr/ADR-057-G-PAY-01-page-for-ops.md) |
@@ -190,6 +190,30 @@
 | 业务表中仅服务「wd userId ↔ football userId」normalize 的过渡列/缓存 | ADR-056 全量以 Football id 存储后可删桥接逻辑（非必删列，先停写） |
 | `sync_status` 等跨库 Saga 字段（若文章/公号改 Feign 后仍要） | **可能保留**（应用层对账）；勿盲目删 |
 
+#### 3.5 Flyway V172 物理 DROP（2026-08-03）✅
+
+> **Migration**：`V172__drop_archive_and_legacy_unused_tables.sql`  
+> **前提**：B-WP4 备份已归档于 [B-WP4-ARCHIVE-20260731](./e2e-artifacts/B-WP4-ARCHIVE-20260731/REPORT.md)；P-E 已移除 `FootballOAuth2MasterTokenMapper` / master `system_users` overlay 读路径。
+
+| 类别 | 表 | 理由 |
+|------|-----|------|
+| **DROP · archive_*** | `archive_sys_user` / `_token` / `_role` · `archive_sys_role` / `_permission` / `archive_sys_permission` · `archive_sys_operation_log` · `archive_sys_dict_type` / `_data` | B-WP4 同库 RENAME 备份；dump 已存 e2e-artifacts |
+| **DROP · legacy OPS** | `oa_author` · `oa_demo_item` | ADR-050/051 停写；SSOT = `author_user` + `oa_author_ext`；无 `@TableName` / Mapper |
+| **DROP · Football 副本** | `system_users` · `system_role` · `system_menu` · `system_user_role` · `system_oauth2_access_token` · `system_user_author` · `system_user_data` | shenyu-ops 内 Football 基础设施副本；鉴权/用户 SSOT = shenyu-system + Feign（V163 已删其余 system_*） |
+| **DROP · V163 余留** | `sys_audit_log` · `sys_dept` · `sys_login_log` | V163 已声明删除；partial 环境幂等重删 |
+| **元数据清理** | `sys_metadata_entity` / `_field` 中 `physical_table ∈ {oa_author, oa_demo_item}` | 随表 DROP 删映射行 |
+| **代码** | 删未注入 `SysDictDataMapper`；`MetadataServiceImpl` 排除 `archive_*` 前缀 | 字典读 Feign-only；`SysDictDataDO` 仍作 DTO 类型 |
+
+**仍保留（需后续签收再 DROP）**
+
+| 表 | 阻塞原因 |
+|----|----------|
+| `sys_user` / `sys_user_token` / `sys_user_role` | `SysUserMapper` / `SysUserTokenMapper` — H2 IT username 桥接（FootballSystemUserValidator） |
+| `sys_role` / `sys_role_permission` / `sys_permission` | `SysRoleMapper` + legacy roleCode 桥接 |
+| `sys_dict_type` / `sys_dict_data` | Flyway baseline 仍 CREATE；beta 已 archive→V172 DROP archive；本地 dev 表仍存在直至 IT harness 退役 |
+| `sys_operation_log` | 本地 Flyway baseline；beta 已 archive→V172 DROP archive |
+| `sys_tenant` | `restore-data-scope-seed.sql` / Gate seed 仍 INSERT |
+
 ---
 
 ### 4. 前端
@@ -215,9 +239,9 @@
 |----|------|------|
 | 6100–6999 OPS 业务菜单 | **保留**（运营独有） | 仅挂 OPS 模块权限 `oa:*` |
 | 6105「系统管理(OA)」下 | 现仅 **消息 6140**、**参数 6141** | 勿再加用户/部门/字典/日志 |
-| 6137 字典 / 6138 登录日志 / 6139 操作日志 / 6155 作者 | **已从 seed 移除**（注释 + V145–V149） | 结案；环境若残留则跑对应 V 脚本 |
+| 6137 字典 / 6138 登录日志 / 6139 操作日志 / 6155 作者 | **已从 seed 移除**（注释 + V145–V149） | **环境结案** ✅ 2026-08-02 local+Beta `shenyu-system` 无残留；幂等脚本 [`cleanup-oa-parallel-menu-perm.sql`](../../scripts/integration-config/cleanup-oa-parallel-menu-perm.sql) · [CLEANUP-OA-PARALLEL-20260802](./e2e-artifacts/CLEANUP-OA-PARALLEL-20260802/REPORT.md) |
 | Football 原生菜单（用户/部门/菜单/字典/操作日志） | SSOT | OPS seed **不复制**；需要时角色授权原生 menu id |
-| `oa:user:*` / `oa:dept:*` / `oa:dict:update` 等平行权限 | 若仍在库中 | **清理角色绑定**；权限只保留 OPS 自有模块 |
+| `oa:user:*` / `oa:dept:*` / `oa:dict:update` 等平行权限 | `system_menu` / `system_role_menu` **已无** | ✅ 鉴权 SSOT 干净；legacy `sys_permission` 平行码仅 B-WP4 stop-write/archive（不 mutate） |
 
 **时机**：菜单清理 **可立即**核对环境；权限码清扫与前端删页同步。
 
@@ -247,7 +271,7 @@
 |---|------|
 | P0-1 | 文档：部署指南 / 启动矩阵标明五库 `@DS` = **过渡**；目标 = 仅 wd + RPC（链 MUST-HAVE + 本文） |
 | P0-2 | 前端：确认 User/Role/Tenant/Author 管理路由保持 hide；API `system-user` CRUD 标 deprecated |
-| P0-3 | 菜单：环境抽检 6137–6139/6155 已不存在；角色勿绑平行权限 |
+| P0-3 | ~~菜单：环境抽检 6137–6139/6155 已不存在；角色勿绑平行权限~~ ✅ 2026-08-02（[CLEANUP-OA-PARALLEL-20260802](./e2e-artifacts/CLEANUP-OA-PARALLEL-20260802/REPORT.md)） |
 | P0-4 | 停写：`oa_author`（非 ext）、wd `system_users` 新写、wd `sys_dict_*` 作为 SSOT 新写 |
 | P0-5 | ~~钉钉通讯录 sync API/按钮隐藏或 410（D-DING-02）~~ ✅ C-WP0 2026-07-30（业务码 410） |
 | P0-6 | ~~操作日志：审计是否仍双写 `sys_operation_log`；计划去掉 `OperationLogRecorder` 本地写~~ ✅ C-WP0 2026-07-30（停 insert；Mapper 物理删属 P2） |

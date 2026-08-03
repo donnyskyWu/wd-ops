@@ -1,4 +1,4 @@
--- Menu/role fixes for remote test shenyu-system (run as shenyu-system user).
+﻿-- Menu/role fixes for remote test shenyu-system (run as shenyu-system user).
 -- Dict merge: scripts/integration-config/seed-ops-test-remote-dict.py (separate credentials).
 
 SET NAMES utf8mb4;
@@ -15,7 +15,7 @@ INSERT INTO system_menu (
     status, visible, keep_alive, always_show, creator, user_type
 )
 SELECT
-    6175, '全部任务', 'oa:task:list', 2, 9, 6102, 'task/all', 'ep:document',
+    6175, '全部任务', 'ops:task:list', 2, 9, 6102, 'task/all', 'ep:document',
     'ops/production/task/all', 'TaskAll', 0, b'1', b'1', b'1', 'ops-test-seed', 2
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6175);
@@ -50,6 +50,17 @@ WHERE NOT EXISTS (
     SELECT 1 FROM system_role r
     WHERE r.code = 'ip_group_leader' AND r.tenant_id = 1 AND r.deleted = b'0'
 );
+
+-- Repair prior PowerShell-pipe seed: Chinese became literal '?' (HEX 3F)
+UPDATE system_role
+SET name = 'IP组长',
+    remark = 'OPS 内置：IP 组组长候选人',
+    updater = 'ops-test-seed',
+    update_time = NOW()
+WHERE code = 'ip_group_leader'
+  AND tenant_id = 1
+  AND deleted = b'0'
+  AND (HEX(name) LIKE '%3F%' OR name LIKE '%?%' OR name <> 'IP组长');
 
 DELETE FROM system_role_menu WHERE menu_id IN (6137, 6138, 6139, 6155);
 DELETE FROM system_menu WHERE id IN (6137, 6138, 6139, 6155);

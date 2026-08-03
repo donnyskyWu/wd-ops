@@ -1,0 +1,9 @@
+﻿TABLE_SCHEMA	c
+football-ops	108
+shenyu-ops	108
+ipg
+20
+params
+11
+fly
+167

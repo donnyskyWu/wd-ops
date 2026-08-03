@@ -1,0 +1,47 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "id": 41,
+          "configName": "smoke-ext-account-20260802",
+          "subType": "account",
+          "platformType": "DOUYIN",
+          "accountId": null,
+          "accountName": null,
+          "accountIdentifier": "smoke_dy_uid_20260802",
+          "appId": null,
+          "appSecretMasked": null,
+          "cookie": null,
+          "authTokenMasked": null,
+          "fieldMapping": null,
+          "isLive": false,
+          "dbHost": null,
+          "dbPort": 3306,
+          "dbName": null,
+          "dbUsername": null,
+          "dbPasswordMasked": null,
+          "tableName": "pay_all_order",
+          "syncMode": "INCREMENTAL",
+          "connStatus": "DISCONNECTED",
+          "collectFrequency": "DAILY",
+          "collectMethod": null,
+          "apiUrl": null,
+          "apiKeyMasked": null,
+          "requestMethod": null,
+          "requestParams": null,
+          "responseMapping": null,
+          "collectFields": null,
+          "status": "ENABLED",
+          "remark": null,
+          "createTime": 1785676388000,
+          "updateTime": 1785676388000
+        }
+      ],
+      "total": 1
+    }
+  }
+}

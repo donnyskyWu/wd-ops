@@ -1,0 +1,19 @@
+{
+  "bug": "进入外部采集配置页面报系统异常",
+  "reproAt": "2026-08-02T20:54+08:00",
+  "verdict": "NO_CODE_DEFECT_TRANSIENT_GATEWAY_500",
+  "rootCause": "ops-server JAR redeploy/restart at 20:54:43–20:54:44 (PID 40480). During the downtime window Gateway GlobalExceptionHandler returns {code:500,msg:系统异常}. No ERROR stack for /ops/config/external-collect/** in ops logs.",
+  "fix": "ops-server already UP on :48094 with ExternalCollectConfigController in JAR; no source change required.",
+  "smoke": {
+    "listAccount": {"code": 0, "total": 4},
+    "keywordList": {"code": 0, "total": 5},
+    "dict_platform_type": {"code": 0, "total": 9},
+    "dict_config_status": {"code": 0, "total": 2},
+    "dict_match_type": {"code": 0, "total": 2},
+    "browserPath": "/ops/config/config-external-collect",
+    "browserAccountRows": 4,
+    "browserKeywordRows": 5,
+    "browserMsg系统异常": false
+  },
+  "note": "Wrong path /ops/config-external-collect is FE 404 (menu is /ops/config/config-external-collect). Unrelated to 系统异常 toast."
+}

@@ -1,0 +1,88 @@
+{
+  "code": 0,
+  "msg": "ok",
+  "data": [
+    {
+      "id": 9005,
+      "groupName": "IT-Debug-Big",
+      "groupType": 1,
+      "parentId": null,
+      "parentName": null,
+      "leaderId": "1749825673829120202",
+      "leaderName": "张武",
+      "memberCount": 0,
+      "accountCount": 0,
+      "anchorCount": 0,
+      "status": 1,
+      "level": null,
+      "createTime": 1784685495000,
+      "children": [
+        {
+          "id": 9020,
+          "groupName": "smoke-fix-sub-65798",
+          "groupType": 2,
+          "parentId": 9005,
+          "parentName": "IT-Debug-Big",
+          "leaderId": "9160",
+          "leaderName": "IP组长测试",
+          "memberCount": 0,
+          "accountCount": 0,
+          "anchorCount": 0,
+          "status": 1,
+          "level": "S",
+          "createTime": 1785665803000,
+          "children": []
+        },
+        {
+          "id": 9021,
+          "groupName": "smoke-fix-ol-65798",
+          "groupType": 2,
+          "parentId": 9005,
+          "parentName": "IT-Debug-Big",
+          "leaderId": "9160",
+          "leaderName": "IP组长测试",
+          "memberCount": 0,
+          "accountCount": 0,
+          "anchorCount": 0,
+          "status": 1,
+          "level": "S",
+          "createTime": 1785665808000,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": 9000,
+      "groupName": "测试大组",
+      "groupType": 1,
+      "parentId": null,
+      "parentName": null,
+      "leaderId": "1749825673829120202",
+      "leaderName": "张武",
+      "memberCount": 2,
+      "accountCount": 1,
+      "anchorCount": 1,
+      "status": 1,
+      "level": null,
+      "createTime": 1783183735000,
+      "children": [
+        {
+          "id": 9022,
+          "groupName": "交付测试1",
+          "groupType": 2,
+          "parentId": 9000,
+          "parentName": "测试大组",
+          "leaderId": "9160",
+          "leaderName": "IP组长测试",
+          "memberCount": 2,
+          "accountCount": 1,
+          "anchorCount": 1,
+          "status": 1,
+          "level": "A",
+          "createTime": 1785666400000,
+          "children": []
+        }
+      ]
+    }
+  ]
+}

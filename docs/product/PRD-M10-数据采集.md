@@ -240,6 +240,9 @@
 | ADR-047 | Channel-A 凭证 SSOT？ | M4 `oa_account` + bind 表 | 消除 M8 双 SSOT |
 | ADR-048 | 企微采集？ | `WeComAdapter` 直连 | 不经 collector bind |
 | ADR-049 | 单任务多 dataType？ | 空 data_type = 全量顺序执行 | 降低运营配置成本 |
+| **ADR-061** | Channel-A 默认一账号一任务？ | **否（假设 A1）**：租户级 **一条**统一任务 + `oa_collect_task_account` 成员；账号 `collect_enabled` 控制入退 | 降低运营配置成本；见 [ADR-061](../adr/ADR-061-租户级统一采集任务.md) |
+
+> **附注（ADR-061）**：§4.1.2 `account_id` 强关联适用于历史/单账号任务；**统一任务** `account_id=NULL`，成员表挂多账号。调度 cron 默认来自 `sys_param.collect.schedule.cron`（23:00）。
 
 ---
 

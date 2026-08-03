@@ -1,0 +1,10 @@
+﻿SCHEMA_NAME
+football-ops
+wd
+TABLE_SCHEMA	tbl_cnt
+football-ops	108
+wd	108
+k	c
+flyway	166
+oa_ip_group	20
+sys_param	11

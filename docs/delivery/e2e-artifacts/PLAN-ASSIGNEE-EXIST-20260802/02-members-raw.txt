@@ -1,0 +1,1 @@
+{"code":0,"msg":"ok","data":[{"memberId":12,"userId":9163,"userName":"内容编辑测试","position":"EDITOR","positionText":"编辑","isLeader":false,"joinTime":1785671197000},{"memberId":11,"userId":"2077584621618393088","userName":"张武","position":"OPERATOR","positionText":"运营","isLeader":false,"joinTime":1785666499000}]}

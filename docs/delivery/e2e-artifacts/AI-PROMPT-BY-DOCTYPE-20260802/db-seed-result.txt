@@ -1,0 +1,25 @@
+executed_statements=12
+id	document_type	template_name	prefix	chars
+14	NEW_ACCOUNT_TRAFFIC	AI内容对话-新号引流	【文档类型提示词·新号引流·NEW_ACCOUNT_TRAFFIC】
+
+【系统上	3025
+16	OFFICIAL_PLAN	AI内容对话-正式方案	【文档类型提示词·正式方案·OFFICIAL_PLAN】
+
+【系统上下文】
+【赛	3008
+12	POST_MATCH_REVIEW	AI内容对话-赛后复盘	【文档类型提示词·赛后复盘·POST_MATCH_REVIEW】
+
+【系统上下文	2981
+13	PREHEAT_PREVIEW	AI内容对话-预热前瞻	【文档类型提示词·预热前瞻·PREHEAT_PREVIEW】
+
+【系统上下文】
+	3084
+15	SHORT_VIDEO_SCRIPT	AI内容对话-短视频文案	【文档类型提示词·短视频文案·SHORT_VIDEO_SCRIPT】
+
+【系统上	2568
+10	None	AI内容对话生成	你是一位专业的体育自媒体内容编辑，擅长撰写赛事分析方案。
+
+
+
+【赛事信息】{{	495
+flyway_168_existing=False rank_next=169 (not inserted; Flyway will run idempotent V168)

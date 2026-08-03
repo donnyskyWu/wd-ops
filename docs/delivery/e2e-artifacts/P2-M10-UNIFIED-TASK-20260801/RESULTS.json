@@ -1,0 +1,11 @@
+﻿{
+  "ensure": true,
+  "cron": true,
+  "legacy": true,
+  "wechat": true,
+  "page": true,
+  "run": true,
+  "runNot1511": true,
+  "runLogStatus": "FAILED",
+  "runNote": "collector offline / unbound — expected locally"
+}

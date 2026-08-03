@@ -1,0 +1,92 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "id": 20,
+          "paramName": "钉钉机器人加签",
+          "paramKey": "dingtalk.robot.secret",
+          "paramValue": "",
+          "paramType": "STRING",
+          "category": "DINGTALK",
+          "remark": "Webhook 加签 SEC 密钥（可选）",
+          "updateTime": 1785681471000
+        },
+        {
+          "id": 19,
+          "paramName": "钉钉机器人 Webhook",
+          "paramKey": "dingtalk.robot.webhook-url",
+          "paramValue": "",
+          "paramType": "STRING",
+          "category": "DINGTALK",
+          "remark": "自定义机器人 Webhook URL（含 access_token）",
+          "updateTime": 1785681471000
+        },
+        {
+          "id": 18,
+          "paramName": "钉钉机器人启用",
+          "paramKey": "dingtalk.robot.enabled",
+          "paramValue": "false",
+          "paramType": "BOOLEAN",
+          "category": "DINGTALK",
+          "remark": "工作通知失败时的可选 Webhook 降级",
+          "updateTime": 1785681471000
+        },
+        {
+          "id": 17,
+          "paramName": "钉钉 AgentId",
+          "paramKey": "dingtalk.agent-id",
+          "paramValue": "",
+          "paramType": "STRING",
+          "category": "DINGTALK",
+          "remark": "工作通知微应用 AgentId（如 4335523092）",
+          "updateTime": 1785681471000
+        },
+        {
+          "id": 16,
+          "paramName": "钉钉 CorpId",
+          "paramKey": "dingtalk.corp-id",
+          "paramValue": "",
+          "paramType": "STRING",
+          "category": "DINGTALK",
+          "remark": "企业 ID（可选归档）",
+          "updateTime": 1785681471000
+        },
+        {
+          "id": 15,
+          "paramName": "钉钉 AppSecret",
+          "paramKey": "dingtalk.client-secret",
+          "paramValue": "",
+          "paramType": "STRING",
+          "category": "DINGTALK",
+          "remark": "企业内部应用 ClientSecret（勿提交 git）",
+          "updateTime": 1785681471000
+        },
+        {
+          "id": 14,
+          "paramName": "钉钉 AppKey",
+          "paramKey": "dingtalk.client-id",
+          "paramValue": "",
+          "paramType": "STRING",
+          "category": "DINGTALK",
+          "remark": "企业内部应用 ClientId / AppKey（勿提交 git）",
+          "updateTime": 1785681471000
+        },
+        {
+          "id": 13,
+          "paramName": "?????????",
+          "paramKey": "dingtalk.enabled",
+          "paramValue": "false",
+          "paramType": "BOOLEAN",
+          "category": "DINGTALK",
+          "remark": "ADR-026 ?????????????rue ??? asyncsend_v2",
+          "updateTime": 1785681378000
+        }
+      ],
+      "total": 8
+    }
+  }
+}

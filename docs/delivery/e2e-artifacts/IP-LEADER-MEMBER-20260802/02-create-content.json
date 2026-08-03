@@ -1,0 +1,18 @@
+{
+  "http": 200,
+  "req": {
+    "title": "ADR-066 opsleader content smoke",
+    "contentType": "ARTICLE",
+    "creatorUserId": 9160,
+    "body": "smoke body for leader membership",
+    "documentType": "PREHEAT_PREVIEW",
+    "ipGroupId": 9022,
+    "competitionId": "e2e-adr066",
+    "competitionName": "ADR066 smoke match"
+  },
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": 33
+  }
+}

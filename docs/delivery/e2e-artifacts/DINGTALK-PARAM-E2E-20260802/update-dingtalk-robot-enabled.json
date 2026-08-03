@@ -1,0 +1,17 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": true
+  },
+  "payload": {
+    "id": 18,
+    "paramName": "钉钉机器人启用",
+    "paramKey": "dingtalk.robot.enabled",
+    "paramValue": "true",
+    "paramType": "BOOLEAN",
+    "category": "DINGTALK",
+    "remark": "工作通知失败时的可选 Webhook 降级"
+  }
+}

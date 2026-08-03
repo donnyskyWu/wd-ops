@@ -7,7 +7,7 @@
 | 日期 | **2026-07-31** |
 | 决策 SSOT | [OPS-FOOTBALL-RPC-MUST-HAVE.md](./OPS-FOOTBALL-RPC-MUST-HAVE.md) · [OPS-FOOTBALL-MERGE-CLEANUP-INVENTORY.md](./OPS-FOOTBALL-MERGE-CLEANUP-INVENTORY.md) · 完整分析 [OPS-FOOTBALL-FULL-MERGE-RPC-ANALYSIS.md](./OPS-FOOTBALL-FULL-MERGE-RPC-ANALYSIS.md) v1.8 |
 | 关联 ADR | ADR-047 · ADR-049 · ADR-050 · [ADR-050-REV1](../adr/ADR-050-REV1-Football-G-RPC-Supersede.md) · ADR-056 · [ADR-057](../adr/ADR-057-G-PAY-01-page-for-ops.md) · [ADR-058](../adr/ADR-058-OPS后端单仓与football-module-ops命名.md)（monorepo ops 命名；§4.1 sibling 废止） |
-| 状态 | **部分可执行**（Phase A/B 可推进；G-* 业务手验 Pass 7/0 ✅ 2026-07-30；**C-WP7-PHYS 代码物理删 ✅**；**B-WP4-ARCHIVE 签收+本地归档+探测 ✅** 2026-07-31 → Phase C 整包 **GO**（localhost；OPS master 现 **`football-ops`**，历史 `wd` 备份）；§3.1 **已有限 Supersede**） |
+| 状态 | **部分可执行**（Phase A/B 可推进；G-* 业务手验 Pass 7/0 ✅ 2026-07-30；**C-WP7-PHYS 代码物理删 ✅**；**B-WP4-ARCHIVE 签收+本地归档+探测 ✅** 2026-07-31 → Phase C 整包 **GO**（localhost；OPS master 现 **`shenyu-ops`**，备份 `football-ops`/`wd`）；§3.1 **已有限 Supersede**） |
 | 执行优先级（已拍板） | **Phase A 前端 → Phase B 数据库 → Phase C 后端** |
 
 > **读法**：本文回答「按什么顺序做、谁先做、做到什么算完」。缺口 API 与接口说明书见 MUST-HAVE §7；清理对象明细见 CLEANUP Inventory。  
@@ -136,7 +136,7 @@ OPS UI 以 **football-front 为唯一源**；去掉平行管理页与废弃路�
 - [x] 确认 AuthorRedirect → Football `#/author/info`（书签兼容保留 Redirect 页）
 - [x] 删除或停用 `api/system-user.ts` CRUD 调用方（文件标 deprecated；路由不再挂 CRUD 页）
 - [x] 残留组件引用 grep（操作日志/登录日志/字典管理页）→ 无引用则结案（2026-07-28 grep：平行 CRUD 页无业务引用）
-- [ ] 环境抽检：菜单无 6137–6139/6155；角色未绑 `oa:user:*` / `oa:dept:*` / `oa:dict:update` 等平行权限（CLEANUP §5、P0-3）
+- [x] 环境抽检：菜单无 6137–6139/6155；角色未绑 `oa:user:*` / `oa:dept:*` / `oa:dict:update` 等平行权限（CLEANUP §5、P0-3）✅ 2026-08-02 local+Beta `shenyu-system`；脚本 `cleanup-oa-parallel-menu-perm.sql`；证据 [CLEANUP-OA-PARALLEL-20260802](./e2e-artifacts/CLEANUP-OA-PARALLEL-20260802/REPORT.md)
 
 ---
 
@@ -599,7 +599,7 @@ Phase C 标记废弃(C-WP0) ──────┤──────────�
 |---|------|--------|------------|
 | 1 | 冻结单源方案（目录、构建、谁为 SSOT 仓） | A-WP1 | 前端 + 架构 |
 | 2 | 平行页/路由/API deprecated 核查并删无用引用 | A-WP2 | 前端 |
-| 3 | 环境菜单/角色平行权限抽检 | A-WP2 / CLEANUP P0-3 | 前端 + 运维 |
+| 3 | ~~环境菜单/角色平行权限抽检~~ ✅ 2026-08-02 | A-WP2 / CLEANUP P0-3 | 前端 + 运维 |
 | 4 | 部署指南/启动矩阵加「过渡 vs 目标」banner，链本文 | A-WP5 | 任意 |
 | 5 | 拉齐 Football：§7 提案评审排期（为 C 铺路，**不阻塞 A**） | — | 架构 + Football |
 
@@ -665,7 +665,7 @@ Phase C 标记废弃(C-WP0) ──────┤──────────�
 
 | 阶段 | 已完成（2026-07-28） | 剩余 |
 |------|----------------------|------|
-| **A** | 平行页 Redirect/hideInMenu；DictSelect→Admin；`api/file.ts`→infra；mount 过渡文档化；P0 冒烟主路径 | standalone/E2E 标非 Gate；mount 脚本退役；菜单权限抽检 |
+| **A** | 平行页 Redirect/hideInMenu；DictSelect→Admin；`api/file.ts`→infra；mount 过渡文档化；P0 冒烟主路径；**菜单/平行权限抽检 ✅**（2026-08-02） | standalone/E2E 标非 Gate；mount 脚本退役 |
 | **B** | — | B-WP1 停写规范 ✅（2026-07-28）；B-WP3 Flyway 跨库写政策；物理删等 C |
 | **C** | **C-WP0–5** ✅；**G-* 手验 Pass 7/0**；C-WP7 getById/member DS ✅；**B-DS-RESIDUE ✅**；**C-WP7-PHYS 代码 ✅**；**B-WP4-ARCHIVE localhost ✅**；multidb 仅 master；ADR-057 Accepted | **整包 GO**（localhost）；远程归档另窗；Permission/Tenant Controller 物理删（P2） |
 

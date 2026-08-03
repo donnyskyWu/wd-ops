@@ -1,0 +1,51 @@
+[
+  {
+    "id": "G-SYS-01",
+    "result": "Pass",
+    "feign": "GET :48081/rpc-api/system/user/simple-list → code=0 n=65",
+    "ops": "member-candidates n=62; leader-candidates n=8",
+    "notes": "UserSelect 候选有数据"
+  },
+  {
+    "id": "G-SYS-02",
+    "result": "Pass",
+    "feign": "has-any-roles code=0; user/get 可达",
+    "ops": "ip-group/update remark code=0; invalid leader → 1004; leader 无角色 → 1500",
+    "notes": "保存 + 非法用户拒绝 + 角色校验（Feign）均生效"
+  },
+  {
+    "id": "G-DICT-01",
+    "result": "Pass",
+    "feign": "dict-data/list?dictType=dict_ip_group_level code=0 n=4",
+    "ops": "illegal level → 1503; illegal contentType → 1503",
+    "notes": "非法枚举返回 1503（非 500）"
+  },
+  {
+    "id": "G-INF-01",
+    "result": "Pass",
+    "feign": "infra :48082 UP；presigned 抽检可达",
+    "ops": "POST /oa/file/upload code=0 url=https://upload.shenyu.com/1/content/20260730/handverify_*.png",
+    "notes": "内容配图上传走 infra 域"
+  },
+  {
+    "id": "G-MEM-03",
+    "result": "Pass",
+    "feign": "member :48087 UP",
+    "ops": "content create id=36 → authorArticleId=1000319 footballSyncError=null",
+    "notes": "内容→方案同步成功；列表可见"
+  },
+  {
+    "id": "G-MP-01",
+    "result": "Pass",
+    "feign": "accountInfo/page code=0 total=166; getUserPageByAccount accountId=1000002 total=13",
+    "ops": "account/list total=182; mp-followers 1000002 total=13（修复 epoch millis 反序列化后）",
+    "notes": "账号列表 + 粉丝列表 Pass；会话内修 MpUserDTO 时间字段"
+  },
+  {
+    "id": "G-PAY-01",
+    "result": "Fail",
+    "feign": "POST :48085/rpc-api/pay/order/page 无 Authorization → code=400 请求参数缺失:id；带 Bearer → code=500",
+    "ops": "GET /oa/football-order/list → code=1400（Feign 结果非 success 被映射为不可用）",
+    "notes": "根因：pay getOrderPage → member author/permitted-ids 依赖登录用户上下文；pay→member Feign 鉴权链未打通。非 OPS 403 权限问题（admin 已可达）"
+  }
+]

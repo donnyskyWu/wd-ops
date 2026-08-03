@@ -1,0 +1,49 @@
+{
+  "pass": true,
+  "steps": [
+    {
+      "login": {
+        "http": 200,
+        "code": 0,
+        "userId": "9160"
+      }
+    },
+    {
+      "list": {
+        "http": 200,
+        "code": 0,
+        "total": 8,
+        "ids": [
+          20,
+          19,
+          18,
+          17,
+          16,
+          15,
+          12,
+          10
+        ],
+        "names": [
+          "交付测试2",
+          "交付计划1",
+          "交付测试1-张武草稿-final",
+          "交付测试1-opsleader草稿-final",
+          "smoke-dt-epoch_s",
+          "smoke-dt-epoch_ms",
+          "smoke-zw",
+          "smoke-no-schedule"
+        ]
+      }
+    },
+    {
+      "get17": {
+        "http": 200,
+        "code": 500,
+        "id": null,
+        "ipGroupId": null
+      }
+    }
+  ],
+  "hasCreatedPlan": true,
+  "get17Note": "pre-existing DataAccessException (sys_dict_data missing on detail path); out of scope for list empty bug"
+}

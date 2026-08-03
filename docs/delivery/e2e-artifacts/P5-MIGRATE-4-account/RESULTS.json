@@ -1,0 +1,15 @@
+{
+  "slice": "P5-MIGRATE-4 Account / MP",
+  "date": "2026-07-30",
+  "port": 48095,
+  "production_48094": "UP",
+  "checks": [
+    {"path": "/admin-api/oa/account/list", "code": 0, "total": 182},
+    {"path": "/admin-api/oa/account/list?platformType=WECHAT_OFFICIAL", "code": 0, "total": 166},
+    {"path": "/admin-api/oa/account/1000002/mp-followers", "code": 0, "total": 13},
+    {"path": "/admin-api/oa/ip-group/list", "code": 0, "total": 20},
+    {"path": "/admin-api/oa/content/list", "code": 0, "total": 37}
+  ],
+  "deferred": ["collector-bind", "fan-group", "douyin-followers", "cert-renewal"],
+  "next": "P5-MIGRATE-5 SOP / Task"
+}

@@ -1,0 +1,15 @@
+{
+  "status": 200,
+  "req": {
+    "id": 9019,
+    "groupName": "bugfix-ok-011228",
+    "leaderId": "1749825673829120001",
+    "level": "NOT_A_VALID_LEVEL_XYZ",
+    "status": 1
+  },
+  "resp": {
+    "code": 1503,
+    "msg": "level: 字典值不合法",
+    "data": null
+  }
+}

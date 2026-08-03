@@ -34,14 +34,11 @@ function Invoke-MySqlFile {
         [string]$Password,
         [string]$File
     )
-    $env:MYSQL_PWD = $Password
-    $sql = Get-Content -LiteralPath $File -Raw -Encoding UTF8
-    $sql | & mysql -h $dbHost -P $port -u $User --default-character-set=utf8mb4 $Database
+    # Prefer Python utf8mb4 stdin — PowerShell pipe historically corrupted Chinese to literal '?'
+    & python $menuSeedPy --host $dbHost --port $port --user $User --password $Password --database $Database --seed $File
     if ($LASTEXITCODE -ne 0) {
-        Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
         throw "mysql failed for $File on $Database (exit $LASTEXITCODE)"
     }
-    Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
 }
 
 function Get-SeedEvidence {
@@ -54,6 +51,7 @@ SELECT 'ops_dict_data_count', COUNT(*) FROM system_dict_data WHERE dict_type LIK
 SELECT 'sample_menu', id, name FROM system_menu WHERE id IN (6100,6117,6159) ORDER BY id;
 SELECT 'corrupted_menu_rows', COUNT(*) FROM system_menu WHERE id>=6100 AND id<7000 AND deleted=0 AND name REGEXP '^[?]+$';
 SELECT 'ip_group_leader_role', COUNT(*) FROM system_role WHERE code='ip_group_leader' AND deleted=0;
+SELECT 'ip_group_leader_name', id, name, HEX(name) FROM system_role WHERE code='ip_group_leader' AND deleted=0;
 "@
     $out = & mysql -h $dbHost -P $port -u $systemUser --default-character-set=utf8mb4 -N $systemDb -e $query
     Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
@@ -114,8 +112,9 @@ $null = $logLines.Add("")
 $null = $logLines.Add("## Notes")
 $null = $logLines.Add("")
 $null = $logLines.Add("- OPS menus live in shenyu-system.system_menu (6100-6999); @PreAuthorize reads @DS(system).")
-$null = $logLines.Add("- Menu seed MUST use apply-seed-oa-menu.py (utf8mb4 stdin); PowerShell pipe corrupts Chinese.")
+$null = $logLines.Add("- Menu/role seed MUST use apply-seed-oa-menu.py (utf8mb4 stdin); PowerShell pipe corrupts Chinese to literal '?'.")
 $null = $logLines.Add("- Flyway V164 repairs corrupted menu names in shenyu-system (name = literal '?').")
+$null = $logLines.Add("- ip_group_leader name/remark repaired in seed-ops-test-remote-shenyu-system-menus.sql when HEX contains 3F.")
 $null = $logLines.Add("- Business dicts merged from shenyu-ops.sys_dict_* to shenyu-system (V152/V158/V161 aligned).")
 $null = $logLines.Add("- Flyway V161/V162/V163 on shenyu-ops apply on next oa-server start.")
 $null = $logLines.Add("- Start beta stack: .\scripts\start-ops-dev.ps1 -Beta")

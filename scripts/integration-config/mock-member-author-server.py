@@ -41,7 +41,10 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def do_POST(self):
-        if "updateAuthorLoginInfo" in self.path or "author" in self.path:
+        if "getAuthors" in self.path:
+            # HomeDashboard metrics / AuthorResolveSupport batch load
+            self._json(0, [])
+        elif "updateAuthorLoginInfo" in self.path or "author" in self.path:
             self._json(0, True)
         else:
             self.send_response(404)

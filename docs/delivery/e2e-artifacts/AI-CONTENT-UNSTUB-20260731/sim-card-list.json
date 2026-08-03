@@ -1,0 +1,50 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "id": 2,
+          "phoneId": 4,
+          "phoneCode": null,
+          "phoneModel": "IPhone 18",
+          "phoneNumberMasked": "139****4567",
+          "isPrimary": "YES",
+          "operator": "MOBILE",
+          "assignedUserId": 114,
+          "assignedUserName": "hr ???",
+          "iccidMasked": "****",
+          "packageName": null,
+          "status": "ENABLED",
+          "totalLinkedAccounts": 0,
+          "wechatMpCount": 0,
+          "douyinCount": 0,
+          "weworkCount": 0,
+          "createTime": 1783418024000
+        },
+        {
+          "id": 1,
+          "phoneId": null,
+          "phoneCode": null,
+          "phoneModel": null,
+          "phoneNumberMasked": "139****7318",
+          "isPrimary": "YES",
+          "operator": "MOBILE",
+          "assignedUserId": 1,
+          "assignedUserName": "芋道源码",
+          "iccidMasked": "8986****0216",
+          "packageName": null,
+          "status": "ENABLED",
+          "totalLinkedAccounts": 0,
+          "wechatMpCount": 0,
+          "douyinCount": 0,
+          "weworkCount": 0,
+          "createTime": 1783414039000
+        }
+      ],
+      "total": 2
+    }
+  }
+}

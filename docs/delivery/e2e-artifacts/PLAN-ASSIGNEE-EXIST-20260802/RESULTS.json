@@ -1,0 +1,31 @@
+{
+  "pass": true,
+  "loginUserId": "9160",
+  "previewAssignees": [
+    [
+      "9163",
+      "内容编辑测试",
+      false
+    ],
+    [
+      "9163",
+      "内容编辑测试",
+      false
+    ],
+    [
+      "9160",
+      "IP组长测试",
+      true
+    ]
+  ],
+  "createMixed": {
+    "code": 0,
+    "msg": "ok",
+    "data": 17
+  },
+  "createZhangWu": {
+    "code": 0,
+    "msg": "ok",
+    "data": 18
+  }
+}

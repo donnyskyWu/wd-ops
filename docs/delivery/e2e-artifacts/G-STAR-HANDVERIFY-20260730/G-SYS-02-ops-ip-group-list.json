@@ -1,0 +1,35 @@
+{
+  "status": 200,
+  "code": 0,
+  "total": 20,
+  "sample": [
+    {
+      "id": 9019,
+      "groupName": "bugfix-ok-011228",
+      "groupType": 1,
+      "parentId": null,
+      "parentName": null,
+      "leaderName": null,
+      "memberCount": 0,
+      "accountCount": 0,
+      "anchorCount": 0,
+      "status": 1,
+      "level": "S",
+      "createTime": "2026-07-30T01:12:29"
+    },
+    {
+      "id": 9018,
+      "groupName": "张武测试小组1",
+      "groupType": 2,
+      "parentId": 9009,
+      "parentName": "test-zw-shenyu-id",
+      "leaderName": "张武",
+      "memberCount": 0,
+      "accountCount": 0,
+      "anchorCount": 0,
+      "status": 1,
+      "level": null,
+      "createTime": "2026-07-22T13:56:27"
+    }
+  ]
+}

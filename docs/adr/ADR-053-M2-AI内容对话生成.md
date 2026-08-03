@@ -43,6 +43,7 @@
 
 - 抽取 `AiLlmInvokeSupport`，与旧 `ProductionContentServiceImpl.aiGenerate` 共用 HTTP Chat Completions 逻辑
 - 新流程使用 M8 `scene=AI_CONTENT_CHAT` 提示词模板，多轮 messages 组装
+- **提示词按文档类型选用**见 [ADR-063](./ADR-063-AI内容提示词按文档类型.md)（`document_type` 精确匹配，缺省回退通用 `AI_CONTENT_CHAT`）
 - 模型映射：API 字符串 `qwen|deepseek|glm|kimi` → 租户 `oa_ai_model_config`（model_id / model_type 匹配）
 
 ### 2.5 会话与偏好（P0 范围）

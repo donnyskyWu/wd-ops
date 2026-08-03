@@ -1,0 +1,19 @@
+{
+  "status": 200,
+  "req": {
+    "id": 9019,
+    "groupName": "bugfix-ok-011228",
+    "leaderId": "1749825673829120001",
+    "leaderUserId": "1749825673829120001",
+    "status": 1,
+    "sortOrder": 0,
+    "level": "S",
+    "remark": "",
+    "parentId": null
+  },
+  "resp": {
+    "code": 1504,
+    "msg": "跨租户访问禁止",
+    "data": null
+  }
+}

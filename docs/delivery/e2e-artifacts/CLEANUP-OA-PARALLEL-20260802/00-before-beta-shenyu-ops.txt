@@ -1,0 +1,15 @@
++-------------------------------------+
+| Tables_in_shenyu-ops (%permission%) |
++-------------------------------------+
+| archive_sys_permission              |
+| archive_sys_role_permission         |
++-------------------------------------+
++-------------------+
+| section           |
++-------------------+
+| SYS_PERM_PARALLEL |
++-------------------+
+
+---STDERR---
+mysql: [Warning] Using a password on the command line interface can be insecure.
+ERROR 1146 (42S02) at line 6: Table 'shenyu-ops.sys_permission' doesn't exist

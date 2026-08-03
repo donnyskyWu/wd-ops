@@ -1,0 +1,16 @@
+{
+  "ledIpGroupId": 9022,
+  "pass": true,
+  "create": {
+    "code": 0,
+    "msg": "ok",
+    "data": 33
+  },
+  "negativeOtherGroupId": 9006,
+  "negative": {
+    "code": 403,
+    "msg": "当前用户不属于所选 IP 组",
+    "data": null
+  },
+  "negativeExpectedForbidden": "当前用户不属于所选 IP 组"
+}

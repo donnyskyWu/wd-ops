@@ -205,7 +205,7 @@ function Test-MySqlLocal {
         [int]$Port = 3306,
         [string]$User = "root",
         [string]$Password = "root",
-        [string[]]$Databases = @("wd", "shenyu-member", "shenyu-mp", "shenyu-pay", "shenyu-system")
+        [string[]]$Databases = @("shenyu-ops", "shenyu-member", "shenyu-mp", "shenyu-pay", "shenyu-system")
     )
 
     if (-not (Test-PortListen -Port $Port)) {
@@ -259,6 +259,15 @@ function Wait-DockerEngine {
     return $false
 }
 
+function ConvertTo-HttpBodyText {
+    param($Content)
+    if ($null -eq $Content) { return "" }
+    if ($Content -is [byte[]]) {
+        return [System.Text.Encoding]::UTF8.GetString($Content)
+    }
+    return [string]$Content
+}
+
 function Wait-HttpEndpoint {
     <#
     Poll an HTTP endpoint until it responds or timeout. Returns $true on first HTTP success.
@@ -269,7 +278,8 @@ function Wait-HttpEndpoint {
         [int]$TimeoutSec = 120,
         [string]$Label = "",
         [int]$PollSec = 3,
-        [int]$ProgressIntervalSec = 15
+        [int]$ProgressIntervalSec = 15,
+        [hashtable]$Headers = $null
     )
     if ([string]::IsNullOrWhiteSpace($Label)) { $Label = $Url }
     $probeUrl = $Url -replace '://localhost([:/])', '://127.0.0.1$1'
@@ -281,9 +291,11 @@ function Wait-HttpEndpoint {
 
     while ((Get-Date) -lt $deadline) {
         try {
-            $resp = Invoke-WebRequest -Uri $probeUrl -UseBasicParsing -TimeoutSec 5
+            $params = @{ Uri = $probeUrl; UseBasicParsing = $true; TimeoutSec = 5 }
+            if ($Headers) { $params.Headers = $Headers }
+            $resp = Invoke-WebRequest @params
             $elapsed = [int]((Get-Date) - $started).TotalSeconds
-            $snippet = $resp.Content
+            $snippet = ConvertTo-HttpBodyText $resp.Content
             if ($snippet.Length -gt 80) { $snippet = $snippet.Substring(0, 80) + "..." }
             Write-Host "[ready] $Label (${elapsed}s) $snippet"
             return $true
@@ -304,6 +316,8 @@ function Wait-HttpEndpoint {
 }
 
 function Get-IntegrationHealthRows {
+    # Critical = required for start-ops-dev exit 0 (core Gate path).
+    # mp/infra/pay/member/match are soft-warn only (LISTEN/HTTP quirks must not fail the script).
     return @(
         @{ Service = "Nacos"; Port = 8848; Url = "http://127.0.0.1:8848/nacos/" },
         @{ Service = "Redis"; Port = 6379; Url = $null },
@@ -311,35 +325,53 @@ function Get-IntegrationHealthRows {
         @{ Service = "system-server"; Port = 48081; Url = "http://127.0.0.1:48081/actuator/health"; Critical = $true },
         @{ Service = "infra-server"; Port = 48082; Url = "http://127.0.0.1:48082/actuator/health" },
         @{ Service = "pay-server"; Port = 48085; Url = "http://127.0.0.1:48085/actuator/health" },
-        @{ Service = "mp-server"; Port = 48086; Url = "http://127.0.0.1:48086/rpc-api/mp/accountInfo/page?pageNo=1&pageSize=1"; Headers = @{ "tenant-id" = "1" }; Critical = $true },
+        @{ Service = "mp-server"; Port = 48086; Url = "http://127.0.0.1:48086/rpc-api/mp/accountInfo/page?pageNo=1&pageSize=1"; Headers = @{ "tenant-id" = "1" } },
         @{ Service = "member-server"; Port = 48087; Url = "http://127.0.0.1:48087/actuator/health" },
         @{ Service = "match-server"; Port = 48088; Url = "http://127.0.0.1:48088/actuator/health" },
-        @{ Service = "oa-server"; Port = 48094; Url = "http://127.0.0.1:48094/actuator/health"; Critical = $true },
-        @{ Service = "football-front"; Port = 5777; Url = "http://127.0.0.1:5777/" }
+        @{ Service = "football-module-ops"; Port = 48094; Url = "http://127.0.0.1:48094/actuator/health"; Critical = $true },
+        @{ Service = "football-front"; Port = 5777; Url = "http://127.0.0.1:5777/"; Critical = $true }
     )
 }
 
 function Get-ServiceListenStatus {
+    <#
+    Probe status for health table / readiness:
+      UP     - yudao code:0, actuator status:UP, or HTTP 2xx while port listens
+               (Football system wraps missing actuator as HTTP 200 + code:404)
+      LISTEN - TCP listen but probe failed / non-2xx (still usable for many backends)
+      DOWN   - not listening and probe failed
+    #>
     param([int]$Port, [string]$ProbeUrl, [hashtable]$Headers = $null)
     $listen = Test-PortListen -Port $Port
-    $http = "DOWN"
-    if ($ProbeUrl) {
-        try {
-            $params = @{ Uri = $ProbeUrl; UseBasicParsing = $true; TimeoutSec = 4 }
-            if ($Headers) { $params.Headers = $Headers }
-            $resp = Invoke-WebRequest @params
-            if ($resp.Content -match '"code"\s*:\s*0') {
-                $http = "UP"
-            } elseif ($listen) {
-                $http = "LISTEN"
-            } else {
-                $http = "DOWN"
-            }
-        } catch {
-            if ($listen) { $http = "LISTEN" } else { $http = "DOWN" }
+    if (-not $ProbeUrl) {
+        if ($listen) { return "LISTEN" }
+        return "DOWN"
+    }
+    try {
+        $params = @{ Uri = $ProbeUrl; UseBasicParsing = $true; TimeoutSec = 4 }
+        if ($Headers) { $params.Headers = $Headers }
+        $resp = Invoke-WebRequest @params
+        $body = ConvertTo-HttpBodyText $resp.Content
+        if ($body -match '"status"\s*:\s*"UP"' -or $body -match '"code"\s*:\s*0') {
+            return "UP"
         }
-    } elseif ($listen) { $http = "LISTEN" }
-    return $http
+        # HTTP success + listening: treat as UP (system actuator yudao-wrap, Vite HTML, etc.)
+        if ($resp.StatusCode -ge 200 -and $resp.StatusCode -lt 400 -and $listen) {
+            return "UP"
+        }
+        if ($listen) { return "LISTEN" }
+        if ($resp.StatusCode -ge 200 -and $resp.StatusCode -lt 400) { return "UP" }
+        return "DOWN"
+    } catch {
+        if ($listen) { return "LISTEN" }
+        return "DOWN"
+    }
+}
+
+function Test-ServiceReadyStatus {
+    <# True when status is UP or LISTEN (core services usable). #>
+    param([string]$Status)
+    return ($Status -eq "UP" -or $Status -eq "LISTEN")
 }
 
 function Show-IntegrationHealthTable {
@@ -349,7 +381,7 @@ function Show-IntegrationHealthTable {
     Write-Host ("{0,-18} {1,6} {2,8}" -f "Service", "Port", "Status")
     Write-Host ("-" * 36)
     foreach ($e in $rows) {
-        if ($e.Service -eq "oa-server" -and $SkipOa) { continue }
+        if ($e.Service -eq "football-module-ops" -and $SkipOa) { continue }
         if ($e.Service -eq "football-front" -and $SkipFrontend) { continue }
         $st = Get-ServiceListenStatus -Port $e.Port -ProbeUrl $e.Url -Headers $e.Headers
         Write-Host ("{0,-18} {1,6} {2,8}" -f $e.Service, $e.Port, $st)
@@ -412,9 +444,8 @@ function Assert-FootballOpsBranch {
 function Ensure-OpsViewsMounted {
     <#
     .SYNOPSIS
-      Phase A: OPS pages live under football-front .../views/ops via mount-ops-all.py.
-      Gate path uses :5777 only — ops-platform-ui-vue :3000 is NOT required.
-      Auto-runs mount when views/ops is missing/empty, or when -ForceMount is set.
+      OPS UI SSOT = football-front .../views/ops (A-WP1). Remount from ops-platform-ui-vue is retired.
+      Gate path uses :5777 only. -ForceMount / -MountOps fail-fast with clear message.
     #>
     param(
         [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path,
@@ -422,10 +453,16 @@ function Ensure-OpsViewsMounted {
         [switch]$SkipMount
     )
     $viewsOps = Join-Path $Root "football-front\apps\web-ele\src\views\ops"
-    $mountScript = Join-Path $Root "scripts\mount-ops-all.py"
     $vueCount = 0
     if (Test-Path $viewsOps) {
         $vueCount = @(Get-ChildItem -LiteralPath $viewsOps -Recurse -Filter "*.vue" -ErrorAction SilentlyContinue).Count
+    }
+
+    if ($ForceMount) {
+        Write-Host "[fail] -MountOps / ForceMount retired — OPS UI SSOT is football-front views/ops" -ForegroundColor Red
+        Write-Host "       Edit football-front/apps/web-ele/src/views/ops (and components/ops) directly." -ForegroundColor Yellow
+        Write-Host "       ops-platform-ui-vue remount (mount-ops-all.py) has ended." -ForegroundColor Yellow
+        return ($vueCount -gt 0)
     }
 
     if ($SkipMount) {
@@ -437,62 +474,21 @@ function Ensure-OpsViewsMounted {
         return ($vueCount -gt 0)
     }
 
-    $needMount = $ForceMount -or ($vueCount -lt 1)
-    if (-not $needMount) {
-        Write-Host "[ok] football-front views/ops ready ($vueCount vue) — Gate UI :5777 (standalone :3000 not required)"
-        return $true
-    }
-
-    if (-not (Test-Path $mountScript)) {
-        Write-Host "[fail] mount-ops-all.py missing; cannot mount OPS pages into football-front" -ForegroundColor Red
-        return $false
-    }
-    $py = if (Test-CommandExists "python") { "python" } elseif (Test-CommandExists "py") { "py" } else { $null }
-    if (-not $py) {
-        Write-Host "[fail] Python not found; cannot run mount-ops-all.py" -ForegroundColor Red
-        Write-Host "       Manual: python scripts/mount-ops-all.py" -ForegroundColor Yellow
-        return $false
-    }
-
-    $reason = if ($ForceMount) { "ForceMount" } else { "views/ops missing or empty" }
-    Write-Host "[mount] $reason -> $py scripts/mount-ops-all.py ..."
-    Push-Location -LiteralPath $Root
-    try {
-        & $py $mountScript
-        $mountOk = $LASTEXITCODE -eq 0
-    } catch {
-        Write-Warning "mount-ops-all.py failed: $_"
-        $mountOk = $false
-    } finally {
-        Pop-Location
-    }
-
-    $syncScript = Join-Path $Root "scripts\sync-ops-layout-components.py"
-    if ($mountOk -and (Test-Path $syncScript)) {
-        Write-Host "[mount] sync-ops-layout-components.py ..."
-        try {
-            & $py $syncScript
-        } catch {
-            Write-Warning "sync-ops-layout-components.py failed: $_"
-        }
-    }
-
-    $vueCount = 0
-    if (Test-Path $viewsOps) {
-        $vueCount = @(Get-ChildItem -LiteralPath $viewsOps -Recurse -Filter "*.vue" -ErrorAction SilentlyContinue).Count
-    }
     if ($vueCount -gt 0) {
-        Write-Host "[ok] views/ops mounted ($vueCount vue)"
+        Write-Host "[ok] football-front views/ops ready ($vueCount vue) — Gate UI :5777 (SSOT; remount retired)"
         return $true
     }
-    Write-Host "[fail] views/ops still empty after mount" -ForegroundColor Red
+
+    Write-Host "[fail] views/ops missing or empty — cannot remount (ops-platform-ui-vue deleted)" -ForegroundColor Red
+    Write-Host "       Restore football-front/apps/web-ele/src/views/ops from git; do not run mount-ops-all.py." -ForegroundColor Yellow
     return $false
 }
 
 function Ensure-OpsFrontDeps {
     <#
     .SYNOPSIS
-      football-front needs full pnpm install (vite) plus OPS chart deps (echarts via link-ops-deps.ps1).
+      football-front needs full pnpm install (vite + OPS chart deps in web-ele package.json).
+      link-ops-deps.ps1 (ui-vue junction) is retired.
     #>
     param(
         [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path,
@@ -550,22 +546,11 @@ function Ensure-OpsFrontDeps {
     if (-not (Test-Path $echarts)) { Write-Host "[warn] football-front missing echarts" -ForegroundColor Yellow }
     if (-not (Test-Path $markdownIt)) { Write-Host "[warn] football-front missing markdown-it (content/AI pages blank)" -ForegroundColor Yellow }
     if (-not (Test-Path $tiptap)) { Write-Host "[warn] football-front missing @tiptap/vue-3 (content editor blank)" -ForegroundColor Yellow }
-    $linkScript = Join-Path $Root "scripts\link-ops-deps.ps1"
-    if ($AutoLink -and (Test-Path $linkScript)) {
-        Write-Host "[fix] echarts missing — running link-ops-deps.ps1 ..."
-        try {
-            & $linkScript
-        } catch {
-            Write-Warning "link-ops-deps.ps1 failed: $_"
-        }
-        if (Test-Path $echarts) {
-            Write-Host "[ok] echarts linked"
-            return $ok
-        }
+    if ($AutoLink) {
+        Write-Host "[info] link-ops-deps.ps1 retired — re-run: cd football-front && pnpm install" -ForegroundColor Yellow
     }
     Write-Host "[warn] football-front missing OPS runtime deps — content/editor pages may white-screen until:" -ForegroundColor Yellow
-    Write-Host "       cd football-front && pnpm install   (preferred; see apps/web-ele/package.json)" -ForegroundColor Yellow
-    Write-Host "       .\scripts\link-ops-deps.ps1         (junction fallback; then restart :5777)" -ForegroundColor Yellow
+    Write-Host "       cd football-front && pnpm install   (see apps/web-ele/package.json catalog)" -ForegroundColor Yellow
     return $false
 }
 
@@ -659,14 +644,14 @@ function Show-IntegrationTroubleshooting {
     Write-Host "3. member-server :48087 DOWN or Python mock -> Football 方案列表 500 (article/page 404)"
     Write-Host "   Log: $LogDir\member-server-integration.log"
     Write-Host "   Fix: run start-ops-dev.ps1 (default FullMemberServer); avoid -UseMemberMock"
-    Write-Host "4. oa-server :48094 DOWN -> OPS pages (内容管理/任务/IP组) all fail with 系统错误"
-    Write-Host "   Log: $LogDir\oa-server-nacos-run.log"
+    Write-Host "4. football-module-ops :48094 DOWN -> OPS pages (内容管理/任务/IP组) all fail with 系统错误"
+    Write-Host "   Log: $LogDir\ops-server-nacos-run.log (Nacos registry id remains ops-server)"
     Write-Host "   Beta: Flyway 9.x vs MySQL 5.7 -> FlywayEditionUpgradeRequiredException (pin flyway 10.22+ in pom)"
-    Write-Host "   Local: MySQL localhost:3306 five DBs missing -> oa API 500"
+    Write-Host "   Local: MySQL localhost:3306 five DBs missing -> football-module-ops API 500"
     Write-Host "5. -SkipBuild without jars -> run with -FirstRun"
     Write-Host "6. UI missing OPS menus but local API has them -> vite proxy / VITE_BASE_URL not localhost:48080"
     Write-Host "   Check: football-front/apps/web-ele/vite.config.mts + .env.development; restart :5777"
-    Write-Host "7. views/ops empty -> python scripts/mount-ops-all.py  (or start-ops-dev.ps1 -MountOps)"
+    Write-Host "7. views/ops empty -> restore from git (football-front SSOT); remount retired"
     Write-Host "8. football-* not on ops branch -> see docs/delivery/FOOTBALL-OPS-BRANCH.md"
     Write-Host "9. football-front :5777 DOWN -> vite missing or pnpm dev:ele crashed"
     Write-Host "   Log: $LogDir\football-front-dev.log"

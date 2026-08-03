@@ -1,0 +1,17 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": true
+  },
+  "payload": {
+    "id": 14,
+    "paramName": "钉钉 AppKey",
+    "paramKey": "dingtalk.client-id",
+    "paramValue": "e2e-test-client-id",
+    "paramType": "STRING",
+    "category": "DINGTALK",
+    "remark": "企业内部应用 ClientId / AppKey（勿提交 git）"
+  }
+}

@@ -6,8 +6,8 @@
 | 日期 | **2026-07-31** |
 | 触发 | 四标准终态审计（Std1–4；Std2 达标仅记命名差） |
 | 决策 / 进度 SSOT | [ADR-058](../adr/ADR-058-OPS后端单仓与football-module-ops命名.md) · [WORK-PLAN](./OPS-FOOTBALL-MERGE-WORK-PLAN.md) · [GAP-INVENTORY](./e2e-artifacts/P5-MIGRATE-8-cutover/GAP-INVENTORY.md) |
-| 关联 | ADR-047 · ADR-049 · ADR-050-REV1 · ADR-056 · ADR-057 · [ADR-059](../adr/ADR-059-G-MATCH-01-external-proxy.md) · [MUST-HAVE](./OPS-FOOTBALL-RPC-MUST-HAVE.md) · [CLEANUP](./OPS-FOOTBALL-MERGE-CLEANUP-INVENTORY.md) · [FULL-MERGE G-MATCH-01](./OPS-FOOTBALL-FULL-MERGE-RPC-ANALYSIS.md) |
-| 状态 | **P-A ✅ · P-B ✅ · P-C ✅ · P-D ✅ · P-E ✅ · P-F ✅ · P-G ✅ 2026-07-31**（见 §8）；终态缺口切片均 ✅ |
+| 关联 | ADR-047 · ADR-049 · ADR-050-REV1 · ADR-056 · ADR-057 · [ADR-059](../adr/ADR-059-G-MATCH-01-external-proxy.md) · [ADR-060](../adr/ADR-060-Phase2-stub-OOS-Accept.md) · [MUST-HAVE](./OPS-FOOTBALL-RPC-MUST-HAVE.md) · [CLEANUP](./OPS-FOOTBALL-MERGE-CLEANUP-INVENTORY.md) · [FULL-MERGE G-MATCH-01](./OPS-FOOTBALL-FULL-MERGE-RPC-ANALYSIS.md) |
+| 状态 | **P-A ✅ · P-B ✅ · P-C ✅ · P-D ✅ · P-E ✅ · P-F ✅ · P-G ✅ 2026-07-31**；**§3.0 本地库名=`shenyu-ops` ✅ · ADR-060 stub Accept ✅ 2026-08-01** |
 
 > **读法**：本文只排「审计未达标项如何分片做完」。**禁止**在 Spec / ADR 未写明处发明新 API、字段或页面；沉默项记入阻塞 / 产品确认，不得用惯例补全。
 
@@ -20,7 +20,7 @@
 | # | 目标 | SSOT |
 |---|------|------|
 | T1 | OPS 后端在 `football-backend-saas` 内以 `football-module-ops` 承载；服务名 `ops-server` | ADR-058 D1/D3 |
-| T2 | OPS 数据源 **仅** master→OPS 库（本地物理名 **`football-ops`**；Beta **`shenyu-ops`**；逻辑/历史口语 `wd`）；跨域只 Feign | ADR-058 D2 · MUST-HAVE §1 |
+| T2 | OPS 数据源 **仅** master→OPS 库（本地与 Beta 物理名均为 **`shenyu-ops`**；备份 `football-ops`/`wd`）；跨域只 Feign | ADR-058 D2 · MUST-HAVE §1 |
 | T3 | HTTP 规范前缀 **`/admin-api/ops/**`**；Controller 与 Gateway 一致，无长期 Rewrite | ADR-058 D4 · P4 已关对外 `/oa`，对内仍 Rewrite |
 | T4 | 权限码终态可选 `ops:*`；**独立 Slice**（勿与路径切流同会话） | ADR-058 D5 · WORK-PLAN P6 |
 | T5 | 用户身份 SSOT = shenyu-system；RBAC 读路径纯 Feign；过渡 Mapper 可退 | ADR-056 · CLEANUP §1.2 |
@@ -30,9 +30,9 @@
 
 | # | 标准 | 状态 | 缺口摘要（本计划范围） |
 |---|------|------|------------------------|
-| **1** | Code merged into football FE/BE | **部分达标** | 业务已在 monorepo；生产包名已 `football.module.ops`（**P-B ✅**）；权限已 `ops:*`（**P-D ✅**）；`legacy-archive/` 已删（**P-G ✅**，仅 git 历史）；部分域仍 stub（M10 OOS 等） |
-| **2** | Only wd/ops DB | **达标** | 无代码债；**本地物理库 SSOT = `football-ops`**（2026-07-31 自 `wd` 复制；`wd` 留备份）；Beta 仍 `shenyu-ops` |
-| **3** | RPC/WebAPI to other football services | **部分达标** | 核心 G-* 已 Feign；RBAC overlay **已退**（**P-E ✅**，`FootballOAuth2MasterTokenMapper` 已删）；Match 外部代理 **已接受终态**（**P-F / ADR-059**）；剩余 stub 域未全面 Feign 化 |
+| **1** | Code merged into football FE/BE | **部分达标** | 业务已在 monorepo；生产包名已 `football.module.ops`（**P-B ✅**）；权限已 `ops:*`（**P-D ✅**）；`legacy-archive/` 已删（**P-G ✅**，仅 git 历史）；余 stub = **ADR-060 Closed-Accept / Phase 2**（非开放 guilt） |
+| **2** | Only wd/ops DB | **达标** | 无代码债；**本地物理库 SSOT = `shenyu-ops`**（2026-08-01 自 `football-ops` 复制；`football-ops`/`wd` 留备份）；与 Beta 同名 |
+| **3** | RPC/WebAPI to other football services | **部分达标** | 核心 G-* 已 Feign；RBAC overlay **已退**（**P-E ✅**，`FootballOAuth2MasterTokenMapper` 已删）；Match 外部代理 **已接受终态**（**P-F / ADR-059**）；Phase 2 stub 域不做 Feign 化（ADR-060） |
 | **4** | Routes consistent with ops | **达标** | 对外+Controller `/admin-api/ops/**` 已对齐、Gateway **无** Rewrite（**P-C ✅**）；权限已 `ops:*`（**P-D ✅**） |
 
 ### 1.3 执行铁律
@@ -52,14 +52,14 @@
 |----|------|------|----------|
 | G1-PKG | ~~Java 包仍 `cn.iocoder.yudao.module.oa.**`~~ → 生产已 `football.module.ops.**`；archive 已删 | ADR-058 §2.1 | **P-B ✅** |
 | G1-LEG | ~~`legacy-archive/` 未进编译~~ → **已 `git rm -r`（P-G ✅）**；回滚见 git `7e5f1b709` | ADR-058 CLEANUP · GAP-INVENTORY | **P-G ✅** |
-| G1-STUB | Dashboard / Screen / Analysis / Funnel / Report / Monitor / collector-bind / douyin / message / metadata / collect* 等仍 stub | GAP-INVENTORY「Still stubbed」；M10 collect = Phase 2 OOS | **P-A**（部分仍 stub） |
+| G1-STUB | ~~Dashboard…~~ 已迁；余 M10 collect / Douyin / `/internal/**` stub | [ADR-060](../adr/ADR-060-Phase2-stub-OOS-Accept.md) Closed-Accept | **ADR-060 ✅**（非开放缺口） |
 | G1-DUAL | ~~模块名 ops、包/路径段仍 oa~~ → 包/路径/权限均已 ops | WORK-PLAN A-WP1 · ADR-058 | **P-B/P-C/P-D ✅** |
 
 ### 2.2 Std2 — 仅 ops/wd 库
 
 | ID | 缺口 | 依据 | 对应切片 |
 |----|------|------|----------|
-| G2-NAME | Beta 部署库名 `shenyu-ops`；本地已统一为物理名 `football-ops` | [OPS-TEST-DB](./OPS-TEST-DB.md)；ADR-058 D2 只要求「仅 OPS master、不合库」 | **§3.0 已记 SSOT**；Beta 改名另议 |
+| G2-NAME | ~~本地 `football-ops` vs Beta `shenyu-ops`~~ → 本地已对齐 **`shenyu-ops`** | [OPS-TEST-DB](./OPS-TEST-DB.md)；ADR-058 D2 | **§3.0 ✅ 2026-08-01** |
 
 ### 2.3 Std3 — 跨服务 RPC
 
@@ -103,16 +103,16 @@ P-E  RBAC 纯 Feign / 退 MasterTokenMapper（ADR-056 全量后）
 P-F  Match Feign 或 ADR 接受外部代理（可与 P-A 后并行；Spec 门禁）
 ```
 
-### 3.0 Std2 命名澄清（本地已落地 · 非 Slice 代码）
+### 3.0 Std2 命名澄清（本地 = Beta 物理名 · ✅ 2026-08-01）
 
 | 项 | 内容 |
 |----|------|
-| **本地 SSOT** | OPS master 物理库名 = **`football-ops`**（`ops-server` `application.yaml` · preflight · 本地 seed 脚本默认）。自 `wd` mysqldump 复制；**保留 `wd` 作备份**，未 DROP |
-| **Beta** | 仍为 **`shenyu-ops`**（`110.42.49.224`）；本任务**不**改远程库名 |
-| **动作（文档）** | OPS-TEST-DB / 部署指南：逻辑库 = OPS master；本地=`football-ops`，Beta=`shenyu-ops`；模块 `football-module-ops` / 服务 `ops-server` |
-| **DoD** | 本地 JDBC/preflight 指向 `football-ops`；Beta overlay 仍 `shenyu-ops`；文档交叉引用一致 |
+| **本地 SSOT** | OPS master 物理库名 = **`shenyu-ops`**（`ops-server` `application.yaml` · preflight · 本地 seed 脚本默认）。自 `football-ops` mysqldump 复制（此前 `wd`→`football-ops`）；**保留 `football-ops` 与 `wd` 作备份**，未 DROP |
+| **Beta** | 仍为 **`shenyu-ops`**（`110.42.49.224`）；本任务**不**改远程 |
+| **动作** | JDBC/preflight/seed/OPS-TEST-DB/部署指南 → 本地=`shenyu-ops`；Beta overlay 不变 |
+| **DoD** | 本地 JDBC → `shenyu-ops`；抽样表计数与源库一致；非 `-Beta` ops 可连本地库 |
+| **证据** | [LOCAL-DB-RENAME-SHENYU-OPS-20260801](./e2e-artifacts/LOCAL-DB-RENAME-SHENYU-OPS-20260801/REPORT.md) |
 | **Owner** | 文档 / 运维 |
-| **Effort** | 0.1 人日（本地库复制+配置已于 2026-07-31 完成） |
 
 ---
 
@@ -123,9 +123,9 @@ P-F  Match Feign 或 ADR 接受外部代理（可与 P-A 后并行；Spec 门禁
 | **目标** | 关闭 GAP-INVENTORY 中仍 stub 且满足 Spec 的域；或书面接受「永久空 GET / 写 410」 |
 | **状态** | **✅ 完成**（用户授权本会话执行 Migrate 批量；证据 [P-A-UNSTUB-20260731](./e2e-artifacts/P-A-UNSTUB-20260731/REPORT.md)） |
 | **已迁** | Dashboard · HomeDashboard · DashboardConfig · Funnel · CustomQuery · Report · Monitor · OpsAnchor/OpsStats · Account/Content/Follower Analysis · WechatAnalysis · Metadata · Param · Message |
-| **仍 stub** | M10 `collect/**` + collector-bind + collect configs（OOS）；DouyinFollowers（Spec 薄弱）；`/internal/**` Controllers（API-M4 有 Spec 但奥创 sync=M10，未挂 CRUD）；平行 system CRUD 410 |
-| **DoD** | ① Migrate 域 Controllers 非 stub、stub 前缀已删；② ops-server 直连冒烟 list code=0（见 RESULTS.json；Gateway 本机 Nacos 未起）；③ GAP-INVENTORY 已更新 |
-| **阻塞** | DouyinFollowers Spec；`/internal/**` Controllers vs M10；正式 Gate 需 Nacos+Gateway |
+| **仍 stub（Closed-Accept）** | 见 [ADR-060](../adr/ADR-060-Phase2-stub-OOS-Accept.md)：**OOS Accept** M10 collect/collector-bind/collect configs；**OOS Accept** DouyinFollowers；**Accept stub** `/internal/**`（奥创/M10）；平行 system CRUD 410 |
+| **DoD** | ① Migrate 域 Controllers 非 stub；② ops-server 直连冒烟 list code=0（见 RESULTS.json）；③ GAP-INVENTORY 已更新；④ 2026-08-01 stub 表 Closed-Accept |
+| **阻塞** | ~~Douyin / internal~~ → ADR-060 关闭；正式 Gate 仍需 Nacos+Gateway（运维项） |
 | **Priority** | **P0** |
 | **Owner** | OPS 后端 |
 
@@ -171,7 +171,7 @@ P-F  Match Feign 或 ADR 接受外部代理（可与 P-A 后并行；Spec 门禁
 |----|------|
 | **目标** | 菜单/按钮/`@PreAuthorize` 与产品命名一致 |
 | **状态** | **✅ 完成**（证据 [P-D-PERM-20260731](./e2e-artifacts/P-D-PERM-20260731/REPORT.md)） |
-| **范围落地** | `@PreAuthorize` 已 `ops:*`；Flyway **V166** 改 `system_menu.permission`；本地 `football-ops` + `shenyu-system` 均为 oa=0/ops=60；seeds 字面量改 `ops:`；`sys_permission` 因 B-WP4 stop-write **未改**（非 PreAuthorize SSOT） |
+| **范围落地** | `@PreAuthorize` 已 `ops:*`；Flyway **V166** 改 `system_menu.permission`；本地 OPS master + `shenyu-system` 均为 oa=0/ops=60；seeds 字面量改 `ops:`；`sys_permission` 因 B-WP4 stop-write **未改**（非 PreAuthorize SSOT） |
 | **DoD** | 冒烟 **5/5**（GW+直连 account/content + ip-group tree code=0）；无 403；路径仍 `/admin-api/ops/**` |
 | **Priority** | P1 |
 | **Owner** | OPS 后端 + 运维/Football 菜单 SSOT |
@@ -289,7 +289,15 @@ P-F  Match Feign 或 ADR 接受外部代理（可与 P-A 后并行；Spec 门禁
 
 证据：[P-E-RBAC-FEIGN-20260731/REPORT.md](./e2e-artifacts/P-E-RBAC-FEIGN-20260731/REPORT.md)
 
-本计划 P-A…P-G **均已 ✅**。后续仅运维归档（如物理 DROP `football-ops.system_users` overlay）或 stub 产品确认，另开会话。
+本计划 P-A…P-G **均已 ✅**。Stub 产品确认见 **ADR-060 ✅**。后续仅运维归档（如物理 DROP 备份库上 `system_users` overlay）或 Phase 2 开 Slice。
+
+### §3.0 / ADR-060 尾巴收口 ✅ 2026-08-01
+
+| 项 | 结果 |
+|----|------|
+| 本地库名 | **`shenyu-ops`**（自 `football-ops` 复制；备份保留） |
+| Stub disposition | M10 collect / Douyin / `/internal/**` → **Closed-Accept**（ADR-060） |
+| 未做 | 不发明 M10 采集；不迁奥创-bound `/internal/**` Controllers |
 
 ---
 
@@ -318,3 +326,5 @@ P-F  Match Feign 或 ADR 接受外部代理（可与 P-A 后并行；Spec 门禁
 | 2026-07-31 | **P-F ✅（路径 A）**：ADR-059 接受 Match 外部 HTTP 代理终态；G-MATCH-01 Accepted/Closed；无 Feign 重写；指针回写 FULL-MERGE / WORK-PLAN / GAP-INVENTORY / ADR-016 §2.7 |
 | 2026-07-31 | **P-G ✅**：`git rm -r` `football-module-ops-server/legacy-archive/`（422 tracked + 158 untracked = 580 files）；未进 Maven classpath；回滚 `checkout 7e5f1b709 -- …/legacy-archive`；冒烟 **3/3** 见 P-G-LEGACY-ARCHIVE-20260731；**未**做 P-E |
 | 2026-07-31 | **P-E ✅**：删 `FootballOAuth2MasterTokenMapper`；RBAC→Feign `hasAnyPermissions`/`hasAnyRoles` + Gateway login-user；`@opsPerm` 替换 PreAuthorize；冒烟 **7/7** + no-overlay **4/4** 见 P-E-RBAC-FEIGN-20260731；CLEANUP §1.2 勾删 |
+| 2026-08-01 | **§3.0 库名对齐**：本地 OPS master `football-ops`→**`shenyu-ops`**（mysqldump 复制；`football-ops`/`wd` 备份未 DROP）；JDBC/preflight/seed/OPS-TEST-DB/部署指南已改；Beta 远程不变 |
+| 2026-08-01 | **ADR-060 stub Accept**：M10 collect/collector-bind/collect configs = OOS Accept；DouyinFollowers = OOS Accept；`/internal/**` = Accept stub（奥创/M10）；GAP-INVENTORY + 本计划 G1-STUB 移出开放缺口 |

@@ -1,0 +1,59 @@
+{
+  "code": 0,
+  "msg": "ok",
+  "data": {
+    "list": [
+      {
+        "id": 9408,
+        "templateName": "0714模板",
+        "contentType": "ALL",
+        "platformType": "ALL",
+        "description": "",
+        "status": 1,
+        "nodeCount": 3,
+        "createTime": 1784039398000
+      },
+      {
+        "id": 9407,
+        "templateName": "运营完整流程1",
+        "contentType": "ALL",
+        "platformType": "ALL",
+        "description": "",
+        "status": 1,
+        "nodeCount": 8,
+        "createTime": 1782488640000
+      },
+      {
+        "id": 9406,
+        "templateName": "运营完整流程1",
+        "contentType": "ALL",
+        "platformType": "ALL",
+        "description": "",
+        "status": 0,
+        "nodeCount": 0,
+        "createTime": 1782488639000
+      },
+      {
+        "id": 9405,
+        "templateName": "系统测试模板1",
+        "contentType": "ALL",
+        "platformType": "ALL",
+        "description": "",
+        "status": 1,
+        "nodeCount": 4,
+        "createTime": 1781319840000
+      },
+      {
+        "id": 9404,
+        "templateName": "it-click-test",
+        "contentType": "ALL",
+        "platformType": "ALL",
+        "description": null,
+        "status": 1,
+        "nodeCount": 6,
+        "createTime": 1781104935000
+      }
+    ],
+    "total": 8
+  }
+}

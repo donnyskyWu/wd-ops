@@ -1,0 +1,43 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "models": [
+        {
+          "id": 8,
+          "name": "qwen3.7-max",
+          "icon": "🔵",
+          "status": "available",
+          "description": "qwen3.7-max",
+          "isDefault": true
+        },
+        {
+          "id": 7,
+          "name": "qwen-plus",
+          "icon": "🔵",
+          "status": "unavailable",
+          "description": "qwen-plus",
+          "isDefault": false
+        },
+        {
+          "id": 11,
+          "name": "MiniMax-M3",
+          "icon": "🟠",
+          "status": "available",
+          "description": "MiniMax-M3",
+          "isDefault": false
+        },
+        {
+          "id": 13,
+          "name": "DeepSeek-Chat",
+          "icon": "🟢",
+          "status": "unavailable",
+          "description": "DeepSeek 对话模型（S-15）",
+          "isDefault": false
+        }
+      ]
+    }
+  }
+}

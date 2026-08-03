@@ -8,8 +8,8 @@
 
 | 模式 | 何时用 | 怎么启 |
 |------|--------|--------|
-| **默认 = 本地** | 日常开发 / Gate | `.\scripts\start-ops-dev.ps1` → oa `dev-local-multidb`（localhost:3306 五库 root/root）+ `football-integration-overlay.yml`（127.0.0.1）+ Redis 本机 123456 |
-| **Beta = 显式 opt-in** | 连测试机 `110.42.49.224` | `.\scripts\start-ops-dev.ps1 -Beta`（或 `-TestRemote`） |
+| **默认 = 本地** | 日常开发 / Gate | `.\scripts\start-ops-dev.ps1` → ops-server localhost（master→**`shenyu-ops`** + Football 四库 root/root）+ `football-integration-overlay.yml`（127.0.0.1）+ Redis 本机 123456 |
+| **Beta = 显式 opt-in** | 连测试机 `110.42.49.224` | `.\scripts\start-ops-dev.ps1 -Beta`（或 `-TestRemote`）；OPS master 仍为 **`shenyu-ops`**（远程；本任务不改） |
 
 **不要**改默认启动脚本或把 beta overlay 设成 `start-ops-dev` / `start-integration-all` 的唯一路径。Beta 配置文件保留作可选，日常连回本地只需跑默认脚本（无需删 beta 文件）。
 
@@ -26,9 +26,11 @@
 
 ## MySQL（3306）
 
+> **库名 SSOT**：本地与 Beta OPS master 物理名均为 **`shenyu-ops`**（2026-08-01 本地自 `football-ops` 复制；`football-ops` / 历史 `wd` 可留备份）。Beta 主机仍为 `110.42.49.224`（下表）。
+
 | 用途 | Database | User | Password |
 |------|----------|------|----------|
-| OPS master（原 wd） | `shenyu-ops` | `shenyu-ops` | 见 env |
+| OPS master（原 wd；Beta） | `shenyu-ops` | `shenyu-ops` | 见 env |
 | system（用户 SSOT） | `shenyu-system` | `shenyu-system` | 见 env |
 | member | `shenyu-member` | `shenyu-member` | 见 env |
 | mp | `shenyu-mp` | `shenyu-mp` | 见 env |
@@ -136,8 +138,38 @@ Get-Content scripts\integration-config\ops-test-remote.env | ForEach-Object {
 | 1 | `apply-seed-oa-menu.py` → `seed-oa-system-menu.sql` | shenyu-system | OPS 菜单 6100–6999 + super_admin role_menu（**须 utf8mb4 stdin**，勿用 PowerShell 管道直灌） |
 | 2 | `seed-ops-test-remote-shenyu-system-menus.sql` | shenyu-system | V159/V162 采集路径、6175 全部任务、ip_group_leader 角色、移除 6137–6139/6155 |
 | 3 | `seed-ops-test-remote-dict.py` | shenyu-ops → shenyu-system | 从 `sys_dict_*` 同步 97+ 业务字典（对齐 V152/V158/V161） |
+| 4 | `seed-ops-six-roles-rbac.sql` | shenyu-system | ADR-064 六业务角色 + role_menu（160–165） |
+| 5 | `seed-ops-six-roles-test-users.sql` | shenyu-system | ADR-064 六角色可测用户 + user_role（幂等） |
 
 **证据**：`docs/delivery/OPS-TEST-SEED-RUNLOG.md`（最近一次 seed 后的 COUNT）。
+
+### ADR-064 六角色测试账号（tenant=1）
+
+> 用户名须匹配 Football `AuthLoginReqVO`：`^[A-Za-z0-9]+$`（**禁止下划线**）。密码与 Dev 惯例一致：`admin123`（BCrypt 同 admin）。
+
+| username | password | role code | role name | user id | 说明 |
+|----------|----------|-----------|-----------|---------|------|
+| `opsleader` | `admin123` | `ip_group_leader` | IP组长 | 9160 | Beta 原先无角色绑定；按例外新建 |
+| `opsmanager` | `admin123` | `ops_manager` | 运营主管 | 9161 | seed 新建 |
+| `opsfinance` | `admin123` | `finance` | 财务人员 | 9162 | seed 新建 |
+| `opseditor` | `admin123` | `content_editor` | 内容编辑 | 9163 | seed 新建 |
+| `opsoperator` | `admin123` | `ops_operator` | 运营 | 9164 | seed 新建 |
+| `opsanalyst` | `admin123` | `data_analyst` | 数据分析 | 9165 | seed 新建 |
+| `admin` | `admin123` | `super_admin` | 系统管理员 | （已有） | **不**由本 seed 创建 |
+
+```powershell
+# Beta
+python scripts/integration-config/apply-seed-oa-menu.py `
+  --host $env:OPS_TEST_DB_HOST --user shenyu-system --password <见 env> --database shenyu-system `
+  --seed scripts/integration-config/seed-ops-six-roles-test-users.sql
+
+# Local（若本机已有 roles 160–165）
+python scripts/integration-config/apply-seed-oa-menu.py `
+  --host localhost --user root --password root --database shenyu-system `
+  --seed scripts/integration-config/seed-ops-six-roles-test-users.sql
+```
+
+证据目录：`docs/delivery/e2e-artifacts/OPS-SIX-ROLES-USERS-20260802/`。
 
 **期望验证**（2026-07-25 已执行）：
 
@@ -149,9 +181,11 @@ Get-Content scripts\integration-config\ops-test-remote.env | ForEach-Object {
 
 > 测试库 MySQL 用户**无跨库 GRANT**；字典同步用 Python 双连接，不用 Flyway 式 ``INSERT INTO `shenyu-system`.… SELECT … FROM shenyu-ops``。
 
-### 菜单中文乱码（charset）
+### 菜单 / 角色中文乱码（charset）
 
-**根因**：seed 未以 `utf8mb4` 写入 `shenyu-system.system_menu.name`，中文被 MySQL 落成字面量 `?`（`HEX(name)=3F3F…`），与 V157 AI 提示词同类问题。属 **seed 数据错误**，非 Football 读库或 JDBC 问题。
+**根因**：seed 未以 `utf8mb4` 写入 `shenyu-system`（常见经 PowerShell 管道灌 SQL），中文被 MySQL 落成字面量 `?`（`HEX(name)=3F3F…`），与 V157 AI 提示词同类问题。属 **seed 数据错误**，非 Football 读库或 JDBC 问题。
+
+**角色样例（2026-08-02）**：`system_role.code=ip_group_leader` 曾显示 `IP??`（`HEX=49503F3F`）。已在 Beta `shenyu-system` 直接 UPDATE 为「IP组长」（`HEX=4950E7BB84E995BF`）；`seed-ops-test-remote-shenyu-system-menus.sql` / `seed-ip-group-leader-role.sql` 增加幂等 repair；`seed-ops-test-remote.ps1` 改走 Python utf8mb4 stdin。Beta `shenyu-ops.system_role` 该行本就正确，无需改。
 
 **修复**（任选其一，幂等）：
 

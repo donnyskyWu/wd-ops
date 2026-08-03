@@ -1,0 +1,17 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": true
+  },
+  "payload": {
+    "id": 13,
+    "paramName": "?????????",
+    "paramKey": "dingtalk.enabled",
+    "paramValue": "true",
+    "paramType": "BOOLEAN",
+    "category": "DINGTALK",
+    "remark": "ADR-026 ?????????????rue ??? asyncsend_v2"
+  }
+}

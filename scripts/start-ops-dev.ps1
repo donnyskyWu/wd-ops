@@ -1,6 +1,6 @@
 # start-ops-dev.ps1 - One-click Ops dev stack (Football integration Gate path)
 #
-# ADR-058 P5-MIGRATE-8: ops-server = monorepo football-module-ops-server JAR :48094
+# ADR-058 P5-MIGRATE-8: football-module-ops = monorepo football-module-ops-server JAR :48094
 # (via start-integration-all → start-integration-oa.ps1). Legacy ops-platform-server deleted (ADR-058 CLEANUP).
 #
 # Fixes recurring "system error" in UI: auto-check Redis password, MySQL, Docker,
@@ -116,7 +116,7 @@ if ($Beta) {
     Write-Host "`n--- [4/6] MySQL localhost:3306 ---"
     $mysqlOk = Test-MySqlLocal
     if (-not $mysqlOk) {
-        Write-Warning "MySQL check failed; oa-server may start but APIs may error"
+        Write-Warning "MySQL check failed; football-module-ops may start but APIs may error"
     }
 }
 
@@ -156,33 +156,73 @@ $allScript = Join-Path $PSScriptRoot "start-integration-all.ps1"
 & $allScript @allArgs
 $exitCode = $LASTEXITCODE
 
+# Vite cold start often exceeds the stack wait window — extra front wait + one restart.
+if (-not $SkipFrontend) {
+    Write-Host "`n--- Ensure football-front :5777 ---"
+    $frontUrl = "http://127.0.0.1:5777/"
+    $frontOk = Wait-HttpEndpoint -Url $frontUrl -TimeoutSec 90 -Label "football-front" -PollSec 2
+    if (-not $frontOk) {
+        Write-Host "[retry] football-front still DOWN — restart once" -ForegroundColor Yellow
+        Stop-PortListeners -Port 5777
+        Start-Sleep -Seconds 2
+        $frontScript = Join-Path $PSScriptRoot "run-football-front-dev.ps1"
+        $frontLog = Join-Path $LogDir "football-front-dev.log"
+        $frontErr = Join-Path $LogDir "football-front-dev.err.log"
+        # -File + -Root arg keeps Unicode path; do not embed 运营数据平台 in -Command.
+        Start-Process -FilePath "powershell.exe" -ArgumentList @(
+            "-NoProfile", "-ExecutionPolicy", "Bypass",
+            "-File", $frontScript, "-Root", $Root
+        ) -WorkingDirectory (Join-Path $Root "football-front") -WindowStyle Minimized `
+            -RedirectStandardOutput $frontLog -RedirectStandardError $frontErr | Out-Null
+        Write-Host "[start] football-front :5777 (retry) -> log: $frontLog"
+        $null = Wait-HttpEndpoint -Url $frontUrl -TimeoutSec 120 -Label "football-front" -PollSec 2
+    }
+}
+
 Write-Host "`n--- Final health check ---"
 Show-IntegrationHealthTable -SkipFrontend:$SkipFrontend
 
 $critical = @(Get-IntegrationHealthRows | Where-Object { $_.Critical })
-if (-not $SkipFrontend) {
-    $critical += @{ Service = "football-front"; Port = 5777; Url = "http://127.0.0.1:5777/" }
+if ($SkipFrontend) {
+    $critical = @($critical | Where-Object { $_.Service -ne "football-front" })
 }
 $down = @()
+$softWarn = @()
 foreach ($e in $critical) {
-    $st = Get-ServiceListenStatus -Port $e.Port -ProbeUrl $e.Url
-    if ($st -ne "UP") { $down += $e.Service }
+    $st = Get-ServiceListenStatus -Port $e.Port -ProbeUrl $e.Url -Headers $e.Headers
+    if (-not (Test-ServiceReadyStatus -Status $st)) {
+        $down += "$($e.Service)($st)"
+    }
+}
+# Soft-warn: optional services that are DOWN (not UP/LISTEN)
+foreach ($e in @(Get-IntegrationHealthRows | Where-Object { -not $_.Critical })) {
+    if ($e.Service -eq "football-front" -and $SkipFrontend) { continue }
+    $st = Get-ServiceListenStatus -Port $e.Port -ProbeUrl $e.Url -Headers $e.Headers
+    if ($st -eq "DOWN") { $softWarn += "$($e.Service)($st)" }
 }
 
 Write-Host ""
+if ($softWarn.Count -gt 0) {
+    Write-Host "[warn] optional probes DOWN (non-blocking): $($softWarn -join ', ')" -ForegroundColor Yellow
+}
 if ($down.Count -eq 0) {
     Write-Host "=== START OK ===" -ForegroundColor Green
     Write-Host "UI:      http://localhost:5777  (Gate; NOT :3000)"
     Write-Host "Gateway: http://localhost:48080/admin-api"
+    Write-Host "OPS:     football-module-ops :48094  (Nacos registry: ops-server)"
     Write-Host "Login:   admin / admin123   tenant: 1"
-} else {
-    Write-Host "=== NOT READY: $($down -join ', ') ===" -ForegroundColor Red
-    Show-IntegrationTroubleshooting -LogDir $LogDir
-    if ($exitCode -eq 0) { exit 2 }
+    Write-Host ""
+    Write-Host "Quick restart: .\scripts\start-ops-dev.ps1$(if ($Beta) { ' -Beta' })"
+    Write-Host "Beta remote:   .\scripts\start-ops-dev.ps1 -Beta"
+    Write-Host "FE edits:      football-front/apps/web-ele/src/views/ops (remount retired)"
+    Write-Host "Stop:          .\scripts\stop-integration-all.ps1"
+    exit 0
 }
 
+Write-Host "=== NOT READY: $($down -join ', ') ===" -ForegroundColor Red
+Show-IntegrationTroubleshooting -LogDir $LogDir
 Write-Host ""
 Write-Host "Quick restart: .\scripts\start-ops-dev.ps1$(if ($Beta) { ' -Beta' })"
-Write-Host "Beta remote:   .\scripts\start-ops-dev.ps1 -Beta"
-Write-Host "FE edits:      football-front/apps/web-ele/src/views/ops (remount retired)"
 Write-Host "Stop:          .\scripts\stop-integration-all.ps1"
+if ($exitCode -ne 0) { exit $exitCode }
+exit 1

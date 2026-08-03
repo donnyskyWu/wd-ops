@@ -1,0 +1,119 @@
+[
+  {
+    "flag": "OK",
+    "method": "GET",
+    "path": "/admin-api/ops/author/list?page=1&size=5&status=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 29
+  },
+  {
+    "flag": "OK",
+    "method": "GET",
+    "path": "/admin-api/ops/author/page?pageNo=1&pageSize=5&ipGroupId=9000&status=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0
+  },
+  {
+    "flag": "OK",
+    "method": "GET",
+    "path": "/admin-api/ops/config/ai-prompt/list?pageNo=1&pageSize=5",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 11
+  },
+  {
+    "flag": "OK",
+    "method": "GET",
+    "path": "/admin-api/ops/config/threshold/list?pageNo=1&pageSize=5",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 10
+  },
+  {
+    "flag": "OK",
+    "method": "GET",
+    "path": "/admin-api/ops/perf/template/list?pageNum=1&pageSize=5",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 3
+  },
+  {
+    "flag": "OK",
+    "method": "GET",
+    "path": "/admin-api/ops/perf/record/list?pageNum=1&pageSize=5",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 6
+  },
+  {
+    "flag": "OK",
+    "method": "GET",
+    "path": "/admin-api/ops/metric/list?pageNum=1&pageSize=5",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 32
+  },
+  {
+    "flag": "OK",
+    "method": "GET",
+    "path": "/admin-api/ops/internal-content/list?pageNum=1&pageSize=5",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 135
+  },
+  {
+    "flag": "OK",
+    "method": "GET",
+    "path": "/admin-api/ops/productivity-review/list?pageNum=1&pageSize=5",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 5
+  },
+  {
+    "flag": "CODE400",
+    "method": "POST",
+    "path": "/admin-api/ops/config/ai-prompt/create",
+    "http": 200,
+    "code": 400,
+    "msg": "请求参数不正确:字典值不合法",
+    "total": null
+  },
+  {
+    "flag": "CODE400",
+    "method": "POST",
+    "path": "/admin-api/ops/author/create",
+    "http": 200,
+    "code": 400,
+    "msg": "请求参数不正确:不能为空",
+    "total": null
+  },
+  {
+    "flag": "STUB410",
+    "method": "POST",
+    "path": "/admin-api/ops/dashboard/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "total": null
+  },
+  {
+    "flag": "STUB410",
+    "method": "POST",
+    "path": "/admin-api/ops/collector-bind/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "total": null
+  }
+]

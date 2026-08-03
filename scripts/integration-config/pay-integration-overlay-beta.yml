@@ -11,3 +11,9 @@ spring:
           url: jdbc:mysql://${OPS_TEST_DB_HOST:110.42.49.224}:${OPS_TEST_DB_PORT:3306}/${OPS_TEST_PAY_DB:shenyu-pay}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
           username: ${OPS_TEST_PAY_USER:shenyu-pay}
           password: ${OPS_TEST_PAY_PASSWORD:CHANGE_ME}
+
+# Dev placeholders so pay-server boots on beta (same as application-local.yaml)
+pay:
+  ease:
+    callbackUrl: https://beta.pay.shenyu.com/notify
+    notifyUrl: https://beta.pay.shenyu.com/notify

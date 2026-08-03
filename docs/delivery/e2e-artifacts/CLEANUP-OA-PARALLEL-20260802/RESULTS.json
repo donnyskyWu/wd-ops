@@ -1,0 +1,74 @@
+{
+  "task": "CLEANUP-P0-3 / A-WP2 parallel menu+perm cleanup",
+  "date": "2026-08-02",
+  "sql": "scripts/integration-config/cleanup-oa-parallel-menu-perm.sql",
+  "environments": [
+    {
+      "name": "local",
+      "host": "127.0.0.1",
+      "system_db": "shenyu-system",
+      "ops_db": "shenyu-ops",
+      "before": {
+        "menu_6137_6138_6139_6155": 0,
+        "role_menu_target": 0,
+        "parallel_perm_menus_system": 0,
+        "ops_menus_active_6100": 71,
+        "super_admin_ops_bindings": 71
+      },
+      "after": {
+        "menu_6137_6138_6139_6155": 0,
+        "role_menu_target": 0,
+        "parallel_perm_menus_system": 0,
+        "ops_menus_active_6100": 71,
+        "super_admin_ops_bindings": 71,
+        "system_oa_children": "6140,6141"
+      },
+      "ops_side": {
+        "sys_permission_live": true,
+        "archive_sys_permission": false,
+        "parallel_oa_perm_rows_stopwrite": 7,
+        "parallel_role_bindings_stopwrite": 8,
+        "mutated": false,
+        "reason": "B-WP4 stop-write triggers; RBAC SSOT=system_menu (P-D/V166)"
+      },
+      "apply_exit": 0,
+      "idempotent_reapply_exit": 0
+    },
+    {
+      "name": "beta",
+      "host": "110.42.49.224",
+      "system_db": "shenyu-system",
+      "ops_db": "shenyu-ops",
+      "before": {
+        "menu_6137_6138_6139_6155": 0,
+        "role_menu_target": 0,
+        "parallel_perm_menus_system": 0,
+        "ops_menus_active_6100": 77,
+        "super_admin_ops_bindings": 71
+      },
+      "after": {
+        "menu_6137_6138_6139_6155": 0,
+        "role_menu_target": 0,
+        "parallel_perm_menus_system": 0,
+        "ops_menus_active_6100": 77,
+        "super_admin_ops_bindings": 71,
+        "system_oa_children": "6140,6141"
+      },
+      "ops_side": {
+        "sys_permission_live": false,
+        "archive_sys_permission": true,
+        "archive_parallel_oa_perm_rows": 7,
+        "mutated": false,
+        "reason": "B-WP4 already RENAMEd to archive_*; archive not touched"
+      },
+      "apply_exit": 0
+    }
+  ],
+  "verdict": "PASS",
+  "notes": [
+    "shenyu-system already clean before apply; script is idempotent no-op",
+    "6105 children remain message 6140 + param 6141 only",
+    "ops:* business menus preserved; super_admin OPS bindings unchanged (71)",
+    "legacy sys_permission parallel oa:* left under B-WP4 (local stop-write / beta archive)"
+  ]
+}

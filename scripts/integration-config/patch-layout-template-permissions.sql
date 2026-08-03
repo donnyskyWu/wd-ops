@@ -1,4 +1,4 @@
--- Incremental patch: grant layout-template write/import permissions via Football button menus.
+﻿-- Incremental patch: grant layout-template write/import permissions via Football button menus.
 -- Root cause: menu 6120 only had oa:layout-template:list; publish/delete/create/update/import APIs need granular oa:* codes.
 
 SET NAMES utf8mb4;
@@ -7,10 +7,10 @@ BEGIN;
 
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
 VALUES
-  (6170, '公推模板创建', 'oa:layout-template:create', 3, 1, 6120, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2),
-  (6171, '公推模板更新', 'oa:layout-template:update', 3, 2, 6120, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2),
-  (6172, '公推模板删除', 'oa:layout-template:delete', 3, 3, 6120, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2),
-  (6173, '公推模板导入', 'oa:layout-template:import', 3, 4, 6120, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2)
+  (6170, '公推模板创建', 'ops:layout-template:create', 3, 1, 6120, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2),
+  (6171, '公推模板更新', 'ops:layout-template:update', 3, 2, 6120, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2),
+  (6172, '公推模板删除', 'ops:layout-template:delete', 3, 3, 6120, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2),
+  (6173, '公推模板导入', 'ops:layout-template:import', 3, 4, 6120, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2)
 ON DUPLICATE KEY UPDATE
   name = VALUES(name),
   permission = VALUES(permission),

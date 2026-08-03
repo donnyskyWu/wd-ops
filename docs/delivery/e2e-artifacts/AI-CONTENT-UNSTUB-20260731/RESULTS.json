@@ -1,0 +1,82 @@
+[
+  {
+    "name": "models-gw-ops",
+    "url": "http://127.0.0.1:48080/admin-api/ops/ai-content/models",
+    "http": 200,
+    "code": 0,
+    "msg": "ok"
+  },
+  {
+    "name": "models-direct",
+    "url": "http://127.0.0.1:48094/admin-api/oa/ai-content/models",
+    "http": 200,
+    "code": 0,
+    "msg": "ok"
+  },
+  {
+    "name": "generate-gw-ops",
+    "path": "/admin-api/ops/ai-content/generate",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "scheme": "COMPREHENSIVE",
+    "contentLen": 1347,
+    "ok": true
+  },
+  {
+    "name": "company-list",
+    "path": "/admin-api/ops/company/list?pageNo=1&pageSize=5",
+    "http": 200,
+    "code": 0,
+    "total": 7,
+    "msg": "ok"
+  },
+  {
+    "name": "realname-list",
+    "path": "/admin-api/ops/realname/list?pageNo=1&pageSize=5",
+    "http": 200,
+    "code": 0,
+    "total": 6,
+    "msg": "ok"
+  },
+  {
+    "name": "phone-list",
+    "path": "/admin-api/ops/phone/list?pageNo=1&pageSize=5",
+    "http": 200,
+    "code": 0,
+    "total": 7,
+    "msg": "ok"
+  },
+  {
+    "name": "sim-card-list",
+    "path": "/admin-api/ops/sim-card/list?pageNo=1&pageSize=5",
+    "http": 200,
+    "code": 0,
+    "total": 2,
+    "msg": "ok"
+  },
+  {
+    "name": "plan-list",
+    "path": "/admin-api/ops/plan/list?pageNo=1&pageSize=5",
+    "http": 200,
+    "code": 0,
+    "total": 3,
+    "msg": "ok"
+  },
+  {
+    "name": "knowledge-list",
+    "path": "/admin-api/ops/knowledge/list?pageNo=1&pageSize=5",
+    "http": 200,
+    "code": 0,
+    "total": 0,
+    "msg": "ok"
+  },
+  {
+    "name": "layout-style-list",
+    "path": "/admin-api/ops/layout-style/list?pageNo=1&pageSize=5",
+    "http": 200,
+    "code": 403,
+    "total": null,
+    "msg": "没有该操作权限"
+  }
+]

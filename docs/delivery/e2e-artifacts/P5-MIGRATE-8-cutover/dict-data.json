@@ -1,0 +1,75 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "dictType": "dict_platform_type",
+          "label": "全部",
+          "value": "ALL",
+          "sort": 0,
+          "status": "ENABLED"
+        },
+        {
+          "dictType": "dict_platform_type",
+          "label": "抖音",
+          "value": "DOUYIN",
+          "sort": 0,
+          "status": "ENABLED"
+        },
+        {
+          "dictType": "dict_platform_type",
+          "label": "快手",
+          "value": "KUAISHOU",
+          "sort": 0,
+          "status": "ENABLED"
+        },
+        {
+          "dictType": "dict_platform_type",
+          "label": "服务号",
+          "value": "SERVICE_ACCOUNT",
+          "sort": 0,
+          "status": "ENABLED"
+        },
+        {
+          "dictType": "dict_platform_type",
+          "label": "微信公众号",
+          "value": "WECHAT_OFFICIAL",
+          "sort": 0,
+          "status": "ENABLED"
+        },
+        {
+          "dictType": "dict_platform_type",
+          "label": "个微",
+          "value": "WECHAT_PERSONAL",
+          "sort": 0,
+          "status": "ENABLED"
+        },
+        {
+          "dictType": "dict_platform_type",
+          "label": "视频号",
+          "value": "WECHAT_VIDEO",
+          "sort": 0,
+          "status": "ENABLED"
+        },
+        {
+          "dictType": "dict_platform_type",
+          "label": "企业微信",
+          "value": "WEWORK",
+          "sort": 0,
+          "status": "ENABLED"
+        },
+        {
+          "dictType": "dict_platform_type",
+          "label": "小红书",
+          "value": "XIAOHONGSHU",
+          "sort": 0,
+          "status": "ENABLED"
+        }
+      ],
+      "total": 9
+    }
+  }
+}

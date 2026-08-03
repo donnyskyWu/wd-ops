@@ -1,0 +1,20 @@
+{
+  "bug": "WECHAT_VIDEO QR confirmed → 保存凭证 → Cookie 凭证不完整",
+  "date": "20260802",
+  "root_cause": [
+    "CollectorQrLoginService.applyCredentialsFromPoll used isMpBackedAccount(id) without platform gate; oa_account id colliding with mp_account wrote cookie to oa_account_ext instead of oa_account",
+    "poll confirmed + collector account_id still bound even when cookie empty/unusable",
+    "channels cookie may arrive as object (sessionid/wxuin) — not normalized to cookie string"
+  ],
+  "fix_files": [
+    "football-module-ops-server/.../CollectorQrLoginService.java",
+    "football-module-ops-server/.../CollectorQrLoginSupport.java",
+    "unify-collector-api/app/core/qr_manager.py",
+    "football-front/.../PlatformAccountCollectTab.vue"
+  ],
+  "smoke": {
+    "script": "smoke_normalize_cookie.py",
+    "result": "PASS",
+    "note": "mock poll confirmed shapes; no human scan"
+  }
+}

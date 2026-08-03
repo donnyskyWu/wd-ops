@@ -20,7 +20,7 @@ def main() -> int:
         "# UAT Browser E2E — Ops Standalone (2026-07-04)",
         "",
         "> **Tool**: Playwright · **Stack**: `start-ops-standalone.ps1` → UI :3000 · API :8080 · Dev Token",
-        "> **Script**: `scripts/run-uat-browser-e2e.ps1` · **Spec**: `ops-platform-ui-vue/tests/uat-browser-gap.spec.ts`",
+        "> **Script**: `scripts/run-uat-browser-e2e.ps1` · **RETIRED** (A-WP1) — use `run-gate-football-e2e.ps1` / `football-front/apps/web-ele/tests/`",
         "",
         "## Summary",
         "",

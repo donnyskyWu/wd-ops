@@ -173,8 +173,8 @@ SELF      // 默认兜底 + member 组账号过滤（账号类菜单）
 
 | 参数 | 默认 | 规则 |
 |------|------|------|
-| `content.review.level1.role` | `OPS_LEADER` | **特殊语义**：非全角色用户，而是 **内容所属 IP 组的组长**（`leader_user_id` 或 member `is_leader=1`） |
-| `content.review.level2.role` | `DEPT_HEAD` | 全租户持有该 **sys_role / Football role** 的用户 |
+| `content.review.level1.role` | **`ip_group_leader`**（ADR-064；兼容旧值 `OPS_LEADER`） | **特殊语义**：非全角色用户，而是 **内容所属 IP 组的组长**（`leader_user_id` / `ledIpGroupIds`） |
+| `content.review.level2.role` | **`ops_manager`**（ADR-064；原 `DEPT_HEAD`） | 全租户持有该 Football `system_role` 的用户 |
 
 角色解析顺序：`sys_user_role` → Football `system_role`（`hasRoleForUserId`）。
 

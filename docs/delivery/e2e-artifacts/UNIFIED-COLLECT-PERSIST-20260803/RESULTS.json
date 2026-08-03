@@ -1,0 +1,11 @@
+{
+  "compileOnly": false,
+  "checks": [],
+  "taskId": 8,
+  "persistMemberCount": 2,
+  "latestLogId": 29,
+  "persistMode": "FULL_PERSIST",
+  "typeResultsWithTargetTable": 7,
+  "runCode": 0,
+  "pass": true
+}

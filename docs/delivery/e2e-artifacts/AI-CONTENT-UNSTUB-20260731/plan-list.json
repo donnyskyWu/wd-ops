@@ -1,0 +1,63 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "id": 4,
+          "planName": "0720计划1",
+          "templateId": 9408,
+          "templateName": "0714模板",
+          "ipGroupId": 9001,
+          "ipGroupName": "功能测试A",
+          "startDate": "2026-07-20",
+          "endDate": "2026-07-26",
+          "description": null,
+          "status": "IN_PROGRESS",
+          "progress": 0,
+          "competitions": null,
+          "steps": null,
+          "tasks": null,
+          "createTime": "2026-07-20 22:04:18"
+        },
+        {
+          "id": 3,
+          "planName": "计划0715",
+          "templateId": 9407,
+          "templateName": "运营完整流程1",
+          "ipGroupId": 9001,
+          "ipGroupName": "功能测试A",
+          "startDate": "2026-07-15",
+          "endDate": "2026-07-21",
+          "description": null,
+          "status": "IN_PROGRESS",
+          "progress": 0,
+          "competitions": null,
+          "steps": null,
+          "tasks": null,
+          "createTime": "2026-07-15 21:48:05"
+        },
+        {
+          "id": 2,
+          "planName": "0714计划",
+          "templateId": 9408,
+          "templateName": "0714模板",
+          "ipGroupId": 9001,
+          "ipGroupName": "功能测试A",
+          "startDate": "2026-07-14",
+          "endDate": "2026-07-20",
+          "description": null,
+          "status": "IN_PROGRESS",
+          "progress": 0,
+          "competitions": null,
+          "steps": null,
+          "tasks": null,
+          "createTime": "2026-07-14 22:55:23"
+        }
+      ],
+      "total": 3
+    }
+  }
+}

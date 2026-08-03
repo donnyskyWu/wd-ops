@@ -1,0 +1,46 @@
+{
+  "status": 200,
+  "code": 0,
+  "count": 65,
+  "sample": [
+    {
+      "id": "2059567794397171712",
+      "nickname": "????",
+      "status": 0,
+      "deptId": null,
+      "postIds": null,
+      "mobile": "18502146754",
+      "avatar": "",
+      "isAdmin": false,
+      "authorIds": null,
+      "dingtalkUserId": null,
+      "transMap": {}
+    },
+    {
+      "id": "2055123778037366784",
+      "nickname": "?????",
+      "status": 0,
+      "deptId": null,
+      "postIds": null,
+      "mobile": "13315981592",
+      "avatar": "",
+      "isAdmin": false,
+      "authorIds": null,
+      "dingtalkUserId": null,
+      "transMap": {}
+    },
+    {
+      "id": "1749825673829120202",
+      "nickname": "张武",
+      "status": 0,
+      "deptId": null,
+      "postIds": null,
+      "mobile": "",
+      "avatar": "",
+      "isAdmin": false,
+      "authorIds": null,
+      "dingtalkUserId": null,
+      "transMap": {}
+    }
+  ]
+}

@@ -1,13 +1,13 @@
-# start-integration-all.ps1 - 一键启动 Football x Ops 本地集成全栈 (Gate 路径)
+# start-integration-all.ps1 - һ������ Football x Ops ���ؼ���ȫջ (Gate ·��)
 #
-# SSOT matrix: docs/delivery/OPS-STARTUP-MATRIX.md (Path 2 — NOT standalone :3000/:8080).
-# oa-server: DEFAULT OaProfiles = dev-local-multidb -> localhost:3306 五库 (NOT beta remote).
+# SSOT matrix: docs/delivery/OPS-STARTUP-MATRIX.md (Path 2 �� NOT standalone :3000/:8080).
+# oa-server: DEFAULT OaProfiles = dev-local-multidb -> localhost:3306 ��� (NOT beta remote).
 # member-server :48087 (DEFAULT). Gate UI :5777 via pnpm dev:ele; vite proxy -> localhost:48080.
 # Preflight: ops branch warn + views/ops mount + Ensure-FootballFrontLocalApi.
 #
-# 推荐一键启动（含 Redis/MySQL 预检）: .\scripts\start-ops-dev.ps1
+# �Ƽ�һ���������� Redis/MySQL Ԥ�죩: .\scripts\start-ops-dev.ps1
 #
-# 用法（在仓库根目录）:
+# �÷����ڲֿ��Ŀ¼��:
 #   .\scripts\start-integration-all.ps1
 #   .\scripts\start-integration-all.ps1 -Restart
 #   .\scripts\start-integration-all.ps1 -SkipNacos -SkipFrontend
@@ -15,22 +15,22 @@
 #   .\scripts\start-integration-all.ps1 -UseMemberMock      # Python mock :48087 (login only)
 #   .\scripts\start-integration-all.ps1 -FullMemberServer   # explicit (default since 2026-07-20)
 #   .\scripts\start-integration-all.ps1 -UseMemberServer    # alias of -FullMemberServer
-#   .\scripts\start-integration-all.ps1 -MountOps           # force remount OPS -> football-front
+#   .\scripts\start-integration-all.ps1 -MountOps           # RETIRED �� fail-fast (SSOT=football-front)
 #   .\scripts\start-integration-all.ps1 -SkipMountOps
 #   .\scripts\start-integration-all.ps1 -Beta               # remote test DB 110.42.49.224
 #   .\scripts\start-integration-all.ps1 -TestRemote         # alias of -Beta
 #
-# member-server vs mock (INTEGRATION-PROGRESS §20 / §23 #4):
+# member-server vs mock (INTEGRATION-PROGRESS ��20 / ��23 #4):
 #   DEFAULT: football-module-member-server JAR on :48087 (+ integration-member-stub RocketMQ bean).
-#   Required for Football 方案列表: GET /admin-api/member/article/page (Gateway -> :48087).
-#   -UseMemberMock: Python mock-member-author-server.py — login Feign stub only; article/* -> 404.
+#   Required for Football �����б�: GET /admin-api/member/article/page (Gateway -> :48087).
+#   -UseMemberMock: Python mock-member-author-server.py �� login Feign stub only; article/* -> 404.
 #   Ops author CRUD: oa-server @DS("member") reads localhost:3306/shenyu-member directly.
 #   -Beta: same local ports; MySQL/Redis/Nacos -> 110.42.49.224 (ops-test-remote.env).
 #
-# 停止: .\scripts\stop-integration-all.ps1
+# ֹͣ: .\scripts\stop-integration-all.ps1
 #
-# 登录: admin / admin123  租户 ID: 1
-# 前端: http://localhost:5777  Gateway: http://localhost:48080
+# ��¼: admin / admin123  �⻧ ID: 1
+# ǰ��: http://localhost:5777  Gateway: http://localhost:48080
 
 [CmdletBinding()]
 param(
@@ -53,6 +53,11 @@ param(
 
 $ErrorActionPreference = "Continue"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+if ($MountOps) {
+    Write-Host "[retired] -MountOps: remount from ops-platform-ui-vue ended (A-WP1)." -ForegroundColor Red
+    Write-Host "          OPS UI SSOT = football-front/apps/web-ele/src/views/ops �� edit there directly." -ForegroundColor Yellow
+    exit 1
+}
 $LogDir = Join-Path $PSScriptRoot "logs"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
@@ -65,7 +70,7 @@ if ($FullMemberServer) { $WantFullMemberServer = $true }
 
 if ($Beta) {
     if (-not (Get-Command Import-OpsTestRemoteEnv -ErrorAction SilentlyContinue)) {
-        Write-Error "Import-OpsTestRemoteEnv missing — ensure scripts/lib/integration-preflight.ps1 is loaded"
+        Write-Error "Import-OpsTestRemoteEnv missing �� ensure scripts/lib/integration-preflight.ps1 is loaded"
         exit 1
     }
     if (-not (Import-OpsTestRemoteEnv -Root $Root -Required)) { exit 1 }
@@ -74,7 +79,7 @@ if ($Beta) {
     }
     # Remote Nacos; do not require local Docker Nacos
     $SkipNacos = $true
-    Write-Host "[beta] Mode ON — OaProfiles=$OaProfiles ; Football overlays=*-beta.yml ; Skip local Nacos"
+    Write-Host "[beta] Mode ON �� OaProfiles=$OaProfiles ; Football overlays=*-beta.yml ; Skip local Nacos"
 }
 
 $IntegrationPorts = @(8848, 6379, 48080, 48081, 48082, 48085, 48086, 48087, 48088, 48094, 5777)
@@ -102,17 +107,28 @@ function Start-DevWindow {
         [string]$LogFile
     )
     if ($WorkingDirectory -and -not (Test-Path $WorkingDirectory)) {
-        Write-Warning "Skip $Title - dieectoey not found: $WorkingDirectory"
+        Write-Warning "Skip $Title - directory not found: $WorkingDirectory"
         return
     }
-    $wdLine = if ($WorkingDirectory) { "Set-Location -LiteralPath '$WorkingDirectory'" } else { "" }
-    $inner = @"
-$wdLine
-`$host.UI.RawUI.WindowTitle = '$Title'
-& { $Command } *>&1 | Tee-Object -FilePath '$LogFile' -Append
-"@
+    # IMPORTANT: do not pass Chinese paths via powershell -Command (console/ANSI mangles them).
+    # Write a UTF-8 BOM launcher and start with -File so paths like .../��Ӫ����ƽ̨/... survive.
+    $tempDir = Join-Path $env:TEMP "ops-dev-start"
+    New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
+    $safeTitle = ($Title -replace '[^\w\-]+', '_').Trim('_')
+    if (-not $safeTitle) { $safeTitle = "dev" }
+    $launcher = Join-Path $tempDir "$safeTitle-$PID-$(Get-Random).ps1"
+    $wdLiteral = if ($WorkingDirectory) { $WorkingDirectory.Replace("'", "''") } else { "" }
+    $logLiteral = $LogFile.Replace("'", "''")
+    $titleLiteral = $Title.Replace("'", "''")
+    $lines = @()
+    $lines += '$ErrorActionPreference = ''Continue'''
+    $lines += "`$host.UI.RawUI.WindowTitle = '$titleLiteral'"
+    if ($wdLiteral) { $lines += "Set-Location -LiteralPath '$wdLiteral'" }
+    $lines += "& { $Command } *>&1 | Tee-Object -FilePath '$logLiteral' -Append"
+    $utf8Bom = New-Object System.Text.UTF8Encoding $true
+    [System.IO.File]::WriteAllLines($launcher, $lines, $utf8Bom)
     Start-Process -FilePath "powershell.exe" -ArgumentList @(
-        "-NoProfile", "-ExecutionPolicy", "Bypass", "-NoExit", "-Command", $inner
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-NoExit", "-File", $launcher
     ) -WindowStyle Minimized | Out-Null
     Write-Host "[start] $Title -> log: $LogFile"
 }
@@ -172,6 +188,20 @@ function Ensure-Redis {
     Start-Sleep -Seconds 2
 }
 
+
+function Stop-MemberMockIfBlocking {
+    param([int]$Port = 48087)
+    if (-not (Test-PortListen -Port $Port)) { return }
+    $listen = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $listen) { return }
+    $procId = $listen.OwningProcess
+    $cmd = (Get-CimInstance Win32_Process -Filter "ProcessId=$procId" -ErrorAction SilentlyContinue).CommandLine
+    if ($cmd -match 'mock-member-author-server\.py') {
+        Write-Host "[fix] Stopping Python member mock on :$Port (FullMemberServer needs JAR)" -ForegroundColor Yellow
+        Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+    }
+}
 function Start-IntegrationJar {
     param(
         [string]$Title,
@@ -231,7 +261,9 @@ Write-Host "[ok] Java: $(java -version 2>&1 | Select-Object -First 1)"
 
 if ($Restart) {
     Write-Host "`n--- Restart: stopping existing listenees ---"
-    & (Join-Path $PSScriptRoot "stop-integration-all.ps1") -SkipDocker:$false
+    # -SkipNacos / -Beta: keep external or user-started Nacos on :8848 (do not docker stop / kill port)
+    $preserveNacos = $SkipNacos -or $Beta
+    & (Join-Path $PSScriptRoot "stop-integration-all.ps1") -SkipDocker:$preserveNacos
     Start-Sleep -Seconds 3
 }
 
@@ -254,7 +286,7 @@ if ($Beta) {
     Ensure-Redis
 }
 
-# 3.5 Local wd schema patches (localhost only — never against beta remote)
+# 3.5 Local wd schema patches (localhost only �� never against beta remote)
 if (-not $Beta -and $OaProfiles -match "dev-local-multidb") {
     Write-Host "`n--- Local wd schema patches ---"
     $py = if (Test-CommandExists "python") { "python" } elseif (Test-CommandExists "py") { "py" } else { $null }
@@ -318,7 +350,11 @@ $MemberJar = Join-Path $Root "football-backend-saas\football-module-member\footb
 $MatchJar = Join-Path $Root "football-backend-saas\football-module-match\football-module-match-server\target\football-module-match-server.jar"
 $PayJar = Join-Path $Root "football-backend-saas\football-module-pay\football-module-pay-server\target\football-module-pay-server.jar"
 $MatchOverlay = Join-Path $Root "scripts\integration-config\match-integration-overlay.yml"
-$PayOverlay = Join-Path $Root "scripts\integration-config\pay-integration-overlay.yml"
+$PayOverlay = if ($Beta) {
+    Join-Path $Root "scripts\integration-config\pay-integration-overlay-beta.yml"
+} else {
+    Join-Path $Root "scripts\integration-config\pay-integration-overlay.yml"
+}
 
 if (-not $SkipBuild) {
     Write-Host "[build] football gateway + mp + system + infra (+ member if full) ..."
@@ -341,6 +377,7 @@ Start-IntegrationJar -Title "mp-server" -Port 48086 -Jar $MpJar -LogFile (Join-P
 Start-Sleep -Seconds 8
 
 if ($WantFullMemberServer) {
+    Stop-MemberMockIfBlocking -Port 48087
     $StubJar = Join-Path $Root "scripts\integration-config\integration-member-stub\target\integration-member-stub.jar"
     if (-not (Test-Path $StubJar)) {
         Write-Host "[build] integration-member-stub (RocketMQTemplate for local member-server) ..."
@@ -372,7 +409,7 @@ if ($WantFullMemberServer) {
 }
 Start-Sleep -Seconds 5
 
-# match-server :48088 — scheme edit needs GET /admin-api/match/lottery-schedule/getCzIssue
+# match-server :48088 �� scheme edit needs GET /admin-api/match/lottery-schedule/getCzIssue
 if (Test-PortListen -Port 48088) {
     Write-Host "[ok] Port 48088 in use - assuming match-server is running"
 } elseif (Test-Path $MatchJar) {
@@ -397,7 +434,7 @@ Start-Sleep -Seconds 3
 Start-IntegrationJar -Title "system-server" -Port 48081 -Jar $SystemJar -LogFile (Join-Path $LogDir "system-server-integration.log") `
     -ActiveProfiles $FootballProfiles -ExtraConfig $Overlay
 
-# 5.4 pay-server :48085 — G-PAY-01 order page RPC
+# 5.4 pay-server :48085 �� G-PAY-01 order page RPC
 if (Test-PortListen -Port 48085) {
     Write-Host "[ok] Port 48085 in use - assuming pay-server is running"
 } elseif (Test-Path $PayJar) {
@@ -409,7 +446,7 @@ if (Test-PortListen -Port 48085) {
     Write-Warning "  Fix: mvn -pl football-module-pay/football-module-pay-server -am package -DskipTests"
 }
 
-# 5.5 infra-server :48082 — Phase A file upload (/admin-api/infra/file/*)
+# 5.5 infra-server :48082 �� Phase A file upload (/admin-api/infra/file/*)
 $InfraOverlay = Join-Path $Root "scripts\integration-config\infra-integration-overlay.yml"
 $SftpKey = Join-Path $Root "scripts\integration-config\local-sftp-id_rsa"
 if (Get-Command Ensure-LocalSftpKey -ErrorAction SilentlyContinue) {
@@ -422,7 +459,7 @@ if (Test-PortListen -Port 48082) {
     # Absolute key path required: jar cwd is not repo root; application-local defaults to D:/zhengshu/...
     $sftpArg = if (Test-Path $SftpKey) { "--sftp.private-key=$SftpKey" } else { "" }
     if (-not (Test-Path $SftpKey)) {
-        Write-Warning "Missing $SftpKey — generate with: ssh-keygen -t rsa -f scripts/integration-config/local-sftp-id_rsa -N \"\""
+        Write-Warning "Missing $SftpKey �� generate with: ssh-keygen -t rsa -f scripts/integration-config/local-sftp-id_rsa -N \"\""
     }
     Start-IntegrationJar -Title "infra-server" -Port 48082 -Jar $InfraJar -LogFile (Join-Path $LogDir "infra-server-integration.log") `
         -ActiveProfiles $FootballProfiles -ExtraConfig $infraCfg -ExtraArgs $sftpArg
@@ -431,13 +468,13 @@ if (Test-PortListen -Port 48082) {
     Write-Warning "  Fix: .\scripts\start-ops-dev.ps1 -FirstRun   OR   mvn -pl football-module-infra/football-module-infra-server -am package -DskipTests"
 }
 
-# 6. oa-server
+# 6. football-module-ops (script filename kept: start-integration-oa.ps1; Nacos id: ops-server)
 if (-not $SkipOa) {
-    Write-Host "`n--- oa-server :48094 ---"
+    Write-Host "`n--- football-module-ops :48094 ---"
     & (Join-Path $PSScriptRoot "start-integration-oa.ps1") -Profiles $OaProfiles -WaitSeconds $WaitSeconds -SkipNacosPrerequisiteCheck
 }
 
-# 7. football-front (Gate :5777 — standalone :3000 not used)
+# 7. football-front (Gate :5777 �� standalone :3000 not used)
 if (-not $SkipFrontend) {
     Write-Host "`n--- football-front :5777 (pnpm dev:ele) ---"
     if (Get-Command Assert-FootballOpsBranch -ErrorAction SilentlyContinue) {
@@ -455,7 +492,7 @@ if (-not $SkipFrontend) {
     if (Get-Command Ensure-FootballFrontLocalApi -ErrorAction SilentlyContinue) {
         $apiOk = Ensure-FootballFrontLocalApi -Root $Root
         if (-not $apiOk) {
-            Write-Warning "Vite proxy is not localhost:48080 — local OPS menus may be missing after login"
+            Write-Warning "Vite proxy is not localhost:48080 �� local OPS menus may be missing after login"
         }
     }
     $frontDir = Join-Path $Root "football-front"
@@ -464,8 +501,16 @@ if (-not $SkipFrontend) {
         Write-Host "     If vite proxy / VITE_BASE_URL just changed, restart :5777 (Vite reads env only at boot)" -ForegroundColor Yellow
     } elseif (Test-Path $frontDir) {
         $frontScript = Join-Path $PSScriptRoot "run-football-front-dev.ps1"
-        Start-DevWindow -Title "football-front :5777" -WorkingDirectory $Root `
-            -Command "& '$frontScript' -Root '$Root'" -LogFile (Join-Path $LogDir "football-front-dev.log")
+        $frontLog = Join-Path $LogDir "football-front-dev.log"
+        $frontErr = Join-Path $LogDir "football-front-dev.err.log"
+        # Must use -File/-Root (Unicode-safe). Embedding ��Ӫ����ƽ̨ in -Command mangles the path;
+        # Vite then prints "ready" against a broken cwd and never stays on :5777.
+        Start-Process -FilePath "powershell.exe" -ArgumentList @(
+            "-NoProfile", "-ExecutionPolicy", "Bypass",
+            "-File", $frontScript, "-Root", $Root
+        ) -WorkingDirectory $frontDir -WindowStyle Minimized `
+            -RedirectStandardOutput $frontLog -RedirectStandardError $frontErr | Out-Null
+        Write-Host "[start] football-front :5777 -> log: $frontLog"
     } else {
         Write-Warning "football-front not found"
     }
@@ -473,7 +518,37 @@ if (-not $SkipFrontend) {
 
 # 8. Health wait + summary
 Write-Host "`n--- Waiting for key endpoints (up to ${WaitSeconds}s) ---"
+# system actuator is wrapped by yudao (HTTP 200 + code:404) �� any HTTP response means process is up
 $null = Wait-HttpEndpoint -Url "http://127.0.0.1:48081/actuator/health" -TimeoutSec $WaitSeconds -Label "system-server"
+$null = Wait-HttpEndpoint -Url "http://127.0.0.1:48080/admin-api/system/tenant/simple-list" -TimeoutSec ([Math]::Min(60, $WaitSeconds)) -Label "gateway"
+if (-not $SkipOa) {
+    $null = Wait-HttpEndpoint -Url "http://127.0.0.1:48094/actuator/health" -TimeoutSec ([Math]::Min(60, $WaitSeconds)) -Label "football-module-ops"
+}
+if (-not $SkipFrontend) {
+    $frontReady = Wait-HttpEndpoint -Url "http://127.0.0.1:5777/" -TimeoutSec ([Math]::Max(90, [Math]::Min(120, $WaitSeconds))) -Label "football-front" -PollSec 2
+    if (-not $frontReady) {
+        Write-Host "[retry] football-front DOWN after wait �� restart once" -ForegroundColor Yellow
+        if (Get-Command Stop-PortListeners -ErrorAction SilentlyContinue) {
+            Stop-PortListeners -Port 5777
+        } else {
+            Stop-ListenersOnPort -Port 5777
+        }
+        Start-Sleep -Seconds 2
+        $frontDir = Join-Path $Root "football-front"
+        $frontScript = Join-Path $PSScriptRoot "run-football-front-dev.ps1"
+        $frontLog = Join-Path $LogDir "football-front-dev.log"
+        $frontErr = Join-Path $LogDir "football-front-dev.err.log"
+        if (Test-Path $frontDir) {
+            Start-Process -FilePath "powershell.exe" -ArgumentList @(
+                "-NoProfile", "-ExecutionPolicy", "Bypass",
+                "-File", $frontScript, "-Root", $Root
+            ) -WorkingDirectory $frontDir -WindowStyle Minimized `
+                -RedirectStandardOutput $frontLog -RedirectStandardError $frontErr | Out-Null
+            Write-Host "[start] football-front :5777 (retry) -> log: $frontLog"
+            $null = Wait-HttpEndpoint -Url "http://127.0.0.1:5777/" -TimeoutSec 120 -Label "football-front" -PollSec 2
+        }
+    }
+}
 
 function Get-ServiceStatus {
     param([int]$Port, [string]$ProbeUrl, [hashtable]$Headers = $null)
@@ -486,7 +561,7 @@ Write-Host ""
 Write-Host ("{0,-22} {1,6} {2,8} {3}" -f "Service", "Port", "Status", "URL")
 Write-Host ("-" * 70)
 foreach ($e in $rows) {
-    if ($e.Service -eq "oa-server" -and $SkipOa) { continue }
+    if ($e.Service -eq "football-module-ops" -and $SkipOa) { continue }
     if ($e.Service -eq "football-front" -and $SkipFrontend) { continue }
     $st = Get-ServiceStatus -Port $e.Port -ProbeUrl $e.Url -Headers $e.Headers
     $url = if ($e.Url) { $e.Url } else { "(tcp)" }

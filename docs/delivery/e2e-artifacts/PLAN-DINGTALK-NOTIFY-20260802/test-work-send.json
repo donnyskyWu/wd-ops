@@ -1,0 +1,22 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "channel": "work_notify",
+      "userId": "2077584621618393088",
+      "nickname": "张武",
+      "dingtalkUserId": "17657642164761319",
+      "sent": true,
+      "errcode": 0,
+      "errmsg": "ok",
+      "raw": {
+        "errcode": 0,
+        "errmsg": "ok",
+        "task_id": 3428637810033,
+        "request_id": "16kf030e56zgp"
+      }
+    }
+  }
+}

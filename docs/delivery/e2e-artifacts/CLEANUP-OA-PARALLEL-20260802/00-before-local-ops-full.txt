@@ -1,0 +1,30 @@
++--------------------+
+| section            |
++--------------------+
+| ALL_SYS_PERMISSION |
++--------------------+
++------+--------------------------+--------------------+--------+---------+
+| id   | code                     | name               | module | deleted |
++------+--------------------------+--------------------+--------+---------+
+|    1 | oa:user:list             | user list          | M9     |       0 |
+|    5 | oa:role:list             | role list          | M9     |       0 |
+|   10 | oa:permission:list       | perm list          | M9     |       0 |
+|   11 | oa:tenant:list           | tenant list        | M9     |       0 |
+|   12 | oa:tenant:create         | tenant create      | M9     |       0 |
+|   13 | oa:tenant:update         | tenant update      | M9     |       0 |
+|   14 | oa:tenant:delete         | tenant delete      | M9     |       0 |
+|   15 | oa:account:list          | account list       | M4     |       0 |
+|   16 | oa:account:create        | account create     | M4     |       0 |
+| 1601 | oa:plan:list             | 计划查询           | M2     |       0 |
+| 1602 | oa:custom-query:list     | 自定义查询         | M6     |       0 |
+| 1603 | oa:metric:list           | 指标管理           | M6     |       0 |
+| 1604 | oa:metric-analysis:list  | 指标分析           | M6     |       0 |
+| 1605 | oa:cost:list             | 账号成本查询       | M5     |       0 |
+| 1606 | oa:platform-account:list | 平台账号查询       | M4     |       0 |
+| 1607 | oa:account-analysis:list | 账号分析           | M1     |       0 |
++------+--------------------------+--------------------+--------+---------+
++--------------------+
+| section            |
++--------------------+
+| ROLE_PERM_PARALLEL |
++--------------------+

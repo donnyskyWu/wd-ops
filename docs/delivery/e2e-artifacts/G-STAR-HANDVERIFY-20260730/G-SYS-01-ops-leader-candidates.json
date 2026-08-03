@@ -1,0 +1,22 @@
+{
+  "status": 200,
+  "code": 0,
+  "count": 8,
+  "sample": [
+    {
+      "id": "1002",
+      "username": "oa-leader",
+      "nickname": "Ops Leader"
+    },
+    {
+      "id": "1003",
+      "username": "oa-operator",
+      "nickname": "Ops Operator"
+    },
+    {
+      "id": "118",
+      "username": "goudan",
+      "nickname": "狗蛋"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "http": 200,
+  "req": {
+    "title": "ADR-066 should reject",
+    "contentType": "ARTICLE",
+    "creatorUserId": 9160,
+    "body": "smoke body for leader membership",
+    "documentType": "PREHEAT_PREVIEW",
+    "ipGroupId": 9006,
+    "competitionId": "e2e-adr066",
+    "competitionName": "ADR066 smoke match"
+  },
+  "body": {
+    "code": 403,
+    "msg": "当前用户不属于所选 IP 组",
+    "data": null
+  }
+}

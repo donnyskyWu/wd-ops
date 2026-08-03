@@ -1,0 +1,36 @@
+{
+  "checks": [
+    {
+      "name": "dingtalk_status",
+      "ok": true,
+      "workNotifyEnabled": true,
+      "primaryChannel": "work_notify"
+    },
+    {
+      "name": "test_work_send",
+      "ok": true,
+      "dingtalkUserId": "17657642164761319",
+      "errcode": 0,
+      "task_id": 3428637810033
+    },
+    {
+      "name": "plan_create_start",
+      "ok": true,
+      "skipped": false,
+      "templateId": 9408,
+      "nodeIds": [
+        9428,
+        9429,
+        9430
+      ]
+    },
+    {
+      "name": "log_no_dingtalk_skip_after_fix",
+      "ok": true,
+      "note": "false=good (no skip log for target user in recent tail)"
+    }
+  ],
+  "targetUserId": "2077584621618393088",
+  "planNameProbe": "交付计划12",
+  "pass": true
+}

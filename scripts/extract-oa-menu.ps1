@@ -1,15 +1,5 @@
-# S2-A: Extract Ops menu/permission map -> CSV + system_menu seed SQL
-# SSOT: ops-platform-ui-vue Layout.vue + router/index.ts
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-$Root = Split-Path -Parent $PSScriptRoot
-Push-Location $Root
-try {
-    python (Join-Path $PSScriptRoot 'extract-oa-menu.py')
-    if ($LASTEXITCODE -ne 0) { throw "extract-oa-menu.py failed with exit code $LASTEXITCODE" }
-    Write-Host "OK: docs/delivery/oa-menu-permission-map.csv"
-    Write-Host "OK: scripts/integration-config/seed-oa-system-menu.sql"
-}
-finally {
-    Pop-Location
-}
+# RETIRED — SSOT was ops-platform-ui-vue Layout + router (A-WP1 deleted).
+# Menu map: docs/delivery/oa-menu-permission-map.csv
+# OPS UI: football-front/apps/web-ele
+Write-Host "[retired] scripts/extract-oa-menu.ps1 — use football-front + oa-menu-permission-map.csv" -ForegroundColor Yellow
+exit 1

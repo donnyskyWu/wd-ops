@@ -1,0 +1,42 @@
+{
+  "code": 0,
+  "msg": "ok",
+  "data": [
+    {
+      "id": 4,
+      "taskId": 8,
+      "accountId": 1,
+      "accountName": "翕蔚热说",
+      "platformType": "WECHAT_VIDEO",
+      "collectEnabled": true,
+      "createTime": 1785639358000
+    },
+    {
+      "id": 3,
+      "taskId": 8,
+      "accountId": 1000112,
+      "accountName": "翕蔚热说-公众号",
+      "platformType": "WECHAT_OFFICIAL",
+      "collectEnabled": true,
+      "createTime": 1785638764000
+    },
+    {
+      "id": 2,
+      "taskId": 8,
+      "accountId": 1000109,
+      "accountName": "星城翌立",
+      "platformType": "WECHAT_OFFICIAL",
+      "collectEnabled": true,
+      "createTime": 1785598141000
+    },
+    {
+      "id": 1,
+      "taskId": 8,
+      "accountId": 1000111,
+      "accountName": "研意竞行",
+      "platformType": "WECHAT_OFFICIAL",
+      "collectEnabled": true,
+      "createTime": 1785595803000
+    }
+  ]
+}

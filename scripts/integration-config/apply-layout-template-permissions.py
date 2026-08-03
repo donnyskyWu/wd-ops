@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Apply patch-layout-template-permissions.sql to Football DB."""
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ DEFAULT_HOST = "101.37.161.136"
 DEFAULT_PORT = "3306"
 DEFAULT_USER = "shenyu"
 DEFAULT_PASS = "Zhangwu+123456"
-DEFAULT_DB = "wd"
+DEFAULT_DB = "shenyu-ops"
 
 
 def main() -> int:

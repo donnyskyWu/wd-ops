@@ -1,0 +1,71 @@
+{
+  "slice": "P5-MIGRATE-6 System 支撑",
+  "port": 48095,
+  "checks": [
+    {
+      "path": "/admin-api/oa/dict/data?type=dict_platform_type",
+      "http": 200,
+      "code": 0,
+      "total": 9,
+      "list_len": 9,
+      "msg": "ok"
+    },
+    {
+      "path": "/admin-api/oa/dict/data?type=dict_position",
+      "http": 200,
+      "code": 0,
+      "total": 7,
+      "list_len": 7,
+      "msg": "ok"
+    },
+    {
+      "path": "/admin-api/oa/ip-group/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 20,
+      "list_len": 5,
+      "msg": "ok"
+    },
+    {
+      "path": "/admin-api/oa/content/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 37,
+      "list_len": 5,
+      "msg": "ok"
+    },
+    {
+      "path": "/admin-api/oa/account/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 182,
+      "list_len": 5,
+      "msg": "ok"
+    },
+    {
+      "path": "/admin-api/oa/task/list?pageNum=1&pageSize=5",
+      "http": 200,
+      "code": 0,
+      "total": 52,
+      "list_len": 5,
+      "msg": "ok"
+    },
+    {
+      "path": "/admin-api/oa/file/upload",
+      "http": 200,
+      "code": 0,
+      "url": "https://upload.shenyu.com/1/content/20260731/smoke_1785427890746.png",
+      "msg": "ok",
+      "upload_ok": true,
+      "infra_presign_code": 0
+    }
+  ],
+  "production_48094": "UP",
+  "ok": true,
+  "deferred": [
+    "Message center / notification UI",
+    "Metadata admin domain",
+    "SystemDict admin CRUD remains 410 (Football Admin)"
+  ],
+  "next": "P5-MIGRATE-7 Analytics / 订单只读（或 Order/Finance）→ Cutover"
+}

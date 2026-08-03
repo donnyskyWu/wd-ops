@@ -16,7 +16,7 @@
 登录：http://localhost:5777 · `admin` / `admin123` · 租户 **1**  
 Gate 路径**不需要** `ops-platform-ui-vue :3000`。`football-front` / `football-backend-saas` 应在 Gitee **`ops`** 分支（见 [FOOTBALL-OPS-BRANCH.md](./FOOTBALL-OPS-BRANCH.md)）。
 
-**DB 默认 = 本地**：MySQL `localhost:3306`（`wd` / `shenyu-system` / `shenyu-member` / `shenyu-mp` / `shenyu-pay`，root/root）+ Redis `127.0.0.1:6379`（密码 `123456`）。**Beta 远程**（`110.42.49.224`）仅 opt-in：见 [OPS-TEST-DB.md](./OPS-TEST-DB.md)（`ops-test-remote.env` + `dev-test-beta`）。
+**DB 默认 = 本地**：MySQL `localhost:3306`（`shenyu-ops` / `shenyu-system` / `shenyu-member` / `shenyu-mp` / `shenyu-pay`，root/root）+ Redis `127.0.0.1:6379`（密码 `123456`）。历史本地库名 `football-ops` / `wd` 可保留作备份，应用默认已切 **`shenyu-ops`**（与 Beta 同名）。**Beta 远程**（`110.42.49.224`）仍为 `shenyu-ops`，仅 opt-in：见 [OPS-TEST-DB.md](./OPS-TEST-DB.md)（`ops-test-remote.env` + `dev-test-beta`）。
 
 ---
 
@@ -30,7 +30,7 @@ Gate 路径**不需要** `ops-platform-ui-vue :3000`。`football-front` / `footb
 | **A — Ops Standalone** | 快速改 Ops 页面/API，无需 Football 壳；**非 Gate 签收路径** | `.\scripts\start-ops-standalone.ps1` |
 | **C — Standalone + Collector** | M10 采集真实联调（:8000 collector + :8080 oa） | `.\scripts\restart-all.ps1` |
 
-**生产目标形态**（ADR-047）：浏览器 → **football-front** → **Gateway :48080** → Nacos 发现 → 各微服务（含 **oa-server**）。Standalone `:3000/:8080` **不是**生产路径。
+**生产目标形态**（ADR-047 / ADR-058）：浏览器 → **football-front** → **Gateway :48080** → Nacos 发现 → 各微服务（含 **football-module-ops**，Nacos 注册名 **`ops-server`**）。Standalone `:3000/:8080` **不是**生产路径。
 
 ### 1.1 架构简图（集成路径）
 
@@ -51,18 +51,18 @@ flowchart TB
     SYS[system-server :48081]
     MP[mp-server :48086]
     MEM[member mock :48087]
-    OA[oa-server :48094]
+    OPS[football-module-ops :48094<br/>Nacos: ops-server]
   end
   FF -->|/admin-api| GW
   GW --> SYS
-  GW --> OA
+  GW --> OPS
   GW --> MEM
   SYS --> NC
-  OA --> NC
-  OA --> MY
+  OPS --> NC
+  OPS --> MY
   SYS --> MY
   SYS --> RD
-  OA --> RD
+  OPS --> RD
 ```
 
 ---
@@ -73,7 +73,7 @@ flowchart TB
 
 | 组件 | 版本建议 | 用途 | 必需场景 |
 |------|----------|------|----------|
-| **JDK** | 17+ | oa-server、Football 后端 JAR | A / B / C |
+| **JDK** | 17+ | football-module-ops、Football 后端 JAR | A / B / C |
 | **Maven** | 3.8+ | 后端构建与 `spring-boot:run` | A / B / C |
 | **Node.js** | 18+ | 前端 dev/build | A / B |
 | **npm** | 随 Node | `ops-platform-ui-vue` | A / C |
@@ -88,8 +88,8 @@ flowchart TB
 
 | 路径 | 说明 |
 |------|------|
-| `ops-platform-server/ops-platform-module-oa/` | Ops 后端（Spring Boot，可执行模块） |
-| `ops-platform-ui-vue/` | Ops 独立前端（Standalone dev :3000） |
+| `football-backend-saas/football-module-ops/` | Ops 后端（`football-module-ops-server`，Nacos **`ops-server`**，:48094） |
+| `football-front/apps/web-ele/src/views/ops/` | Ops 集成前端（Gate UI :5777） |
 | `football-backend-saas/` | Football 微服务（Gateway、system、mp、member 等） |
 | `football-front/` | Football 前端壳（集成 UI :5777） |
 | `unify-collector-api/` | M10 统一采集 API（Python FastAPI :8000） |
@@ -102,7 +102,7 @@ Integration / Gate 路径使用 **localhost:3306** 五个 schema（profile `dev-
 
 | 数据源名 `@DS` | 数据库 | 用途 |
 |----------------|--------|------|
-| `master` | `wd` | Ops 配置、Flyway、OA 业务表 |
+| `master` | `shenyu-ops`（历史备份：`football-ops` / `wd`） | Ops 配置、Flyway、OA 业务表 |
 | `member` | `shenyu-member` | 作者域 SSOT |
 | `mp` | `shenyu-mp` | 微信公众号账号 |
 | `pay` | `shenyu-pay` | 订单只读 |
@@ -112,14 +112,14 @@ Integration / Gate 路径使用 **localhost:3306** 五个 schema（profile `dev-
 
 ```sql
 -- 最小建库（字符集 utf8mb4）
-CREATE DATABASE IF NOT EXISTS wd DEFAULT CHARSET utf8mb4;
+CREATE DATABASE IF NOT EXISTS `shenyu-ops` DEFAULT CHARSET utf8mb4;
 CREATE DATABASE IF NOT EXISTS `shenyu-member` DEFAULT CHARSET utf8mb4;
 CREATE DATABASE IF NOT EXISTS `shenyu-mp` DEFAULT CHARSET utf8mb4;
 CREATE DATABASE IF NOT EXISTS `shenyu-pay` DEFAULT CHARSET utf8mb4;
 CREATE DATABASE IF NOT EXISTS `shenyu-system` DEFAULT CHARSET utf8mb4;
 ```
 
-Football 四库初始数据可参考 `docs/sql/shenyu-*.sql` 导入；`wd` 由 oa-server 启动时 **Flyway** 自动迁移。多库程序细节见 [OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN](./OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN.md)。
+Football 四库初始数据可参考 `docs/sql/shenyu-*.sql` 导入；`shenyu-ops` 由 **football-module-ops** 启动时 **Flyway** 自动迁移。多库程序细节见 [OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN](./OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN.md)。
 
 ### 2.4 首次依赖安装（手动，脚本不自动执行）
 
@@ -172,7 +172,7 @@ playwright install chromium   # 扫码登录类平台需要
 
 ### 2.7 OPS 菜单 seed → `shenyu-system`（ADR-056）
 
-system-server 本地 master 指向 **`localhost:3306/shenyu-system`** 后，Football 侧栏菜单从该库 `system_menu` / `system_role_menu` 读取。OPS 菜单块 **id 6100–6999**（权限前缀 `oa:*`）须灌入 **shenyu-system**，否则登录后看不到「运营数据」。
+system-server 本地 master 指向 **`localhost:3306/shenyu-system`** 后，Football 侧栏菜单从该库 `system_menu` / `system_role_menu` 读取。OPS 菜单块 **id 6100–6999**（权限前缀 **`ops:*`**，ADR-058 P-D）须灌入 **shenyu-system**，否则登录后看不到「运营数据」。
 
 | 产物 | 路径 |
 |------|------|
@@ -295,7 +295,7 @@ SELECT id, name, path FROM `shenyu-system`.system_menu WHERE id IN (6100,6159,61
 | `-SkipBuild` | 跳过 Football Maven 打包（需已有 JAR） |
 | `-SkipNacos` | 不启 Docker Nacos（需 :8848 已存在） |
 | `-SkipFrontend` | 不启 football-front |
-| `-SkipOa` | 不启 oa-server |
+| `-SkipOa` | 不启 football-module-ops（:48094） |
 | `-FullMemberServer` | 使用 member-server JAR（:48087），默认 Python mock |
 | `-WaitSeconds` | 健康等待超时（默认 300） |
 
@@ -309,7 +309,7 @@ SELECT id, name, path FROM `shenyu-system`.system_menu WHERE id IN (6100,6159,61
 | system-server | 48081 | http://127.0.0.1:48081/actuator/health | Football 登录 |
 | mp-server | 48086 | http://127.0.0.1:48086/actuator/health | 公众号域 |
 | member mock | 48087 | http://127.0.0.1:48087/actuator/health | 登录 Feign 桩（Hybrid C） |
-| **oa-server** | **48094** | http://127.0.0.1:48094/actuator/health | Ops 微服务 |
+| **football-module-ops** | **48094** | http://127.0.0.1:48094/actuator/health | Ops 微服务（Nacos 注册名 **`ops-server`**） |
 | **football-front** | **5777** | http://127.0.0.1:5777/ | 集成 UI（hash 路由 `#/ops/...`） |
 
 **登录（Gate 路径唯一）**
@@ -324,7 +324,9 @@ SELECT id, name, path FROM `shenyu-system`.system_menu WHERE id IN (6100,6159,61
 
 前端配置见 `football-front/apps/web-ele/.env.development`（`VITE_PORT=5777`，`VITE_BASE_URL=http://localhost:48080`）。
 
-**oa-server profiles**：`dev,dev-nacos,dev-nacos-local,dev-local-multidb`
+**football-module-ops profiles**（经 `start-integration-oa.ps1`）：`dev,dev-nacos,dev-nacos-local,dev-local-multidb`
+
+> **路由约定（ADR-058）**：Gate 路径下 API 统一 **`/admin-api/ops/**`**（Gateway → Nacos `ops-server`）；前端 hash 路由 **`#/ops/**`**；API 客户端相对路径 **`/ops/**`**（baseURL 已含 `/admin-api`）。Standalone `:8080` 仍用历史 oa-server 命名，非 Gate 签收路径。
 
 **Football 后端 profiles**：`local,local-nacos` + overlay `scripts/integration-config/football-integration-overlay.yml`
 
@@ -340,7 +342,7 @@ SELECT id, name, path FROM `shenyu-system`.system_menu WHERE id IN (6100,6159,61
 .\scripts\stop-integration-all.ps1 -StopRedis     # 显式释放 :6379（一般不需要）
 ```
 
-**日志目录**：`scripts/logs/`（如 `gateway-integration.log`、`oa-server-nacos-run.log`、`football-front-dev.log`）
+**日志目录**：`scripts/logs/`（如 `gateway-integration.log`、`ops-server-nacos-run.log`（football-module-ops 进程日志，文件名保留 ops-server 前缀）、`football-front-dev.log`）
 
 #### 3.2.4 分步启动（调试单个服务）
 
@@ -351,10 +353,10 @@ SELECT id, name, path FROM `shenyu-system`.system_menu WHERE id IN (6100,6159,61
 # 2. 推送 Nacos 本地配置
 .\scripts\push-integration-config-to-nacos.ps1
 
-# 3. 仅 oa-server（集成 profile）
+# 3. 仅 football-module-ops（集成 profile；脚本名 start-integration-oa.ps1）
 .\scripts\start-integration-oa.ps1
 
-# 4. Nacos + oa-server
+# 4. Nacos + football-module-ops
 .\scripts\start-integration-stack.ps1
 
 # 5. Football system/mp（Gateway 已单独运行时）
@@ -368,7 +370,7 @@ SELECT id, name, path FROM `shenyu-system`.system_menu WHERE id IN (6100,6159,61
 | **默认 mock** | 48087 | `mock-member-author-server.py` — 仅登录 Feign 桩 |
 | **FullMemberServer** | 48087 | 真 `football-module-member-server` JAR；可能依赖 RocketMQ |
 
-Ops 作者 CRUD 经 oa-server `@DS("member")` **直连 shenyu-member**，不经 member-server HTTP。
+Ops 作者 CRUD 经 football-module-ops Feign/RPC 读 **shenyu-member**（历史 Standalone 曾 `@DS("member")` 直连）。
 
 ---
 
@@ -407,7 +409,7 @@ OA 对齐 token：默认 `test-key-2026`（见 `application-dev.yml` → `oa.uni
 |------|------|
 | 集成全栈重启（推荐） | **`.\scripts\start-ops-dev.ps1`**（预检 Redis + `-Restart -SkipBuild`） |
 | 集成全栈（底层脚本） | `.\scripts\start-integration-all.ps1 -Restart -SkipBuild` |
-| 仅 oa-server（集成） | `.\scripts\start-integration-oa.ps1`（会先释放 :48094） |
+| 仅 football-module-ops（集成） | `.\scripts\start-integration-oa.ps1`（会先释放 :48094） |
 | Standalone 后端 | 杀 :8080 进程后 `mvn spring-boot:run "-Dspring-boot.run.profiles=dev"` |
 | Standalone 全栈 | `.\scripts\restart-all.ps1` 或 `start-ops-standalone.ps1` |
 | 停止集成栈 | `.\scripts\stop-integration-all.ps1`（**默认保留 Redis :6379**；需停 Redis 加 `-StopRedis`） |
@@ -425,7 +427,7 @@ if ($conn) { Stop-Process -Id $conn.OwningProcess -Force }
 
 | 检查项 | 命令 |
 |--------|------|
-| oa-server 健康 | `curl http://localhost:48094/actuator/health`（集成）或 `:8080`（Standalone） |
+| football-module-ops 健康 | `curl http://localhost:48094/actuator/health`（集成 Gate 路径） |
 | Gateway | `curl http://localhost:48080/admin-api/system/tenant/simple-list` |
 | post-MDB smoke | `python scripts/post-mdb-local-smoke.py` |
 | 58 路由 E2E | `.\scripts\run-uat-football-e2e.ps1` |
@@ -441,7 +443,7 @@ if ($conn) { Stop-Process -Id $conn.OwningProcess -Force }
 | Gateway/system 起不来，日志含 `AUTH, but no password is set` | 本机 **redis-server** 无密码占用 :6379（集成栈要求 **123456**）；常见于旧流程杀过 :6379 后 Windows 服务重启 | **首选**：`.\scripts\start-ops-dev.ps1` — `Ensure-IntegrationRedis` 自动 `CONFIG SET requirepass 123456`（见 §2.6）。仍失败：确认 `redis-cli` 在 PATH，或开 Docker Desktop 起 `redis-integration-local`。**勿**把手动 `redis-cli` 当日常步骤 |
 | UI 登录后「系统错误」 | Gateway :48080 DOWN 或 Redis 密码不对 | 同上：`.\scripts\start-ops-dev.ps1`；Redis 须 **123456**；查 `scripts/logs/gateway-integration.log` |
 | Gateway DOWN | 无 JAR / Redis 认证失败 | `.\scripts\start-ops-dev.ps1 -FirstRun` 构建；预检见 §2.6 |
-| oa API 500 | localhost 五库缺失 | 建库并导入 `docs/sql/`；查 `dev-local-multidb` profile 是否生效 |
+| football-module-ops API 500 | localhost 五库缺失 | 建库并导入 `docs/sql/`；查 `dev-local-multidb` profile 是否生效 |
 | Flyway checksum mismatch | 修改了已执行的 migration | 测试库 `flyway repair` 或勿改历史 `V*.sql` |
 | 端口占用 | 旧进程未退出 | `stop-integration-all.ps1`（默认不杀 :6379）或按端口杀 PID |
 | PowerShell Maven 报错 `Unknown lifecycle phase ".run.profiles=dev"` | `-D` 被拆参 | 参数加引号：`"-Dspring-boot.run.profiles=dev"` |
@@ -466,8 +468,8 @@ if ($conn) { Stop-Process -Id $conn.OwningProcess -Force }
   → Nginx / CDN（football-front 静态资源）
   → football-gateway (:48080)
   → Nacos（服务发现 + 配置）
-  → system-server / oa-server / mp-server / member-server / …
-  → MySQL（生产：member / mp / pay / system 四库 + wd）
+  → system-server / football-module-ops（Nacos **ops-server**）/ mp-server / member-server / …
+  → MySQL（生产：member / mp / pay / system 四库 + shenyu-ops）
   → Redis（OAuth2 token / 缓存）
   → unify-collector-api（可选，M10 采集）
 ```
@@ -476,23 +478,23 @@ if ($conn) { Stop-Process -Id $conn.OwningProcess -Force }
 
 ### 4.2 构建命令
 
-#### 4.2.1 oa-server
+#### 4.2.1 football-module-ops（Nacos 注册名 `ops-server`）
 
 ```powershell
-cd ops-platform-server/ops-platform-module-oa
-mvn -DskipTests package
-# 产物：target/ops-platform-module-oa-*.jar
+cd football-backend-saas
+mvn -pl football-module-ops/football-module-ops-server -am package -DskipTests
+# 产物：football-module-ops/football-module-ops-server/target/football-module-ops-server.jar
 ```
 
 运行示例（profile 由运维约定，仓库内**无** `application-prod.yml`）：
 
 ```powershell
-java -Dfile.encoding=UTF-8 -jar target/ops-platform-module-oa-*.jar `
+java -Dfile.encoding=UTF-8 -jar football-module-ops-server.jar `
   --spring.profiles.active=dev,dev-nacos,dev-local-multidb `
   --spring.config.additional-location=optional:file:/path/to/prod-override.yml
 ```
 
-生产须通过 **环境变量 / Nacos / 外部 YAML** 注入：数据源、Redis、Nacos 地址、钉钉密钥、`oa.crypto.aes-key` 等；**勿**将密码写入仓库。
+生产须通过 **环境变量 / Nacos / 外部 YAML** 注入：数据源、Redis、Nacos 地址、钉钉密钥、`ops.crypto.aes-key` 等；**勿**将密码写入仓库。`spring.application.name` 保持 **`ops-server`**（勿改为 `football-module-ops-server`）。
 
 #### 4.2.2 Football 微服务
 
@@ -543,22 +545,22 @@ docker build -t unify-collector-api:1.0.0 .
 
 | 类别 | 配置位置 | 要点 |
 |------|----------|------|
-| oa-server 多库 | Nacos 或 `application-*.yml` | `spring.datasource.dynamic.datasource.{master,member,mp,pay,system}` |
-| oa-server 注册 | `application-dev-nacos.yml` 同类 | `spring.application.name=oa-server`，`server.port=48094`，Nacos namespace |
-| Gateway 路由 | Nacos / `gateway-*.yaml` | `/admin-api/oa/**` → oa-server；长超时 300s（AI 生成） |
+| football-module-ops 多库 | Nacos 或 `application-*.yml` | `spring.datasource.dynamic.datasource.{master,member,mp,pay,system}` |
+| football-module-ops 注册 | `application-dev-nacos.yml` 同类 | `spring.application.name=ops-server`，`server.port=48094`，Nacos namespace |
+| Gateway 路由 | Nacos / `gateway-*.yaml` | `/admin-api/ops/**` → `grayLb://ops-server`；长超时 300s（AI 生成） |
 | Redis | overlay / Nacos | Football OAuth2 token；integration 本地密码 123456，**生产须独立强密码** |
 | 鉴权 | — | 生产走 Football OAuth2 + Redis；**不用** dev-token |
-| 采集 | oa-server | `oa.unified-collector.base-url`、`api-token`、`stub: false` |
+| 采集 | football-module-ops | `ops.unified-collector.base-url`、`api-token`、`stub: false` |
 | 钉钉 | 环境变量 | `DINGTALK_*`、`OA_PLATFORM_BASE_URL`（见 ops-platform-server/README.md） |
 | 远程 cutover 预备 | `scripts/push-remote-multidb-config.ps1` | 推送 `oa-server-remote-multidb.yaml` 到 Nacos；**需用户书面审批**（见 POST-MDB-LOCAL-SIGNOFF） |
 
 ### 4.4 推荐部署顺序
 
-1. **MySQL**：创建 wd + shenyu-* 四库，导入 Football 基线数据；oa-server 首次启动跑 Flyway。  
+1. **MySQL**：创建 shenyu-ops + shenyu-* 四库，导入 Football 基线数据；football-module-ops 首次启动跑 Flyway。  
 2. **Redis**：部署实例，配置 requirepass。  
 3. **Nacos**：启动并创建 namespace（如 `dev` / 生产 namespace）；导入各服务 `*-server-*.yaml` 配置。  
 4. **Football 后端**：按依赖启动 infra → system → mp → member → … → **gateway 最后**（或同时注册到 Nacos）。  
-5. **oa-server**：JAR + 生产 profile/Nacos；确认 Nacos 可见 `oa-server`，Gateway 路由 `/admin-api/oa/**` 可达。  
+5. **football-module-ops**：JAR + 生产 profile/Nacos；确认 Nacos 可见 **`ops-server`**，Gateway 路由 **`/admin-api/ops/**`** 可达。  
 6. **football-front**：`pnpm run build:ele`，静态资源部署到 Nginx；反代 `/admin-api` → Gateway。  
 7. **unify-collector-api**（若启用 M10）：Docker 部署，OA 配置 `stub: false`。  
 8. **健康检查**：各服务 `/actuator/health`；Gateway 租户 API；浏览器登录生产域名验证 Ops 菜单。
@@ -569,7 +571,7 @@ docker build -t unify-collector-api:1.0.0 .
 |------|-----|
 | Gateway | `GET /admin-api/system/tenant/simple-list`（需鉴权或返回 401 亦表示存活） |
 | system-server | `GET /actuator/health` |
-| oa-server | `GET /actuator/health` |
+| football-module-ops（Nacos `ops-server`） | `GET /actuator/health` |
 | collector | `GET /livez` |
 
 ### 4.6 仓库尚未提供的内容（勿假设已存在）
@@ -596,8 +598,8 @@ docker build -t unify-collector-api:1.0.0 .
 | `start-ops-standalone.ps1` | Ops Standalone :3000/:8080 |
 | `restart-all.ps1` | Standalone + collector :8000/:8080/:3000 |
 | `start-collector.ps1` | 仅启动 unify-collector-api :8000（M10 采集） |
-| `start-integration-oa.ps1` | 仅 oa-server :48094（Nacos 集成 profile） |
-| `start-integration-stack.ps1` | Nacos + oa-server |
+| `start-integration-oa.ps1` | 仅 football-module-ops :48094（Nacos 注册名 `ops-server`） |
+| `start-integration-stack.ps1` | Nacos + football-module-ops |
 | `start-nacos-local.ps1` | Docker 本地 Nacos |
 | `start-football-system.ps1` | infra + mp + system（不含 Gateway） |
 | `push-integration-config-to-nacos.ps1` | 推送 `*-server-local.yaml` 到 Nacos |
@@ -618,7 +620,7 @@ Linux：`scripts/restart-all.sh`（Windows Git Bash 转调 `.ps1`）。
 |------|------|
 | `ops-platform-module-oa/.../application-dev.yml` | Standalone 单库（远程 wd） |
 | `ops-platform-module-oa/.../application-dev-local-multidb.yml` | localhost 五库 |
-| `ops-platform-module-oa/.../application-dev-nacos.yml` | oa-server 注册 Nacos，port 48094 |
+| `football-module-ops/.../application-dev-nacos.yml` | football-module-ops 注册 Nacos（`ops-server`），port 48094 |
 | `ops-platform-module-oa/.../application-dev-nacos-local.yml` | Nacos 127.0.0.1:8848 |
 | `scripts/integration-config/football-integration-overlay.yml` | Football 本地集成 DB/Redis/Feign |
 | `scripts/integration-config/gateway-integration-local.yaml` | Gateway 本地直连路由 + Redis |

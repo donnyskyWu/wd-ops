@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Apply import-football-pay-tables.sql to wd with UTF-8 (no PowerShell pipe corruption)."""
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ DEFAULT_HOST = "101.37.161.136"
 DEFAULT_PORT = "3306"
 DEFAULT_USER = "shenyu"
 DEFAULT_PASS = "Zhangwu+123456"
-DEFAULT_DB = "wd"
+DEFAULT_DB = "shenyu-ops"
 
 
 def main() -> int:

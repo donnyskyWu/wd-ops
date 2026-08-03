@@ -1,0 +1,17 @@
+{
+  "after": {
+    "id": 23,
+    "status": "PARTIAL",
+    "recordCount": 7,
+    "durationMs": 14492,
+    "errorMessage": "部分采集失败: account:1/WECHAT_VIDEO: Collector 账号需重新登录或凭证失效: acc_wechat_channels_2e205365ffd7266c"
+  },
+  "before": {
+    "id": 22,
+    "status": "FAILED",
+    "recordCount": 0,
+    "errorMessage": "采集失败: account:1000112/MP_FOLLOWER_STATS: collector HTTP 404 /api/v1/internal/wechat-mp/acc_wechat_mp_22556c49301482a3/followers/stats; account:1000112/MP_ARTICLE_LIST: collector HTTP 404 /api/v1/internal/wechat-mp/acc_wechat_mp_22556c49301482a3/articles?offset=0&count=1; account:1000112/MP_ARTICLE_STATS: collector HTTP 404 /api/v1/internal/wechat-mp/acc_wechat_mp_22556c49301482a3/articles?offset=0&count=1; account:1000112/MP_ARTICLE_CONTENT: collector HTTP 404 /api/v1/internal/wechat-mp/acc_wechat_mp_22556c49301482a3/articles?offset=0&count=1; account:1/WECHAT_VIDEO: Collector 账号需重新登录或凭证失效: ac"
+  },
+  "path404_gone": true,
+  "only_relogin_partial": true
+}

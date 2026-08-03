@@ -1,0 +1,1 @@
+{"code":0,"msg":"ok","data":{"purchase":289.01,"process":90.01,"byType":[{"type":"PROCESS_HUMAN","typeLabel":"PROCESS_HUMAN","amount":90.01,"percentage":23.75},{"type":"PURCHASE","typeLabel":"PURCHASE","amount":289.01,"percentage":76.25}]}}

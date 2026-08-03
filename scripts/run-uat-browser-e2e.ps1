@@ -1,61 +1,22 @@
-# run-uat-browser-e2e.ps1 - Ops standalone UAT browser E2E (Playwright)
+# RETIRED — Standalone UAT browser E2E (:3000) ended with ops-platform-ui-vue (A-WP1).
 #
-# Usage (repo root):
-#   .\scripts\run-uat-browser-e2e.ps1
-#   .\scripts\run-uat-browser-e2e.ps1 -NoAutoStart
+# Gate / Football E2E:
+#   .\scripts\run-gate-football-e2e.ps1
+#   .\scripts\run-uat-football-e2e.ps1
+#
+# Specs live under: football-front/apps/web-ele/tests/
 
-[CmdletBinding()]
-param(
-    [switch]$NoAutoStart,
-    [int]$WaitSeconds = 120
-)
+$ErrorActionPreference = "Continue"
+Write-Host @"
+[retired] scripts/run-uat-browser-e2e.ps1
+Standalone :3000 Playwright path removed with ops-platform-ui-vue.
 
-$ErrorActionPreference = "Stop"
-$Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$UiDir = Join-Path $Root "ops-platform-ui-vue"
-$ReportDir = Join-Path $Root "docs\delivery"
+Use Gate path against :5777:
+  .\scripts\start-ops-dev.ps1
+  .\scripts\run-gate-football-e2e.ps1
 
-function Test-ServiceUp([string]$Url) {
-    try {
-        $null = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 5
-        return $true
-    } catch { return $false }
-}
-
-Write-Host "=== UAT Browser E2E (Ops standalone) ==="
-
-$uiUp = Test-ServiceUp "http://localhost:3000"
-$apiUp = Test-ServiceUp "http://localhost:8080/actuator/health"
-
-if (-not $uiUp -or -not $apiUp) {
-    if ($NoAutoStart) {
-        throw "Services not ready. UI=$uiUp API=$apiUp"
-    }
-    Write-Host "[start] Launching standalone stack..."
-    & (Join-Path $PSScriptRoot "start-ops-standalone.ps1") -WaitSeconds $WaitSeconds
-    $uiUp = Test-ServiceUp "http://localhost:3000"
-    $apiUp = Test-ServiceUp "http://localhost:8080/actuator/health"
-}
-
-if (-not $uiUp -or -not $apiUp) {
-    throw "Stack not ready. UI=$uiUp API=$apiUp"
-}
-
-Push-Location $UiDir
-$exitCode = 1
-try {
-    $pwCli = Join-Path $UiDir "node_modules\.bin\playwright.cmd"
-    if (-not (Test-Path $pwCli)) {
-        npm install
-    }
-    $env:UAT_E2E_REPORT_DIR = $ReportDir
-    Write-Host "[test] playwright tests/uat-browser-gap.spec.ts ..."
-    & $pwCli test tests/uat-browser-gap.spec.ts --grep "@uat-gap" --reporter=list
-    $exitCode = $LASTEXITCODE
-} finally {
-    Pop-Location
-}
-
-python (Join-Path $PSScriptRoot "uat-browser-e2e-report.py")
-if ($exitCode -ne 0) { exit $exitCode }
-Write-Host "=== Done ==="
+Or content smoke only:
+  cd football-front/apps/web-ele
+  npx playwright test tests/football-content-smoke.spec.ts --config=playwright.config.ts
+"@ -ForegroundColor Yellow
+exit 1

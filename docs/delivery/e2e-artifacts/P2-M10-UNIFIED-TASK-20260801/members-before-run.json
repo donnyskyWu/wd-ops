@@ -1,0 +1,24 @@
+﻿{
+    "code":  0,
+    "msg":  "ok",
+    "data":  [
+                 {
+                     "id":  3,
+                     "taskId":  10,
+                     "accountId":  1000006,
+                     "accountName":  null,
+                     "platformType":  null,
+                     "collectEnabled":  null,
+                     "createTime":  1785520188000
+                 },
+                 {
+                     "id":  1,
+                     "taskId":  10,
+                     "accountId":  9018,
+                     "accountName":  "å­¦ä¹ 1",
+                     "platformType":  "KUAISHOU",
+                     "collectEnabled":  true,
+                     "createTime":  1785519827000
+                 }
+             ]
+}

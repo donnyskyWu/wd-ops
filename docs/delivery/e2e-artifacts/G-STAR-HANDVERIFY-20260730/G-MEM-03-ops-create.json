@@ -1,0 +1,21 @@
+{
+  "status": 200,
+  "req": {
+    "title": "G-MEM-03-handverify-1785397630",
+    "body": "<p>paid handverify</p>",
+    "paidBody": "<p>paid handverify</p>",
+    "freeBody": "<p>free handverify</p>",
+    "contentType": "ARTICLE",
+    "documentType": "ARTICLE",
+    "ipGroupId": 9003,
+    "authorId": 107156,
+    "competitionId": "e2e-gmem03",
+    "competitionName": "E2E G-MEM-03",
+    "aiGenerated": 0
+  },
+  "resp": {
+    "code": 1503,
+    "msg": "documentType: 字典值不合法; creatorUserId: 不能为null",
+    "data": null
+  }
+}

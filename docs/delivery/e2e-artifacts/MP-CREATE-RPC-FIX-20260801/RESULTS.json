@@ -1,0 +1,30 @@
+{
+  "pass": true,
+  "date": "20260801",
+  "rootCause": "MpAccountServiceImpl.createAccount unboxed null Integer isPrimary (and type) via ==, NPE → HTTP 500 on /rpc-api/mp/accountInfo/create when OPS/Feign omit optional fields",
+  "fix": "Null-safe ObjUtil.isNotEmpty checks in createAccount (aligned with updateAccount isPrimary); same for type on create/update",
+  "filesChanged": [
+    "football-backend-saas/football-module-mp/football-module-mp-server/src/main/java/football/module/mp/service/account/MpAccountServiceImpl.java"
+  ],
+  "smoke": {
+    "rpcCreate": {
+      "pass": true,
+      "id": 1000009,
+      "note": "POST /rpc-api/mp/accountInfo/create without isPrimary/type → code 0"
+    },
+    "opsCreate": {
+      "pass": true,
+      "id": 1000008,
+      "accountName": "MP-CREATE-FIX-193086",
+      "realnameId": 1,
+      "realName": "zzw",
+      "companyId": 9003,
+      "note": "POST /admin-api/ops/account/create with ENTERPRISE + realnameId; get/list show realName"
+    }
+  },
+  "residualRisks": [
+    "Placeholder appId/appSecret/token still used when OPS form omits credentials; WeChat API calls may fail until采集 Tab fills real values",
+    "accountType null on create response (pre-existing mapping gap; unrelated to create 500)",
+    "mp-server must be rebuilt/restarted after this fix for runtime to pick up change"
+  ]
+}

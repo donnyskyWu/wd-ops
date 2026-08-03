@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Export wd schema (DDL only) as UTF-8 without PowerShell pipe corruption.
 
 Why this script exists
@@ -49,7 +49,7 @@ def main() -> int:
     parser.add_argument("--port", default="3306")
     parser.add_argument("--user", default="root")
     parser.add_argument("--password", default="root")
-    parser.add_argument("--database", default="wd")
+    parser.add_argument("--database", default="shenyu-ops")
     parser.add_argument(
         "--out",
         type=Path,

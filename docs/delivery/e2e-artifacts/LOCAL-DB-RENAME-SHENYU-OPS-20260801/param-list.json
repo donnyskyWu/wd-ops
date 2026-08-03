@@ -1,0 +1,19 @@
+{
+  "code": 0,
+  "msg": "ok",
+  "data": {
+    "list": [
+      {
+        "id": 11,
+        "paramName": "二级审核角色",
+        "paramKey": "content.review.level2.role",
+        "paramValue": "DEPT_HEAD",
+        "paramType": "STRING",
+        "category": "CONTENT_REVIEW",
+        "remark": "部门负责人角色",
+        "updateTime": 1783149626000
+      }
+    ],
+    "total": 11
+  }
+}

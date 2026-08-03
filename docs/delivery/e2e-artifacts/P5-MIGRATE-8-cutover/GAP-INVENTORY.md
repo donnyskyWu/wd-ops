@@ -56,22 +56,21 @@ Date: 2026-07-31 · SSOT: ADR-058 §4.3 · Updated by **P-A-UNSTUB-20260731**（
 | **WechatAnalysisPersonal/Wework** | `/wechat-analysis/**` | **P-A-UNSTUB-20260731** |
 | DeferredCutoverStubController | remaining deferred | MIGRATE-8 |
 
-## Still stubbed (DeferredCutoverStubController)
+## Still stubbed (DeferredCutoverStubController) — **Closed-Accept / Phase 2**（[ADR-060](../../../adr/ADR-060-Phase2-stub-OOS-Accept.md) · 2026-08-01）
 
-### Remaining deferred
+> 不再列为「开放缺口 / 阻塞 guilt」。桩保留至 Phase 2 Slice 显式卸载。
 
-- Account ext: **CollectorBind / DouyinFollowers**（M10 OOS / Spec 薄弱）
-- M10 collect OOS: `/collect/**` · `config/{external-source,external-collect,order-collect,internal-collect}`
-- `/internal/**` personal/wework Controllers（DAL 已为 Analysis 迁入；CRUD Controllers 未挂 — 见阻塞清单）
+| Prefix | Disposition | Reason |
+|--------|-------------|--------|
+| `/collect/quality|bridge` · `config/{external-source,order-collect,internal-collect}` | **OOS Accept** | Phase 2 Out of Scope（M10）；`collect/task`·`collect/log`·`collector-bind`·`config/external-collect` 已 carve-out（ADR-060 §5–§5.3） |
+| `/account/douyin-followers/**` | **OOS Accept** | Spec 薄弱；产品确认本阶段永久 stub |
+| `/internal/**` | **Accept stub** | API-M4 Spec 有路径，但 Controllers 绑奥创 sync / WeComAdapter=M10；不可无发明迁入 |
+| Parallel system user/role/dept/permission/tenant/dict/dev | **已 410** | Football Admin SSOT |
+| Demo / Hello | **OOS** | 无意迁 |
 
-### Already 410 in old module — stubbed same
+### Notes（历史）
 
-- User / Role / Dept / Permission / Tenant / SystemDict / DingTalkDev
-
-### Intentionally not migrated (Phase 2 / Out of Scope)
-
-- Collect* (M10 collector) — stubs only; no M10 implementation
-- Demo / Hello
+- DAL 部分已为 WechatAnalysis 等迁入；**未**挂 PersonalWechat / Wework / TripleRel Controllers（见 ADR-060）
 
 ### Notes
 
@@ -120,7 +119,7 @@ Artifacts: `docs/delivery/e2e-artifacts/P-A-UNSTUB-20260731/`（ops-server :4809
 
 ## Cutover decision
 
-**Full cutover on :48094** with deferred stubs — core menus + ROI/账号成本/订单归因 + M4 主数据 + AI 内容生成 + 作者/配置/绩效/指标 + **P-A 分析/大屏/报表/元数据/参数** covered by real Controllers; remaining = M10 OOS + parallel system 410. Permissions **`ops:*`（P-D ✅ 2026-07-31）**.
+**Full cutover on :48094** with deferred stubs — core menus + ROI/账号成本/订单归因 + M4 主数据 + AI 内容生成 + 作者/配置/绩效/指标 + **P-A 分析/大屏/报表/元数据/参数** covered by real Controllers; remaining stubs = **ADR-060 Closed-Accept / Phase 2** + parallel system 410. Permissions **`ops:*`（P-D ✅ 2026-07-31）**.
 
 ## ADR-058 CLEANUP (2026-07-31)
 
@@ -129,8 +128,11 @@ Artifacts: `docs/delivery/e2e-artifacts/P-A-UNSTUB-20260731/`（ops-server :4809
 - ~~**Unmigrated source + legacy IT** under `legacy-archive/`~~ → **P-G ✅ 2026-07-31**：`git rm -r` 已删（580 files；仅 git 历史）。回滚：`git -C football-backend-saas checkout 7e5f1b709 -- football-module-ops/football-module-ops-server/legacy-archive`。从未在 Maven classpath。证据：[P-G-LEGACY-ARCHIVE-20260731](../P-G-LEGACY-ARCHIVE-20260731/REPORT.md)。
 - P-A 已消费 archive 中 Dashboard/Analysis/Report/Monitor/Metadata/Message/Param/WechatAnalysis 等；archive 本体已由 P-G 清除。
 
-## 阻塞问题清单（P-A）
+## 阻塞问题清单
 
-1. **DouyinFollowers** — Spec 沉默/薄弱 → 保留 stub，不发明 API。
-2. **`/internal/**` Controllers** — API-M4 有 Spec，但奥创 sync = M10 依赖；本 Slice 未挂 CRUD Controllers。
-3. **Gateway 全栈冒烟** — 本机 Docker/Nacos 未起；P-A 冒烟 = ops 直连。正式 Gate 需 Nacos+Gateway。
+| # | 项 | 状态（2026-08-01） |
+|---|----|---------------------|
+| 1 | DouyinFollowers | **Closed-Accept**（ADR-060；Phase 2 / 补 Spec 前不实现） |
+| 2 | `/internal/**` Controllers | **Closed-Accept**（ADR-060；奥创/M10 绑死） |
+| 3 | M10 collect / collector-bind / collect configs | **Closed-Accept OOS**（ADR-060；Phase 2） |
+| 4 | Gateway 全栈冒烟 | **仍开放运维项**（正式 Gate 需 Nacos+Gateway；非 stub 产品缺口） |

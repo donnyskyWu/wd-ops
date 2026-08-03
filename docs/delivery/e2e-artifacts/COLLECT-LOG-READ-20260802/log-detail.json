@@ -1,0 +1,69 @@
+{
+  "code": 0,
+  "msg": "ok",
+  "data": {
+    "id": 18,
+    "taskId": 8,
+    "taskName": "租户统一采集任务",
+    "accountName": null,
+    "status": "FAILED",
+    "startAt": 1785644229000,
+    "durationMs": 419,
+    "recordCount": 0,
+    "errorMessage": "采集失败: account:1000112/WECHAT_OFFICIAL: unify-collector 不可达: http://127.0.0.1:8000; account:1/WECHAT_VIDEO: unify-collector 不可达: http://127.0.0.1:8000; account:3/DOUYIN: unify-collector 不可达: http://127.0.0.1:8000",
+    "retryCount": 0,
+    "platformType": "MULTI",
+    "accountId": null,
+    "source": "UNIFY_COLLECTOR",
+    "dataType": null,
+    "endAt": 1785644230000,
+    "result": {
+      "summary": null,
+      "dataType": null,
+      "targetTable": null,
+      "targetHint": null,
+      "recordCount": 0,
+      "status": "FAILED",
+      "persistMode": "PROBE_COUNT_ONLY",
+      "note": "Channel-A SyncService 落库未迁入；本 run 写日志并按 collector HTTP 探测计数",
+      "errorMessage": "采集失败: account:1000112/WECHAT_OFFICIAL: unify-collector 不可达: http://127.0.0.1:8000; account:1/WECHAT_VIDEO: unify-collector 不可达: http://127.0.0.1:8000; account:3/DOUYIN: unify-collector 不可达: http://127.0.0.1:8000",
+      "metrics": null,
+      "samples": null,
+      "typeResults": [
+        {
+          "dataType": "account:1000112/WECHAT_OFFICIAL",
+          "success": false,
+          "errorMessage": "unify-collector 不可达: http://127.0.0.1:8000",
+          "summary": null,
+          "targetTable": null,
+          "targetHint": null,
+          "recordCount": 0,
+          "metrics": null,
+          "samples": null
+        },
+        {
+          "dataType": "account:1/WECHAT_VIDEO",
+          "success": false,
+          "errorMessage": "unify-collector 不可达: http://127.0.0.1:8000",
+          "summary": null,
+          "targetTable": null,
+          "targetHint": null,
+          "recordCount": 0,
+          "metrics": null,
+          "samples": null
+        },
+        {
+          "dataType": "account:3/DOUYIN",
+          "success": false,
+          "errorMessage": "unify-collector 不可达: http://127.0.0.1:8000",
+          "summary": null,
+          "targetTable": null,
+          "targetHint": null,
+          "recordCount": 0,
+          "metrics": null,
+          "samples": null
+        }
+      ]
+    }
+  }
+}

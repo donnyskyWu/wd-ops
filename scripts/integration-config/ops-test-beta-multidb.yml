@@ -20,6 +20,8 @@ oa:
       password: ${OPS_TEST_REDIS_PASSWORD:CHANGE_ME}
 
 spring:
+  flyway:
+    enabled: false  # beta: shenyu-ops lacks performance_schema.user_variables_by_thread
   cloud:
     nacos:
       server-addr: ${OPS_TEST_NACOS_ADDR:110.42.49.224:8848}

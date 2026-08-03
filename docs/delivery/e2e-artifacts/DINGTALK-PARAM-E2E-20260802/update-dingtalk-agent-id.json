@@ -1,0 +1,17 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": true
+  },
+  "payload": {
+    "id": 17,
+    "paramName": "钉钉 AgentId",
+    "paramKey": "dingtalk.agent-id",
+    "paramValue": "1234567890",
+    "paramType": "STRING",
+    "category": "DINGTALK",
+    "remark": "工作通知微应用 AgentId（如 4335523092）"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": true
+  },
+  "payload": {
+    "id": 16,
+    "paramName": "钉钉 CorpId",
+    "paramKey": "dingtalk.corp-id",
+    "paramValue": "e2e-corp",
+    "paramType": "STRING",
+    "category": "DINGTALK",
+    "remark": "企业 ID（可选归档）"
+  }
+}

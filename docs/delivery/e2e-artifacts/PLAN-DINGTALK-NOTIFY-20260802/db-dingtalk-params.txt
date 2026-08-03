@@ -1,0 +1,12 @@
+{
+  "rows": [
+    "dingtalk.agent-id\t4278059287",
+    "dingtalk.client-id\tdingryhozmk70mxggg9s",
+    "dingtalk.client-secret\tivnRt554FbIFfVBxX7m5EwgyIJvqGXNU5CH4h1NTfXSw9SpWeUqcOMTQOAOAyvK9",
+    "dingtalk.corp-id\tding7da77227df029514bc961a6cb783455b",
+    "dingtalk.enabled\ttrue",
+    "dingtalk.robot.enabled\ttrue",
+    "dingtalk.robot.secret\te2e-robot-secret",
+    "dingtalk.robot.webhook-url\thttps://example.com/webhook"
+  ]
+}

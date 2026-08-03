@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CSV_PATH = ROOT / "docs/delivery/oa-menu-permission-map.csv"
 VIEWS = ROOT / "football-front/apps/web-ele/src/views"
-OPS_VIEWS = ROOT / "ops-platform-ui-vue/src/views"
+OPS_VIEWS = ROOT / "football-front/apps/web-ele/src/views/ops"  # A-WP1 SSOT; ui-vue removed
 GATEWAY = "http://localhost:48080"
 VITE_BASE = "http://localhost:5777"
 MODULES = {"内容生产", "作品监测"}

@@ -1,7 +1,7 @@
 /**
  * Ops API client — thin wrapper over Football requestClient.
  * Reuses accessStore Bearer token (see #/api/request.ts) and adds
- * X-Tenant-Id required by Gateway / oa-server for /admin-api/oa/**.
+ * X-Tenant-Id required by Gateway / football-module-ops (Nacos ops-server) for /admin-api/ops/**.
  *
  * Hand-maintained (not copied from ops-platform-ui-vue). mount-ops-all.py
  * must preserve / recreate this file after remount.
@@ -20,7 +20,7 @@ export interface OpsRequestConfig {
   timeout?: number;
 }
 
-/** oa-server DevAuthFilter requires X-Tenant-Id (distinct from Football tenant-id header). */
+/** football-module-ops DevAuthFilter requires X-Tenant-Id (distinct from Football tenant-id header). */
 function resolveOpsTenantId(): string {
   try {
     const accessStore = useAccessStore();
@@ -29,7 +29,7 @@ function resolveOpsTenantId(): string {
       return String(tenantId);
     }
   } catch {
-    // Pinia may not be ready during module init; oa-server dev default.
+    // Pinia may not be ready during module init; football-module-ops dev default.
   }
   return '1';
 }

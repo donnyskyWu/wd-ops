@@ -1,0 +1,31 @@
+{
+  "status": 200,
+  "code": 0,
+  "count": 4,
+  "sample": [
+    {
+      "label": "S级",
+      "value": "S",
+      "dictType": "dict_ip_group_level",
+      "status": 0
+    },
+    {
+      "label": "A级",
+      "value": "A",
+      "dictType": "dict_ip_group_level",
+      "status": 0
+    },
+    {
+      "label": "B级",
+      "value": "B",
+      "dictType": "dict_ip_group_level",
+      "status": 0
+    },
+    {
+      "label": "C级",
+      "value": "C",
+      "dictType": "dict_ip_group_level",
+      "status": 0
+    }
+  ]
+}

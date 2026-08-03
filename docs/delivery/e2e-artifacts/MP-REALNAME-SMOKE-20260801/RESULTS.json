@@ -1,0 +1,14 @@
+{
+  "pass": true,
+  "updatePass": true,
+  "createPass": false,
+  "createBlocker": "mp-server POST /rpc-api/mp/accountInfo/create returns 500 even with name/account/appId/appSecret/token filled (pre-existing)",
+  "updateSample": {
+    "id": 1000006,
+    "realnameId": 1,
+    "realName": "zzw",
+    "note": "ENTERPRISE + realnameId persisted on oa_account_ext; get/list show realName"
+  },
+  "fe": "InternalAccountManage + PlatformAccountDetail always show RealNameSelect for WECHAT_OFFICIAL; list shows realName column",
+  "be": "assertWechatOfficialAssociations requires realnameId; prepareWechatOfficialUpdate; skip Feign mp write when unchanged; create placeholders for mp required fields"
+}

@@ -1,0 +1,102 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "id": 9003,
+          "companyId": 9001,
+          "companyName": "SEED-Company-A",
+          "realName": "SEED-Wang",
+          "idType": "ID_CARD",
+          "idCardMasked": "****",
+          "phoneMasked": "****",
+          "wechat": null,
+          "gender": "MALE",
+          "status": "ENABLED",
+          "accountBoundCount": 1,
+          "idCardFrontKey": null,
+          "idCardFrontUrl": null,
+          "idCardBackKey": null,
+          "idCardBackUrl": null,
+          "createTime": 1784217626000
+        },
+        {
+          "id": 9002,
+          "companyId": 9001,
+          "companyName": "SEED-Company-A",
+          "realName": "SEED-Li",
+          "idType": "ID_CARD",
+          "idCardMasked": "****",
+          "phoneMasked": "****",
+          "wechat": null,
+          "gender": "MALE",
+          "status": "ENABLED",
+          "accountBoundCount": 2,
+          "idCardFrontKey": null,
+          "idCardFrontUrl": null,
+          "idCardBackKey": null,
+          "idCardBackUrl": null,
+          "createTime": 1784217472000
+        },
+        {
+          "id": 9001,
+          "companyId": 9001,
+          "companyName": "SEED-Company-A",
+          "realName": "SEED-Zhang",
+          "idType": "ID_CARD",
+          "idCardMasked": "****",
+          "phoneMasked": "****",
+          "wechat": null,
+          "gender": "MALE",
+          "status": "ENABLED",
+          "accountBoundCount": 2,
+          "idCardFrontKey": null,
+          "idCardFrontUrl": null,
+          "idCardBackKey": null,
+          "idCardBackUrl": null,
+          "createTime": 1784217472000
+        },
+        {
+          "id": 3,
+          "companyId": 4,
+          "companyName": "神鱼体育",
+          "realName": "xg",
+          "idType": "ID_CARD",
+          "idCardMasked": "430188********0909",
+          "phoneMasked": "135****5678",
+          "wechat": "",
+          "gender": null,
+          "status": "ENABLED",
+          "accountBoundCount": 1,
+          "idCardFrontKey": null,
+          "idCardFrontUrl": null,
+          "idCardBackKey": null,
+          "idCardBackUrl": null,
+          "createTime": 1784042960000
+        },
+        {
+          "id": 2,
+          "companyId": 4,
+          "companyName": "神鱼体育",
+          "realName": "vvv",
+          "idType": "ID_CARD",
+          "idCardMasked": "430111********8899",
+          "phoneMasked": "135****0000",
+          "wechat": "",
+          "gender": null,
+          "status": "ENABLED",
+          "accountBoundCount": 1,
+          "idCardFrontKey": null,
+          "idCardFrontUrl": null,
+          "idCardBackKey": null,
+          "idCardBackUrl": null,
+          "createTime": 1784042838000
+        }
+      ],
+      "total": 6
+    }
+  }
+}

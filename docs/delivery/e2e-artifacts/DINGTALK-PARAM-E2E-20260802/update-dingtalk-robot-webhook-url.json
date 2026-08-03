@@ -1,0 +1,17 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": true
+  },
+  "payload": {
+    "id": 19,
+    "paramName": "钉钉机器人 Webhook",
+    "paramKey": "dingtalk.robot.webhook-url",
+    "paramValue": "https://example.com/webhook",
+    "paramType": "STRING",
+    "category": "DINGTALK",
+    "remark": "自定义机器人 Webhook URL（含 access_token）"
+  }
+}

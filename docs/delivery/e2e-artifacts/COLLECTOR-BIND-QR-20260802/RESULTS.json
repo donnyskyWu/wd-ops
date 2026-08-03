@@ -1,0 +1,53 @@
+{
+  "slice": "P2-M10-BIND-QR",
+  "date": "2026-08-02",
+  "assumption": "A — ADR-060 §5.1 carve-out collector-bind/QR",
+  "collector": {
+    "start": ".\\scripts\\start-collector.ps1 -Restart",
+    "livez": "http://127.0.0.1:8000/livez",
+    "docs": "http://127.0.0.1:8000/docs",
+    "tokenAlignedWithOps": "test-key-2026",
+    "status": "UP"
+  },
+  "ops": {
+    "url": "http://127.0.0.1:48094",
+    "viaGateway": "http://127.0.0.1:48080/admin-api/ops",
+    "restart": ".\\scripts\\start-integration-oa.ps1 -Rebuild -Profiles \"dev,dev-test-beta\"",
+    "status": "UP"
+  },
+  "accountId": 1000109,
+  "platformType": "WECHAT_OFFICIAL",
+  "checks": [
+    {
+      "name": "GET /account/{id}/collector-bind",
+      "expect": "code=0; data=null when unbound (not stub PageResult / not 410)",
+      "result": "PASS",
+      "artifact": "01-get-bind.json"
+    },
+    {
+      "name": "POST /account/{id}/collector-bind/qr-login/start",
+      "expect": "code=0; sessionId + qrcodeBase64 from real unify-collector",
+      "result": "PASS",
+      "sessionId": "135ce39789e64383a22ed16c94d5ddc6",
+      "status": "pending",
+      "expiresInSeconds": 180,
+      "artifact": "02-qr-start.json"
+    },
+    {
+      "name": "POST /account/douyin-followers (control stub)",
+      "expect": "still 410 CUTOVER_DOMAIN_DEFERRED",
+      "result": "PASS",
+      "artifact": "03-douyin-stub-write.txt"
+    },
+    {
+      "name": "collector livez",
+      "result": "PASS",
+      "artifact": "04-collector-livez.json"
+    }
+  ],
+  "residual": [
+    "Manual phone QR scan + poll confirmed not exercised in this smoke (start only)",
+    "SyncService full persist still OOS (ADR-060)",
+    "DouyinFollowers / collect log-quality / EXTERNAL config still stub"
+  ]
+}

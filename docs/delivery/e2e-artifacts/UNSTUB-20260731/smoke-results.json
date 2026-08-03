@@ -1,0 +1,458 @@
+[
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/dashboard/home/summary",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": null,
+    "flag": "OK"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/dashboard/home/todos",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": null,
+    "flag": "OK"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/dashboard/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/perf/template/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/perf/record/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/perf/result/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/account-analysis/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/follower-analysis/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/internal-content/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/productivity-review/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/author/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/author-ext/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/config/ai-prompt/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/config/threshold/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/metric/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/query/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/report/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/monitor/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/content-analysis/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/funnel/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/ops/stats",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": null,
+    "flag": "OK"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/internal/personal-account/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/account/fan-group/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/account/wechat-cert-renewal/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/collector-bind/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/system/message/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/system/param/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/metadata/list?pageNo=1&pageSize=1",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/config/ai-prompt/page?pageNo=1&pageSize=10",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/config/threshold/page?pageNo=1&pageSize=10",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/author/page?pageNo=1&pageSize=10",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/perf/template/page?pageNo=1&pageSize=10",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/internal-content/page?pageNo=1&pageSize=10",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/productivity-review/page?pageNo=1&pageSize=10",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/account-analysis/page?pageNo=1&pageSize=10",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "GET",
+    "path": "/admin-api/ops/follower-analysis/page?pageNo=1&pageSize=10",
+    "http": 200,
+    "code": 0,
+    "msg": "ok",
+    "total": 0,
+    "flag": "EMPTY"
+  },
+  {
+    "method": "POST",
+    "path": "/admin-api/ops/config/ai-prompt/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "flag": "STUB410"
+  },
+  {
+    "method": "POST",
+    "path": "/admin-api/ops/config/threshold/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "flag": "STUB410"
+  },
+  {
+    "method": "POST",
+    "path": "/admin-api/ops/perf/template/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "flag": "STUB410"
+  },
+  {
+    "method": "POST",
+    "path": "/admin-api/ops/perf/record/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "flag": "STUB410"
+  },
+  {
+    "method": "POST",
+    "path": "/admin-api/ops/author/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "flag": "STUB410"
+  },
+  {
+    "method": "POST",
+    "path": "/admin-api/ops/internal-content/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "flag": "STUB410"
+  },
+  {
+    "method": "POST",
+    "path": "/admin-api/ops/dashboard/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "flag": "STUB410"
+  },
+  {
+    "method": "POST",
+    "path": "/admin-api/ops/productivity-review/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "flag": "STUB410"
+  },
+  {
+    "method": "POST",
+    "path": "/admin-api/ops/account/fan-group/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "flag": "STUB410"
+  },
+  {
+    "method": "POST",
+    "path": "/admin-api/ops/metric/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "flag": "STUB410"
+  },
+  {
+    "method": "POST",
+    "path": "/admin-api/ops/query/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "flag": "STUB410"
+  },
+  {
+    "method": "POST",
+    "path": "/admin-api/ops/account-analysis/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "flag": "STUB410"
+  },
+  {
+    "method": "POST",
+    "path": "/admin-api/ops/collector-bind/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）",
+    "flag": "STUB410"
+  },
+  {
+    "method": "POST",
+    "path": "DIRECT:/admin-api/oa/config/ai-prompt/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）"
+  },
+  {
+    "method": "POST",
+    "path": "DIRECT:/admin-api/oa/author/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）"
+  },
+  {
+    "method": "POST",
+    "path": "DIRECT:/admin-api/oa/perf/template/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）"
+  },
+  {
+    "method": "POST",
+    "path": "DIRECT:/admin-api/oa/dashboard/create",
+    "http": 200,
+    "code": 410,
+    "msg": "ADR-058 P5 deferred: domain not yet migrated to football-module-ops（Cutover stub）"
+  }
+]

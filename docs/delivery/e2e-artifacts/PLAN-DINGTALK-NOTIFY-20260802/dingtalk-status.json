@@ -1,0 +1,19 @@
+{
+  "http": 200,
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "workNotifyEnabled": true,
+      "workNotifySkipReason": null,
+      "agentIdConfigured": true,
+      "robotFallbackEnabled": true,
+      "webhookConfigured": true,
+      "secretConfigured": true,
+      "platformBaseUrlConfigured": false,
+      "primaryChannel": "work_notify",
+      "sendEnabled": true,
+      "skipReason": null
+    }
+  }
+}

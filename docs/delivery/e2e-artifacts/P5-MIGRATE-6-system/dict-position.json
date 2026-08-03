@@ -1,0 +1,58 @@
+{
+  "code": 0,
+  "msg": "ok",
+  "data": {
+    "list": [
+      {
+        "dictType": "dict_position",
+        "label": "主播",
+        "value": "ANCHOR",
+        "sort": 0,
+        "status": "ENABLED"
+      },
+      {
+        "dictType": "dict_position",
+        "label": "编辑",
+        "value": "EDITOR",
+        "sort": 0,
+        "status": "ENABLED"
+      },
+      {
+        "dictType": "dict_position",
+        "label": "直播运营",
+        "value": "LIVE_OPERATOR",
+        "sort": 0,
+        "status": "ENABLED"
+      },
+      {
+        "dictType": "dict_position",
+        "label": "运营",
+        "value": "OPERATOR",
+        "sort": 0,
+        "status": "ENABLED"
+      },
+      {
+        "dictType": "dict_position",
+        "label": "运营组长",
+        "value": "OPS_LEADER",
+        "sort": 0,
+        "status": "ENABLED"
+      },
+      {
+        "dictType": "dict_position",
+        "label": "运营官方号",
+        "value": "OPS_OFFICIAL",
+        "sort": 0,
+        "status": "ENABLED"
+      },
+      {
+        "dictType": "dict_position",
+        "label": "销售",
+        "value": "SALES",
+        "sort": 0,
+        "status": "ENABLED"
+      }
+    ],
+    "total": 7
+  }
+}

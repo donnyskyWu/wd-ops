@@ -1,9 +1,9 @@
--- S0: TRUNCATE wd 业务测试数据（§N.8 B/C 组）
--- 目标库：localhost:3306/wd ONLY — 禁止在远程 101.37.161.136 执行
+﻿-- S0: TRUNCATE wd 业务测试数据（§N.8 B/C 组）
+-- 目标库：localhost:3306/shenyu-ops ONLY — 禁止在远程 101.37.161.136 / Beta shenyu-ops 执行
 -- 前置：mysqldump 备份（见 OPS-FOOTBALL-MULTI-DB-EXECUTION-PLAN.md §S0 回滚）
 -- 用户确认：2026-07-05
 
-USE wd;
+USE `shenyu-ops`;
 
 -- ========== KEEP（勿 TRUNCATE）==========
 -- sys_dict_type, sys_dict_data, sys_param

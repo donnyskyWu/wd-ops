@@ -1,0 +1,87 @@
+{
+  "date": "2026-08-02",
+  "target": {
+    "host": "110.42.49.224",
+    "database": "shenyu-system",
+    "tenant_id": 1
+  },
+  "password_convention": "admin123",
+  "bcrypt_prefix": "$2a$04$KljJDa/LK7QfDm0lF5Ohue",
+  "accounts": [
+    {
+      "username": "opsleader",
+      "password": "admin123",
+      "user_id": 9160,
+      "role_code": "ip_group_leader",
+      "role_id": 160,
+      "nickname": "IP组长测试",
+      "created": true,
+      "reason": "no prior ip_group_leader user_role bind"
+    },
+    {
+      "username": "opsmanager",
+      "password": "admin123",
+      "user_id": 9161,
+      "role_code": "ops_manager",
+      "role_id": 161,
+      "nickname": "运营主管测试",
+      "created": true
+    },
+    {
+      "username": "opsfinance",
+      "password": "admin123",
+      "user_id": 9162,
+      "role_code": "finance",
+      "role_id": 162,
+      "nickname": "财务人员测试",
+      "created": true
+    },
+    {
+      "username": "opseditor",
+      "password": "admin123",
+      "user_id": 9163,
+      "role_code": "content_editor",
+      "role_id": 163,
+      "nickname": "内容编辑测试",
+      "created": true
+    },
+    {
+      "username": "opsoperator",
+      "password": "admin123",
+      "user_id": 9164,
+      "role_code": "ops_operator",
+      "role_id": 164,
+      "nickname": "运营测试",
+      "created": true
+    },
+    {
+      "username": "opsanalyst",
+      "password": "admin123",
+      "user_id": 9165,
+      "role_code": "data_analyst",
+      "role_id": 165,
+      "nickname": "数据分析测试",
+      "created": true
+    }
+  ],
+  "login_smoke": {
+    "endpoint": "http://127.0.0.1:48081/admin-api/system/auth/login",
+    "tenant_header": "1",
+    "results": [
+      { "username": "opsleader", "code": 0, "token": true },
+      { "username": "opsmanager", "code": 0, "token": true },
+      { "username": "opsfinance", "code": 0, "token": true },
+      { "username": "opseditor", "code": 0, "token": true },
+      { "username": "opsoperator", "code": 0, "token": true },
+      { "username": "opsanalyst", "code": 0, "token": true }
+    ]
+  },
+  "sql": {
+    "roles": "scripts/integration-config/seed-ops-six-roles-rbac.sql",
+    "users": "scripts/integration-config/seed-ops-six-roles-test-users.sql"
+  },
+  "idempotent_rerun": {
+    "users_9160_9165": 6,
+    "user_role_9160_9165": 6
+  }
+}

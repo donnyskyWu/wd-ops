@@ -1,0 +1,30 @@
+{
+  "date": "2026-07-31",
+  "suite": "merge-runtime-authenticated",
+  "specs": [
+    "football-content-smoke.spec.ts",
+    "p0-modules.spec.ts",
+    "dashboard.spec.ts",
+    "ux-routes-smoke.spec.ts"
+  ],
+  "auth": "seedFootballAuth admin/admin123 tenant 1",
+  "baseURL": "http://127.0.0.1:5777",
+  "gateway": "http://127.0.0.1:48080",
+  "ops": "http://127.0.0.1:48094",
+  "totals": { "passed": 78, "failed": 10, "skipped": 0, "durationMin": 15.9 },
+  "recommendation": "conditional_go_runtime_merge",
+  "doesNotSign": ["B-WP4-ARCHIVE", "Phase-C-full-GO"],
+  "report": "docs/delivery/gates/MERGE-RUNTIME-E2E-签收报告-20260731.md",
+  "failed": [
+    "DASH-007",
+    "CONTENT-GATE-001",
+    "CONTENT-GATE-003",
+    "CONTENT-GATE-004",
+    "IPG-000",
+    "IPG-001",
+    "IPG-002",
+    "IPG-003",
+    "IPG-004",
+    "UX-ROUTE-2"
+  ]
+}

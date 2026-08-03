@@ -1,0 +1,13 @@
+{
+  "taskId": 8,
+  "runCode": 0,
+  "logPageCode": 0,
+  "logTotal": 3,
+  "latestLogId": 18,
+  "latestStatus": "FAILED",
+  "detailCode": 0,
+  "detailHasResult": true,
+  "typeResultsCount": 3,
+  "persistMode": "PROBE_COUNT_ONLY",
+  "pass": true
+}

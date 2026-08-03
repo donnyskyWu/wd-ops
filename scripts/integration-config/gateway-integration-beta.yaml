@@ -27,10 +27,11 @@ spring:
               predicates:
                 - Path=/admin-api/system/**
               order: -100
-            - id: oa-admin-api-direct
+            # ADR-058 P-C: /admin-api/ops/** → ops-server :48094 as-is（无 Rewrite）
+            - id: ops-admin-api-direct
               uri: http://127.0.0.1:48094
               predicates:
-                - Path=/admin-api/oa/**
+                - Path=/admin-api/ops/**
               metadata:
                 response-timeout: 300000
                 connect-timeout: 10000
@@ -56,7 +57,8 @@ spring:
           instances:
             system-server:
               - uri: http://127.0.0.1:48081
-            oa-server:
+            # ADR-058 P2: discovery name ops-server（本地仍直连 :48094）
+            ops-server:
               - uri: http://127.0.0.1:48094
             infra-server:
               - uri: http://127.0.0.1:48082

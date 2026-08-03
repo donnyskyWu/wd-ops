@@ -1,0 +1,72 @@
+{
+  "checks": [
+    {
+      "name": "list_by_category",
+      "ok": true,
+      "missing": []
+    },
+    {
+      "name": "update_dingtalk.enabled",
+      "ok": true,
+      "code": 0,
+      "msg": "ok",
+      "category_error": false
+    },
+    {
+      "name": "update_dingtalk.client-id",
+      "ok": true,
+      "code": 0,
+      "msg": "ok",
+      "category_error": false
+    },
+    {
+      "name": "update_dingtalk.client-secret",
+      "ok": true,
+      "code": 0,
+      "msg": "ok",
+      "category_error": false
+    },
+    {
+      "name": "update_dingtalk.corp-id",
+      "ok": true,
+      "code": 0,
+      "msg": "ok",
+      "category_error": false
+    },
+    {
+      "name": "update_dingtalk.agent-id",
+      "ok": true,
+      "code": 0,
+      "msg": "ok",
+      "category_error": false
+    },
+    {
+      "name": "update_dingtalk.robot.enabled",
+      "ok": true,
+      "code": 0,
+      "msg": "ok",
+      "category_error": false
+    },
+    {
+      "name": "update_dingtalk.robot.webhook-url",
+      "ok": true,
+      "code": 0,
+      "msg": "ok",
+      "category_error": false
+    },
+    {
+      "name": "update_dingtalk.robot.secret",
+      "ok": true,
+      "code": 0,
+      "msg": "ok",
+      "category_error": false
+    }
+  ],
+  "category": "DINGTALK",
+  "priority_pass": true,
+  "dingtalk_status": {
+    "http": 200,
+    "code": 0
+  },
+  "pass": true
+}

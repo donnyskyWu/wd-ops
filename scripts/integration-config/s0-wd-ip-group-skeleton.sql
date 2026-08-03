@@ -1,9 +1,9 @@
--- S0: 最小 IP 组 skeleton — 1 大组 + 2 小组
--- 目标库：localhost:3306/wd ONLY
+﻿-- S0: 最小 IP 组 skeleton — 1 大组 + 2 小组
+-- 目标库：localhost:3306/shenyu-ops ONLY
 -- 前置：s0-wd-truncate-testdata.sql 已执行（oa_ip_group 已空）
 -- 用户确认：2026-07-05
 
-USE wd;
+USE `shenyu-ops`;
 
 INSERT INTO oa_ip_group (id, tenant_id, group_name, group_type, parent_id, leader_user_id, sort_order, status, remark, creator, updater)
 VALUES

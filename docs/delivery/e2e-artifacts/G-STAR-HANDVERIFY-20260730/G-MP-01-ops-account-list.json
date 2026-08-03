@@ -1,0 +1,11 @@
+{
+  "status": 200,
+  "resp": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [],
+      "total": 0
+    }
+  }
+}

@@ -1,4 +1,4 @@
--- Idempotent restore for data-permission E2E (dev tokens + seed accounts)
+﻿-- Idempotent restore for data-permission E2E (dev tokens + seed accounts)
 USE wd;
 
 -- Base tenants/users/tokens (V2)
@@ -24,15 +24,15 @@ INSERT IGNORE INTO sys_user_token (user_id, token, status) VALUES
 
 -- Permissions for account APIs (V12 + V15 minimal)
 INSERT IGNORE INTO sys_permission (id, code, name, module, creator, updater) VALUES
-(1, 'oa:user:list', 'user list', 'M9', 'seed-restore', 'seed-restore'),
-(5, 'oa:role:list', 'role list', 'M9', 'seed-restore', 'seed-restore'),
-(10, 'oa:permission:list', 'perm list', 'M9', 'seed-restore', 'seed-restore'),
-(11, 'oa:tenant:list', 'tenant list', 'M9', 'seed-restore', 'seed-restore'),
-(12, 'oa:tenant:create', 'tenant create', 'M9', 'seed-restore', 'seed-restore'),
-(13, 'oa:tenant:update', 'tenant update', 'M9', 'seed-restore', 'seed-restore'),
-(14, 'oa:tenant:delete', 'tenant delete', 'M9', 'seed-restore', 'seed-restore'),
-(15, 'oa:account:list', 'account list', 'M4', 'seed-restore', 'seed-restore'),
-(16, 'oa:account:create', 'account create', 'M4', 'seed-restore', 'seed-restore');
+(1, 'ops:user:list', 'user list', 'M9', 'seed-restore', 'seed-restore'),
+(5, 'ops:role:list', 'role list', 'M9', 'seed-restore', 'seed-restore'),
+(10, 'ops:permission:list', 'perm list', 'M9', 'seed-restore', 'seed-restore'),
+(11, 'ops:tenant:list', 'tenant list', 'M9', 'seed-restore', 'seed-restore'),
+(12, 'ops:tenant:create', 'tenant create', 'M9', 'seed-restore', 'seed-restore'),
+(13, 'ops:tenant:update', 'tenant update', 'M9', 'seed-restore', 'seed-restore'),
+(14, 'ops:tenant:delete', 'tenant delete', 'M9', 'seed-restore', 'seed-restore'),
+(15, 'ops:account:list', 'account list', 'M4', 'seed-restore', 'seed-restore'),
+(16, 'ops:account:create', 'account create', 'M4', 'seed-restore', 'seed-restore');
 
 INSERT IGNORE INTO sys_role_permission (role_id, permission_id) VALUES
 (1, 1), (1, 5), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16),

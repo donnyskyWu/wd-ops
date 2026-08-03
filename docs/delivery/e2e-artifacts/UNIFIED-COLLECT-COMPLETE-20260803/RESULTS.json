@@ -1,0 +1,104 @@
+{
+  "checks": [
+    {
+      "name": "ensure-unified",
+      "pass": true
+    },
+    {
+      "name": "bind-enforcement-ready",
+      "pass": true
+    },
+    {
+      "name": "quality-stub-readable",
+      "pass": true
+    },
+    {
+      "name": "persist-mode",
+      "pass": true
+    },
+    {
+      "name": "wechat-mp-targetTable",
+      "pass": true
+    }
+  ],
+  "pass": true,
+  "taskId": 8,
+  "memberPlatforms": [
+    "DOUYIN",
+    "WECHAT_VIDEO",
+    "WECHAT_OFFICIAL"
+  ],
+  "bindChecks": [
+    {
+      "platform": "BILIBILI",
+      "skipped": true,
+      "reason": "no member"
+    },
+    {
+      "platform": "DOUYIN",
+      "accountId": 3,
+      "bound": true,
+      "http": 200
+    },
+    {
+      "platform": "KUAISHOU",
+      "skipped": true,
+      "reason": "no member"
+    },
+    {
+      "platform": "WECHAT_OFFICIAL",
+      "accountId": 1000112,
+      "bound": true,
+      "http": 200
+    },
+    {
+      "platform": "WECHAT_VIDEO",
+      "accountId": 1,
+      "bound": true,
+      "http": 200
+    },
+    {
+      "platform": "XIAOHONGSHU",
+      "skipped": true,
+      "reason": "no member"
+    }
+  ],
+  "runCode": 0,
+  "latestLogId": 28,
+  "persistMode": "FULL_PERSIST",
+  "targetTables": [
+    "oa_account_status_log",
+    "oa_douyin_video",
+    "oa_wechat_mp_article"
+  ],
+  "platformEvidence": {
+    "BILIBILI": {
+      "skipped": true
+    },
+    "DOUYIN": {
+      "typeCount": 3,
+      "hasTargetTable": true,
+      "successCount": 3
+    },
+    "WECHAT_VIDEO": {
+      "typeCount": 3,
+      "hasTargetTable": false,
+      "successCount": 0
+    },
+    "XIAOHONGSHU": {
+      "skipped": true
+    },
+    "WECHAT_OFFICIAL": {
+      "typeCount": 4,
+      "hasTargetTable": true,
+      "successCount": 4
+    },
+    "KUAISHOU": {
+      "skipped": true
+    }
+  },
+  "qualityStub": {
+    "code": 0,
+    "listEmpty": true
+  }
+}

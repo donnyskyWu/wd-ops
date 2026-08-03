@@ -1,0 +1,4 @@
+{
+  "http": 200,
+  "raw": "{\"code\":404,\"msg\":\"No static resource actuator/health.\",\"data\":null}"
+}

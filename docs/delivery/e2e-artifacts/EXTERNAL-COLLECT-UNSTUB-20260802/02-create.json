@@ -1,0 +1,15 @@
+{
+  "http": 200,
+  "req": {
+    "subType": "account",
+    "platformType": "DOUYIN",
+    "configName": "smoke-ext-account-20260802",
+    "accountIdentifier": "smoke_dy_uid_20260802",
+    "status": "ENABLED"
+  },
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": 41
+  }
+}
