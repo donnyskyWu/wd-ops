@@ -424,24 +424,26 @@ mvn -pl football-module-ops/football-module-ops-server -am package -DskipTests
 
 ### 6.2 Profile 与 Beta 叠加
 
-ops-server 配置 SSOT 在 JAR 内四文件：`application.yaml`（共享）+ `application-local.yaml`（本地）+ `application-dev-test-beta.yaml`（Beta 远程 DB/Nacos/Redis）+ `application-prod.yaml`（正式生产）。`start-integration-oa.ps1` 将 legacy `OaProfiles` 映射为 Spring profile：`local`（默认）或 `dev-test-beta`（`-Beta` / `ops-test-remote.env`）。
+ops-server 配置 SSOT 在 JAR 内五文件：`application.yaml`（共享）+ `application-local.yaml`（本地）+ `application-dev-test-beta.yaml`（Beta 远程 DB/Nacos/Redis，本机 JAR）+ `application-beta-server.yaml`（**Beta 测试机部署**，110.42.49.224）+ `application-prod.yaml`（正式生产）。`start-integration-oa.ps1` 将 legacy `OaProfiles` 映射为 Spring profile：`local`（默认）或 `dev-test-beta`（`-Beta` / `ops-test-remote.env`）。
 
 | 模式 | Spring profile | 启动示例 |
 |------|----------------|----------|
 | 本地 | `local` | `.\scripts\start-integration-oa.ps1` |
-| Beta | `dev-test-beta` | `.\scripts\start-ops-dev.ps1 -Beta` |
+| Beta 本机 JAR | `dev-test-beta` | `.\scripts\start-ops-dev.ps1 -Beta` |
+| **Beta 测试机** | `beta-server` | 见下方 §6.2.1 |
 | 正式 | `prod` | `java -jar football-module-ops-server.jar --spring.profiles.active=prod` |
 
 **Profile 差异摘要**
 
-| 项 | local | dev-test-beta | prod |
-|----|-------|---------------|------|
-| MySQL | localhost `shenyu-ops` | 远程 `${OPS_TEST_*}` | `${OPS_DB_*}` 环境变量 |
-| Nacos | localhost namespace `local` | 远程 namespace `beta` | `${NACOS_*}`，namespace 默认 `prod` |
-| Feign | 5 服务名 localhost 直连 | 同 local（本机 JAR） | **无 URL**，Nacos 服务发现 |
-| Flyway | enabled | **disabled** | `${FLYWAY_ENABLED:true}` |
-| AES 密钥 | jar 内 dev 默认 | jar 内 dev 默认 | **必设** `${OA_AES_KEY}` |
-| 鉴权 | Gateway login-user | Gateway + football-redis | Gateway + football-redis，**禁用 dev-token** |
+| 项 | local | dev-test-beta | beta-server | prod |
+|----|-------|---------------|-------------|------|
+| MySQL | localhost `shenyu-ops` | 远程 `${OPS_TEST_*}` | 110.42.49.224 `shenyu-ops` `${OPS_DB_*}` | `${OPS_DB_*}` 环境变量 |
+| Nacos | localhost namespace `local` | 远程 namespace `beta` | 110.42.49.224 namespace **`beta`** | `${NACOS_*}`，namespace 默认 `prod` |
+| Feign | 5 服务名 localhost 直连 | 同 local（本机 JAR） | **无 URL**，Nacos 服务发现 | **无 URL**，Nacos 服务发现 |
+| Flyway | enabled | **disabled** | **disabled** | `${FLYWAY_ENABLED:true}` |
+| AES 密钥 | jar 内 dev 默认 | jar 内 dev 默认 | dev 默认或 `${OA_AES_KEY}` | **必设** `${OA_AES_KEY}` |
+| 鉴权 | Gateway login-user | Gateway + football-redis | Gateway + football-redis，**禁用 dev-token** | 同 beta-server |
+| Admin UI | localhost :48080 | localhost :48080 | **`https://beta.h5.shenyu.com`** | `${ADMIN_UI_URL}` |
 
 手动 JAR：
 
@@ -449,12 +451,41 @@ ops-server 配置 SSOT 在 JAR 内四文件：`application.yaml`（共享）+ `a
 # 本地
 java -jar football-module-ops-server.jar --spring.profiles.active=local
 
-# Beta（先加载 ops-test-remote.env）
+# Beta 本机 JAR（先加载 ops-test-remote.env）
 java -jar football-module-ops-server.jar --spring.profiles.active=dev-test-beta
 
 # 正式（注入 NACOS_* / OPS_DB_* / OA_AES_KEY 等后启动）
 java -jar football-module-ops-server.jar --spring.profiles.active=prod
 ```
+
+#### 6.2.1 Beta 测试机部署（110.42.49.224）
+
+进程跑在测试机上、与其他 Football 服务同 Nacos `beta` namespace 时使用 **`beta-server`** profile（**无 Feign URL 硬编码**，与 `prod` 一致走服务发现）。
+
+**方式 A — JAR 内 profile + 环境变量（可提交仓库）**
+
+```bash
+export NACOS_PASSWORD=nacos
+export OPS_DB_PASSWORD=<shenyu-ops 口令>
+export REDIS_PASSWORD=<Redis 口令>
+java -jar football-module-ops-server.jar --spring.profiles.active=beta-server
+```
+
+**方式 B — 叠加外部 overlay（含真实口令，勿提交 git）**
+
+```bash
+# 本地生成（gitignore）：scripts/integration-config/ops-server-beta-server.yaml
+# 模板：scripts/integration-config/ops-server-beta-server.yaml.example
+java -jar football-module-ops-server.jar \
+  --spring.profiles.active=beta-server \
+  --spring.config.additional-location=optional:file:/opt/ops/config/ops-server-beta-server.yaml
+```
+
+| 文件 | 用途 | 可提交 git |
+|------|------|------------|
+| `application-beta-server.yaml`（JAR 内） | `${OPS_DB_*}` / `${REDIS_*}` 占位符 + beta 默认值 | 是 |
+| `ops-server-beta-server.yaml.example` | 运维复制模板 | 是 |
+| `ops-server-beta-server.yaml` | 真实口令 overlay（copy-to-server） | **否**（gitignore） |
 
 旧 overlay `scripts/integration-config/ops-test-beta-multidb.yml` 已弃用，内容已迁入 `application-dev-test-beta.yaml`。
 
@@ -518,7 +549,7 @@ java -jar football-module-ops-server.jar --spring.profiles.active=prod
 
 仓库**未提供**测试机 systemd / docker-compose 全栈编排。运维可按 §6.1 产物自行：
 
-1. `java -jar football-module-ops-server.jar` + Beta overlay  
+1. `java -jar football-module-ops-server.jar --spring.profiles.active=beta-server`（+ overlay 或环境变量，见 §6.2.1）  
 2. `java -jar football-gateway.jar` + `gateway-integration-beta.yaml`  
 3. 其余 Football JAR 同 `start-integration-all.ps1` 端口矩阵  
 4. Nginx 托管 `football-front/apps/web-ele/dist`，反代 `/admin-api` → `:48080`  
