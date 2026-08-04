@@ -424,24 +424,39 @@ mvn -pl football-module-ops/football-module-ops-server -am package -DskipTests
 
 ### 6.2 Profile 与 Beta 叠加
 
-`start-integration-oa.ps1` 默认 profiles：
+ops-server 配置 SSOT 在 JAR 内四文件：`application.yaml`（共享）+ `application-local.yaml`（本地）+ `application-dev-test-beta.yaml`（Beta 远程 DB/Nacos/Redis）+ `application-prod.yaml`（正式生产）。`start-integration-oa.ps1` 将 legacy `OaProfiles` 映射为 Spring profile：`local`（默认）或 `dev-test-beta`（`-Beta` / `ops-test-remote.env`）。
 
-```text
-dev,dev-nacos,dev-nacos-local,dev-local-multidb[,dev-test-beta]
-```
+| 模式 | Spring profile | 启动示例 |
+|------|----------------|----------|
+| 本地 | `local` | `.\scripts\start-integration-oa.ps1` |
+| Beta | `dev-test-beta` | `.\scripts\start-ops-dev.ps1 -Beta` |
+| 正式 | `prod` | `java -jar football-module-ops-server.jar --spring.profiles.active=prod` |
 
-Beta 额外参数：
+**Profile 差异摘要**
 
-```text
---spring.config.additional-location=optional:file:scripts/integration-config/ops-test-beta-multidb.yml
---spring.flyway.enabled=false
-```
+| 项 | local | dev-test-beta | prod |
+|----|-------|---------------|------|
+| MySQL | localhost `shenyu-ops` | 远程 `${OPS_TEST_*}` | `${OPS_DB_*}` 环境变量 |
+| Nacos | localhost namespace `local` | 远程 namespace `beta` | `${NACOS_*}`，namespace 默认 `prod` |
+| Feign | 5 服务名 localhost 直连 | 同 local（本机 JAR） | **无 URL**，Nacos 服务发现 |
+| Flyway | enabled | **disabled** | `${FLYWAY_ENABLED:true}` |
+| AES 密钥 | jar 内 dev 默认 | jar 内 dev 默认 | **必设** `${OA_AES_KEY}` |
+| 鉴权 | Gateway login-user | Gateway + football-redis | Gateway + football-redis，**禁用 dev-token** |
 
-仅启 ops-server（调试）：
+手动 JAR：
 
 ```powershell
-.\scripts\start-integration-oa.ps1 -Profiles "dev,dev-nacos,dev-nacos-local,dev-local-multidb,dev-test-beta" -Rebuild
+# 本地
+java -jar football-module-ops-server.jar --spring.profiles.active=local
+
+# Beta（先加载 ops-test-remote.env）
+java -jar football-module-ops-server.jar --spring.profiles.active=dev-test-beta
+
+# 正式（注入 NACOS_* / OPS_DB_* / OA_AES_KEY 等后启动）
+java -jar football-module-ops-server.jar --spring.profiles.active=prod
 ```
+
+旧 overlay `scripts/integration-config/ops-test-beta-multidb.yml` 已弃用，内容已迁入 `application-dev-test-beta.yaml`。
 
 ### 6.3 Nacos 注册
 
