@@ -1,56 +1,18 @@
-﻿# OPS oa-server optional overlay: beta test multidb on 110.42.49.224
-# Activate via Spring profile application-dev-test-beta.yml (preferred) OR
-#   java -jar ... --spring.config.additional-location=optional:file:scripts/integration-config/ops-test-beta-multidb.yml
+﻿# DEPRECATED thin pointer — SSOT moved to classpath application-dev-test-beta.yaml
+# (football-module-ops-server/src/main/resources/application-dev-test-beta.yaml)
 #
-# Load secrets from ops-test-remote.env before start (PowerShell: Get-Content ... | ForEach-Object { if ($_ -match '^([^#=]+)=(.*)$') { Set-Item "env:$($matches[1])" $matches[2] } })
-# Does NOT replace default localhost profile (dev-local-multidb).
-# See docs/delivery/OPS-TEST-DB.md
-
-oa:
-  auth:
-    gateway-login-user:
-      enabled: true
-    legacy-ds-token:
-      enabled: false
-    football-redis:
-      enabled: true
-      host: ${OPS_TEST_REDIS_HOST:110.42.49.224}
-      port: ${OPS_TEST_REDIS_PORT:6379}
-      database: ${OPS_TEST_REDIS_DATABASE:1}
-      password: ${OPS_TEST_REDIS_PASSWORD:CHANGE_ME}
+# Preferred activation:
+#   java -jar football-module-ops-server.jar --spring.profiles.active=dev-test-beta
+#   .\scripts\start-integration-oa.ps1 -Profiles "dev-test-beta"
+#   .\scripts\start-ops-dev.ps1 -Beta
+#
+# Load secrets from ops-test-remote.env before start.
+# See docs/delivery/OPS-TEST-DB.md · docs/delivery/OPS-TEST-SERVER-DEPLOY-GUIDE.md §6.2
+#
+# This file is kept for backward compatibility only. If you must use additional-location:
+#   --spring.config.additional-location=optional:file:scripts/integration-config/ops-test-beta-multidb.yml
+# content below mirrors the jar profile (no Feign URLs — add via local profile or override).
 
 spring:
-  flyway:
-    enabled: false  # beta: shenyu-ops lacks performance_schema.user_variables_by_thread
-  cloud:
-    nacos:
-      server-addr: ${OPS_TEST_NACOS_ADDR:110.42.49.224:8848}
-      username: ${OPS_TEST_NACOS_USERNAME:nacos}
-      password: ${OPS_TEST_NACOS_PASSWORD:CHANGE_ME}
-      discovery:
-        namespace: ${OPS_TEST_NACOS_NAMESPACE:beta}
-        group: ${OPS_TEST_NACOS_GROUP:DEFAULT_GROUP}
-      config:
-        namespace: ${OPS_TEST_NACOS_NAMESPACE:beta}
-        group: ${OPS_TEST_NACOS_GROUP:DEFAULT_GROUP}
-  data:
-    redis:
-      host: ${OPS_TEST_REDIS_HOST:110.42.49.224}
-      port: ${OPS_TEST_REDIS_PORT:6379}
-      database: ${OPS_TEST_REDIS_DATABASE:1}
-      password: ${OPS_TEST_REDIS_PASSWORD:CHANGE_ME}
-  datasource:
-    url: jdbc:mysql://${OPS_TEST_DB_HOST:110.42.49.224}:${OPS_TEST_DB_PORT:3306}/${OPS_TEST_MASTER_DB:shenyu-ops}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-    username: ${OPS_TEST_MASTER_USER:shenyu-ops}
-    password: ${OPS_TEST_MASTER_PASSWORD:CHANGE_ME}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    dynamic:
-      primary: master
-      strict: false
-      datasource:
-        master:
-          url: jdbc:mysql://${OPS_TEST_DB_HOST:110.42.49.224}:${OPS_TEST_DB_PORT:3306}/${OPS_TEST_MASTER_DB:shenyu-ops}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-          username: ${OPS_TEST_MASTER_USER:shenyu-ops}
-          password: ${OPS_TEST_MASTER_PASSWORD:CHANGE_ME}
-          driver-class-name: com.mysql.cj.jdbc.Driver
-        # C-WP7 cutover (2026-07-29): member/mp/pay/system multidb 已移除 — 仅 master(wd) + Feign
+  profiles:
+    include: dev-test-beta

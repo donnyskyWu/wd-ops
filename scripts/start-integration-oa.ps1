@@ -1,9 +1,9 @@
 ﻿# start-integration-oa.ps1 — Start football-module-ops (ADR-058 CLEANUP)
 #
 # Monorepo football-module-ops-server JAR on :48094 (Nacos registry id: ops-server).
-# Default: local MySQL wd + Nacos namespace=local (application.yaml).
+# Default: --spring.profiles.active=local (application-local.yaml).
 # Beta: when -Profiles includes dev-test-beta (from start-integration-all -Beta),
-#       load ops-test-remote.env + ops-test-beta-multidb.yml (remote DB/Nacos/Redis).
+#       load ops-test-remote.env + profile dev-test-beta (application-dev-test-beta.yaml).
 #
 # Usage (from repo root):
 #   .\scripts\start-integration-oa.ps1
@@ -29,7 +29,7 @@ $BackendLog = Join-Path $LogDir "ops-server-nacos-run.log"
 $MonorepoServerDir = Join-Path $Root "football-backend-saas\football-module-ops\football-module-ops-server"
 $MonorepoJar = Join-Path $MonorepoServerDir "target\football-module-ops-server.jar"
 $BetaOverlay = Join-Path $Root "scripts\integration-config\ops-test-beta-multidb.yml"
-$UseBeta = ($Profiles -match "dev-test-beta") -or ($env:OPS_TEST_DB_HOST -and (Test-Path -LiteralPath $BetaOverlay) -and $Profiles -match "beta")
+$UseBeta = ($Profiles -match "dev-test-beta") -or ($env:OPS_TEST_DB_HOST -and $Profiles -match "beta")
 
 # Prefer explicit profile token from start-integration-all -Beta
 if ($Profiles -match "dev-test-beta") {
@@ -61,10 +61,6 @@ if ($UseBeta) {
         if (-not (Import-OpsTestRemoteEnv -Root $Root -Required)) { exit 1 }
     } elseif (-not $env:OPS_TEST_DB_HOST) {
         Write-Error "Beta mode requires ops-test-remote.env (OPS_TEST_DB_HOST). See docs/delivery/OPS-TEST-DB.md"
-        exit 1
-    }
-    if (-not (Test-Path -LiteralPath $BetaOverlay)) {
-        Write-Error "Missing beta overlay: $BetaOverlay"
         exit 1
     }
     Write-Host "[beta] football-module-ops (:48094, Nacos ops-server) -> $($env:OPS_TEST_DB_HOST) / $($env:OPS_TEST_MASTER_DB) ; Nacos $($env:OPS_TEST_NACOS_ADDR) ns=$($env:OPS_TEST_NACOS_NAMESPACE)" -ForegroundColor Yellow
@@ -107,12 +103,13 @@ if (-not (Test-Path -LiteralPath $MonorepoJar)) {
 $javaExe = (Get-Command java -ErrorAction SilentlyContinue).Source
 if (-not $javaExe) { Write-Error "java not on PATH"; exit 1 }
 
-$extraCfg = ""
-$titleNote = "Nacos local"
-if ($UseBeta) {
-    $extraCfg = "--spring.config.additional-location=optional:file:$BetaOverlay --spring.flyway.enabled=false"
-    $titleNote = "BETA $($env:OPS_TEST_DB_HOST)"
-    Write-Host "        config: $BetaOverlay" -ForegroundColor DarkGray
+# Map legacy OaProfiles (dev-local-multidb / dev-test-beta) → Spring profile SSOT in jar
+$springProfile = if ($UseBeta) { "dev-test-beta" } else { "local" }
+$extraCfg = "--spring.profiles.active=$springProfile"
+$titleNote = if ($UseBeta) { "BETA $($env:OPS_TEST_DB_HOST)" } else { "local" }
+Write-Host "        profile: $springProfile" -ForegroundColor DarkGray
+if ($UseBeta -and (Test-Path -LiteralPath $BetaOverlay)) {
+    Write-Host "        (legacy overlay still present; jar profile dev-test-beta is SSOT)" -ForegroundColor DarkGray
 }
 
 $inner = @"
