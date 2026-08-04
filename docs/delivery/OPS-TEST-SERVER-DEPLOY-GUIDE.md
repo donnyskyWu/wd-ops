@@ -437,13 +437,13 @@ ops-server 配置 SSOT 在 JAR 内五文件：`application.yaml`（共享）+ `a
 
 | 项 | local | dev-test-beta | beta-server | prod |
 |----|-------|---------------|-------------|------|
-| MySQL | localhost `shenyu-ops` | 远程 `${OPS_TEST_*}` | 110.42.49.224 `shenyu-ops` `${OPS_DB_*}` | `${OPS_DB_*}` 环境变量 |
-| Nacos | localhost namespace `local` | 远程 namespace `beta` | 110.42.49.224 namespace **`beta`** | `${NACOS_*}`，namespace 默认 `prod` |
+| MySQL | localhost `shenyu-ops` | 远程 `${OPS_TEST_*}` | 110.42.49.224 `shenyu-ops`（**overlay 硬编码**） | `${OPS_DB_*}` 环境变量 |
+| Nacos | localhost namespace `local` | 远程 namespace `beta` | 110.42.49.224 namespace **`beta`**（**overlay 硬编码**） | `${NACOS_*}`，namespace 默认 `prod` |
 | Feign | 5 服务名 localhost 直连 | 同 local（本机 JAR） | **无 URL**，Nacos 服务发现 | **无 URL**，Nacos 服务发现 |
 | Flyway | enabled | **disabled** | **disabled** | `${FLYWAY_ENABLED:true}` |
-| AES 密钥 | jar 内 dev 默认 | jar 内 dev 默认 | dev 默认或 `${OA_AES_KEY}` | **必设** `${OA_AES_KEY}` |
+| AES 密钥 | jar 内 dev 默认 | jar 内 dev 默认 | dev 默认（**overlay 硬编码**） | **必设** `${OA_AES_KEY}` |
 | 鉴权 | Gateway login-user | Gateway + football-redis | Gateway + football-redis，**禁用 dev-token** | 同 beta-server |
-| Admin UI | localhost :48080 | localhost :48080 | **`https://beta.h5.shenyu.com`** | `${ADMIN_UI_URL}` |
+| Admin UI | localhost :48080 | localhost :48080 | **`https://beta.h5.shenyu.com`**（**overlay 硬编码**） | `${ADMIN_UI_URL}` |
 
 手动 JAR：
 
@@ -462,29 +462,24 @@ java -jar football-module-ops-server.jar --spring.profiles.active=prod
 
 进程跑在测试机上、与其他 Football 服务同 Nacos `beta` namespace 时使用 **`beta-server`** profile（**无 Feign URL 硬编码**，与 `prod` 一致走服务发现）。
 
-**方式 A — JAR 内 profile + 环境变量（可提交仓库）**
+**推荐 — 外部 overlay（全部 literal 值，无需环境变量）**
 
 ```bash
-export NACOS_PASSWORD=nacos
-export OPS_DB_PASSWORD=<shenyu-ops 口令>
-export REDIS_PASSWORD=<Redis 口令>
-java -jar football-module-ops-server.jar --spring.profiles.active=beta-server
-```
-
-**方式 B — 叠加外部 overlay（含真实口令，勿提交 git）**
-
-```bash
-# 本地生成（gitignore）：scripts/integration-config/ops-server-beta-server.yaml
-# 模板：scripts/integration-config/ops-server-beta-server.yaml.example
+# 1. 本地生成（gitignore，从 example 复制并填入 ops-test-remote.env 凭据）：
+#    scripts/integration-config/ops-server-beta-server.yaml
+# 2. 复制到测试机：
+#    /opt/ops/config/ops-server-beta-server.yaml
 java -jar football-module-ops-server.jar \
   --spring.profiles.active=beta-server \
-  --spring.config.additional-location=optional:file:/opt/ops/config/ops-server-beta-server.yaml
+  --spring.config.additional-location=file:/opt/ops/config/ops-server-beta-server.yaml
 ```
+
+overlay 含完整 `spring.cloud.nacos.*`、`spring.datasource.*`（Druid 连接池）、`spring.data.redis.*`、`spring.flyway.enabled: false`、`oa.auth`、`oa.crypto.aes-key`、`oa.unified-collector.*`、`football.web.admin-ui.url` 等全部硬编码值，**无 `${...}` 占位符**。
 
 | 文件 | 用途 | 可提交 git |
 |------|------|------------|
-| `application-beta-server.yaml`（JAR 内） | `${OPS_DB_*}` / `${REDIS_*}` 占位符 + beta 默认值 | 是 |
-| `ops-server-beta-server.yaml.example` | 运维复制模板 | 是 |
+| `application-beta-server.yaml`（JAR 内） | 薄 profile 标记（Flyway disabled 兜底） | 是（submodule） |
+| `ops-server-beta-server.yaml.example` | 运维复制模板（口令 `xxx`） | 是 |
 | `ops-server-beta-server.yaml` | 真实口令 overlay（copy-to-server） | **否**（gitignore） |
 
 旧 overlay `scripts/integration-config/ops-test-beta-multidb.yml` 已弃用，内容已迁入 `application-dev-test-beta.yaml`。
@@ -549,7 +544,7 @@ java -jar football-module-ops-server.jar \
 
 仓库**未提供**测试机 systemd / docker-compose 全栈编排。运维可按 §6.1 产物自行：
 
-1. `java -jar football-module-ops-server.jar --spring.profiles.active=beta-server`（+ overlay 或环境变量，见 §6.2.1）  
+1. `java -jar football-module-ops-server.jar --spring.profiles.active=beta-server --spring.config.additional-location=file:/opt/ops/config/ops-server-beta-server.yaml`（见 §6.2.1）  
 2. `java -jar football-gateway.jar` + `gateway-integration-beta.yaml`  
 3. 其余 Football JAR 同 `start-integration-all.ps1` 端口矩阵  
 4. Nginx 托管 `football-front/apps/web-ele/dist`，反代 `/admin-api` → `:48080`  
@@ -744,7 +739,8 @@ python docs/delivery/e2e-artifacts/EXTERNAL-COLLECT-20260803/smoke_external_coll
 | 文件 | 说明 |
 |------|------|
 | `scripts/integration-config/ops-test-remote.env.example` | Beta 凭据模板 |
-| `scripts/integration-config/ops-test-beta-multidb.yml` | ops-server Beta overlay |
+| `scripts/integration-config/ops-server-beta-server.yaml.example` | Beta 测试机 ops-server overlay 模板 |
+| `scripts/integration-config/ops-test-beta-multidb.yml` | ops-server Beta overlay（已弃用，见 dev-test-beta profile） |
 | `scripts/integration-config/gateway-integration-beta.yaml` | Gateway Beta |
 | `scripts/integration-config/football-integration-overlay-beta.yml` | Football Beta |
 | `football-front/apps/web-ele/.env.development` | 前端 dev |
