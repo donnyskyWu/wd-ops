@@ -486,15 +486,20 @@ mvn -pl football-module-ops/football-module-ops-server -am package -DskipTests
 # 产物：football-module-ops/football-module-ops-server/target/football-module-ops-server.jar
 ```
 
-运行示例（profile 由运维约定，仓库内**无** `application-prod.yml`）：
+ops-server 配置 SSOT 在 JAR 内四文件：`application.yaml`（共享）+ `application-local.yaml` + `application-dev-test-beta.yaml` + `application-prod.yaml`。详见 `OPS-TEST-SERVER-DEPLOY-GUIDE.md` §6.2。
 
 ```powershell
-java -Dfile.encoding=UTF-8 -jar football-module-ops-server.jar `
-  --spring.profiles.active=dev,dev-nacos,dev-local-multidb `
-  --spring.config.additional-location=optional:file:/path/to/prod-override.yml
+# 本地集成（start-ops-dev.ps1 默认）
+java -Dfile.encoding=UTF-8 -jar football-module-ops-server.jar --spring.profiles.active=local
+
+# Beta 远程 DB（start-ops-dev.ps1 -Beta）
+java -Dfile.encoding=UTF-8 -jar football-module-ops-server.jar --spring.profiles.active=dev-test-beta
+
+# 正式生产 — 注入环境变量后启动（无 Feign URL，走 Nacos 服务发现）
+java -Dfile.encoding=UTF-8 -jar football-module-ops-server.jar --spring.profiles.active=prod
 ```
 
-生产须通过 **环境变量 / Nacos / 外部 YAML** 注入：数据源、Redis、Nacos 地址、钉钉密钥、`ops.crypto.aes-key` 等；**勿**将密码写入仓库。`spring.application.name` 保持 **`ops-server`**（勿改为 `football-module-ops-server`）。
+生产必设环境变量：`NACOS_SERVER_ADDR`、`NACOS_PASSWORD`、`OPS_DB_HOST`、`OPS_DB_NAME`、`OPS_DB_USER`、`OPS_DB_PASSWORD`、`REDIS_HOST`、`REDIS_PASSWORD`、`OA_AES_KEY`、`COLLECTOR_BASE_URL`、`ADMIN_UI_URL`。**勿**将密码写入仓库。`spring.application.name` 保持 **`ops-server`**（勿改为 `football-module-ops-server`）。
 
 #### 4.2.2 Football 微服务
 
@@ -545,12 +550,12 @@ docker build -t unify-collector-api:1.0.0 .
 
 | 类别 | 配置位置 | 要点 |
 |------|----------|------|
-| football-module-ops 多库 | Nacos 或 `application-*.yml` | `spring.datasource.dynamic.datasource.{master,member,mp,pay,system}` |
-| football-module-ops 注册 | `application-dev-nacos.yml` 同类 | `spring.application.name=ops-server`，`server.port=48094`，Nacos namespace |
+| football-module-ops 数据源 | `application-prod.yaml` + 环境变量 | `spring.datasource.dynamic.datasource.master` ← `${OPS_DB_*}` |
+| football-module-ops 注册 | `application-prod.yaml` | `spring.application.name=ops-server`，`server.port=48094`，Nacos namespace `${NACOS_NAMESPACE:prod}` |
 | Gateway 路由 | Nacos / `gateway-*.yaml` | `/admin-api/ops/**` → `grayLb://ops-server`；长超时 300s（AI 生成） |
 | Redis | overlay / Nacos | Football OAuth2 token；integration 本地密码 123456，**生产须独立强密码** |
 | 鉴权 | — | 生产走 Football OAuth2 + Redis；**不用** dev-token |
-| 采集 | football-module-ops | `ops.unified-collector.base-url`、`api-token`、`stub: false` |
+| 采集 | football-module-ops | `oa.unified-collector.base-url` ← `${COLLECTOR_BASE_URL}`、`api-token` ← `${COLLECTOR_API_TOKEN}` |
 | 钉钉 | 环境变量 | `DINGTALK_*`、`OA_PLATFORM_BASE_URL`（见 ops-platform-server/README.md） |
 | 远程 cutover 预备 | `scripts/push-remote-multidb-config.ps1` | 推送 `oa-server-remote-multidb.yaml` 到 Nacos；**需用户书面审批**（见 POST-MDB-LOCAL-SIGNOFF） |
 
@@ -560,7 +565,7 @@ docker build -t unify-collector-api:1.0.0 .
 2. **Redis**：部署实例，配置 requirepass。  
 3. **Nacos**：启动并创建 namespace（如 `dev` / 生产 namespace）；导入各服务 `*-server-*.yaml` 配置。  
 4. **Football 后端**：按依赖启动 infra → system → mp → member → … → **gateway 最后**（或同时注册到 Nacos）。  
-5. **football-module-ops**：JAR + 生产 profile/Nacos；确认 Nacos 可见 **`ops-server`**，Gateway 路由 **`/admin-api/ops/**`** 可达。  
+5. **football-module-ops**：JAR + `--spring.profiles.active=prod`；确认 Nacos 可见 **`ops-server`**，Gateway 路由 **`/admin-api/ops/**`** 可达。  
 6. **football-front**：`pnpm run build:ele`，静态资源部署到 Nginx；反代 `/admin-api` → Gateway。  
 7. **unify-collector-api**（若启用 M10）：Docker 部署，OA 配置 `stub: false`。  
 8. **健康检查**：各服务 `/actuator/health`；Gateway 租户 API；浏览器登录生产域名验证 Ops 菜单。
@@ -577,7 +582,6 @@ docker build -t unify-collector-api:1.0.0 .
 ### 4.6 仓库尚未提供的内容（勿假设已存在）
 
 - 根目录 **docker-compose** 全栈编排  
-- **application-prod.yml** 或统一生产 profile  
 - GitHub Actions / Jenkins 等 **CI/CD 配置**（本仓库）  
 - 远程 101.37.161.136 **自动 cutover 脚本**（已 Deferred）  
 - Gate 级生产签收 Runbook  
