@@ -1,0 +1,75 @@
+{
+  "maxId": 11911,
+  "recent": [
+    {
+      "id": 11911,
+      "event_type": "ACCOUNT_HIGH_FANS",
+      "biz_key": "external-account:1:ACCOUNT_HIGH_FANS:2026-08-04",
+      "recipient_user_id": "1749825673829120001",
+      "create_time": "2026-08-04 10:05:25"
+    },
+    {
+      "id": 27,
+      "event_type": "ACCOUNT_HIGH_FANS",
+      "biz_key": "account:91001:ACCOUNT_HIGH_FANS:2026-06-11",
+      "recipient_user_id": "1002",
+      "create_time": "2026-06-15 22:30:07"
+    },
+    {
+      "id": 26,
+      "event_type": "WORK_HIT",
+      "biz_key": "internal-work:94003:HIT",
+      "recipient_user_id": "1002",
+      "create_time": "2026-06-15 22:30:06"
+    },
+    {
+      "id": 25,
+      "event_type": "WORK_HIT",
+      "biz_key": "internal-work:94001:HIT",
+      "recipient_user_id": "1002",
+      "create_time": "2026-06-15 22:30:06"
+    },
+    {
+      "id": 24,
+      "event_type": "WORK_HIT",
+      "biz_key": "internal-work:9413:HIT",
+      "recipient_user_id": "1002",
+      "create_time": "2026-06-15 22:30:06"
+    },
+    {
+      "id": 23,
+      "event_type": "WORK_HIT",
+      "biz_key": "internal-work:9409:HIT",
+      "recipient_user_id": "1002",
+      "create_time": "2026-06-15 22:30:05"
+    },
+    {
+      "id": 22,
+      "event_type": "WORK_HIT",
+      "biz_key": "internal-work:9403:HIT",
+      "recipient_user_id": "1002",
+      "create_time": "2026-06-15 22:30:05"
+    },
+    {
+      "id": 21,
+      "event_type": "WORK_HIT",
+      "biz_key": "internal-work:9371:HIT",
+      "recipient_user_id": "1002",
+      "create_time": "2026-06-15 22:30:05"
+    },
+    {
+      "id": 20,
+      "event_type": "WORK_HIT",
+      "biz_key": "internal-work:9370:HIT",
+      "recipient_user_id": "1002",
+      "create_time": "2026-06-15 22:30:05"
+    },
+    {
+      "id": 19,
+      "event_type": "WORK_HIT",
+      "biz_key": "internal-work:9369:HIT",
+      "recipient_user_id": "1002",
+      "create_time": "2026-06-15 22:30:04"
+    }
+  ]
+}

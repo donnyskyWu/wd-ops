@@ -49,9 +49,9 @@ INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6131, '数据大屏', 'ops:screen:view', 2, 7, 6103, 'screen', 'ep:document', 'ops/screen/DataScreenFullscreen', 'DataScreenFullscreen', 0, b'1', b'1', b'1', 'integration', 2);
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6132, '大屏配置', 'ops:screen-config:list', 2, 8, 6103, 'screen-config', 'ep:document', 'ops/screen/ScreenConfig', 'ScreenConfig', 0, b'1', b'1', b'1', 'integration', 2);
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6133, '采集日志', 'ops:collect:log:list', 2, 1, 6104, 'log', 'ep:document', 'ops/collect/log', 'CollectLog', 0, b'1', b'1', b'1', 'integration', 2);
-INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6134, '私域桥接', 'ops:collect:bridge:list', 2, 2, 6104, 'private-domain-bridge', 'ep:document', 'ops/collect/private-domain-bridge', 'PrivateDomainBridge', 0, b'1', b'1', b'1', 'integration', 2);
-INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6135, '数据质量', 'ops:collect:quality:list', 2, 3, 6104, 'quality', 'ep:document', 'ops/collect/quality', 'CollectQuality', 0, b'1', b'1', b'1', 'integration', 2);
-INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6136, '采集任务', 'ops:collect:task:list', 2, 4, 6104, 'task', 'ep:document', 'ops/collect/task', 'CollectTask', 0, b'1', b'1', b'1', 'integration', 2);
+-- 6134 私域桥接已移除：Phase 2 OOS（ADR-060 stub）；见 cleanup-m10-quality-bridge-menu.sql
+-- 6135 数据质量已移除：Phase 2 OOS（ADR-060 stub）；见 cleanup-m10-quality-bridge-menu.sql
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type) VALUES (6136, '采集任务', 'ops:collect:task:list', 2, 2, 6104, 'task', 'ep:document', 'ops/collect/task', 'CollectTask', 0, b'1', b'1', b'1', 'integration', 2);
 -- 6137 字典配置已移除：SSOT = Football #/dict（menu 105；system:dict:query @ 1026；见 V149 / OPS-DICT-MERGE-FOOTBALL-PLAN）
 -- 6138 登录日志已移除：OPS 不承载登录，SSOT = Football system/login-log（见 V146 / OPS-AUDIT-LOG-MIGRATION-PLAN AL-04）
 -- 6139 操作日志已移除：SSOT = Football #/log/operate-log（system:operate-log:query @ menu 1040；见 V147 / AL-11）
@@ -129,8 +129,8 @@ INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_typ
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) VALUES (70021, 1, 6131, 'integration', 1, 2);
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) VALUES (70022, 1, 6132, 'integration', 1, 2);
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) VALUES (70023, 1, 6133, 'integration', 1, 2);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) VALUES (70024, 1, 6134, 'integration', 1, 2);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) VALUES (70025, 1, 6135, 'integration', 1, 2);
+-- 70024 6134 私域桥接菜单已移除
+-- 70025 6135 数据质量菜单已移除
 INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) VALUES (70026, 1, 6136, 'integration', 1, 2);
 -- 70027 6137 字典配置菜单已移除（Football 105/1026–1029 由 V149 授予原 6137 角色）
 -- 70028 6138 登录日志菜单已移除

@@ -125,7 +125,8 @@ Start-Process -FilePath "powershell.exe" -ArgumentList @(
 ) -WindowStyle Minimized | Out-Null
 
 Write-Host "Log: $BackendLog"
-$ok = Wait-HttpEndpoint -Url "http://127.0.0.1:48094/actuator/health" -TimeoutSec $WaitSeconds -Label "football-module-ops"
+$opsFallback = "http://127.0.0.1:48094/v3/api-docs"
+$ok = Wait-HttpEndpoint -Url "http://127.0.0.1:48094/actuator/health" -FallbackUrl $opsFallback -Port 48094 -TimeoutSec $WaitSeconds -Label "football-module-ops"
 if (-not $ok) {
     Write-Warning "football-module-ops log: $BackendLog"
 }

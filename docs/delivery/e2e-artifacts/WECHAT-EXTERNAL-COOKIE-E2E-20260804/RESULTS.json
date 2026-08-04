@@ -1,0 +1,15 @@
+{
+  "checks": [
+    {
+      "name": "sys-param-set",
+      "pass": false,
+      "error": "timed out"
+    }
+  ],
+  "pass": false,
+  "configId": 41,
+  "paramKey": "collect.external.wechat_official.cookie",
+  "cookieSource": "unify-collector-api/.env WECHAT_MP_COOKIE (Channel-A internal session)",
+  "cookieMasked": "_qimei_u...record",
+  "cookieLen": 1174
+}

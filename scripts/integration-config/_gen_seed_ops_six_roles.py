@@ -143,8 +143,6 @@ ROLES = {
                     6141,
                     6104,
                     6133,
-                    6134,
-                    6135,
                     6136,
                 ]
             )
@@ -350,8 +348,6 @@ ROLES = {
                     6165,
                     6104,
                     6133,
-                    6134,
-                    6135,
                     6136,
                 ]
             )
@@ -368,6 +364,8 @@ def main() -> None:
     for code in ("finance", "content_editor", "ops_operator", "data_analyst"):
         assert 6175 not in ROLES[code]["menus"]
         assert 6118 not in ROLES[code]["menus"]
+        assert 6134 not in ROLES[code]["menus"]
+        assert 6135 not in ROLES[code]["menus"]
 
     lines: list[str] = [
         "-- ADR-064: OPS six business roles + system_role_menu (exclude super_admin)",

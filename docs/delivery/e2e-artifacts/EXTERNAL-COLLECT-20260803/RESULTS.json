@@ -1,0 +1,28 @@
+{
+  "checks": [
+    {
+      "name": "toggle-collect-enabled",
+      "pass": true
+    },
+    {
+      "name": "ensure-external-unified",
+      "pass": true
+    },
+    {
+      "name": "external-members",
+      "pass": true
+    },
+    {
+      "name": "task-run",
+      "pass": true
+    },
+    {
+      "name": "log-written",
+      "pass": true
+    }
+  ],
+  "pass": true,
+  "taskId": 9,
+  "memberCount": 1,
+  "logStatus": "SUCCESS"
+}

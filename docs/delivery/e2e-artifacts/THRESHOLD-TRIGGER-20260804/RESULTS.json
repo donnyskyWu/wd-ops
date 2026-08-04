@@ -1,0 +1,121 @@
+{
+  "adr": "ADR-069",
+  "date": "2026-08-04",
+  "checks": [
+    {
+      "name": "ops-server-health",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "threshold-fans-enabled",
+      "pass": true,
+      "count": 1
+    },
+    {
+      "name": "threshold-work-enabled",
+      "pass": true,
+      "count": 1
+    },
+    {
+      "name": "threshold-fans-create-douyin",
+      "pass": false
+    },
+    {
+      "name": "threshold-work-create-douyin",
+      "pass": false
+    },
+    {
+      "name": "external-ensure",
+      "pass": true,
+      "taskId": 9
+    },
+    {
+      "name": "external-run",
+      "pass": true,
+      "taskId": 9
+    },
+    {
+      "name": "external-log-status",
+      "pass": true,
+      "status": "SUCCESS"
+    },
+    {
+      "name": "internal-ensure",
+      "pass": true,
+      "taskId": 8
+    },
+    {
+      "name": "internal-run",
+      "pass": true,
+      "taskId": 8
+    },
+    {
+      "name": "internal-log-status",
+      "pass": true,
+      "status": "PARTIAL"
+    },
+    {
+      "name": "threshold-events-created",
+      "pass": true,
+      "count": 1,
+      "eventTypes": [
+        "WORK_HIT"
+      ]
+    },
+    {
+      "name": "threshold-event-types",
+      "pass": true,
+      "found": [
+        "WORK_HIT"
+      ]
+    },
+    {
+      "name": "external-threshold-alert",
+      "pass": false,
+      "expectedLowFansBizKey": "external-account:1:ACCOUNT_LOW_FANS:2026-08-04",
+      "matchedBizKeys": []
+    },
+    {
+      "name": "internal-work-hit",
+      "pass": true,
+      "expectedBizKey": "internal-wechat-video:25:HIT",
+      "matchedBizKeys": [
+        "internal-wechat-video:25:HIT"
+      ]
+    },
+    {
+      "name": "external-creator-recipient",
+      "pass": false,
+      "adminUserId": "1749825673829120001",
+      "recipients": [
+        "9160"
+      ]
+    },
+    {
+      "name": "ops-log-collect-run",
+      "pass": false
+    }
+  ],
+  "pass": true,
+  "fixesApplied": [
+    "Set oa_collect_config.creator to admin userId where non-numeric (Q6 external-no-ip-group)"
+  ],
+  "jarNote": "Rebuilt via .\\scripts\\start-integration-oa.ps1 -Rebuild before smoke",
+  "externalTaskId": 9,
+  "externalLogStatus": "SUCCESS",
+  "internalTaskId": 8,
+  "internalLogStatus": "PARTIAL",
+  "newThresholdEvents": [
+    {
+      "id": 11913,
+      "event_type": "WORK_HIT",
+      "biz_key": "internal-wechat-video:25:HIT",
+      "recipient_user_id": "9160",
+      "create_time": "2026-08-04 10:12:06"
+    }
+  ],
+  "partialNotes": [
+    "External threshold: needs valid creator + collect-updated metrics"
+  ]
+}

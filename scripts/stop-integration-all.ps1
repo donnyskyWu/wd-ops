@@ -4,7 +4,7 @@
 #   .\scripts\stop-integration-all.ps1
 #   .\scripts\stop-integration-all.ps1 -SkipDocker   # 仅杀 Java/Node 进程，保留 Nacos/Redis 容器
 #
-# 释放端口: 48080 48081 48082 48086 48087 48094 5777 (+ 8848 if not SkipDocker)
+# 释放端口: 48080 48081 48082 48085 48086 48087 48094 5777 (+ 8848 if not SkipDocker)
 # 注意: 默认不停止 Redis :6379，避免反复丢失 requirepass 配置
 
 [CmdletBinding()]
@@ -14,7 +14,7 @@ param(
 )
 
 $ErrorActionPreference = "Continue"
-$Ports = @(5777, 48094, 48088, 48087, 48082, 48081, 48086, 48080)
+$Ports = @(5777, 48094, 48088, 48087, 48085, 48082, 48081, 48086, 48080)
 if ($StopRedis) { $Ports += 6379 }
 
 function Stop-ListenersOnPort {

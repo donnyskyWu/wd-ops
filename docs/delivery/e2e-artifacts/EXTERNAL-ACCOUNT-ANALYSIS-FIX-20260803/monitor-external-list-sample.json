@@ -1,0 +1,81 @@
+{
+  "body": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "id": 1,
+          "accountId": 1,
+          "platformType": "DOUYIN",
+          "contentType": "SHORT_VIDEO",
+          "title": "十年，一个蜘蛛侠的“崭新之日”#蜘蛛侠崭新之日#人们爱蜘蛛侠但我心疼彼得帕克",
+          "workUrl": "https://www.douyin.com/video/7669076531280448795",
+          "playCount": 0,
+          "completionRate": null,
+          "likeCount": 311246,
+          "publishTime": 1785639617000,
+          "industry": null,
+          "ipGroupId": null
+        },
+        {
+          "id": 2,
+          "accountId": 1,
+          "platformType": "DOUYIN",
+          "contentType": "SHORT_VIDEO",
+          "title": "全网最强AI西游记 这次毒舌电影与@时间捡史 合作，是对电影叙事可能的又一探索，也希望在AI浪潮中，能帮助更多的创作者实现电影梦。#抖音AI创作大赛 #开放赛道  \n@时间捡史 团队以一位去过A类电影节的导演为核心，加上两位刚毕业的妹子，三人肝了两个月，做出的这条四十分钟西游长片。每个镜头都精心设计与打磨，每个镜头提示词长达几千字。虽然并不完美，但成果有目共睹。后续西游记的更新，也将会在他们的帐号",
+          "workUrl": "https://www.douyin.com/video/7666034145772047667",
+          "playCount": 0,
+          "completionRate": null,
+          "likeCount": 755257,
+          "publishTime": 1784887669000,
+          "industry": null,
+          "ipGroupId": null
+        },
+        {
+          "id": 3,
+          "accountId": 1,
+          "platformType": "DOUYIN",
+          "contentType": "SHORT_VIDEO",
+          "title": "为什么我们会在不同阶段，反复爱上周星驰？#电影功夫女足",
+          "workUrl": "https://www.douyin.com/video/7663164382976724258",
+          "playCount": 0,
+          "completionRate": null,
+          "likeCount": 216230,
+          "publishTime": 1784260800000,
+          "industry": null,
+          "ipGroupId": null
+        },
+        {
+          "id": 4,
+          "accountId": 1,
+          "platformType": "DOUYIN",
+          "contentType": "SHORT_VIDEO",
+          "title": "这两年让你感动的电影，都在这里了#百花奖  #百花奖投票",
+          "workUrl": "https://www.douyin.com/video/7657612293017996544",
+          "playCount": 0,
+          "completionRate": null,
+          "likeCount": 136698,
+          "publishTime": 1782957600000,
+          "industry": null,
+          "ipGroupId": null
+        },
+        {
+          "id": 5,
+          "accountId": 1,
+          "platformType": "DOUYIN",
+          "contentType": "SHORT_VIDEO",
+          "title": "杨紫琼&刘昊然，缓解了我的年龄焦虑#电影魔方小姐",
+          "workUrl": "https://www.douyin.com/video/7653782917335747880",
+          "playCount": 0,
+          "completionRate": null,
+          "likeCount": 218958,
+          "publishTime": 1782035209000,
+          "industry": null,
+          "ipGroupId": null
+        }
+      ],
+      "total": 200
+    }
+  }
+}

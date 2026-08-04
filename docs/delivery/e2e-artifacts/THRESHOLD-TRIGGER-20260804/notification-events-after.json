@@ -1,0 +1,12 @@
+{
+  "sinceId": 11911,
+  "newEvents": [
+    {
+      "id": 11913,
+      "event_type": "WORK_HIT",
+      "biz_key": "internal-wechat-video:25:HIT",
+      "recipient_user_id": "9160",
+      "create_time": "2026-08-04 10:12:06"
+    }
+  ]
+}

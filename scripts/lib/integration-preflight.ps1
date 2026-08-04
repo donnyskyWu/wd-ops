@@ -268,9 +268,92 @@ function ConvertTo-HttpBodyText {
     return [string]$Content
 }
 
+function Invoke-IntegrationHttpProbe {
+    <#
+    HTTP probe that returns status + body even when the server responds 503/502
+    (Spring actuator aggregate DOWN when Nacos/Redis unavailable — process still serves APIs).
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [hashtable]$Headers = $null,
+        [int]$TimeoutSec = 5
+    )
+    $probeUrl = $Url -replace '://localhost([:/])', '://127.0.0.1$1'
+    try {
+        $params = @{ Uri = $probeUrl; UseBasicParsing = $true; TimeoutSec = $TimeoutSec }
+        if ($Headers) { $params.Headers = $Headers }
+        $resp = Invoke-WebRequest @params
+        return @{
+            StatusCode = [int]$resp.StatusCode
+            Body       = ConvertTo-HttpBodyText $resp.Content
+            Error      = $null
+        }
+    } catch {
+        $statusCode = 0
+        $body = ""
+        $resp = $_.Exception.Response
+        if ($resp) {
+            try {
+                $statusCode = [int]$resp.StatusCode
+                $stream = $resp.GetResponseStream()
+                if ($stream) {
+                    $reader = New-Object System.IO.StreamReader($stream)
+                    $body = $reader.ReadToEnd()
+                    $reader.Close()
+                }
+            } catch { }
+        }
+        return @{
+            StatusCode = $statusCode
+            Body       = $body
+            Error      = $_.Exception.Message
+        }
+    }
+}
+
+function Test-IntegrationHttpWaitReady {
+    <#
+    Ready for startup wait:
+      - HTTP 2xx/3xx with UP, code:0, or openapi body
+      - HTTP 503/502 with actuator JSON while TCP port listens (degraded health)
+      - Fallback URL (e.g. /v3/api-docs) returns 2xx while port listens
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [int]$Port = 0,
+        [string]$FallbackUrl = "",
+        [hashtable]$Headers = $null
+    )
+    if ($Port -le 0 -and $Url -match ':(\d+)/') {
+        $Port = [int]$Matches[1]
+    }
+    $listen = ($Port -gt 0) -and (Test-PortListen -Port $Port)
+    $probe = Invoke-IntegrationHttpProbe -Url $Url -Headers $Headers
+    $body = $probe.Body
+    $code = $probe.StatusCode
+
+    if ($code -ge 200 -and $code -lt 400) {
+        if ($body -match '"status"\s*:\s*"UP"' -or $body -match '"code"\s*:\s*0' -or $body -match 'openapi') {
+            return $true
+        }
+        if ($listen) { return $true }
+    }
+    if ($listen -and $code -in @(502, 503) -and $body -match '"status"') {
+        return $true
+    }
+    if ($listen -and $FallbackUrl) {
+        $fb = Invoke-IntegrationHttpProbe -Url $FallbackUrl -Headers $Headers
+        if ($fb.StatusCode -ge 200 -and $fb.StatusCode -lt 400) {
+            return $true
+        }
+    }
+    return $false
+}
+
 function Wait-HttpEndpoint {
     <#
-    Poll an HTTP endpoint until it responds or timeout. Returns $true on first HTTP success.
+    Poll an HTTP endpoint until ready or timeout.
+    Accepts degraded actuator 503 when the TCP port is listening (Nacos/Redis optional).
     Uses 127.0.0.1 instead of localhost to avoid Windows IPv6 (::1) connection hangs.
     #>
     param(
@@ -279,7 +362,9 @@ function Wait-HttpEndpoint {
         [string]$Label = "",
         [int]$PollSec = 3,
         [int]$ProgressIntervalSec = 15,
-        [hashtable]$Headers = $null
+        [hashtable]$Headers = $null,
+        [string]$FallbackUrl = "",
+        [int]$Port = 0
     )
     if ([string]::IsNullOrWhiteSpace($Label)) { $Label = $Url }
     $probeUrl = $Url -replace '://localhost([:/])', '://127.0.0.1$1'
@@ -290,25 +375,25 @@ function Wait-HttpEndpoint {
     Write-Host "Waiting up to ${TimeoutSec}s for $probeUrl ..."
 
     while ((Get-Date) -lt $deadline) {
-        try {
-            $params = @{ Uri = $probeUrl; UseBasicParsing = $true; TimeoutSec = 5 }
-            if ($Headers) { $params.Headers = $Headers }
-            $resp = Invoke-WebRequest @params
+        if (Test-IntegrationHttpWaitReady -Url $Url -Port $Port -FallbackUrl $FallbackUrl -Headers $Headers) {
             $elapsed = [int]((Get-Date) - $started).TotalSeconds
-            $snippet = ConvertTo-HttpBodyText $resp.Content
+            $probe = Invoke-IntegrationHttpProbe -Url $Url -Headers $Headers
+            $snippet = $probe.Body
             if ($snippet.Length -gt 80) { $snippet = $snippet.Substring(0, 80) + "..." }
+            if (-not $snippet -and $FallbackUrl) {
+                $snippet = "(fallback ok)"
+            }
             Write-Host "[ready] $Label (${elapsed}s) $snippet"
             return $true
-        } catch {
-            $now = Get-Date
-            if (($now - $lastProgress).TotalSeconds -ge $ProgressIntervalSec) {
-                $elapsed = [int](($now - $started).TotalSeconds)
-                $remain = [Math]::Max(0, [int](($deadline - $now).TotalSeconds))
-                Write-Host "[wait] $Label ... ${elapsed}s elapsed, ${remain}s left"
-                $lastProgress = $now
-            }
-            Start-Sleep -Seconds $PollSec
         }
+        $now = Get-Date
+        if (($now - $lastProgress).TotalSeconds -ge $ProgressIntervalSec) {
+            $elapsed = [int](($now - $started).TotalSeconds)
+            $remain = [Math]::Max(0, [int](($deadline - $now).TotalSeconds))
+            Write-Host "[wait] $Label ... ${elapsed}s elapsed, ${remain}s left"
+            $lastProgress = $now
+        }
+        Start-Sleep -Seconds $PollSec
     }
     $elapsed = [int]((Get-Date) - $started).TotalSeconds
     Write-Warning "$Label not ready after ${elapsed}s — check log: $probeUrl"
@@ -328,7 +413,13 @@ function Get-IntegrationHealthRows {
         @{ Service = "mp-server"; Port = 48086; Url = "http://127.0.0.1:48086/rpc-api/mp/accountInfo/page?pageNo=1&pageSize=1"; Headers = @{ "tenant-id" = "1" } },
         @{ Service = "member-server"; Port = 48087; Url = "http://127.0.0.1:48087/actuator/health" },
         @{ Service = "match-server"; Port = 48088; Url = "http://127.0.0.1:48088/actuator/health" },
-        @{ Service = "football-module-ops"; Port = 48094; Url = "http://127.0.0.1:48094/actuator/health"; Critical = $true },
+        @{
+            Service      = "football-module-ops"
+            Port         = 48094
+            Url          = "http://127.0.0.1:48094/actuator/health"
+            FallbackUrl  = "http://127.0.0.1:48094/v3/api-docs"
+            Critical     = $true
+        },
         @{ Service = "football-front"; Port = 5777; Url = "http://127.0.0.1:5777/"; Critical = $true }
     )
 }
@@ -336,36 +427,37 @@ function Get-IntegrationHealthRows {
 function Get-ServiceListenStatus {
     <#
     Probe status for health table / readiness:
-      UP     - yudao code:0, actuator status:UP, or HTTP 2xx while port listens
-               (Football system wraps missing actuator as HTTP 200 + code:404)
+      UP     - yudao code:0, actuator status:UP, degraded 503 with JSON, fallback probe, or HTTP 2xx + listen
       LISTEN - TCP listen but probe failed / non-2xx (still usable for many backends)
       DOWN   - not listening and probe failed
     #>
-    param([int]$Port, [string]$ProbeUrl, [hashtable]$Headers = $null)
+    param([int]$Port, [string]$ProbeUrl, [hashtable]$Headers = $null, [string]$FallbackUrl = "")
     $listen = Test-PortListen -Port $Port
     if (-not $ProbeUrl) {
         if ($listen) { return "LISTEN" }
         return "DOWN"
     }
-    try {
-        $params = @{ Uri = $ProbeUrl; UseBasicParsing = $true; TimeoutSec = 4 }
-        if ($Headers) { $params.Headers = $Headers }
-        $resp = Invoke-WebRequest @params
-        $body = ConvertTo-HttpBodyText $resp.Content
+    $probe = Invoke-IntegrationHttpProbe -Url $ProbeUrl -Headers $Headers -TimeoutSec 4
+    $body = $probe.Body
+    $code = $probe.StatusCode
+    if ($code -ge 200 -and $code -lt 400) {
         if ($body -match '"status"\s*:\s*"UP"' -or $body -match '"code"\s*:\s*0') {
             return "UP"
         }
-        # HTTP success + listening: treat as UP (system actuator yudao-wrap, Vite HTML, etc.)
-        if ($resp.StatusCode -ge 200 -and $resp.StatusCode -lt 400 -and $listen) {
+        if ($listen) { return "UP" }
+        return "UP"
+    }
+    if ($listen -and $code -in @(502, 503) -and $body -match '"status"') {
+        return "UP"
+    }
+    if ($listen -and $FallbackUrl) {
+        $fb = Invoke-IntegrationHttpProbe -Url $FallbackUrl -Headers $Headers -TimeoutSec 4
+        if ($fb.StatusCode -ge 200 -and $fb.StatusCode -lt 400) {
             return "UP"
         }
-        if ($listen) { return "LISTEN" }
-        if ($resp.StatusCode -ge 200 -and $resp.StatusCode -lt 400) { return "UP" }
-        return "DOWN"
-    } catch {
-        if ($listen) { return "LISTEN" }
-        return "DOWN"
     }
+    if ($listen) { return "LISTEN" }
+    return "DOWN"
 }
 
 function Test-ServiceReadyStatus {
@@ -383,7 +475,7 @@ function Show-IntegrationHealthTable {
     foreach ($e in $rows) {
         if ($e.Service -eq "football-module-ops" -and $SkipOa) { continue }
         if ($e.Service -eq "football-front" -and $SkipFrontend) { continue }
-        $st = Get-ServiceListenStatus -Port $e.Port -ProbeUrl $e.Url -Headers $e.Headers
+        $st = Get-ServiceListenStatus -Port $e.Port -ProbeUrl $e.Url -Headers $e.Headers -FallbackUrl $e.FallbackUrl
         Write-Host ("{0,-18} {1,6} {2,8}" -f $e.Service, $e.Port, $st)
     }
 }
@@ -632,6 +724,59 @@ function Ensure-FootballFrontLocalApi {
     return $ok
 }
 
+function Invoke-IntegrationPython {
+    param(
+        [Parameter(Mandatory = $true)][string]$ScriptPath,
+        [string]$Label = ""
+    )
+    if (-not (Test-Path -LiteralPath $ScriptPath)) {
+        Write-Warning "Missing script: $ScriptPath"
+        return $false
+    }
+    $py = if (Test-CommandExists "python") { "python" } elseif (Test-CommandExists "py") { "py" } else { $null }
+    if (-not $py) {
+        Write-Warning "Python not found; skip $(if ($Label) { $Label } else { $ScriptPath })"
+        return $false
+    }
+    $name = if ($Label) { $Label } else { Split-Path $ScriptPath -Leaf }
+    Write-Host "[preflight] $name"
+    & $py $ScriptPath
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "$name exited $LASTEXITCODE (continuing — check output above)"
+        return $false
+    }
+    return $true
+}
+
+function Ensure-OpsFlywayPreflight {
+    <#
+    Local: remove failed flyway_schema_history rows blocking ops-server boot.
+    Beta: repair failed rows + idempotent apply V173/V175 (Flyway disabled on ops-server).
+    #>
+    param(
+        [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path,
+        [switch]$Beta
+    )
+    $cfg = Join-Path $Root "scripts\integration-config"
+    if ($Beta) {
+        Write-Host "`n--- Beta ops schema preflight (Flyway off on ops-server) ---"
+        $null = Invoke-IntegrationPython -ScriptPath (Join-Path $cfg "repair-flyway-failed.py") -Label "repair-flyway-failed (beta)"
+        $null = Invoke-IntegrationPython -ScriptPath (Join-Path $cfg "apply_v173_live_collect.py") -Label "apply_v173_live_collect"
+        $null = Invoke-IntegrationPython -ScriptPath (Join-Path $cfg "apply_v175_external_collect.py") -Label "apply_v175_external_collect"
+    } else {
+        Write-Host "`n--- Local Flyway preflight (shenyu-ops) ---"
+        $repair = Join-Path $cfg "repair-flyway-failed.py"
+        $py = if (Test-CommandExists "python") { "python" } elseif (Test-CommandExists "py") { "py" } else { $null }
+        if ($py -and (Test-Path $repair)) {
+            Write-Host "[preflight] repair-flyway-failed (--local)"
+            & $py $repair --local
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "repair-flyway-failed --local exited $LASTEXITCODE"
+            }
+        }
+    }
+}
+
 function Show-IntegrationTroubleshooting {
     param([string]$LogDir)
     Write-Host ""
@@ -646,13 +791,14 @@ function Show-IntegrationTroubleshooting {
     Write-Host "   Fix: run start-ops-dev.ps1 (default FullMemberServer); avoid -UseMemberMock"
     Write-Host "4. football-module-ops :48094 DOWN -> OPS pages (内容管理/任务/IP组) all fail with 系统错误"
     Write-Host "   Log: $LogDir\ops-server-nacos-run.log (Nacos registry id remains ops-server)"
-    Write-Host "   Beta: Flyway 9.x vs MySQL 5.7 -> FlywayEditionUpgradeRequiredException (pin flyway 10.22+ in pom)"
+    Write-Host "   Flyway: failed row in flyway_schema_history -> python scripts/integration-config/repair-flyway-failed.py --local"
+    Write-Host "   Beta: Flyway disabled -> apply_v173_live_collect.py + apply_v175_external_collect.py (see OPS-TEST-DB.md)"
     Write-Host "   Local: MySQL localhost:3306 five DBs missing -> football-module-ops API 500"
-    Write-Host "5. -SkipBuild without jars -> run with -FirstRun"
-    Write-Host "6. UI missing OPS menus but local API has them -> vite proxy / VITE_BASE_URL not localhost:48080"
+    Write-Host "5. -FirstRun Maven JAR locked -> pay-server :48085 was not stopped; fixed in stop-integration-all.ps1"
+    Write-Host "6. -SkipBuild without jars -> run with -FirstRun"
+    Write-Host "7. UI missing OPS menus but local API has them -> vite proxy / VITE_BASE_URL not localhost:48080"
     Write-Host "   Check: football-front/apps/web-ele/vite.config.mts + .env.development; restart :5777"
-    Write-Host "7. views/ops empty -> restore from git (football-front SSOT); remount retired"
-    Write-Host "8. football-* not on ops branch -> see docs/delivery/FOOTBALL-OPS-BRANCH.md"
+    Write-Host "8. views/ops empty -> restore from git (football-front SSOT); remount retired"
     Write-Host "9. football-front :5777 DOWN -> vite missing or pnpm dev:ele crashed"
     Write-Host "   Log: $LogDir\football-front-dev.log"
     Write-Host "   Fix: cd football-front && pnpm install ; then restart start-ops-dev.ps1"

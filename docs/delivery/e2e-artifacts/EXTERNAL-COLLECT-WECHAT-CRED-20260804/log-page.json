@@ -1,0 +1,1 @@
+{"code":0,"msg":"ok","data":{"list":[{"id":38,"taskId":11,"taskName":"统一外部数据采集任务","accountName":null,"status":"PARTIAL","startAt":1785773164000,"durationMs":44664,"recordCount":451,"errorMessage":"部分采集失败: config:41: 公众号运营凭账号缺失（oa_tenant_collector_credential）","retryCount":0}],"total":5}}

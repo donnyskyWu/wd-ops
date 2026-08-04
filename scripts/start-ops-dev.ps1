@@ -156,6 +156,21 @@ $allScript = Join-Path $PSScriptRoot "start-integration-all.ps1"
 & $allScript @allArgs
 $exitCode = $LASTEXITCODE
 
+if ($exitCode -ne 0) {
+    Write-Host ""
+    Write-Host "=== START FAILED (integration stack exit $exitCode) ===" -ForegroundColor Red
+    if ($FirstRun) {
+        Write-Host "Hint: -FirstRun runs Maven; if 'Unable to rename *.jar', ensure no Java process holds the JAR (script now stops :48085 pay-server before build)." -ForegroundColor Yellow
+    } else {
+        Write-Host "Hint: daily restart skips Maven (-SkipBuild). Use -FirstRun after pulling backend changes or if JARs are missing." -ForegroundColor Yellow
+    }
+    Show-IntegrationTroubleshooting -LogDir $LogDir
+    Write-Host ""
+    Write-Host "Quick restart: .\scripts\start-ops-dev.ps1$(if ($Beta) { ' -Beta' })"
+    Write-Host "Stop:          .\scripts\stop-integration-all.ps1"
+    exit $exitCode
+}
+
 # Vite cold start often exceeds the stack wait window — extra front wait + one restart.
 if (-not $SkipFrontend) {
     Write-Host "`n--- Ensure football-front :5777 ---"
@@ -189,7 +204,7 @@ if ($SkipFrontend) {
 $down = @()
 $softWarn = @()
 foreach ($e in $critical) {
-    $st = Get-ServiceListenStatus -Port $e.Port -ProbeUrl $e.Url -Headers $e.Headers
+    $st = Get-ServiceListenStatus -Port $e.Port -ProbeUrl $e.Url -Headers $e.Headers -FallbackUrl $e.FallbackUrl
     if (-not (Test-ServiceReadyStatus -Status $st)) {
         $down += "$($e.Service)($st)"
     }
@@ -197,7 +212,7 @@ foreach ($e in $critical) {
 # Soft-warn: optional services that are DOWN (not UP/LISTEN)
 foreach ($e in @(Get-IntegrationHealthRows | Where-Object { -not $_.Critical })) {
     if ($e.Service -eq "football-front" -and $SkipFrontend) { continue }
-    $st = Get-ServiceListenStatus -Port $e.Port -ProbeUrl $e.Url -Headers $e.Headers
+    $st = Get-ServiceListenStatus -Port $e.Port -ProbeUrl $e.Url -Headers $e.Headers -FallbackUrl $e.FallbackUrl
     if ($st -eq "DOWN") { $softWarn += "$($e.Service)($st)" }
 }
 

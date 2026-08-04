@@ -1,0 +1,20 @@
+# oa_collect_config id=41 (queried 2026-08-04)
+
+id=41
+tenant_id=1
+scope=EXTERNAL
+platform_type=WECHAT_OFFICIAL
+config_name=腾讯云开发者
+account_identifier=QcloudCommunity
+collect_enabled=1
+status=ENABLED
+
+# oa_tenant_collector_credential tenant_id=1
+(count=0 — no WECHAT_OFFICIAL credential row)
+
+# Other collect_enabled external configs (same tenant)
+id=39 DOUYIN collect_enabled=1
+id=40 DOUYIN collect_enabled=1
+
+# Unified task membership
+oa_collect_task_config: task_id=11, collect_config_id=41

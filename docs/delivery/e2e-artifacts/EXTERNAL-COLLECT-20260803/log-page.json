@@ -1,0 +1,1 @@
+{"code":0,"msg":"ok","data":{"list":[{"id":35,"taskId":9,"taskName":"统一外部数据采集任务","accountName":null,"status":"SUCCESS","startAt":1785736556000,"durationMs":39421,"recordCount":200,"errorMessage":null,"retryCount":0}],"total":4}}

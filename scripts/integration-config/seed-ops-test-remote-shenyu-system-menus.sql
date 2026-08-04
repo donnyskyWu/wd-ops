@@ -28,11 +28,11 @@ WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70064);
 UPDATE system_menu SET path = 'log', updater = 'ops-test-seed', update_time = NOW()
 WHERE id = 6133 AND parent_id = 6104 AND path IN ('collect/log', 'log') AND deleted = b'0';
 
-UPDATE system_menu SET path = 'private-domain-bridge', updater = 'ops-test-seed', update_time = NOW()
-WHERE id = 6134 AND parent_id = 6104 AND path IN ('collect/private-domain-bridge', 'private-domain-bridge') AND deleted = b'0';
-
-UPDATE system_menu SET path = 'quality', updater = 'ops-test-seed', update_time = NOW()
-WHERE id = 6135 AND parent_id = 6104 AND path IN ('collect/quality', 'quality') AND deleted = b'0';
+-- M10 Phase 2 OOS: hide 数据质量 + 私域桥接
+DELETE FROM system_role_menu WHERE menu_id IN (6134, 6135)
+   OR menu_id IN (SELECT id FROM system_menu WHERE parent_id IN (6134, 6135));
+DELETE FROM system_menu WHERE parent_id IN (6134, 6135);
+DELETE FROM system_menu WHERE id IN (6134, 6135);
 
 UPDATE system_menu SET path = 'task', updater = 'ops-test-seed', update_time = NOW()
 WHERE id = 6136 AND parent_id = 6104 AND path IN ('collect/task', 'task') AND deleted = b'0';

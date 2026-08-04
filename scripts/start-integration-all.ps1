@@ -358,6 +358,11 @@ $PayOverlay = if ($Beta) {
 
 if (-not $SkipBuild) {
     Write-Host "[build] football gateway + mp + system + infra (+ member if full) ..."
+    Write-Host "        Stopping listeners on integration ports so Maven can repackage JARs (pay-server :48085 included)"
+    foreach ($p in @(48080, 48081, 48082, 48085, 48086, 48087, 48088, 48094)) {
+        Stop-ListenersOnPort -Port $p
+    }
+    Start-Sleep -Seconds 2
     Push-Location (Join-Path $Root "football-backend-saas")
     $modules = "football-gateway,football-module-mp/football-module-mp-server,football-module-system/football-module-system-server,football-module-infra/football-module-infra-server,football-module-pay/football-module-pay-server"
     if ($WantFullMemberServer) { $modules += ",football-module-member/football-module-member-server" }
@@ -470,8 +475,14 @@ if (Test-PortListen -Port 48082) {
 
 # 6. football-module-ops (script filename kept: start-integration-oa.ps1; Nacos id: ops-server)
 if (-not $SkipOa) {
+    if (Get-Command Ensure-OpsFlywayPreflight -ErrorAction SilentlyContinue) {
+        Ensure-OpsFlywayPreflight -Root $Root -Beta:$Beta
+    }
     Write-Host "`n--- football-module-ops :48094 ---"
     & (Join-Path $PSScriptRoot "start-integration-oa.ps1") -Profiles $OaProfiles -WaitSeconds $WaitSeconds -SkipNacosPrerequisiteCheck
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "football-module-ops start script exited $LASTEXITCODE (see ops-server-nacos-run.log)"
+    }
 }
 
 # 7. football-front (Gate :5777 �� standalone :3000 not used)
@@ -522,7 +533,7 @@ Write-Host "`n--- Waiting for key endpoints (up to ${WaitSeconds}s) ---"
 $null = Wait-HttpEndpoint -Url "http://127.0.0.1:48081/actuator/health" -TimeoutSec $WaitSeconds -Label "system-server"
 $null = Wait-HttpEndpoint -Url "http://127.0.0.1:48080/admin-api/system/tenant/simple-list" -TimeoutSec ([Math]::Min(60, $WaitSeconds)) -Label "gateway"
 if (-not $SkipOa) {
-    $null = Wait-HttpEndpoint -Url "http://127.0.0.1:48094/actuator/health" -TimeoutSec ([Math]::Min(60, $WaitSeconds)) -Label "football-module-ops"
+    $null = Wait-HttpEndpoint -Url "http://127.0.0.1:48094/actuator/health" -FallbackUrl "http://127.0.0.1:48094/v3/api-docs" -Port 48094 -TimeoutSec ([Math]::Min(60, $WaitSeconds)) -Label "football-module-ops"
 }
 if (-not $SkipFrontend) {
     $frontReady = Wait-HttpEndpoint -Url "http://127.0.0.1:5777/" -TimeoutSec ([Math]::Max(90, [Math]::Min(120, $WaitSeconds))) -Label "football-front" -PollSec 2
@@ -551,8 +562,8 @@ if (-not $SkipFrontend) {
 }
 
 function Get-ServiceStatus {
-    param([int]$Port, [string]$ProbeUrl, [hashtable]$Headers = $null)
-    return Get-ServiceListenStatus -Port $Port -ProbeUrl $ProbeUrl -Headers $Headers
+    param([int]$Port, [string]$ProbeUrl, [hashtable]$Headers = $null, [string]$FallbackUrl = "")
+    return Get-ServiceListenStatus -Port $Port -ProbeUrl $ProbeUrl -Headers $Headers -FallbackUrl $FallbackUrl
 }
 
 $rows = Get-IntegrationHealthRows
@@ -563,7 +574,7 @@ Write-Host ("-" * 70)
 foreach ($e in $rows) {
     if ($e.Service -eq "football-module-ops" -and $SkipOa) { continue }
     if ($e.Service -eq "football-front" -and $SkipFrontend) { continue }
-    $st = Get-ServiceStatus -Port $e.Port -ProbeUrl $e.Url -Headers $e.Headers
+    $st = Get-ServiceStatus -Port $e.Port -ProbeUrl $e.Url -Headers $e.Headers -FallbackUrl $e.FallbackUrl
     $url = if ($e.Url) { $e.Url } else { "(tcp)" }
     Write-Host ("{0,-22} {1,6} {2,8} {3}" -f $e.Service, $e.Port, $st, $url)
 }
