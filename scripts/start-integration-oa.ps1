@@ -63,7 +63,7 @@ if ($UseBeta) {
         Write-Error "Beta mode requires ops-test-remote.env (OPS_TEST_DB_HOST). See docs/delivery/OPS-TEST-DB.md"
         exit 1
     }
-    Write-Host "[beta] football-module-ops (:48094, Nacos ops-server) -> $($env:OPS_TEST_DB_HOST) / $($env:OPS_TEST_MASTER_DB) ; Nacos $($env:OPS_TEST_NACOS_ADDR) ns=$($env:OPS_TEST_NACOS_NAMESPACE)" -ForegroundColor Yellow
+    Write-Host "[beta] football-module-ops (:48094, Nacos ops-server) -> $($env:OPS_TEST_DB_HOST) / $($env:OPS_TEST_MASTER_DB) ; Nacos local 127.0.0.1:8848 ns=local" -ForegroundColor Yellow
 } elseif (-not $SkipNacosPrerequisiteCheck) {
     $nacosUp = $false
     try {
@@ -129,7 +129,7 @@ if (-not $ok) {
 }
 Write-Host ""
 if ($UseBeta) {
-    Write-Host "Verify Nacos: service ops-server in namespace $($env:OPS_TEST_NACOS_NAMESPACE) @ $($env:OPS_TEST_NACOS_ADDR)"
+    Write-Host "Verify Nacos: service ops-server in namespace local @ 127.0.0.1:8848"
 } else {
     Write-Host "Verify Nacos: service ops-server in namespace local (when Nacos is up)"
 }

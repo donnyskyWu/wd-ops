@@ -1,17 +1,17 @@
-# Gateway overlay for beta test DBs: keep localhost direct routes (vite → :48080),
-# but share remote Redis with system-server (token/session). Nacos discovery stays off.
+# Gateway overlay for beta test DBs: Nacos discovery (local 127.0.0.1:8848 namespace local) + remote Redis.
+# Routes from jar application.yaml (grayLb://*) — no direct http://127.0.0.1:480xx overrides.
 # Secrets: load ops-test-remote.env before start. See docs/delivery/OPS-TEST-DB.md
 spring:
   cloud:
     nacos:
-      server-addr: ${OPS_TEST_NACOS_ADDR:110.42.49.224:8848}
-      username: ${OPS_TEST_NACOS_USERNAME:nacos}
-      password: ${OPS_TEST_NACOS_PASSWORD:CHANGE_ME}
+      server-addr: 127.0.0.1:8848
+      username: ""
+      password: ""
       discovery:
-        namespace: ${OPS_TEST_NACOS_NAMESPACE:beta}
-        group: ${OPS_TEST_NACOS_GROUP:DEFAULT_GROUP}
+        namespace: local
+        group: DEFAULT_GROUP
         register-enabled: true
-        enabled: false
+        enabled: true
         fail-fast: false
         failure-tolerance-enabled: true
       config:
@@ -21,53 +21,6 @@ spring:
         webflux:
           httpclient:
             response-timeout: 300s
-          routes:
-            - id: system-admin-api-direct
-              uri: http://127.0.0.1:48081
-              predicates:
-                - Path=/admin-api/system/**
-              order: -100
-            # ADR-058 P-C: /admin-api/ops/** → ops-server :48094 as-is（无 Rewrite）
-            - id: ops-admin-api-direct
-              uri: http://127.0.0.1:48094
-              predicates:
-                - Path=/admin-api/ops/**
-              metadata:
-                response-timeout: 300000
-                connect-timeout: 10000
-              order: -100
-            - id: infra-admin-api-direct
-              uri: http://127.0.0.1:48082
-              predicates:
-                - Path=/admin-api/infra/**
-              order: -100
-            - id: member-admin-api-direct
-              uri: http://127.0.0.1:48087
-              predicates:
-                - Path=/admin-api/member/**
-              order: -100
-            - id: match-admin-api-direct
-              uri: http://127.0.0.1:48088
-              predicates:
-                - Path=/admin-api/match/**
-              order: -100
-    discovery:
-      client:
-        simple:
-          instances:
-            system-server:
-              - uri: http://127.0.0.1:48081
-            # ADR-058 P2: discovery name ops-server（本地仍直连 :48094）
-            ops-server:
-              - uri: http://127.0.0.1:48094
-            infra-server:
-              - uri: http://127.0.0.1:48082
-            mp-server:
-              - uri: http://127.0.0.1:48086
-            member-server:
-              - uri: http://127.0.0.1:48087
-            match-server:
-              - uri: http://127.0.0.1:48088
   data:
     redis:
       host: ${OPS_TEST_REDIS_HOST:110.42.49.224}

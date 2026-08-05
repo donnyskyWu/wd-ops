@@ -1,8 +1,9 @@
-﻿# Football services optional overlay for beta test host (110.42.49.224).
+﻿# Football services optional overlay for beta test DB (110.42.49.224).
 # Pattern: same as football-integration-overlay.yml (local) / *-remote.yml (archive).
 # Usage: start-ops-dev.ps1 -Beta  OR  --spring.config.additional-location=file:.../football-integration-overlay-beta.yml
 # Load secrets from ops-test-remote.env first. Prefer Football git branch `ops` (see docs/delivery/FOOTBALL-OPS-BRANCH.md).
-# Processes stay on localhost; MySQL/Redis/Nacos point to beta. Feign stays 127.0.0.1 (local JARs).
+# Processes stay on localhost; MySQL/Redis point to beta. Nacos = local 127.0.0.1:8848 namespace local (same as local mode).
+# Feign: Nacos service discovery only (no openfeign.client.config.*.url).
 # NOT the default for start-integration-all.ps1 (daily local still uses football-integration-overlay.yml).
 
 spring:
@@ -11,35 +12,20 @@ spring:
       - org.apache.rocketmq.spring.autoconfigure.RocketMQAutoConfiguration
   cloud:
     nacos:
-      server-addr: ${OPS_TEST_NACOS_ADDR:110.42.49.224:8848}
-      username: ${OPS_TEST_NACOS_USERNAME:nacos}
-      password: ${OPS_TEST_NACOS_PASSWORD:CHANGE_ME}
+      server-addr: 127.0.0.1:8848
+      username: ""
+      password: ""
       discovery:
         enabled: true
         register-enabled: true
-        namespace: ${OPS_TEST_NACOS_NAMESPACE:beta}
-        group: ${OPS_TEST_NACOS_GROUP:DEFAULT_GROUP}
+        namespace: local
+        group: DEFAULT_GROUP
         fail-fast: false
         failure-tolerance-enabled: true
         metadata:
           version: 1.0.0
       config:
         enabled: false
-        namespace: ${OPS_TEST_NACOS_NAMESPACE:beta}
-        group: ${OPS_TEST_NACOS_GROUP:DEFAULT_GROUP}
-    openfeign:
-      client:
-        config:
-          system-server:
-            url: http://127.0.0.1:48081
-          member-server:
-            url: http://127.0.0.1:48087
-          infra-server:
-            url: http://127.0.0.1:48082
-          mp-server:
-            url: http://127.0.0.1:48086
-          match-server:
-            url: http://127.0.0.1:48088
   datasource:
     dynamic:
       datasource:

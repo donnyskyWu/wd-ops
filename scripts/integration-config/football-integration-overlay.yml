@@ -4,6 +4,7 @@
 # member/match override via their own overlays; mp-server still inherits this master unless overridden.
 # Beta remote 110.42.49.224 = opt-in via football-integration-overlay-beta.yml + ops-test-remote.env (NOT this file).
 # Archive remote 101.37.161.136 → football-integration-overlay-remote.yml (export/backup only).
+# Feign: Nacos service discovery only (no openfeign.client.config.*.url).
 spring:
   autoconfigure:
     exclude:
@@ -22,19 +23,6 @@ spring:
           version: 1.0.0
       config:
         enabled: false
-    openfeign:
-      client:
-        config:
-          system-server:
-            url: http://127.0.0.1:48081
-          member-server:
-            url: http://127.0.0.1:48087
-          infra-server:
-            url: http://127.0.0.1:48082
-          mp-server:
-            url: http://127.0.0.1:48086
-          match-server:
-            url: http://127.0.0.1:48088
   datasource:
     dynamic:
       datasource:

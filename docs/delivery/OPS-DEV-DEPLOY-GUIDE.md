@@ -16,7 +16,9 @@
 登录：http://localhost:5777 · `admin` / `admin123` · 租户 **1**  
 Gate 路径**不需要** `ops-platform-ui-vue :3000`。`football-front` / `football-backend-saas` 应在 Gitee **`ops`** 分支（见 [FOOTBALL-OPS-BRANCH.md](./FOOTBALL-OPS-BRANCH.md)）。
 
-**DB 默认 = 本地**：MySQL `localhost:3306`（`shenyu-ops` / `shenyu-system` / `shenyu-member` / `shenyu-mp` / `shenyu-pay`，root/root）+ Redis `127.0.0.1:6379`（密码 `123456`）。历史本地库名 `football-ops` / `wd` 可保留作备份，应用默认已切 **`shenyu-ops`**（与 Beta 同名）。**Beta 远程**（`110.42.49.224`）仍为 `shenyu-ops`，仅 opt-in：见 [OPS-TEST-DB.md](./OPS-TEST-DB.md)（`ops-test-remote.env` + `dev-test-beta`）。
+**DB 默认 = 本地**：MySQL `localhost:3306`（`shenyu-ops` / `shenyu-system` / …，root/root）+ Redis `127.0.0.1:6379`（密码 `123456`）+ Nacos `127.0.0.1:8848` namespace **`local`**。Feign / Gateway 路由均走 **Nacos 服务发现**（`grayLb://*`，无 URL 硬编码）。
+
+**Beta 远程 DB**（`110.42.49.224`）opt-in：`.\scripts\start-ops-dev.ps1 -Beta` + `ops-test-remote.env` + profile `dev-test-beta`。**与 local 唯一差异 = MySQL/Redis 指向远程**；Nacos 仍为本地 `:8848` namespace `local`。见 [OPS-TEST-DB.md](./OPS-TEST-DB.md)。
 
 ---
 

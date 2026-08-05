@@ -36,10 +36,11 @@ Collector：http://127.0.0.1:8000/livez
 
 | 层 | 位置 | 说明 |
 |----|------|------|
-| **基础设施** | `110.42.49.224` | MySQL 5.7、Nacos、Redis（Beta namespace） |
+| **基础设施（远程）** | `110.42.49.224` | MySQL 5.7、Redis（Beta 数据） |
+| **Nacos（本机）** | `127.0.0.1:8848` | namespace **`local`**（local 与 `-Beta` 共用；Feign/Gateway 服务发现） |
 | **应用进程** | 运维机 / 测试机本机 | Gateway、Football 微服务、football-module-ops、football-front、unify-collector-api |
 
-日常脚本模式：**进程监听本机端口**，通过 `ops-test-remote.env` + `*-overlay-beta.yml` 连远程 DB/Nacos/Redis。这与「全部进程跑在 110.42.49.224 上」等价于同一套 JAR/配置，只是启动脚本以 Windows PowerShell 为主（Linux 见 §7.3）。
+日常脚本模式：**进程监听本机端口**，通过 `ops-test-remote.env` + `*-overlay-beta.yml` 连远程 **MySQL/Redis**；**Nacos 始终本地** `:8848` namespace `local`（与 local 模式一致，仅 DB/Redis 不同）。测试机部署（`beta-server` profile）仍用远程 Nacos `110.42.49.224` namespace `beta`。
 
 ```mermaid
 flowchart TB
@@ -59,8 +60,10 @@ flowchart TB
   end
   subgraph remote [110.42.49.224]
     MY[(MySQL 3306<br/>shenyu-ops / shenyu-system / …)]
-    NC[Nacos :8848 ns=beta]
     RD[Redis :6379 db=1]
+  end
+  subgraph nacos [本机 Nacos]
+    NC[Nacos :8848 ns=local]
   end
   FF -->|/admin-api| GW
   GW --> SYS
@@ -71,6 +74,7 @@ flowchart TB
   SYS --> MY
   SYS --> NC
   OPS --> NC
+  GW --> NC
   SYS --> RD
   OPS --> RD
   OPS -.->|Feign| MEM
@@ -80,7 +84,7 @@ flowchart TB
 
 | 组件 | 端口 | Nacos / 路由 | 说明 |
 |------|------|--------------|------|
-| **football-gateway** | **48080** | 统一 API 入口 | Beta 用 `gateway-integration-beta.yaml` 直连本机微服务 |
+| **football-gateway** | **48080** | `grayLb://*` via local Nacos | Beta 用 `gateway-integration-beta.yaml`（Nacos local + 远程 Redis） |
 | **football-module-ops** | **48094** | 注册名 **`ops-server`** | JAR：`football-module-ops-server.jar` |
 | **system-server** | 48081 | system-server | Football 登录 / 菜单 RBAC |
 | **infra-server** | 48082 | infra-server | 文件上传 |
@@ -89,7 +93,7 @@ flowchart TB
 | **pay-server** | 48085 | pay-server | 集成栈会占用；`-FirstRun` 前须释放 |
 | **football-front** | **5777** | dev 模式 | 或 `pnpm build:ele` 静态部署 |
 | **unify-collector-api** | **8000** | 无 Nacos | M10 采集 HTTP 服务 |
-| **Nacos** | 8848 | 远程 beta | 本机 `-Beta` 模式**不**启 Docker Nacos |
+| **Nacos** | 8848 | **本地** namespace `local` | local 与 `-Beta` 均启 Docker Nacos；`-Beta` 不连远程 Nacos |
 | **Redis** | 6379 | 远程 db=1 | OAuth2 token / 缓存 |
 | **MySQL** | 3306 | 远程 | `shenyu-ops`（OPS master）+ `shenyu-system` 等 |
 
@@ -424,7 +428,7 @@ mvn -pl football-module-ops/football-module-ops-server -am package -DskipTests
 
 ### 6.2 Profile 与 Beta 叠加
 
-ops-server 配置 SSOT 在 JAR 内五文件：`application.yaml`（共享）+ `application-local.yaml`（本地）+ `application-dev-test-beta.yaml`（Beta 远程 DB/Nacos/Redis，本机 JAR）+ `application-beta-server.yaml`（**Beta 测试机部署**，110.42.49.224）+ `application-prod.yaml`（正式生产）。`start-integration-oa.ps1` 将 legacy `OaProfiles` 映射为 Spring profile：`local`（默认）或 `dev-test-beta`（`-Beta` / `ops-test-remote.env`）。
+ops-server 配置 SSOT 在 JAR 内五文件：`application.yaml`（共享）+ `application-local.yaml`（本地）+ `application-dev-test-beta.yaml`（Beta 远程 DB/Redis + **本地 Nacos**，本机 JAR）+ `application-beta-server.yaml`（**Beta 测试机部署**，110.42.49.224 远程 Nacos）+ `application-prod.yaml`（正式生产）。`start-integration-oa.ps1` 将 legacy `OaProfiles` 映射为 Spring profile：`local`（默认）或 `dev-test-beta`（`-Beta` / `ops-test-remote.env`）。
 
 | 模式 | Spring profile | 启动示例 |
 |------|----------------|----------|
@@ -438,8 +442,8 @@ ops-server 配置 SSOT 在 JAR 内五文件：`application.yaml`（共享）+ `a
 | 项 | local | dev-test-beta | beta-server | prod |
 |----|-------|---------------|-------------|------|
 | MySQL | localhost `shenyu-ops` | 远程 `${OPS_TEST_*}` | 110.42.49.224 `shenyu-ops`（**overlay 硬编码**） | `${OPS_DB_*}` 环境变量 |
-| Nacos | localhost namespace `local` | 远程 namespace `beta` | 110.42.49.224 namespace **`beta`**（**overlay 硬编码**） | `${NACOS_*}`，namespace 默认 `prod` |
-| Feign | 5 服务名 localhost 直连 | 同 local（本机 JAR） | **无 URL**，Nacos 服务发现 | **无 URL**，Nacos 服务发现 |
+| Nacos | localhost namespace `local` | **同 local**（127.0.0.1:8848 ns=local） | 110.42.49.224 namespace **`beta`**（**overlay 硬编码**） | `${NACOS_*}`，namespace 默认 `prod` |
+| Feign | Nacos 服务发现 | Nacos 服务发现 | Nacos 服务发现 | Nacos 服务发现 |
 | Flyway | enabled | **disabled** | **disabled** | `${FLYWAY_ENABLED:true}` |
 | AES 密钥 | jar 内 dev 默认 | jar 内 dev 默认 | dev 默认（**overlay 硬编码**） | **必设** `${OA_AES_KEY}` |
 | 鉴权 | Gateway login-user | Gateway + football-redis | Gateway + football-redis，**禁用 dev-token** | 同 beta-server |
@@ -490,8 +494,8 @@ overlay 含完整 `spring.cloud.nacos.*`、`spring.datasource.*`（Druid 连接�
 |----|---------|
 | `spring.application.name` | **`ops-server`**（勿改为 football-module-ops-server） |
 | `server.port` | **48094** |
-| Nacos | `${OPS_TEST_NACOS_ADDR}` namespace **`beta`** |
-| Gateway 路由 | `/admin-api/ops/**` → `http://127.0.0.1:48094`（beta yaml 直连） |
+| Nacos | **127.0.0.1:8848** namespace **`local`** |
+| Gateway 路由 | `/admin-api/ops/**` → `grayLb://ops-server`（jar 内置，Nacos 发现） |
 
 ### 6.4 关键配置项
 
@@ -526,7 +530,7 @@ overlay 含完整 `spring.cloud.nacos.*`、`spring.datasource.*`（Druid 连接�
 | 服务 | 默认 Beta 行为 |
 |------|----------------|
 | member-server :48087 | **真 JAR**（`-UseMemberMock` 仅登录桩） |
-| Nacos | 远程 110.42.49.224:8848，不启本地 Docker |
+| Nacos | **本地 Docker** :8848 ns=local（与 local 相同） |
 | Redis | 远程，跳过本地 `requirepass 123456` 预检 |
 
 ### 7.2 最小栈（仅 Ops API 调试）

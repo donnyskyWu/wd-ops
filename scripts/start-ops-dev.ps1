@@ -9,7 +9,7 @@
 # Gate UI: http://localhost:5777 (football-front pnpm dev:ele → Gateway :48080).
 # OPS UI SSOT: football-front :5777 (views/ops). ops-platform-ui-vue / :3000 retired (A-WP1).
 # Preflight: warn if football-* not on ops branch; verify views/ops present (remount retired).
-# Default DB: localhost five schemas (dev-local-multidb). Beta remote is a separate profile.
+# Default DB: localhost five schemas (dev-local-multidb). Beta remote DB only (Nacos still local :8848).
 #
 # member-server (:48087): DEFAULT = real football-module-member-server JAR (FullMemberServer).
 # Required for Football 方案列表 (GET /admin-api/member/article/page). Python mock on :48087
@@ -23,7 +23,7 @@
 #   .\scripts\start-ops-dev.ps1 -UseMemberMock  # Python mock :48087 (no 方案列表)
 #   .\scripts\start-ops-dev.ps1 -MountOps   # RETIRED — fails with SSOT message
 #   .\scripts\start-ops-dev.ps1 -SkipMountOps
-#   .\scripts\start-ops-dev.ps1 -Beta       # remote test DB 110.42.49.224 (ops-test-remote.env)
+#   .\scripts\start-ops-dev.ps1 -Beta       # remote test DB 110.42.49.224 (ops-test-remote.env); Nacos local :8848
 #   .\scripts\start-ops-dev.ps1 -TestRemote # alias of -Beta
 #
 # Login: http://localhost:5777  admin / admin123  tenant 1
@@ -66,7 +66,7 @@ if ($Beta) {
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "Repo: $Root"
 if ($Beta) {
-    Write-Host "Mode: BETA -> 110.42.49.224 (ops-test-remote.env + *-overlay-beta.yml)" -ForegroundColor Yellow
+    Write-Host "Mode: BETA -> $($env:OPS_TEST_DB_HOST) DB/Redis + local Nacos :8848 ns=local (*-overlay-beta.yml)" -ForegroundColor Yellow
 } else {
     Write-Host "Mode: LOCAL localhost multidb (default)"
 }
@@ -86,10 +86,9 @@ if (-not $SkipFrontend -and -not (Test-CommandExists "pnpm")) {
 
 if ($Beta) {
     if (-not (Import-OpsTestRemoteEnv -Root $Root -Required)) { exit 1 }
-    # Beta uses remote Nacos (110.42.49.224:8848); local Docker Nacos optional
     if (-not $SkipNacos) {
-        Write-Host "`n--- [2/6] Skip local Nacos (beta uses remote) ---"
-        $SkipNacos = $true
+        Write-Host "`n--- [2/6] Docker / Nacos (local :8848 — beta shares ns=local with local mode) ---"
+        $null = Wait-DockerEngine -TimeoutSec 90
     } else {
         Write-Host "`n--- [2/6] Skip Nacos (-SkipNacos) ---"
     }

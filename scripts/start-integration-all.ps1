@@ -17,7 +17,7 @@
 #   .\scripts\start-integration-all.ps1 -UseMemberServer    # alias of -FullMemberServer
 #   .\scripts\start-integration-all.ps1 -MountOps           # RETIRED �� fail-fast (SSOT=football-front)
 #   .\scripts\start-integration-all.ps1 -SkipMountOps
-#   .\scripts\start-integration-all.ps1 -Beta               # remote test DB 110.42.49.224
+#   .\scripts\start-integration-all.ps1 -Beta               # remote test DB; Nacos still local :8848
 #   .\scripts\start-integration-all.ps1 -TestRemote         # alias of -Beta
 #
 # member-server vs mock (INTEGRATION-PROGRESS ��20 / ��23 #4):
@@ -25,7 +25,7 @@
 #   Required for Football �����б�: GET /admin-api/member/article/page (Gateway -> :48087).
 #   -UseMemberMock: Python mock-member-author-server.py �� login Feign stub only; article/* -> 404.
 #   Ops author CRUD: oa-server @DS("member") reads localhost:3306/shenyu-member directly.
-#   -Beta: same local ports; MySQL/Redis/Nacos -> 110.42.49.224 (ops-test-remote.env).
+#   -Beta: same local ports + local Nacos :8848 ns=local; MySQL/Redis -> 110.42.49.224 (ops-test-remote.env).
 #
 # ֹͣ: .\scripts\stop-integration-all.ps1
 #
@@ -77,9 +77,7 @@ if ($Beta) {
     if ($OaProfiles -notmatch "dev-test-beta") {
         $OaProfiles = "$OaProfiles,dev-test-beta"
     }
-    # Remote Nacos; do not require local Docker Nacos
-    $SkipNacos = $true
-    Write-Host "[beta] Mode ON �� OaProfiles=$OaProfiles ; Football overlays=*-beta.yml ; Skip local Nacos"
+    Write-Host "[beta] Mode ON - OaProfiles=$OaProfiles ; Football overlays=*-beta.yml ; Nacos=local :8848 ns=local ; DB/Redis=remote"
 }
 
 $IntegrationPorts = @(8848, 6379, 48080, 48081, 48082, 48085, 48086, 48087, 48088, 48094, 5777)
@@ -243,7 +241,7 @@ function Start-IntegrationJar {
 Write-Host "=== Football x Ops integration (all seevices) ==="
 Write-Host "Repo: $Root"
 if ($Beta) {
-    Write-Host "DB mode: BETA remote $($env:OPS_TEST_DB_HOST) (shenyu-ops/system/member/mp/pay + Redis/Nacos)" -ForegroundColor Yellow
+    Write-Host "DB mode: BETA remote $($env:OPS_TEST_DB_HOST) (MySQL/Redis remote; Nacos local :8848 ns=local)" -ForegroundColor Yellow
 } else {
     Write-Host "DB mode: LOCAL localhost multidb (default)"
 }
@@ -261,8 +259,8 @@ Write-Host "[ok] Java: $(java -version 2>&1 | Select-Object -First 1)"
 
 if ($Restart) {
     Write-Host "`n--- Restart: stopping existing listenees ---"
-    # -SkipNacos / -Beta: keep external or user-started Nacos on :8848 (do not docker stop / kill port)
-    $preserveNacos = $SkipNacos -or $Beta
+    # -SkipNacos: keep user-started Nacos on :8848 (do not docker stop / kill port)
+    $preserveNacos = $SkipNacos
     & (Join-Path $PSScriptRoot "stop-integration-all.ps1") -SkipDocker:$preserveNacos
     Start-Sleep -Seconds 3
 }
@@ -317,16 +315,12 @@ if (-not $Beta -and $OaProfiles -match "dev-local-multidb") {
     }
 }
 
-# 4. Nacos config push (local Docker only)
-if (-not $Beta) {
-    Write-Host "`n--- Push Nacos local configs ---"
-    try {
-        & (Join-Path $PSScriptRoot "push-integration-config-to-nacos.ps1")
-    } catch {
-        Write-Warning "Nacos config push failed: $_ (continuing)"
-    }
-} else {
-    Write-Host "`n--- Skip Nacos local config push (beta uses remote Nacos namespace) ---"
+# 4. Nacos config push (local Docker Nacos — local and beta both use namespace local)
+Write-Host "`n--- Push Nacos local configs ---"
+try {
+    & (Join-Path $PSScriptRoot "push-integration-config-to-nacos.ps1")
+} catch {
+    Write-Warning "Nacos config push failed: $_ (continuing)"
 }
 
 # 5. Gateway + Football backends
