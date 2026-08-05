@@ -1,5 +1,6 @@
 ﻿# Nacos DataId for local integration (namespace=local).
 # Must match football-integration-overlay.yml — system-server → shenyu-system (ADR-056).
+# Feign: Nacos service discovery only (no client.config.*.url).
 # Remote 101.37.161.136 preserved in football-integration-overlay-remote.yml / oa-server-remote-multidb.yaml.
 spring:
   datasource:
@@ -19,18 +20,6 @@ spring:
       port: 6379
       database: 0
       password: 123456 # align with local Redis requirepass
-  cloud:
-    openfeign:
-      client:
-        config:
-          system-server:
-            url: http://127.0.0.1:48081
-          member-server:
-            url: http://127.0.0.1:48087
-          infra-server:
-            url: http://127.0.0.1:48082
-          mp-server:
-            url: http://127.0.0.1:48086
 
 rocketmq:
   name-server: 192.168.10.51:9876
