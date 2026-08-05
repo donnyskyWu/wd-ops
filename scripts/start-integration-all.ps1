@@ -358,7 +358,7 @@ if (-not $SkipBuild) {
     }
     Start-Sleep -Seconds 2
     Push-Location (Join-Path $Root "football-backend-saas")
-    $modules = "football-gateway,football-module-mp/football-module-mp-server,football-module-system/football-module-system-server,football-module-infra/football-module-infra-server,football-module-pay/football-module-pay-server"
+    $modules = "football-gateway,football-module-mp/football-module-mp-server,football-module-system/football-module-system-server,football-module-infra/football-module-infra-server,football-module-pay/football-module-pay-server,football-module-ops/football-module-ops-server"
     if ($WantFullMemberServer) { $modules += ",football-module-member/football-module-member-server" }
     mvn -pl $modules -am package -DskipTests
     $buildOk = $LASTEXITCODE -eq 0
