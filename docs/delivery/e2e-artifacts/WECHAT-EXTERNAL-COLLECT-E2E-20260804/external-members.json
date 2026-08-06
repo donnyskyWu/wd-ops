@@ -1,0 +1,28 @@
+{
+  "code": 0,
+  "msg": "ok",
+  "data": [
+    {
+      "id": 1,
+      "taskId": 9,
+      "memberType": "ACCOUNT",
+      "configId": 42,
+      "configName": "毒舌电影",
+      "platformType": "DOUYIN",
+      "keyword": null,
+      "collectEnabled": true,
+      "createTime": 1785729460000
+    },
+    {
+      "id": 2,
+      "taskId": 9,
+      "memberType": "ACCOUNT",
+      "configId": 45,
+      "configName": "智能体AI",
+      "platformType": "WECHAT_OFFICIAL",
+      "keyword": null,
+      "collectEnabled": true,
+      "createTime": 1785812352000
+    }
+  ]
+}

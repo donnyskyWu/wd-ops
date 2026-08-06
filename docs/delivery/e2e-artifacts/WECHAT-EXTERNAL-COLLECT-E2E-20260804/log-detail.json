@@ -1,0 +1,65 @@
+{
+  "id": 43,
+  "taskId": 9,
+  "taskName": "统一外部数据采集任务",
+  "accountName": null,
+  "status": "PARTIAL",
+  "startAt": 1785818026000,
+  "durationMs": 41171,
+  "recordCount": 200,
+  "errorMessage": "部分采集失败: config:45: WECHAT_OFFICIAL: 已保存登录态已失效，请重新扫码登录。 [原因: 上游平台采集失败（Cookie 失效、风控拦截、熔断或接口未实现）]",
+  "retryCount": 0,
+  "platformType": "MULTI",
+  "accountId": null,
+  "source": "UNIFY_COLLECTOR_EXTERNAL",
+  "dataType": null,
+  "endAt": 1785818067000,
+  "result": {
+    "summary": null,
+    "dataType": null,
+    "targetTable": null,
+    "targetHint": null,
+    "recordCount": 200,
+    "status": "PARTIAL",
+    "persistMode": "FULL_PERSIST",
+    "note": "Channel-D External FULL_PERSIST（ADR-052 · ADR-068）",
+    "errorMessage": "部分采集失败: config:45: WECHAT_OFFICIAL: 已保存登录态已失效，请重新扫码登录。 [原因: 上游平台采集失败（Cookie 失效、风控拦截、熔断或接口未实现）]",
+    "metrics": null,
+    "samples": null,
+    "typeResults": [
+      {
+        "dataType": "EXT_DOUYIN_USER_PROFILE",
+        "success": true,
+        "errorMessage": null,
+        "summary": null,
+        "targetTable": "oa_external_account",
+        "targetHint": null,
+        "recordCount": 1,
+        "metrics": null,
+        "samples": null
+      },
+      {
+        "dataType": "EXT_DOUYIN_USER_VIDEOS",
+        "success": true,
+        "errorMessage": null,
+        "summary": null,
+        "targetTable": "oa_external_work",
+        "targetHint": null,
+        "recordCount": 200,
+        "metrics": null,
+        "samples": null
+      },
+      {
+        "dataType": "config:45",
+        "success": false,
+        "errorMessage": "WECHAT_OFFICIAL: 已保存登录态已失效，请重新扫码登录。 [原因: 上游平台采集失败（Cookie 失效、风控拦截、熔断或接口未实现）]",
+        "summary": null,
+        "targetTable": null,
+        "targetHint": null,
+        "recordCount": 0,
+        "metrics": null,
+        "samples": null
+      }
+    ]
+  }
+}

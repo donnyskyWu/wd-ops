@@ -1,0 +1,66 @@
+{
+  "artifact": "FOLLOWER-ANALYSIS-20260806",
+  "when": "2026-08-06",
+  "gateway": "http://127.0.0.1:48080",
+  "login": "admin/admin123 tenant=1",
+  "passed": 5,
+  "total": 5,
+  "all_pass": true,
+  "results": [
+    {
+      "name": "follower-analysis-list",
+      "method": "GET",
+      "path": "/admin-api/ops/follower-analysis/list?page=1&size=10&startDate=2026-07-08&endDate=2026-08-06",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "total": 6,
+      "row_count": 6,
+      "pass": true
+    },
+    {
+      "name": "follower-analysis-stats",
+      "method": "GET",
+      "path": "/admin-api/ops/follower-analysis/stats?startDate=2026-07-08&endDate=2026-08-06",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "total": null,
+      "row_count": null,
+      "pass": true
+    },
+    {
+      "name": "follower-analysis-trend",
+      "method": "GET",
+      "path": "/admin-api/ops/follower-analysis/trend?startDate=2026-07-08&endDate=2026-08-06",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "total": null,
+      "row_count": 6,
+      "pass": true
+    },
+    {
+      "name": "follower-analysis-account-1000006",
+      "method": "GET",
+      "path": "/admin-api/ops/follower-analysis/list?accountId=1000006&page=1&size=10&startDate=2026-07-08&endDate=2026-08-06",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "total": 1,
+      "row_count": 1,
+      "pass": true
+    },
+    {
+      "name": "account-analysis-followers-1000006",
+      "method": "GET",
+      "path": "/admin-api/ops/account-analysis/1000006/followers?startDate=2026-07-08&endDate=2026-08-06",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "total": null,
+      "row_count": 1,
+      "pass": true
+    }
+  ]
+}

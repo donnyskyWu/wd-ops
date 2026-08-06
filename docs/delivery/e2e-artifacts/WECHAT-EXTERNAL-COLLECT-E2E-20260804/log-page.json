@@ -1,0 +1,21 @@
+{
+  "code": 0,
+  "msg": "ok",
+  "data": {
+    "list": [
+      {
+        "id": 43,
+        "taskId": 9,
+        "taskName": "统一外部数据采集任务",
+        "accountName": null,
+        "status": "PARTIAL",
+        "startAt": 1785818026000,
+        "durationMs": 41171,
+        "recordCount": 200,
+        "errorMessage": "部分采集失败: config:45: WECHAT_OFFICIAL: 已保存登录态已失效，请重新扫码登录。 [原因: 上游平台采集失败（Cookie 失效、风控拦截、熔断或接口未实现）]",
+        "retryCount": 0
+      }
+    ],
+    "total": 10
+  }
+}

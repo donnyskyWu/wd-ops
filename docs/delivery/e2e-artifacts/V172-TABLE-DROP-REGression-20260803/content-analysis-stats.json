@@ -1,5 +1,5 @@
 {
   "http": 200,
   "code": 0,
-  "body": "{\"code\":0,\"msg\":\"ok\",\"data\":{\"totalCount\":133,\"hitCount\":0,\"totalRead\":3632466,\"avgRead\":27311,\"totalLikes\":17780,\"totalComments\":979,\"totalShares\":1895}}"
+  "body": "{\"code\":0,\"msg\":\"ok\",\"data\":{\"totalCount\":133,\"hitCount\":0,\"totalRead\":3627051,\"avgRead\":27271,\"totalLikes\":17786,\"totalComments\":976,\"totalShares\":1895}}"
 }

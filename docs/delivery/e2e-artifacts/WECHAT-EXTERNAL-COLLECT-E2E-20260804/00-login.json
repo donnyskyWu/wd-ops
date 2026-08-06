@@ -1,0 +1,10 @@
+{
+  "code": 0,
+  "msg": "",
+  "data": {
+    "userId": "1749825673829120001",
+    "refreshToken": "215dc1d12b964e429a1396304487814a",
+    "expiresTime": 1801370020106,
+    "accessToken": "(redacted)"
+  }
+}

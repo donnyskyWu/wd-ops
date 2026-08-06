@@ -1,5 +1,5 @@
 {
   "http": 200,
   "code": 0,
-  "body": "{\"code\":0,\"msg\":\"ok\",\"data\":{\"id\":\"1\",\"username\":\"admin\",\"nickname\":\"admin\",\"email\":null,\"phoneMasked\":null,\"position\":null,\"ipGroupId\":\"9004\",\"deptId\":null,\"deptName\":null,\"dingUserId\":null,\"status\":\"ENABLED\",\"remark\":null,\"roleIds\":null,\"roleNames\":null,\"createTime\":null}}"
+  "body": "{\"code\":0,\"msg\":\"ok\",\"data\":{\"id\":\"1749825673829120001\",\"username\":\"admin\",\"nickname\":\"芋道源码\",\"email\":null,\"phoneMasked\":null,\"position\":null,\"ipGroupId\":null,\"deptId\":\"103\",\"deptName\":null,\"dingUserId\":null,\"status\":\"ENABLED\",\"remark\":null,\"roleIds\":null,\"roleNames\":null,\"createTime\":null}}"
 }

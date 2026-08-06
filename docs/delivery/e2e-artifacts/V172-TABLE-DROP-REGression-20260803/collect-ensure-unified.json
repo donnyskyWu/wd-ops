@@ -1,4 +1,4 @@
 {
   "http": 200,
-  "body": "{\"code\":403,\"msg\":\"无权限访问\",\"data\":null}"
+  "body": "{\"code\":0,\"msg\":\"ok\",\"data\":{\"id\":10,\"name\":\"租户统一采集任务\",\"taskName\":\"租户统一采集任务\",\"platformType\":\"MULTI\",\"accountId\":null,\"accountName\":null,\"isUnified\":true,\"isExternalUnified\":false,\"memberCount\":3,\"memberAccountIds\":[3,9018,1000006],\"method\":\"INTERNAL\",\"source\":\"UNIFY_COLLECTOR\",\"dataType\":null,\"frequency\":\"DAILY\",\"cron\":\"0 0 23 * * ?\",\"status\":\"STOPPED\",\"lastRunAt\":1785577082000,\"nextRunAt\":null,\"runCount\":0,\"failCount\":3,\"createTime\":1785519791000,\"createdAt\":1785519791000}}"
 }

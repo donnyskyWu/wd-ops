@@ -1,0 +1,5 @@
+{
+  "http": 200,
+  "code": 0,
+  "body": "{\"code\":0,\"msg\":\"ok\",\"data\":{\"summary\":{\"userId\":1001,\"userName\":\"OA Admin\",\"position\":\"ADMIN\",\"ipGroupId\":null,\"ipGroupName\":null,\"taskTotal\":0,\"taskCompleted\":0,\"taskInProgress\":0,\"taskOverdue\":0,\"completionRate\":0.0,\"costAmount\":0.0,\"revenue\":0.0,\"roi\":0.0,\"orderCount\":0,\"contentOutput\":0,\"avgRead\":0,\"avgPlay\":0,\"hitCount\":0},\"taskList\":[],\"financeByGroup\":[],\"contentMetrics\":{\"avgReading\":0,\"hotCount\":0,\"publishCount\":0},\"trend\":[]}}"
+}

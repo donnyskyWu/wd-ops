@@ -1,0 +1,23 @@
+{
+  "wechat_rows": 5,
+  "video_rows": 5,
+  "sample_diffs": {
+    "contentOutput": {
+      "wechat": 0,
+      "video": 0
+    },
+    "avgRead": {
+      "wechat": 0,
+      "video": 0
+    },
+    "avgPlay": {
+      "wechat": 0,
+      "video": 0
+    },
+    "hitCount": {
+      "wechat": 0,
+      "video": 0
+    }
+  },
+  "same_schema": true
+}

@@ -1,0 +1,19 @@
+{
+  "code": 0,
+  "msg": "ok",
+  "data": {
+    "list": [
+      {
+        "id": 23,
+        "paramName": "外部公众号采集 Cookie",
+        "paramKey": "collect.external.wechat_official.cookie",
+        "paramValue": "_qimei_uuid42=1a60c112c2c1005ef4fa920150c1899e7940f8e1f7; _qimei_fingerprint=28412ffcd07c04d94b27f2db73753e77; _qimei_i_3=62f372d79c0b03899796fd62598374e4a5bdf0f3440d0483e58a205026c2246a343266943a89e281abae; _qimei_h38=0800b9b4f4fa920150c1899e02000004c1a60c; _gcl_au=1.1.289974844.1781257506; ua_id=Na2BktljeFGw79PDAAAAAFC0ZJFOhKGUdv4iHN0dNTg=; wxuin=81509940117479; mm_lang=zh_CN; pgv_pvid=7654747493; ts_uid=7260154398; _qimei_i_1=63c52d829d5a5089c8c5fa665fd222e9f5eea5f41208028abd867d582493206c616333c639d8e4dc85a0fdc0; a_sk__07__0WEB06TCTF6QCJVC=015465636c606c6363676766; _qimei_q36=; a_pk__04=0800b9b4f4fa920150c1899e02000004c1a60c; uuid=b03d61a28e38d11fc73f4e22bb38f1e4; _clck=3632800240|1|g89|0; oauth_uuid=e623d215ad21d43cff25d3b4a599908b; rand_info=CAESIAZ+MHWTYbl1fhwuGr3JHjVkkM3z4Q68n5hyw9i8kmam; slave_bizuin=3009828870; data_bizuin=3009828870; bizuin=3009828870; data_ticket=9B9BnoAVgZnH58vCkioFpXn5EHHuPaetfkE/3PnbmmNiHfyZxy4VP1sG1nWg5KRl; slave_sid=V2tEczd3STRGTUloeGN0SGdZbFZJZGVTV3d6bmxZM3FOZmVwdzRQUWNIWVlTSHRVNzFDZGJWbXc2aTFfR3VYUHB4Z3R5MjZOX3R1dk1ScmRiRXYydTNFR1NFeFRGV0VaMUp0OVpKcDFZNl9rY09iQjFGb3EwRk15NFN3enZrbEhYUWZEbzI4M2VqdVVPTnd1; slave_user=gh_63f0b28ab912; xid=34c3c122929d88a35768f67e183fee28; _clsk=ilyq20|1785638720837|1|1|mp.weixin.qq.com/weheat-agent/payload/record",
+        "paramType": "STRING",
+        "category": "COLLECT",
+        "remark": "mp.weixin.qq.com 运营后台 Session Cookie（勿提交 git）；租户凭账号未配置时使用",
+        "updateTime": 1785818015000
+      }
+    ],
+    "total": 1
+  }
+}

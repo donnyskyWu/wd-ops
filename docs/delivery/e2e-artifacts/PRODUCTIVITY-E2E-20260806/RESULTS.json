@@ -1,0 +1,363 @@
+{
+  "task": "PRODUCTIVITY-E2E-20260806",
+  "started_at": "2026-08-06T03:20:59.606914+00:00",
+  "gateway": "http://127.0.0.1:48080",
+  "checks": [
+    {
+      "name": "productivity-list-week",
+      "method": "GET",
+      "path": "/admin-api/ops/productivity-review/list?timeDimension=WEEK&page=1&size=10",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "pass": true,
+      "total": 5,
+      "first_keys": [
+        "avgPlay",
+        "avgRead",
+        "completionRate",
+        "contentOutput",
+        "costAmount",
+        "hitCount",
+        "ipGroupId",
+        "ipGroupName",
+        "orderCount",
+        "position",
+        "revenue",
+        "roi",
+        "taskCompleted",
+        "taskInProgress",
+        "taskOverdue",
+        "taskTotal",
+        "userId",
+        "userName"
+      ],
+      "first_row": {
+        "userId": 1001,
+        "userName": "OA Admin",
+        "position": "ADMIN",
+        "ipGroupId": null,
+        "ipGroupName": null,
+        "taskTotal": 0,
+        "taskCompleted": 0,
+        "taskInProgress": 0
+      }
+    },
+    {
+      "name": "productivity-list-month",
+      "method": "GET",
+      "path": "/admin-api/ops/productivity-review/list?timeDimension=MONTH&page=1&size=10",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "pass": true,
+      "total": 5,
+      "first_keys": [
+        "avgPlay",
+        "avgRead",
+        "completionRate",
+        "contentOutput",
+        "costAmount",
+        "hitCount",
+        "ipGroupId",
+        "ipGroupName",
+        "orderCount",
+        "position",
+        "revenue",
+        "roi",
+        "taskCompleted",
+        "taskInProgress",
+        "taskOverdue",
+        "taskTotal",
+        "userId",
+        "userName"
+      ],
+      "first_row": {
+        "userId": 1001,
+        "userName": "OA Admin",
+        "position": "ADMIN",
+        "ipGroupId": null,
+        "ipGroupName": null,
+        "taskTotal": 0,
+        "taskCompleted": 0,
+        "taskInProgress": 0
+      }
+    },
+    {
+      "name": "productivity-list-daterange",
+      "method": "GET",
+      "path": "/admin-api/ops/productivity-review/list?timeDimension=WEEK&page=1&size=10&startDate=2026-06-01&endDate=2026-06-30",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "pass": true,
+      "total": 5,
+      "first_keys": [
+        "avgPlay",
+        "avgRead",
+        "completionRate",
+        "contentOutput",
+        "costAmount",
+        "hitCount",
+        "ipGroupId",
+        "ipGroupName",
+        "orderCount",
+        "position",
+        "revenue",
+        "roi",
+        "taskCompleted",
+        "taskInProgress",
+        "taskOverdue",
+        "taskTotal",
+        "userId",
+        "userName"
+      ],
+      "first_row": {
+        "userId": 1001,
+        "userName": "OA Admin",
+        "position": "ADMIN",
+        "ipGroupId": null,
+        "ipGroupName": null,
+        "taskTotal": 0,
+        "taskCompleted": 0,
+        "taskInProgress": 0
+      }
+    },
+    {
+      "name": "productivity-tab-wechat",
+      "method": "GET",
+      "path": "/admin-api/ops/productivity-review/list?timeDimension=WEEK&page=1&size=10&tabType=wechat",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "pass": true,
+      "total": 5,
+      "first_keys": [
+        "avgPlay",
+        "avgRead",
+        "completionRate",
+        "contentOutput",
+        "costAmount",
+        "hitCount",
+        "ipGroupId",
+        "ipGroupName",
+        "orderCount",
+        "position",
+        "revenue",
+        "roi",
+        "taskCompleted",
+        "taskInProgress",
+        "taskOverdue",
+        "taskTotal",
+        "userId",
+        "userName"
+      ],
+      "first_row": {
+        "userId": 1001,
+        "userName": "OA Admin",
+        "position": "ADMIN",
+        "ipGroupId": null,
+        "ipGroupName": null,
+        "taskTotal": 0,
+        "taskCompleted": 0,
+        "taskInProgress": 0
+      }
+    },
+    {
+      "name": "productivity-tab-video",
+      "method": "GET",
+      "path": "/admin-api/ops/productivity-review/list?timeDimension=WEEK&page=1&size=10&tabType=video",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "pass": true,
+      "total": 5,
+      "first_keys": [
+        "avgPlay",
+        "avgRead",
+        "completionRate",
+        "contentOutput",
+        "costAmount",
+        "hitCount",
+        "ipGroupId",
+        "ipGroupName",
+        "orderCount",
+        "position",
+        "revenue",
+        "roi",
+        "taskCompleted",
+        "taskInProgress",
+        "taskOverdue",
+        "taskTotal",
+        "userId",
+        "userName"
+      ],
+      "first_row": {
+        "userId": 1001,
+        "userName": "OA Admin",
+        "position": "ADMIN",
+        "ipGroupId": null,
+        "ipGroupName": null,
+        "taskTotal": 0,
+        "taskCompleted": 0,
+        "taskInProgress": 0
+      }
+    },
+    {
+      "name": "layout-template-list",
+      "method": "GET",
+      "path": "/admin-api/ops/layout-template/list?pageNo=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "pass": true,
+      "total": 14,
+      "first_keys": [
+        "contentType",
+        "creatorName",
+        "creatorUserId",
+        "defaultParams",
+        "description",
+        "documentType",
+        "id",
+        "previewHtml",
+        "sourceType",
+        "sourceUrl",
+        "status",
+        "tags",
+        "templateName",
+        "thumbnailUrl",
+        "updateTime"
+      ],
+      "first_row": {
+        "id": 16,
+        "templateName": "麓邦光电私有化大模型Agent平台建设方案 (4)",
+        "contentType": "ARTICLE",
+        "documentType": null,
+        "description": null,
+        "sourceType": "DOCX",
+        "sourceUrl": null,
+        "status": "ENABLED"
+      }
+    },
+    {
+      "name": "football-order-list",
+      "method": "GET",
+      "path": "/admin-api/ops/football-order/list?startDate=2026-06-01&endDate=2026-06-30&pageNum=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "pass": true,
+      "total": 22,
+      "first_keys": [
+        "amount",
+        "authorId",
+        "createTime",
+        "id",
+        "orderNo",
+        "orderType",
+        "payAmount",
+        "payTime",
+        "sourceTable",
+        "status",
+        "userId"
+      ],
+      "first_row": {
+        "id": 1002300,
+        "orderNo": "TZF202606011835141126",
+        "userId": 1000048,
+        "authorId": 1000003,
+        "amount": 1.0,
+        "payAmount": 1.0,
+        "status": 1,
+        "orderType": 1
+      }
+    },
+    {
+      "name": "order-attribution-list",
+      "method": "GET",
+      "path": "/admin-api/ops/order-attribution/list?startDate=2026-06-01&endDate=2026-06-30&pageNum=1&pageSize=10",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "pass": true,
+      "total": 0
+    },
+    {
+      "name": "order-attribution-roi",
+      "method": "GET",
+      "path": "/admin-api/ops/order-attribution/roi?startDate=2026-06-01&endDate=2026-06-30",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "pass": true,
+      "total": null
+    },
+    {
+      "name": "productivity-detail-user",
+      "method": "GET",
+      "path": "/admin-api/ops/productivity-review/detail/1001?startDate=2026-06-01&endDate=2026-06-30&timeDimension=WEEK&tabType=wechat",
+      "http": 200,
+      "code": 0,
+      "msg": "ok",
+      "pass": true,
+      "total": null
+    }
+  ],
+  "features": {
+    "productivity_review": true,
+    "layout_template": true,
+    "order_attribution": true,
+    "order_attribution_roi_api": true,
+    "order_attribution_roi_ui_width": "skipped_manual",
+    "browser_spot_check": true,
+    "order_attribution_detail_drawer": true
+  },
+  "ops_health": true,
+  "login_ok": true,
+  "tab_compare": {
+    "wechat_rows": 5,
+    "video_rows": 5,
+    "sample_diffs": {
+      "contentOutput": {
+        "wechat": 0,
+        "video": 0
+      },
+      "avgRead": {
+        "wechat": 0,
+        "video": 0
+      },
+      "avgPlay": {
+        "wechat": 0,
+        "video": 0
+      },
+      "hitCount": {
+        "wechat": 0,
+        "video": 0
+      }
+    },
+    "same_schema": true
+  },
+  "all_pass": true,
+  "finished_at": "2026-08-06T03:29:08.175400+00:00",
+  "playwright": {
+    "ux_routes_smoke": {
+      "efficiency_legacy_path_ops_efficiency": "PASS (URL-only smoke; menu SSOT is /ops/operations/efficiency)",
+      "order_attribution_legacy_path_ops_order_attribution": "PASS (URL-only; menu SSOT is /ops/performance/order-attribution)"
+    },
+    "browser_spot_check_menu_routes": {
+      "pass": true,
+      "routes": [
+        "/ops/operations/efficiency",
+        "/ops/production/layout-template",
+        "/ops/performance/order-attribution"
+      ],
+      "screenshots": [
+        "browser-efficiency.png",
+        "browser-layout-template.png",
+        "browser-order-attribution.png"
+      ]
+    },
+    "uat_browser_gap": "SKIP/FAIL (no seedFootballAuth; legacy standalone paths)"
+  }
+}

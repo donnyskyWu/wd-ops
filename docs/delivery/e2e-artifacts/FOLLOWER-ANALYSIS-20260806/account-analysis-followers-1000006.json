@@ -1,0 +1,5 @@
+{
+  "http": 200,
+  "code": 0,
+  "body": "{\"code\":0,\"msg\":\"ok\",\"data\":[{\"statDate\":\"2026-07-25\",\"accountId\":1000006,\"accountName\":\"翕蔚热说-公众号\",\"ipGroupName\":\"功能测试A\",\"followerCount\":3,\"newFollower\":0,\"unfollowCount\":0,\"netGrowth\":0,\"growthRate\":0}]}"
+}

@@ -1,5 +1,4 @@
 {
   "http": 200,
-  "code": 403,
-  "body": "{\"code\":403,\"msg\":\"无权限访问\",\"data\":null}"
+  "body": "{\"code\":0,\"msg\":\"ok\",\"data\":{\"list\":[{\"id\":33,\"taskId\":10,\"taskName\":\"租户统一采集任务\",\"accountName\":null,\"status\":\"FAILED\",\"startAt\":1785577082000,\"durationMs\":719,\"recordCount\":0,\"errorMessage\":\"采集失败: account:3/DOUYIN: unify-collector 不可达: http://127.0.0.1:8000; account:9018/KUAISHOU: 账号未绑定 Collector（oa_collector_account_bind）; account:1000006/WECHAT_OFFICIAL: unify-collector 不可达: http://127.0.0.1:8000\",\"retryCount\":0},{\"id\":32,\"taskId\":10,\"taskName\":\"租户统一采集任务\",\"accountName\":null,\"status\":\"FAILED\",\"startAt\":1785552935000,\"durationMs\":109,\"recordCount\":0,\"errorMessage\":\"采集失败: account:9018/KUAISHOU: 账号未绑定 Collector（oa_collector_account_bind）; account:1000006/WECHAT_OFFICIAL: unify-collector 不可达: http://127.0.0.1:8000\",\"retryCount\":0},{\"id\":31,\"taskId\":10,\"taskName\":\"租户统一采集任务\",\"accountName\":null,\"status\":\"FAILED\",\"startAt\":1785552819000,\"durationMs\":21,\"recordCount\":0,\"errorMessage\":\"采集失败: account:9018/KUAISHOU: 账号未绑定 Collector（oa_collector_account_bind）; account:1000006: 账号不存在: 1000006\",\"retr"
 }

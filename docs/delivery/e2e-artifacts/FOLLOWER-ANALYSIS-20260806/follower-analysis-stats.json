@@ -1,0 +1,5 @@
+{
+  "http": 200,
+  "code": 0,
+  "body": "{\"code\":0,\"msg\":\"ok\",\"data\":{\"totalFollowers\":2675,\"newFollowers\":0,\"unfollowers\":0,\"netFollowers\":0,\"growthRate\":0.0000}}"
+}
