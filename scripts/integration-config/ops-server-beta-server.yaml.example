@@ -124,5 +124,6 @@ oa:
   crypto:
     aes-key: MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=
   unified-collector:
-    base-url: http://127.0.0.1:8000
-    api-token: test-key-2026
+    base-url: http://ai.shenyu.com/
+    # Must match unify-collector API_TOKEN on ai.shenyu.com (NOT local test-key-2026)
+    api-token: xxx

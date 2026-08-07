@@ -222,15 +222,15 @@
 
 ### FR-M2-009 计划管理（5.9）
 
-> **Slice**：S-09 · **API**：[`API-M2-计划管理.md`](../engineering/API-M2-计划管理.md) · **ADR**：[`ADR-012`](../adr/ADR-012-计划管理任务联动.md)
+> **Slice**：S-09 · **API**：[`API-M2-计划管理.md`](../engineering/API-M2-计划管理.md) · **ADR**：[`ADR-012`](../adr/ADR-012-计划管理任务联动.md) · [`ADR-070`](../adr/ADR-070-计划多IP组创建.md)
 
 #### 4.1.9 描述
 
-业务计划关联 SOP 模板、IP 组与外部赛事，保存时自动生成计划任务（草稿期隐藏），启动后任务进入任务列表。
+业务计划关联 SOP 模板、**一个或多个 IP 组**与外部赛事，保存时自动生成计划任务（草稿期隐藏），启动后任务进入任务列表。
 
 #### 4.1.10 主流程
 
-1. 选择 SOP 模板、IP 组、多个赛事（外部 API，Phase 1 Mock）
+1. 选择 SOP 模板、**IP 组（可多选）**、多个赛事（外部 API，Phase 1 Mock）
 2. 自动加载 SOP 节点，逐步分配**赛事**（来自计划赛事池）、执行人及起止时间（默认=计划日期）
 3. 保存 → 计划状态=草稿，任务状态=`PLAN_DRAFT` 且 `visible_in_list=0`
 4. 启动计划 → 计划=进行中，任务=`PENDING` 且可见
@@ -242,7 +242,8 @@
 |------|------|----------|
 | `plan_name` | `<Input />` | - |
 | `template_id` | `<Select />`（SOP 模板） | `oa_sop_template` |
-| `ip_group_id` | `<IpGroupTreeSelect />` | `oa_ip_group` |
+| `ip_group_id` | `<IpGroupTreeSelect />`（**单选，兼容**） | `oa_ip_group` |
+| `ip_group_ids` | `<IpGroupTreeSelect multiple />`（**推荐，≥1**） | `oa_content_plan_ip_group`（ADR-070） |
 | `start_date` / `end_date` | `<DatePicker />`（范围） | - |
 | `competitions` | `<SelectMultiple />`（Mock） | 外部赛事 |
 | `steps[].assignee_ids` | `<UserSelect />`（**单选**，后端 `assigneeIds` 长度=1） | `sys_user` |
@@ -254,14 +255,16 @@
 - 每 SOP 步骤须从计划已选赛事池中分配 **≥1 个** `competition_id`（UI 多选；JSON 存 `competition_ids`）
 - 每步骤 **1 名**执行人（UI 单选；API 仍用 `assigneeIds: [id]`）
 - 多赛事 × 单执行人 → 生成 **多条** `oa_task`（每条绑定一个 `competition_id`）
-- 计划详情抽屉展示 **生成的任务记录**（节点、赛事、执行人、岗位、状态、计划起止时间）
+- **多 IP 组**（ADR-070）：创建时 `ip_group_ids` ≥1；任务按 `(IP 组 × 节点 × 赛事 × 执行人)` 生成，各 task 带 `ip_group_id`；计划详情 / 任务执行页多组时按 Tab 展示
+- 计划详情抽屉展示 **生成的任务记录**（节点、赛事、执行人、岗位、状态、计划起止时间；多 IP 组时按组 Tab）
 
 #### 4.1.12 验收标准
 
 **AC-M2-009-1** 保存草稿后任务列表不可见该计划任务  
 **AC-M2-009-2** 启动后任务列表可见且状态=PENDING  
 **AC-M2-009-3** 终止须组长审批通过后计划与任务均为 TERMINATED  
-**AC-M2-009-4**（需求 3）每步骤分配赛事后，关联 `oa_task.competition_id` 与步骤一致
+**AC-M2-009-4**（需求 3）每步骤分配赛事后，关联 `oa_task.competition_id` 与步骤一致  
+**AC-M2-009-8**（ADR-070）选择 ≥2 个 IP 组创建并启动 → 各组均生成任务；详情 / 执行页可按 IP 组 Tab 切换
 
 ---
 

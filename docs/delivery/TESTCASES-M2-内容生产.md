@@ -132,8 +132,8 @@
 
 ### TC-M2-009-01 创建草稿计划
 
-- **步骤**：POST `/admin-api/oa/plan/create`，含 templateId、ipGroupId、competitions、全节点 steps
-- **预期**：200 OK + 返回 planId；`get` 状态=DRAFT
+- **步骤**：POST `/admin-api/oa/plan/create`，含 templateId、ipGroupId（或 `ipGroupIds`）、competitions、全节点 steps
+- **预期**：200 OK + 返回 planId；`get` 状态=DRAFT；`get` 返回 `ipGroupIds` / `ipGroups` 与请求一致
 
 ### TC-M2-009-02 草稿任务列表不可见（AC-M2-009-1）
 
@@ -161,6 +161,22 @@
 
 - **步骤**：create 计划，step.competitionId=cmp-001 → start → GET task/list
 - **预期**：关联任务 `competitionId=cmp-001`
+
+### TC-M2-009-07 多 IP 组创建与任务生成（AC-M2-009-8，ADR-070）
+
+- **步骤**：POST `/plan/create`，`ipGroupIds: [g1, g2]`，单节点 1 执行人 1 赛事 → start → GET `/plan/get` + GET `/task/list`
+- **预期**：`get` 返回 `ipGroupIds=[g1,g2]`；任务数 = 2（每组 1 条）；各 task 的 `ipGroupId` 分别对应 g1/g2
+
+### TC-M2-009-08 多 IP 组任务预览（ADR-070）
+
+- **步骤**：POST `/plan/preview-tasks`，`ipGroupIds: [g1, g2]` + steps
+- **预期**：预览行含 `ipGroupId` / `ipGroupName`；行数 = 组数 × 节点 × 赛事
+
+### TC-M2-009-09 任务执行 ipGroupTabs（ADR-070）
+
+- **前置**：TC-M2-009-07 已启动
+- **步骤**：GET `/task/{id}/execute`（任一同 plan+node+competition 的任务）
+- **预期**：`ipGroupTabs.length >= 2`；各 tab 含 `taskId`、`ipGroupId`、`ipGroupName`
 
 ---
 

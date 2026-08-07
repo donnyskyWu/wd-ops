@@ -168,7 +168,7 @@ graph LR
 - 赛事：外部 API 经 `MatchController` 代理（**BLK-M2-004 已决**）；前端 `MatchSelectDialog.vue`
 
 **全局规范**：
-- `templateId` / `ipGroupId` / `assigneeIds` 强制选择器
+- `templateId` / `ipGroupIds`（或兼容 `ipGroupId`，见 ADR-070）/ `assigneeIds` 强制选择器
 - `status` 用 `<DictSelect dict-type="dict_plan_status" />`
 
 **验收**：AC-M2-009-1, AC-M2-009-2, AC-M2-009-3  

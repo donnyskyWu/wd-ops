@@ -70,7 +70,7 @@
 - [ ] 内容 `accountId` 使用 `<AccountSelect :platformType="..." />`（联动）
 - [ ] 后端校验 `account.platformType == content.platformType`（错误码 2006）
 - [ ] 知识库 `isPublic` 使用 `<DictSelect dict-type="dict_yes_no" />`
-- [ ] 计划 `templateId` / `ipGroupId` / `assigneeIds` 使用选择器（非手输 ID）
+- [ ] 计划 `templateId` / `ipGroupIds`（或兼容 `ipGroupId`）/ `assigneeIds` 使用选择器（非手输 ID）
 - [ ] 计划 `status` 使用 `<DictSelect dict-type="dict_plan_status" />`
 - [ ] 所有 `*_id` 字段强制传 ID
 - [ ] 跨租户隔离已实现

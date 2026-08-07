@@ -1,8 +1,8 @@
 # API-M2-计划管理
 
-> **版本**：v1.5 | 2026-06-13  
+> **版本**：v1.6 | 2026-08-07  
 > **关联 PRD**：[`PRD-M2-内容生产.md`](../product/PRD-M2-内容生产.md) § FR-M2-009  
-> **实现**：`ContentPlanController` · `MatchController` · **ADR**：[`ADR-012`](../adr/ADR-012-计划管理任务联动.md) · [`ADR-016`](../adr/ADR-016-M2-节点类型与任务内容关联.md)
+> **实现**：`ContentPlanController` · `MatchController` · **ADR**：[`ADR-012`](../adr/ADR-012-计划管理任务联动.md) · [`ADR-016`](../adr/ADR-016-M2-节点类型与任务内容关联.md) · [`ADR-070`](../adr/ADR-070-计划多IP组创建.md)
 
 ---
 
@@ -23,9 +23,33 @@
 | pageNo | Integer | 默认 1 |
 | pageSize | Integer | 默认 20 |
 
+**数据范围**（ADR-064/070）：非租户管理员仅见「关联 IP 组 ∩ 当前用户可访问 IP 组」非空的计划；多 IP 组计划按 junction 表 `oa_content_plan_ip_group` **并集**判定（任一组可访问即可见），兼容仅填主表 `ip_group_id` 的存量行。
+
+**响应** `PageResult<ContentPlanRespVO>` 摘要字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| ipGroupId | Long | 主 IP 组（= 创建时 `ipGroupIds[0]`，列表/兼容用） |
+| ipGroupName | String | 多组时为各组名以「、」拼接 |
+| ipGroupIds | Long[] | 全部关联 IP 组 id（junction 顺序） |
+| ipGroupNames | String[] | 与 `ipGroupIds` 对齐 |
+| ipGroups | ContentPlanIpGroupVO[] | `{ ipGroupId, ipGroupName }` |
+
 ## 2. GET `/admin-api/oa/plan/get?id=`
 
-返回计划详情 + `competitions` + `steps` + **`tasks`**（任务记录，含 `scheduledStart`/`scheduledEnd`、`executorRole`）。
+返回计划详情 + `competitions` + `steps` + **`tasks`**。
+
+**响应** `ContentPlanRespVO` 在列表摘要字段基础上含：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| tasks | TaskVO[] | 计划下全部任务（含草稿 `PLAN_DRAFT`） |
+| tasks[].ipGroupId | Long | 任务所属 IP 组 |
+| tasks[].ipGroupName | String | IP 组名称 |
+| tasks[].scheduledStart / scheduledEnd | DateTime | 计划排期 |
+| tasks[].executorRole | String | SOP 节点执行岗位 |
+
+**ContentPlanIpGroupVO**：`{ ipGroupId, ipGroupName }`。
 
 ## 3. POST `/admin-api/oa/plan/create`
 
@@ -33,7 +57,7 @@
 {
   "planName": "6月内容计划",
   "templateId": 9401,
-  "ipGroupId": 9001,
+  "ipGroupIds": [9001, 9002],
   "startDate": "2026-06-01",
   "endDate": "2026-06-30",
   "description": "...",
@@ -47,16 +71,36 @@
       "scheduledStart": "2026-06-01 00:00:00",
       "scheduledEnd": "2026-06-30 23:59:59"
     }
+  ],
+  "tasks": [
+    {
+      "nodeId": 9401,
+      "competitionId": "123456789",
+      "ipGroupId": 9001,
+      "assigneeId": 1003,
+      "scheduledStart": "2026-06-11 20:00:00",
+      "scheduledEnd": "2026-06-12 20:00:00"
+    }
   ]
 }
 ```
 
+**IP 组字段**（ADR-070）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| ipGroupIds | Long[] | **推荐**；≥1；去重后写入 junction 表 |
+| ipGroupId | Long | **兼容**单 IP 组；与 `ipGroupIds` 二选一，`ipGroupIds` 优先 |
+
+落库：`oa_content_plan.ip_group_id` = `ipGroupIds[0]`（列表/兼容）；完整集合在 `oa_content_plan_ip_group`。
+
 **规则**：
 - 须覆盖模板**全部**节点（缺一报错 1500）
 - 每 step 须 `competitionIds`（≥1）或兼容字段 `competitionId`；均须属于 `competitions` 列表
-- 每节点 `assigneeIds` **长度=1**（UI 单选执行人）；须本租户有效用户且在计划 IP 组成员内（1501）
-- **多赛事**：对每个 `(assigneeId × competitionId)` 生成一条 `oa_task`
-- `templateId` / `ipGroupId` 须同租户（1501 / 1504）
+- 每节点 `assigneeIds` **长度=1**（UI 单选执行人）；须本租户有效用户且在**所选 IP 组并集**的成员或组长内（1501，ADR-066）
+- **步骤模式**（无 `tasks` 或 `tasks` 为空）：对每个 `(ipGroupId × assigneeId × competitionId)` 生成一条 `oa_task`
+- **任务模式**（传 `tasks`，优先）：须覆盖模板全部节点；**多 IP 组时**每条 task **必填** `ipGroupId` 且须属于计划 IP 组集合；执行人须为该 task 所属 IP 组成员或组长
+- `templateId` / 各 `ipGroupId` 须同租户（1501 / 1504）
 - `endDate` 不得早于 `startDate`
 - `scheduledStart` / `scheduledEnd` 可选；缺省为计划起止日 00:00:00 / 23:59:59
 
@@ -66,7 +110,7 @@
 
 **仅草稿（`DRAFT`）可编辑**；非草稿 → **2023**。
 
-**请求体** `ContentPlanUpdateReq`（不可改 `templateId` / `ipGroupId`，沿用创建时值）：
+**请求体** `ContentPlanUpdateReq`（**不可改** `templateId` / IP 组集合，沿用创建时 junction 与主表 `ip_group_id`）：
 
 ```json
 {
@@ -92,9 +136,10 @@
 **规则**（与 create 步骤/赛事部分一致）：
 - 须覆盖模板**全部**节点（缺一报错 1500）
 - 每 step `competitionIds` 必填（≥1），且均须属于 `competitions` 列表（1500）
-- 每节点 `assigneeIds` 长度=1；执行人须本租户有效用户（1501）
+- 每节点 `assigneeIds` 长度=1；执行人须本租户有效用户且在**创建时锁定的 IP 组并集**内（1501）
+- 多 IP 组 + `tasks` 模式：每条 task 仍须带有效 `ipGroupId`（同 create）
 - `endDate` 不得早于 `startDate`（1503）
-- 更新时级联替换计划赛事、步骤及关联 `PLAN_DRAFT` 任务
+- 更新时级联替换计划赛事、步骤及关联 `PLAN_DRAFT` 任务；**不**修改 `oa_content_plan_ip_group`
 
 **响应**：`CommonResult<Boolean>`
 
@@ -124,11 +169,51 @@
 
 ## 9. DELETE `/admin-api/oa/plan/delete?id=`
 
-仅草稿可删；非草稿 → **2023**。级联删除计划赛事/步骤及关联 `oa_task`。
+仅草稿可删；非草稿 → **2023**。级联删除计划赛事/步骤、junction 行及关联 `oa_task`。
 
 ---
 
-## 10. 错误码
+## 10. POST `/admin-api/oa/plan/preview-tasks`
+
+创建向导内按模板 + 赛事预览任务清单（不写库）。对每个所选 IP 组分别按 SOP 节点 × 赛事生成预览行。
+
+**请求体** `ContentPlanPreviewTasksReq`：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| templateId | Long | ✅ | SOP 模板 |
+| ipGroupIds | Long[] | △ | 多 IP 组；与 `ipGroupId` 二选一 |
+| ipGroupId | Long | △ | 兼容单 IP 组 |
+| matches | ContentPlanPreviewMatchReq[] | ✅ | `{ competitionId, competitionName, matchTimeRaw? }` |
+
+**响应** `ContentPlanTaskPreviewVO[]`（按 ipGroupId → competitionId → nodeOrder 排序）：
+
+| 字段 | 说明 |
+|------|------|
+| ipGroupId / ipGroupName | 预览所属 IP 组 |
+| nodeId / nodeName / nodeOrder / executorRole | SOP 节点 |
+| competitionId / competitionName | 赛事 |
+| assigneeId / assigneeName | 按节点 `executor_role` 匹配 IP 组成员岗位；无匹配回退 IP 组长 |
+| assigneeFallback | 是否因岗位无匹配回退组长 |
+| positionWarning | 组内无对应岗位时的提示文案 |
+| scheduledStart / scheduledEnd | 默认「开赛前 24h」至开赛时刻（`matchTimeRaw` 缺省则估算） |
+
+---
+
+## 11. 任务执行上下文（多 IP 组 Tab）
+
+计划任务进入执行页时，[`API-M2-内容生产`](API-M2-内容生产.md) §2.6 `GET /admin-api/oa/task/{id}/execute` 响应 `TaskExecuteVO` 额外携带：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| ipGroupId / ipGroupName | Long / String | 当前任务所属 IP 组 |
+| ipGroupTabs | TaskExecuteIpGroupTabVO[] | 同计划、同节点、同赛事的**各 IP 组并行任务** Tab；仅当 sibling 数 > 1 时非空 |
+
+**TaskExecuteIpGroupTabVO**：`{ taskId, ipGroupId, ipGroupName, status, linkedContent? }` — 用于执行页切换查看各组进度与关联内容。
+
+---
+
+## 12. 错误码
 
 | 码 | 场景 |
 |----|------|
@@ -139,11 +224,11 @@
 
 ---
 
-## 11. 外部赛事代理（BLK-M2-004 已决）
+## 13. 外部赛事代理（BLK-M2-004 已决）
 
 > 前端**禁止**直连外部域名（CORS）；统一经本模块后端转发。外部 API **无 tenant**，代理层不做租户过滤。
 
-### 11.1 GET `/admin-api/oa/match/list`
+### 13.1 GET `/admin-api/oa/match/list`
 
 | 参数 | 类型 | 说明 |
 |------|------|------|
@@ -168,7 +253,7 @@
 | matchTimeRaw | matchTime | 原始毫秒时间戳 |
 | lotteryType | lotteryType / 默认 `jc` | 竞彩类型 |
 
-### 11.2 GET `/admin-api/oa/match/leagues`
+### 13.2 GET `/admin-api/oa/match/leagues`
 
 返回联赛下拉列表（转发 `/filter/competitions/flat`）。
 

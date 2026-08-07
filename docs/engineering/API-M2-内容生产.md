@@ -249,6 +249,8 @@
   "id": 1,
   "planName": "6月娱乐八卦计划",
   "nodeName": "写推文",
+  "ipGroupId": 9001,
+  "ipGroupName": "八卦一组",
   "assigneeName": "张三",
   "executorRole": "OPS_OFFICIAL",
   "status": "IN_PROGRESS",
@@ -311,16 +313,35 @@
   "nodeName": "撰写短视频文案",
   "nodeType": "CONTENT_GENERATION",
   "planName": "6月内容计划",
+  "ipGroupId": 9001,
+  "ipGroupName": "八卦一组",
   "competitionId": "cmp-001",
   "competitionName": "2026 春季城市赛",
   "executionInstruction": "...",
   "attachments": [],
-  "linkedContent": { "id": 100, "title": "...", "status": "DRAFT" }
+  "linkedContent": { "id": 100, "title": "...", "status": "DRAFT" },
+  "ipGroupTabs": [
+    {
+      "taskId": 1,
+      "ipGroupId": 9001,
+      "ipGroupName": "八卦一组",
+      "status": "IN_PROGRESS",
+      "linkedContent": { "id": 100, "title": "...", "status": "DRAFT" }
+    },
+    {
+      "taskId": 2,
+      "ipGroupId": 9002,
+      "ipGroupName": "八卦二组",
+      "status": "PENDING"
+    }
+  ]
 }
 ```
 
 - `executionInstruction` 来源 `oa_sop_node.instruction_text`（空则回退 `nodeName`）；`attachments` 来源同表 `attachment_urls` JSON 只读，**无上传 API**（BLK-M2-007 上传仍阻塞）。
 - `linkedContent`：内容生成节点关联的 `oa_content`（0..1）。
+- `ipGroupId` / `ipGroupName`：当前任务所属 IP 组（ADR-070）。
+- `ipGroupTabs`：同计划、同节点、同赛事的多 IP 组并行任务 Tab；**仅 sibling 数 > 1 时非空**（详见 [API-M2-计划管理 §11](API-M2-计划管理.md)）。
 
 ### 2.7 POST `/admin-api/oa/task/{id}/execute/save`（✅ S-12）
 
