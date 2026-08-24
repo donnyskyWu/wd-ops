@@ -764,6 +764,7 @@ function Ensure-OpsFlywayPreflight {
         $null = Invoke-IntegrationPython -ScriptPath (Join-Path $cfg "apply_v173_live_collect.py") -Label "apply_v173_live_collect"
         $null = Invoke-IntegrationPython -ScriptPath (Join-Path $cfg "apply_v175_external_collect.py") -Label "apply_v175_external_collect"
         $null = Invoke-IntegrationPython -ScriptPath (Join-Path $cfg "apply_v179_content_plan_ip_group.py") -Label "apply_v179_content_plan_ip_group"
+        $null = Invoke-IntegrationPython -ScriptPath (Join-Path $cfg "apply_v184_weekly_feedback.py") -Label "apply_v184_weekly_feedback"
     } else {
         Write-Host "`n--- Local Flyway preflight (shenyu-ops) ---"
         $repair = Join-Path $cfg "repair-flyway-failed.py"
@@ -793,7 +794,7 @@ function Show-IntegrationTroubleshooting {
     Write-Host "4. football-module-ops :48094 DOWN -> OPS pages (内容管理/任务/IP组) all fail with 系统错误"
     Write-Host "   Log: $LogDir\ops-server-nacos-run.log (Nacos registry id remains ops-server)"
     Write-Host "   Flyway: failed row in flyway_schema_history -> python scripts/integration-config/repair-flyway-failed.py --local"
-    Write-Host "   Beta: Flyway disabled -> apply_v173/v175/v179 scripts (see OPS-TEST-DB.md)"
+    Write-Host "   Beta: Flyway disabled -> apply_v173/v175/v179/v184 scripts (see OPS-TEST-DB.md)"
     Write-Host "   Local: MySQL localhost:3306 five DBs missing -> football-module-ops API 500"
     Write-Host "5. -FirstRun Maven JAR locked -> pay-server :48085 was not stopped; fixed in stop-integration-all.ps1"
     Write-Host "6. -SkipBuild without jars -> run with -FirstRun"
