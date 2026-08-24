@@ -1,4 +1,4 @@
-﻿# start-integration-oa.ps1 — Start football-module-ops (ADR-058 CLEANUP)
+# start-integration-oa.ps1 — Start football-module-ops (ADR-058 CLEANUP)
 #
 # Monorepo football-module-ops-server JAR on :48094 (Nacos registry id: ops-server).
 # Default: --spring.profiles.active=local (application-local.yaml).
@@ -114,7 +114,7 @@ if ($UseBeta -and (Test-Path -LiteralPath $BetaOverlay)) {
 
 $inner = @"
 `$host.UI.RawUI.WindowTitle = 'football-module-ops :48094 ($titleNote)'
-& '$javaExe' '-Dfile.encoding=UTF-8' -jar '$MonorepoJar' $extraCfg *>&1 | Tee-Object -FilePath '$BackendLog' -Append
+& '$javaExe' '-Dfile.encoding=UTF-8' -jar '$MonorepoJar' $extraCfg --spring.cloud.nacos.discovery.ip=127.0.0.1 *>&1 | Tee-Object -FilePath '$BackendLog' -Append
 "@
 
 Start-Process -FilePath "powershell.exe" -ArgumentList @(

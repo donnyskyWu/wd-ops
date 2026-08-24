@@ -1,5 +1,7 @@
 # match-server overlay for local integration (port 48088).
-# Requires shenyu-match schema on localhost:3306 (optional; use mock-match-server.py if DB missing).
+# Requires shenyu-match schema on localhost:3306.
+# If empty: python scripts/integration-config/apply_seed_local_shenyu_match.py
+# Alternative when DB unavailable: mock-match-server.py on :48088
 spring:
   autoconfigure:
     exclude:

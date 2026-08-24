@@ -343,7 +343,11 @@ $InfraJar = Join-Path $Root "football-backend-saas\football-module-infra\footbal
 $MemberJar = Join-Path $Root "football-backend-saas\football-module-member\football-module-member-server\target\football-module-member-server.jar"
 $MatchJar = Join-Path $Root "football-backend-saas\football-module-match\football-module-match-server\target\football-module-match-server.jar"
 $PayJar = Join-Path $Root "football-backend-saas\football-module-pay\football-module-pay-server\target\football-module-pay-server.jar"
-$MatchOverlay = Join-Path $Root "scripts\integration-config\match-integration-overlay.yml"
+$MatchOverlay = if ($Beta) {
+    Join-Path $Root "scripts\integration-config\match-integration-overlay-beta.yml"
+} else {
+    Join-Path $Root "scripts\integration-config\match-integration-overlay.yml"
+}
 $PayOverlay = if ($Beta) {
     Join-Path $Root "scripts\integration-config\pay-integration-overlay-beta.yml"
 } else {

@@ -1,0 +1,57 @@
+# match-server beta master DS. Use with football-integration-overlay-beta.yml + ops-test-remote.env
+# Aligns with test-server application-local.yaml: shenyu-match @ 110.42.49.224, Redis db=1.
+spring:
+  autoconfigure:
+    exclude:
+      - org.apache.rocketmq.spring.autoconfigure.RocketMQAutoConfiguration
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+      discovery:
+        enabled: true
+        register-enabled: true
+        namespace: local
+        group: DEFAULT_GROUP
+        fail-fast: false
+        failure-tolerance-enabled: true
+      config:
+        enabled: false
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://${OPS_TEST_DB_HOST:110.42.49.224}:${OPS_TEST_DB_PORT:3306}/${OPS_TEST_MATCH_DB:shenyu-match}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: ${OPS_TEST_MATCH_USER:shenyu-match}
+          password: ${OPS_TEST_MATCH_PASSWORD:CHANGE_ME}
+        slave:
+          lazy: true
+          url: jdbc:mysql://${OPS_TEST_DB_HOST:110.42.49.224}:${OPS_TEST_DB_PORT:3306}/${OPS_TEST_MATCH_DB:shenyu-match}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: ${OPS_TEST_MATCH_USER:shenyu-match}
+          password: ${OPS_TEST_MATCH_PASSWORD:CHANGE_ME}
+  data:
+    redis:
+      host: ${OPS_TEST_REDIS_HOST:110.42.49.224}
+      port: ${OPS_TEST_REDIS_PORT:6379}
+      database: ${OPS_TEST_REDIS_DATABASE:1}
+      password: ${OPS_TEST_REDIS_PASSWORD:CHANGE_ME}
+
+rocketmq:
+  name-server: ${OPS_TEST_DB_HOST:110.42.49.224}:9876
+
+football:
+  captcha:
+    enable: false
+  security:
+    mock-enable: true
+  encrypt:
+    data-key: K9m2P5v8x1B4n7Q0
+    data-iv: L3j6R9w2Z5c8F1b4
+  datashare:
+    secret-key: 76909d75556ed66d1ebf1b7a2966e307
+    username: syty
+
+match:
+  datashare:
+    image:
+      source-base-url: https://img.tysondata.com
+      local-base-url: https://upload.shenyu.com

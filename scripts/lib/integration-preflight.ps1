@@ -205,7 +205,7 @@ function Test-MySqlLocal {
         [int]$Port = 3306,
         [string]$User = "root",
         [string]$Password = "root",
-        [string[]]$Databases = @("shenyu-ops", "shenyu-member", "shenyu-mp", "shenyu-pay", "shenyu-system")
+        [string[]]$Databases = @("shenyu-ops", "shenyu-member", "shenyu-mp", "shenyu-pay", "shenyu-sys")
     )
 
     if (-not (Test-PortListen -Port $Port)) {

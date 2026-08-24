@@ -1,4 +1,4 @@
-﻿# Football services optional overlay for beta test DB (110.42.49.224).
+# Football services optional overlay for beta test DB (110.42.49.224).
 # Pattern: same as football-integration-overlay.yml (local) / *-remote.yml (archive).
 # Usage: start-ops-dev.ps1 -Beta  OR  --spring.config.additional-location=file:.../football-integration-overlay-beta.yml
 # Load secrets from ops-test-remote.env first. Prefer Football git branch `ops` (see docs/delivery/FOOTBALL-OPS-BRANCH.md).
@@ -67,8 +67,9 @@ football:
     data-key: K9m2P5v8x1B4n7Q0
     data-iv: L3j6R9w2Z5c8F1b4
 
-# Per-service master DB overrides (member / mp / pay / bpm) via *-integration-overlay-beta.yml
+# Per-service master DB overrides (member / mp / pay / match / bpm) via *-integration-overlay-beta.yml
 # member-server master -> shenyu-member / OPS_TEST_MEMBER_*
 # mp-server master     -> shenyu-mp / OPS_TEST_MP_*
 # pay-server master    -> shenyu-pay / OPS_TEST_PAY_*
+# match-server master  -> shenyu-match / OPS_TEST_MATCH_*
 # bpm-server master    -> shenyu-bpm / OPS_TEST_BPM_*

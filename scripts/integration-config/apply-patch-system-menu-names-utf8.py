@@ -83,7 +83,7 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=3306)
     parser.add_argument("--user", default="root")
     parser.add_argument("--password", default="root")
-    parser.add_argument("--database", default="shenyu-system")
+    parser.add_argument("--database", default="shenyu-sys")
     parser.add_argument(
         "--seed",
         type=Path,
