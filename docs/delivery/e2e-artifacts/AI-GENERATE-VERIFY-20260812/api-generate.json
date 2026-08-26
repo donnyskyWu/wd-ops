@@ -1,0 +1,228 @@
+{
+  "timestamp": "2026-08-12T14:50:00.867077",
+  "gateway": "http://127.0.0.1:48080/admin-api",
+  "steps": {
+    "login": {
+      "http": 200,
+      "body": {
+        "code": 0,
+        "msg": "",
+        "data": {
+          "userId": "1749825673829120001",
+          "accessToken": "564bf0bed482499bbd331570b44a54f9",
+          "refreshToken": "d9328ed267264033a1af7cadb5103127",
+          "expiresTime": 1786535401137
+        }
+      }
+    },
+    "match_list": {
+      "http": 200,
+      "body": {
+        "code": 0,
+        "msg": "ok",
+        "data": {
+          "list": [
+            {
+              "scheduleId": "4613628",
+              "displayName": "泰大学联-吞武里大学 VS 皮查亚邦迪特大学-2026-08-12 14:00",
+              "homeTeamName": "吞武里大学",
+              "guestTeamName": "皮查亚邦迪特大学",
+              "matchTime": "2026-08-12 14:00",
+              "matchTimeRaw": 1786514400000,
+              "lotteryType": "jc",
+              "sclassId": "2181",
+              "sclassName": "泰大学联"
+            },
+            {
+              "scheduleId": "4542696",
+              "displayName": "大冠杯-莱城 VS ABM银河-2026-08-12 15:00",
+              "homeTeamName": "莱城",
+              "guestTeamName": "ABM银河",
+              "matchTime": "2026-08-12 15:00",
+              "matchTimeRaw": 1786518000000,
+              "lotteryType": "jc",
+              "sclassId": "692",
+              "sclassName": "大冠杯"
+            },
+            {
+              "scheduleId": "4612581",
+              "displayName": "球会友谊-瓦伦西亚女足 VS 莱万特女足-2026-08-12 15:30",
+              "homeTeamName": "瓦伦西亚女足",
+              "guestTeamName": "莱万特女足",
+              "matchTime": "2026-08-12 15:30",
+              "matchTimeRaw": 1786519800000,
+              "lotteryType": "jc",
+              "sclassId": "24",
+              "sclassName": "球会友谊"
+            },
+            {
+              "scheduleId": "4613373",
+              "displayName": "印西隆联-马普特 VS 马丹SCC-2026-08-12 15:30",
+              "homeTeamName": "马普特",
+              "guestTeamName": "马丹SCC",
+              "matchTime": "2026-08-12 15:30",
+              "matchTimeRaw": 1786519800000,
+              "lotteryType": "jc",
+              "sclassId": "1806",
+              "sclassName": "印西隆联"
+            },
+            {
+              "scheduleId": "4611283",
+              "displayName": "球会友谊-卡塔赫纳 VS 奥瑞韦拉-2026-08-12 16:00",
+              "homeTeamName": "卡塔赫纳",
+              "guestTeamName": "奥瑞韦拉",
+              "matchTime": "2026-08-12 16:00",
+              "matchTimeRaw": 1786521600000,
+              "lotteryType": "jc",
+              "sclassId": "24",
+              "sclassName": "球会友谊"
+            },
+            {
+              "scheduleId": "4611302",
+              "displayName": "罗杯-波佩什蒂莱奥代尼 VS CS布加勒斯特迪纳摩-2026-08-12 16:00",
+              "homeTeamName": "波佩什蒂莱奥代尼",
+              "guestTeamName": "CS布加勒斯特迪纳摩",
+              "matchTime": "2026-08-12 16:00",
+              "matchTimeRaw": 1786521600000,
+              "lotteryType": "jc",
+              "sclassId": "272",
+              "sclassName": "罗杯"
+            },
+            {
+              "scheduleId": "4612582",
+              "displayName": "球会友谊-阿尔科孔 VS 瑞欧马加达宏达-2026-08-12 16:00",
+              "homeTeamName": "阿尔科孔",
+              "guestTeamName": "瑞欧马加达宏达",
+              "matchTime": "2026-08-12 16:00",
+              "matchTimeRaw": 1786521600000,
+              "lotteryType": "jc",
+              "sclassId": "24",
+              "sclassName": "球会友谊"
+            },
+            {
+              "scheduleId": "4613383",
+              "displayName": "贵州五峰杯-罗甸足协 VS 多元化元老-2026-08-12 16:00",
+              "homeTeamName": "罗甸足协",
+              "guestTeamName": "多元化元老",
+              "matchTime": "2026-08-12 16:00",
+              "matchTimeRaw": 1786521600000,
+              "lotteryType": "jc",
+              "sclassId": "7583",
+              "sclassName": "贵州五峰杯"
+            },
+            {
+              "scheduleId": "4613427",
+              "displayName": "球会友谊-圣瑟巴斯提安雷耶斯 VS 巴列卡诺B队-2026-08-12 16:00",
+              "homeTeamName": "圣瑟巴斯提安雷耶斯",
+              "guestTeamName": "巴列卡诺B队",
+              "matchTime": "2026-08-12 16:00",
+              "matchTimeRaw": 1786521600000,
+              "lotteryType": "jc",
+              "sclassId": "24",
+              "sclassName": "球会友谊"
+            },
+            {
+              "scheduleId": "4613458",
+              "displayName": "球会友谊-埃斯帕AFE VS 艾高亚诺-2026-08-12 16:00",
+              "homeTeamName": "埃斯帕AFE",
+              "guestTeamName": "艾高亚诺",
+              "matchTime": "2026-08-12 16:00",
+              "matchTimeRaw": 1786521600000,
+              "lotteryType": "jc",
+              "sclassId": "24",
+              "sclassName": "球会友谊"
+            }
+          ],
+          "total": 173
+        }
+      }
+    },
+    "models": {
+      "http": 200,
+      "body": {
+        "code": 0,
+        "msg": "ok",
+        "data": {
+          "models": [
+            {
+              "id": 8,
+              "name": "qwen3.7-max",
+              "icon": "🔵",
+              "status": "available",
+              "description": "qwen3.7-max",
+              "isDefault": true
+            },
+            {
+              "id": 7,
+              "name": "qwen-plus",
+              "icon": "🔵",
+              "status": "unavailable",
+              "description": "qwen-plus",
+              "isDefault": false
+            },
+            {
+              "id": 11,
+              "name": "MiniMax-M3",
+              "icon": "🟠",
+              "status": "available",
+              "description": "MiniMax-M3",
+              "isDefault": false
+            },
+            {
+              "id": 13,
+              "name": "DeepSeek-Chat",
+              "icon": "🟢",
+              "status": "unavailable",
+              "description": "DeepSeek 对话模型（S-15）",
+              "isDefault": false
+            }
+          ]
+        }
+      }
+    }
+  },
+  "generate": {
+    "request": {
+      "sessionId": "f00ec019-339b-4fbe-918c-5adc6f4c7613",
+      "modelId": 8,
+      "message": "请根据赛事信息生成一版赛后复盘文章",
+      "documentType": "POST_MATCH_REVIEW",
+      "contentType": "ARTICLE",
+      "roundCount": 1,
+      "preferenceSummary": "",
+      "conversationHistory": [],
+      "context": {
+        "matchName": "解放者杯-拉普拉塔大学生 VS 天主大学-2026-08-12 08:30",
+        "authorName": "解说员浩南",
+        "schemeTypes": [
+          "COMPREHENSIVE"
+        ],
+        "historyRecord": "近10场 6胜2平2负",
+        "anchorStyle": "comprehensive",
+        "contentLength": "MEDIUM",
+        "productDescription": "E2E验证测试"
+      }
+    },
+    "response": {
+      "http": 200,
+      "body": {
+        "code": 1400,
+        "msg": "ok",
+        "data": null
+      }
+    },
+    "summary": {
+      "http": 200,
+      "code": 1400,
+      "msg": "ok",
+      "contentLength": 0,
+      "contentPreview200": "",
+      "mock": null,
+      "promptId": null,
+      "promptTemplateName": null,
+      "documentType": null,
+      "matchName": "解放者杯-拉普拉塔大学生 VS 天主大学-2026-08-12 08:30",
+      "authorName": "解说员浩南"
+    }
+  }
+}

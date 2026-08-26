@@ -29,8 +29,15 @@
 
 ## 3. 中间件约束（🔴）
 
-- [ ] **不依赖** XXL-JOB → 用 Spring `@Scheduled`
-- [x] M10-COL-S-02 cron 调度扫描 + `nextRunAt`（`M10ColCollectScheduleS02IT`）
+- [x] **已依赖** XXL-JOB（`football-spring-boot-starter-job` + `@XxlJob` + `@TenantJob`）— [ADR-070](../adr/ADR-070-Ops抓取统一XXL-JOB调度.md) 撤销 ADR-001 §2/§4 XXL-JOB 禁令（仅 Ops 抓取范围，2026-08-17 Accepted）
+  - [x] xxl-job-admin「执行器管理」可见 appname **`football-ops-executor`**（`xxl.job.enabled: true`；`application.yaml` `xxl.job.executor.appname` 显式写死，**禁止** `${spring.application.name}`）
+  - [x] `football.module.ops.service.collect.CollectCronScheduler` 注解 `@XxlJob("collectCronScanJobHandler")` 存在
+  - [x] `football.module.ops.service.monitor.MonitorAlertScanner` 注解 `@XxlJob("monitorAlertScanJobHandler")` 存在
+  - [x] 两个 JobHandler 均带 `@TenantJob`，`TenantJobAspect` AOP 多租户循环生效（与 `football.module.member.job.ArticleJobHandler` 同模板）
+  - [x] **失败重试**：`collectCronScanJobHandler` 与 `monitorAlertScanJobHandler` 在 xxl-job-admin「任务管理」cron 注册时设 `retry-count=3, retry-interval=1min → 5min → 15min`（ADR-070 §6 Q5）
+  - [ ] 触发一次后多租户（tenant=1 + tenant=2）均触发；`oa_collect_log` 增量正确
+  - [ ] **ADR-069 P1 stub 多租户触发验证**：`monitorAlertScanJobHandler` 触发 → **禁用租户调用 0 次** + **每个启用租户各调用 1 次**（`evaluateTenantIncremental(tenantId)` 计数器断言；见 ADR-070 §4.4 / §5.2 T9）
+- [x] M10-COL-S-02 cron 调度扫描 + `nextRunAt`（`M10ColCollectScheduleS02IT`）— 迁移到 `XxlJobExecutor` 测试模式
 - [ ] **不依赖** RabbitMQ → 用 Spring `@Async`
 - [ ] **不依赖** MinIO → 用本地文件系统
 

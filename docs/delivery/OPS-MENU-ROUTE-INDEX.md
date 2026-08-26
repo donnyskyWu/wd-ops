@@ -47,6 +47,7 @@
 | 6122 | SOP管理 | 内容生产 | `sop` | `/ops/production/sop` | `/sop` | `ops/production/sop/index` | `oa:sop:list` | ⚠️ 待修正 CSV=/ops/sop |
 | 6123 | SOP审核 | 内容生产 | `sop/review` | `/ops/production/sop/review` | `/sop/review` | `ops/production/sop/review` | `oa:sop:list` | ⚠️ 待修正 CSV=/ops/sop/review |
 | 6124 | 我的任务 | 内容生产 | `task` | `/ops/production/task` | `/task` | `ops/production/task/index` | `oa:task:list` | ⚠️ 待修正 CSV=/ops/task |
+| 6194 | 工作任务管理 | 内容生产 | `work-task` | `/ops/production/work-task` | `/work-task` | `ops/production/work-task/index` | `ops:work-task:list` | FR-M2-010 · V183（6176–6190 beta 占用） |
 | 6125 | 自定义查询 | 数据分析 | `custom-query` | `/ops/analysis/custom-query` | `/custom-query` | `ops/analysis/CustomQuery` | `oa:custom-query:list` |  |
 | 6126 | 数据报表 | 数据分析 | `data-report` | `/ops/analysis/data-report` | `/data-report` | `ops/analysis/ReportCenter` | `oa:report:list` | ⚠️ 待修正 CSV=/ops/data-report |
 | 6127 | 总体财务分析 | 数据分析 | `financial-analysis` | `/ops/analysis/financial-analysis` | `/financial-analysis` | `ops/finance/FinancialAnalysis` | `oa:financial-analysis:list` | ⚠️ 待修正 CSV=/ops/financial-analysis |
@@ -69,7 +70,6 @@
 | 6147 | ROI分析 | 财务管理 | `roi-analysis` | `/ops/finance/roi-analysis` | `/roi-analysis` | `ops/finance/RoiAnalysis` | `oa:roi:list` | ⚠️ 待修正 CSV=/ops/roi-analysis |
 | 6148 | 公司管理 | 账号管理 | `company` | `/ops/internal/company` | `/company` | `ops/internal/CompanyManage` | `oa:company:list` | ⚠️ 待修正 CSV=/ops/company |
 | 6149 | 平台账号管理 | 账号管理 | `internal-account` | `/ops/internal/internal-account` | `/internal-account` | `ops/internal/InternalAccountManage` | `oa:platform-account:list` | ⚠️ 待修正 CSV=/ops/internal-account |
-| 6150 | 个人账号管理 | 账号管理 | `personal-account` | `/ops/internal/personal-account` | `/personal-account` | `ops/internal/PersonalAccountManage` | `oa:personal-account:list` | ⚠️ 待修正 CSV=/ops/personal-account |
 | 6151 | 手机管理 | 账号管理 | `phone` | `/ops/internal/phone` | `/phone` | `ops/internal/PhoneManage` | `oa:phone:list` | ⚠️ 待修正 CSV=/ops/phone |
 | 6152 | 实名人管理 | 账号管理 | `realname` | `/ops/internal/realname` | `/realname` | `ops/internal/RealnameManage` | `oa:realname:list` | ⚠️ 待修正 CSV=/ops/realname |
 | 6153 | 手机卡管理 | 账号管理 | `simcard` | `/ops/internal/simcard` | `/simcard` | `ops/internal/SimcardManage` | `oa:simcard:list` | ⚠️ 待修正 CSV=/ops/simcard |
@@ -125,7 +125,6 @@
 | 6147 | ROI分析 | `/ops/finance/roi-analysis` | `/ops/roi-analysis` |
 | 6148 | 公司管理 | `/ops/internal/company` | `/ops/company` |
 | 6149 | 平台账号管理 | `/ops/internal/internal-account` | `/ops/internal-account` |
-| 6150 | 个人账号管理 | `/ops/internal/personal-account` | `/ops/personal-account` |
 | 6151 | 手机管理 | `/ops/internal/phone` | `/ops/phone` |
 | 6152 | 实名人管理 | `/ops/internal/realname` | `/ops/realname` |
 | 6153 | 手机卡管理 | `/ops/internal/simcard` | `/ops/simcard` |

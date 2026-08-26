@@ -1,0 +1,589 @@
+-- =============================================================================
+-- System DB ({{SYSTEM_DB_NAME}}) — Ops 基线菜单 6100–6168 + super_admin role_menu
+-- 来源: scripts/integration-config/seed-oa-system-menu.sql（ADR-047 / ADR-058）
+-- 版本: 2026-08-25 · Greenfield prod · 幂等 INSERT … WHERE NOT EXISTS
+-- 目标: {{SYSTEM_DB_HOST}}/{{SYSTEM_DB_NAME}}（Schema SSOT: Beta test 110.42.49.224 / shenyu-system）
+-- 说明: 不含 6194–6196 工作任务菜单（见 001_v183）；不含 6134/6135/6137–6139/6155（已移除）
+-- =============================================================================
+SET NAMES utf8mb4;
+
+BEGIN;
+
+-- S2-A: Ops menus for Football system_menu (ADR-047)
+-- SSOT: scripts/integration-config/seed-oa-system-menu.sql
+-- Permission prefix: ops:* (ADR-058 P-D) ; M9 user/role/tenant excluded
+
+
+
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6100, '运营数据', '', 1, 5, 0, '/ops', 'ep:data-analysis', NULL, NULL, 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6100);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6101, '作品监测', '', 1, 1, 6100, 'monitor', 'ep:folder', NULL, NULL, 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6101);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6102, '内容生产', '', 1, 2, 6100, 'production', 'ep:folder', NULL, NULL, 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6102);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6103, '数据分析', '', 1, 3, 6100, 'analysis', 'ep:folder', NULL, NULL, 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6103);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6104, '数据采集', '', 1, 4, 6100, 'collect', 'ep:folder', NULL, NULL, 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6104);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6105, '系统管理(OA)', '', 1, 5, 6100, 'system-oa', 'ep:folder', NULL, NULL, 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6105);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6106, '绩效核算', '', 1, 6, 6100, 'performance', 'ep:folder', NULL, NULL, 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6106);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6107, '财务管理', '', 1, 7, 6100, 'finance', 'ep:folder', NULL, NULL, 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6107);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6108, '账号管理', '', 1, 8, 6100, 'internal', 'ep:folder', NULL, NULL, 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6108);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6109, '运营管理', '', 1, 9, 6100, 'operations', 'ep:folder', NULL, NULL, 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6109);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6110, '配置管理', '', 1, 10, 6100, 'config', 'ep:folder', NULL, NULL, 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6110);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6111, '外部账号分析', 'ops:external-account:list', 2, 1, 6101, 'external-account', 'ep:document', 'ops/account/ExternalAccountAnalysis', 'ExternalAccount', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6111);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6112, '高粉账号分析', 'ops:high-fans:list', 2, 2, 6101, 'high-fans-account', 'ep:document', 'ops/account/HighFansAccountAnalysis', 'HighFansAccount', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6112);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6113, '爆款作品分析', 'ops:hot-works:list', 2, 3, 6101, 'hot-works', 'ep:document', 'ops/content/HotWorksAnalysis', 'HotWorks', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6113);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6114, 'IP主题数据', 'ops:ip-theme:list', 2, 4, 6101, 'ip-theme', 'ep:document', 'ops/content/IPThemeData', 'IPTheme', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6114);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6115, '低粉账号分析', 'ops:low-fans:list', 2, 5, 6101, 'low-fans-account', 'ep:document', 'ops/account/LowFansAccountAnalysis', 'LowFansAccount', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6115);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6116, '低分作品分析', 'ops:low-score:list', 2, 6, 6101, 'low-score', 'ep:document', 'ops/content/LowScoreAnalysis', 'LowScore', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6116);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6117, '内容管理', 'ops:content:list', 2, 1, 6102, 'content', 'ep:document', 'ops/production/content/index', 'Content', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6117);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6118, '内容审核', 'ops:content:list', 2, 2, 6102, 'content/review', 'ep:document', 'ops/production/content/review', 'ContentReview', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6118);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6119, '内容知识库', 'ops:knowledge:list', 2, 3, 6102, 'knowledge', 'ep:document', 'ops/production/knowledge/index', 'Knowledge', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6119);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6120, '公推模板库', 'ops:layout-template:list', 2, 4, 6102, 'layout-template', 'ep:document', 'ops/production/layout-template/index', 'LayoutTemplate', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6120);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6170, '公推模板创建', 'ops:layout-template:create', 3, 1, 6120, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6170);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6171, '公推模板更新', 'ops:layout-template:update', 3, 2, 6120, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6171);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6172, '公推模板删除', 'ops:layout-template:delete', 3, 3, 6120, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6172);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6173, '公推模板导入', 'ops:layout-template:import', 3, 4, 6120, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6173);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6121, '计划管理', 'ops:plan:list', 2, 5, 6102, 'plan', 'ep:document', 'ops/production/plan/index', 'Plan', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6121);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6122, 'SOP管理', 'ops:sop:list', 2, 6, 6102, 'sop', 'ep:document', 'ops/production/sop/index', 'Sop', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6122);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6123, 'SOP审核', 'ops:sop:list', 2, 7, 6102, 'sop/review', 'ep:document', 'ops/production/sop/review', 'SopReview', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6123);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6124, '我的任务', 'ops:task:list', 2, 8, 6102, 'task', 'ep:document', 'ops/production/task/index', 'Task', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6124);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6175, '全部任务', 'ops:task:list', 2, 9, 6102, 'task/all', 'ep:document', 'ops/production/task/all', 'TaskAll', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6175);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6125, '自定义查询', 'ops:custom-query:list', 2, 1, 6103, 'custom-query', 'ep:document', 'ops/analysis/CustomQuery', 'CustomQuery', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6125);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6126, '数据报表', 'ops:report:list', 2, 2, 6103, 'data-report', 'ep:document', 'ops/analysis/ReportCenter', 'DataReport', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6126);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6127, '总体财务分析', 'ops:financial-analysis:list', 2, 3, 6103, 'financial-analysis', 'ep:document', 'ops/finance/FinancialAnalysis', 'FinancialAnalysis', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6127);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6128, '漏斗分析', 'ops:funnel-analysis:list', 2, 4, 6103, 'funnel-analysis', 'ep:document', 'ops/analysis/FunnelAnalysis', 'FunnelAnalysis', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6128);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6129, '指标管理', 'ops:metric:list', 2, 5, 6103, 'metric', 'ep:document', 'ops/analysis/MetricManage', 'Metric', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6129);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6130, '指标分析', 'ops:metric-analysis:list', 2, 6, 6103, 'metric-analysis', 'ep:document', 'ops/analysis/MetricAnalysis', 'MetricAnalysis', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6130);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6131, '数据大屏', 'ops:screen:view', 2, 7, 6103, 'screen', 'ep:document', 'ops/screen/DataScreenFullscreen', 'DataScreenFullscreen', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6131);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6132, '大屏配置', 'ops:screen-config:list', 2, 8, 6103, 'screen-config', 'ep:document', 'ops/screen/ScreenConfig', 'ScreenConfig', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6132);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6133, '采集日志', 'ops:collect:log:list', 2, 1, 6104, 'log', 'ep:document', 'ops/collect/log', 'CollectLog', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6133);
+
+-- 6134 私域桥接已移除：Phase 2 OOS（ADR-060 stub）；见 cleanup-m10-quality-bridge-menu.sql
+-- 6135 数据质量已移除：Phase 2 OOS（ADR-060 stub）；见 cleanup-m10-quality-bridge-menu.sql
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6136, '采集任务', 'ops:collect:task:list', 2, 2, 6104, 'task', 'ep:document', 'ops/collect/task', 'CollectTask', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6136);
+
+-- 6137 字典配置已移除：SSOT = Football #/dict（menu 105；system:dict:query @ 1026；见 V149 / OPS-DICT-MERGE-FOOTBALL-PLAN）
+-- 6138 登录日志已移除：OPS 不承载登录，SSOT = Football system/login-log（见 V146 / OPS-AUDIT-LOG-MIGRATION-PLAN AL-04）
+-- 6139 操作日志已移除：SSOT = Football #/log/operate-log（system:operate-log:query @ menu 1040；见 V147 / AL-11）
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6140, '消息管理', 'ops:message:list', 2, 4, 6105, 'system-message', 'ep:document', 'ops/system/MessageManage', 'SystemMessage', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6140);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6141, '系统参数', 'ops:param:list', 2, 5, 6105, 'system-param', 'ep:document', 'ops/system/ParamManage', 'SystemParam', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6141);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6142, '订单归因分析', 'ops:order-attribution:list', 2, 1, 6106, 'order-attribution', 'ep:document', 'ops/performance/OrderAttribution', 'OrderAttribution', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6142);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6143, '考核执行', 'ops:perf:list', 2, 2, 6106, 'perf-execution', 'ep:document', 'ops/performance/PerfExecution', 'PerfExecution', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6143);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6144, '绩效结果', 'ops:perf:list', 2, 3, 6106, 'perf-result', 'ep:document', 'ops/performance/PerfResult', 'PerfResult', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6144);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6145, '考核模板', 'ops:perf:list', 2, 4, 6106, 'perf-template', 'ep:document', 'ops/performance/PerfTemplate', 'PerfTemplate', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6145);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6146, '账号成本管理', 'ops:cost:list', 2, 1, 6107, 'account-cost', 'ep:document', 'ops/finance/AccountCostManage', 'AccountCost', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6146);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6147, 'ROI分析', 'ops:roi:list', 2, 2, 6107, 'roi-analysis', 'ep:document', 'ops/finance/RoiAnalysis', 'RoiAnalysis', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6147);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6148, '公司管理', 'ops:company:list', 2, 1, 6108, 'company', 'ep:document', 'ops/internal/CompanyManage', 'Company', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6148);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6149, '平台账号管理', 'ops:platform-account:list', 2, 2, 6108, 'internal-account', 'ep:document', 'ops/internal/InternalAccountManage', 'InternalAccount', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6149);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6174, '平台账号查询', 'ops:account:list', 3, 1, 6149, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6174);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6150, '个人账号管理', 'ops:personal-account:list', 2, 3, 6108, 'personal-account', 'ep:document', 'ops/internal/PersonalAccountManage', 'PersonalAccount', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6150);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6151, '手机管理', 'ops:phone:list', 2, 4, 6108, 'phone', 'ep:document', 'ops/internal/PhoneManage', 'Phone', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6151);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6152, '实名人管理', 'ops:realname:list', 2, 5, 6108, 'realname', 'ep:document', 'ops/internal/RealnameManage', 'Realname', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6152);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6153, '手机卡管理', 'ops:simcard:list', 2, 6, 6108, 'simcard', 'ep:document', 'ops/internal/SimcardManage', 'Simcard', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6153);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6154, '账号分析', 'ops:account-analysis:list', 2, 1, 6109, 'account-analysis', 'ep:document', 'ops/operations/AccountAnalysis', 'AccountAnalysis', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6154);
+
+-- 6155 作者管理已移除：基础 CRUD 迁移 Football author/info（见 V145 / OPS-AUTHOR-MERGE-ANALYSIS）
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6156, '人效盘点', 'ops:efficiency:list', 2, 3, 6109, 'efficiency', 'ep:document', 'ops/operations/Efficiency', 'Efficiency', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6156);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6157, '粉丝分析', 'ops:fans-analysis:list', 2, 4, 6109, 'fans-analysis', 'ep:document', 'ops/operations/FansAnalysis', 'FansAnalysis', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6157);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6158, '内部作品分析', 'ops:internal-content:list', 2, 5, 6109, 'internal-content', 'ep:document', 'ops/operations/InternalContent', 'InternalContent', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6158);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6159, 'IP组管理', 'ops:ip-group:list', 2, 6, 6109, 'ip-group', 'ep:document', 'ops/operations/IpGroup', 'IpGroup', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6159);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6160, 'AI模型', 'ops:config:ai-model:list', 2, 1, 6110, 'config-ai-model', 'ep:document', 'ops/config/AiModelConfig', 'ConfigAiModel', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6160);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6161, 'AI提示词', 'ops:config:ai-prompt:list', 2, 2, 6110, 'config-ai-prompt', 'ep:document', 'ops/config/AiPromptConfig', 'ConfigAiPrompt', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6161);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6162, '外部采集配置', 'ops:config:external-collect:list', 2, 3, 6110, 'config-external-collect', 'ep:document', 'ops/config/ExternalCollectConfig', 'ConfigExternalCollect', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6162);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6163, '外部数据配置', 'ops:config:external-data:list', 2, 4, 6110, 'config-external-data', 'ep:document', 'ops/config/ExternalDataConfig', 'ConfigExternalData', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6163);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6164, '内部采集配置', 'ops:config:internal-collect:list', 2, 5, 6110, 'config-internal-collect', 'ep:document', 'ops/config/InternalCollectConfig', 'ConfigInternalCollect', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6164);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6165, '元数据维护', 'ops:metadata:query', 2, 6, 6110, 'config-metadata', 'ep:document', 'ops/config/MetadataManage', 'ConfigMetadata', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6165);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6166, '订单采集配置', 'ops:config:order-collect:list', 2, 7, 6110, 'config-order-collect', 'ep:document', 'ops/config/OrderCollectConfig', 'ConfigOrderCollect', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6166);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6167, '阈值规则配置', 'ops:config:threshold:list', 2, 8, 6110, 'config-threshold', 'ep:document', 'ops/config/ThresholdConfig', 'ConfigThreshold', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6167);
+
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6168, '首页仪表盘', 'ops:home:view', 2, 1, 6100, 'dashboard', 'ep:document', 'ops/Dashboard', 'Dashboard', 0, b'1', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6168);
+
+
+-- Grant all Ops menus to super admin (role_id=1, tenant_id=1)
+-- user_type=2 必填：RoleMenuMapper.selectListByRoleId 按 userType 过滤（非 super_admin 依赖本表）
+-- 目录节点 6101–6110 必须授予，否则非超管侧栏树会丢父级、子菜单挂不上
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70000, 1, 6100, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70000);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70065, 1, 6101, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70065);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70066, 1, 6102, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70066);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70067, 1, 6103, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70067);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70068, 1, 6104, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70068);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70069, 1, 6105, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70069);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70070, 1, 6106, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70070);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70071, 1, 6107, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70071);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70072, 1, 6108, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70072);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70073, 1, 6109, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70073);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70074, 1, 6110, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70074);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70001, 1, 6111, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70001);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70002, 1, 6112, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70002);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70003, 1, 6113, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70003);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70004, 1, 6114, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70004);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70005, 1, 6115, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70005);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70006, 1, 6116, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70006);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70007, 1, 6117, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70007);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70008, 1, 6118, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70008);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70009, 1, 6119, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70009);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70010, 1, 6120, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70010);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70059, 1, 6170, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70059);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70060, 1, 6171, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70060);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70061, 1, 6172, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70061);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70062, 1, 6173, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70062);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70063, 1, 6174, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70063);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70011, 1, 6121, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70011);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70012, 1, 6122, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70012);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70013, 1, 6123, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70013);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70014, 1, 6124, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70014);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70064, 1, 6175, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70064);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70015, 1, 6125, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70015);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70016, 1, 6126, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70016);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70017, 1, 6127, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70017);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70018, 1, 6128, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70018);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70019, 1, 6129, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70019);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70020, 1, 6130, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70020);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70021, 1, 6131, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70021);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70022, 1, 6132, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70022);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70023, 1, 6133, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70023);
+
+-- 70024 6134 私域桥接菜单已移除
+-- 70025 6135 数据质量菜单已移除
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70026, 1, 6136, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70026);
+
+-- 70027 6137 字典配置菜单已移除（Football 105/1026–1029 由 V149 授予原 6137 角色）
+-- 70028 6138 登录日志菜单已移除
+-- 70029 6139 操作日志菜单已移除（Football 1040 由 V147 授予原 6139 角色）
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70030, 1, 6140, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70030);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70031, 1, 6141, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70031);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70032, 1, 6142, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70032);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70033, 1, 6143, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70033);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70034, 1, 6144, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70034);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70035, 1, 6145, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70035);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70036, 1, 6146, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70036);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70037, 1, 6147, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70037);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70038, 1, 6148, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70038);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70039, 1, 6149, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70039);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70040, 1, 6150, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70040);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70041, 1, 6151, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70041);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70042, 1, 6152, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70042);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70043, 1, 6153, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70043);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70044, 1, 6154, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70044);
+
+-- 70045 6155 作者管理菜单已移除
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70046, 1, 6156, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70046);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70047, 1, 6157, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70047);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70048, 1, 6158, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70048);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70049, 1, 6159, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70049);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70050, 1, 6160, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70050);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70051, 1, 6161, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70051);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70052, 1, 6162, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70052);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70053, 1, 6163, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70053);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70054, 1, 6164, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70054);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70055, 1, 6165, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70055);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70056, 1, 6166, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70056);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70057, 1, 6167, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70057);
+
+INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type)
+SELECT 70058, 1, 6168, 'integration', 1, 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 70058);
+
+
+
+COMMIT;

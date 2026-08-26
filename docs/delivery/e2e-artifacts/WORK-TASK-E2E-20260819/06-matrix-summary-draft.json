@@ -1,0 +1,18 @@
+﻿{
+    "code":  0,
+    "msg":  "ok",
+    "data":  {
+                 "dateFrom":  "2026-08-19",
+                 "dateTo":  "2026-08-19",
+                 "totalTasks":  0,
+                 "totalMatchRows":  0,
+                 "livePublicCount":  0,
+                 "paidSalesCount":  0,
+                 "redCount":  0,
+                 "blackCount":  0,
+                 "unknownCount":  0,
+                 "authorStats":  [
+
+                                 ]
+             }
+}

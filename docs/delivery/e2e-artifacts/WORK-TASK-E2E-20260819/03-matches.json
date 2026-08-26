@@ -1,0 +1,64 @@
+﻿{
+    "code":  0,
+    "msg":  "ok",
+    "data":  {
+                 "list":  [
+                              {
+                                  "scheduleId":  "4590956",
+                                  "displayName":  "æ¾³ç»´å¥³è¶\u0085-ç­å°¤å°å¸å¥³è¶³ VS å¸ä¼¦çå\u0085ç¥äºè¾¾æ¯å¥³è¶³-2026-08-19 18:15",
+                                  "homeTeamName":  "ç­å°¤å°å¸å¥³è¶³",
+                                  "guestTeamName":  "å¸ä¼¦çå\u0085ç¥äºè¾¾æ¯å¥³è¶³",
+                                  "matchTime":  "2026-08-19 18:15",
+                                  "matchTimeRaw":  1787134500000,
+                                  "lotteryType":  "jc",
+                                  "sClassId":  "601",
+                                  "sClassName":  "æ¾³ç»´å¥³è¶\u0085"
+                              },
+                              {
+                                  "scheduleId":  "4620581",
+                                  "displayName":  "çä¼åè°-éå® VS è´å¡éº¦å\u0085æ¯-2026-08-19 18:15",
+                                  "homeTeamName":  "éå®",
+                                  "guestTeamName":  "è´å¡éº¦å\u0085æ¯",
+                                  "matchTime":  "2026-08-19 18:15",
+                                  "matchTimeRaw":  1787134500000,
+                                  "lotteryType":  "jc",
+                                  "sClassId":  "24",
+                                  "sClassName":  "çä¼åè°"
+                              },
+                              {
+                                  "scheduleId":  "4476119",
+                                  "displayName":  "æ¾³ç»´è¶\u0085-æ®é·æ¯é¡¿è±æ© VS å¢¨å°æ¬å¸NPL-2026-08-19 18:30",
+                                  "homeTeamName":  "æ®é·æ¯é¡¿è±æ©",
+                                  "guestTeamName":  "å¢¨å°æ¬å¸NPL",
+                                  "matchTime":  "2026-08-19 18:30",
+                                  "matchTimeRaw":  1787135400000,
+                                  "lotteryType":  "jc",
+                                  "sClassId":  "592",
+                                  "sClassName":  "æ¾³ç»´è¶\u0085"
+                              },
+                              {
+                                  "scheduleId":  "4613900",
+                                  "displayName":  "é©å½æ¯-éå±±å¶å VS å¯å·FC-2026-08-19 18:30",
+                                  "homeTeamName":  "éå±±å¶å",
+                                  "guestTeamName":  "å¯å·FC",
+                                  "matchTime":  "2026-08-19 18:30",
+                                  "matchTimeRaw":  1787135400000,
+                                  "lotteryType":  "jc",
+                                  "sClassId":  "589",
+                                  "sClassName":  "é©å½æ¯"
+                              },
+                              {
+                                  "scheduleId":  "4613906",
+                                  "displayName":  "é©å½æ¯-å®å\u0085»FC VS æµå·SK-2026-08-19 18:30",
+                                  "homeTeamName":  "å®å\u0085»FC",
+                                  "guestTeamName":  "æµå·SK",
+                                  "matchTime":  "2026-08-19 18:30",
+                                  "matchTimeRaw":  1787135400000,
+                                  "lotteryType":  "jc",
+                                  "sClassId":  "589",
+                                  "sClassName":  "é©å½æ¯"
+                              }
+                          ],
+                 "total":  171
+             }
+}

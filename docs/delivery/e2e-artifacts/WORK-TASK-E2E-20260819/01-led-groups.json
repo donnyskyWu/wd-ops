@@ -1,0 +1,20 @@
+﻿{
+    "code":  0,
+    "msg":  "ok",
+    "data":  [
+                 {
+                     "id":  9016,
+                     "groupName":  "SSOT-Snow-å°ç»",
+                     "groupType":  2,
+                     "parentId":  9015,
+                     "parentName":  null,
+                     "leaderName":  "åå¿å»º",
+                     "memberCount":  null,
+                     "accountCount":  null,
+                     "anchorCount":  null,
+                     "status":  1,
+                     "level":  null,
+                     "createTime":  1784691213000
+                 }
+             ]
+}

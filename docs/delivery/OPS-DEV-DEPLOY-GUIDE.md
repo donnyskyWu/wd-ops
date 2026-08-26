@@ -446,7 +446,7 @@ if ($conn) { Stop-Process -Id $conn.OwningProcess -Force }
 | UI 登录后「系统错误」 | Gateway :48080 DOWN 或 Redis 密码不对 | 同上：`.\scripts\start-ops-dev.ps1`；Redis 须 **123456**；查 `scripts/logs/gateway-integration.log` |
 | Gateway DOWN | 无 JAR / Redis 认证失败 | `.\scripts\start-ops-dev.ps1 -FirstRun` 构建；预检见 §2.6 |
 | football-module-ops API 500 | localhost 五库缺失 | 建库并导入 `docs/sql/`；查 `dev-local-multidb` profile 是否生效 |
-| Flyway checksum mismatch | 修改了已执行的 migration | 测试库 `flyway repair` 或勿改历史 `V*.sql` |
+| Flyway checksum mismatch | 修改了已执行的 migration；或 greenfield `01` 灌库后 history checksum 与 JAR 不一致（常见 V181） | `flyway repair`；或 `UPDATE flyway_schema_history SET checksum = … WHERE version = '181'`（见 `OPERATIONS-GUIDE.md` Step 2）；勿改已执行 `V*.sql` |
 | 端口占用 | 旧进程未退出 | `stop-integration-all.ps1`（默认不杀 :6379）或按端口杀 PID |
 | PowerShell Maven 报错 `Unknown lifecycle phase ".run.profiles=dev"` | `-D` 被拆参 | 参数加引号：`"-Dspring-boot.run.profiles=dev"` |
 | Standalone dev-token 401 | localhost wd 被 S0 TRUNCATE | 改走 Integration 路径，或手工恢复 dev-token（见 OPS-STARTUP-MATRIX §4.4） |

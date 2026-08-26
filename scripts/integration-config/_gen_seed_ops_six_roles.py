@@ -371,6 +371,7 @@ def main() -> None:
         "-- ADR-064: OPS six business roles + system_role_menu (exclude super_admin)",
         "-- Apply AFTER seed-oa-system-menu.sql (utf8mb4 stdin via apply-seed-oa-menu.py)",
         "-- Target: Football shenyu-system.system_role / system_role_menu",
+        "-- Idempotent re-run: DELETE only ADR-064 menu bindings; preserves work-task role_menu 6194-6196 (V183).",
         "SET NAMES utf8mb4;",
         "",
         "BEGIN;",
@@ -412,7 +413,8 @@ def main() -> None:
                 "",
                 "DELETE FROM system_role_menu",
                 f"WHERE role_id = @role_id_{code}",
-                "  AND menu_id >= 6100 AND menu_id < 7000;",
+                "  AND menu_id >= 6100 AND menu_id < 7000",
+                "  AND menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (V183 / 03_work_task_menus_v183)",
                 "",
             ]
         )

@@ -1,0 +1,481 @@
+{
+  "login_code": 0,
+  "unified_list": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "list": [
+        {
+          "account_id": 9022,
+          "account_name": "OKOK78395",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9022,
+          "accountName": "OKOK78395"
+        },
+        {
+          "account_id": 9021,
+          "account_name": "DY-RN-DY-RN-SMOKE-77939",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9021,
+          "accountName": "DY-RN-DY-RN-SMOKE-77939"
+        },
+        {
+          "account_id": 9020,
+          "account_name": "111",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9020,
+          "accountName": "111"
+        },
+        {
+          "account_id": 9019,
+          "account_name": "ADR062-smoke-B-1",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9019,
+          "accountName": "ADR062-smoke-B-1"
+        },
+        {
+          "account_id": 9018,
+          "account_name": "学习1",
+          "platform_type": "KUAISHOU",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9018,
+          "accountName": "学习1"
+        },
+        {
+          "account_id": 9017,
+          "account_name": "专员绑定9001",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9017,
+          "accountName": "专员绑定9001"
+        },
+        {
+          "account_id": 9016,
+          "account_name": "专员绑定9001",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9016,
+          "accountName": "专员绑定9001"
+        },
+        {
+          "account_id": 9015,
+          "account_name": "专员绑定9001",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9015,
+          "accountName": "专员绑定9001"
+        },
+        {
+          "account_id": 9014,
+          "account_name": "专员绑定9001",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9014,
+          "accountName": "专员绑定9001"
+        },
+        {
+          "account_id": 9013,
+          "account_name": "SEED-DY-A5",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9013,
+          "accountName": "SEED-DY-A5"
+        },
+        {
+          "account_id": 9012,
+          "account_name": "SEED-DY-A4",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9012,
+          "accountName": "SEED-DY-A4"
+        },
+        {
+          "account_id": 9011,
+          "account_name": "SEED-DY-A3",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9011,
+          "accountName": "SEED-DY-A3"
+        },
+        {
+          "account_id": 9010,
+          "account_name": "SEED-WX-B1",
+          "platform_type": "WECHAT_OFFICIAL",
+          "ip_group_name": "系统测试B",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9010,
+          "accountName": "SEED-WX-B1"
+        },
+        {
+          "account_id": 9009,
+          "account_name": "SEED-XHS-1",
+          "platform_type": "XIAOHONGSHU",
+          "ip_group_name": "系统测试B",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9009,
+          "accountName": "SEED-XHS-1"
+        },
+        {
+          "account_id": 9008,
+          "account_name": "SEED-KS-1",
+          "platform_type": "KUAISHOU",
+          "ip_group_name": "系统测试B",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9008,
+          "accountName": "SEED-KS-1"
+        },
+        {
+          "account_id": 9007,
+          "account_name": "SEED-DY-2",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "系统测试B",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9007,
+          "accountName": "SEED-DY-2"
+        },
+        {
+          "account_id": 9006,
+          "account_name": "SEED-DY-1",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "系统测试B",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9006,
+          "accountName": "SEED-DY-1"
+        },
+        {
+          "account_id": 9005,
+          "account_name": "SEED-WV-B2",
+          "platform_type": "WECHAT_VIDEO",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9005,
+          "accountName": "SEED-WV-B2"
+        },
+        {
+          "account_id": 9004,
+          "account_name": "SEED-WV-B1",
+          "platform_type": "WECHAT_VIDEO",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9004,
+          "accountName": "SEED-WV-B1"
+        },
+        {
+          "account_id": 9003,
+          "account_name": "SEED-WX-A3",
+          "platform_type": "WECHAT_OFFICIAL",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9003,
+          "accountName": "SEED-WX-A3"
+        },
+        {
+          "account_id": 9002,
+          "account_name": "SEED-WX-A2",
+          "platform_type": "WECHAT_OFFICIAL",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9002,
+          "accountName": "SEED-WX-A2"
+        },
+        {
+          "account_id": 9001,
+          "account_name": "SEED-WX-A1",
+          "platform_type": "WECHAT_OFFICIAL",
+          "ip_group_name": "功能测试A",
+          "follower_count": 0,
+          "content_count": 0,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 9001,
+          "accountName": "SEED-WX-A1"
+        },
+        {
+          "account_id": 3,
+          "account_name": "学弈乐-dy",
+          "platform_type": "DOUYIN",
+          "ip_group_name": "系统小组",
+          "follower_count": 2675,
+          "content_count": 78,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 3,
+          "accountName": "学弈乐-dy"
+        },
+        {
+          "account_id": 2,
+          "account_name": "快手-学弈乐",
+          "platform_type": "KUAISHOU",
+          "ip_group_name": "-",
+          "follower_count": 786,
+          "content_count": 5,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 2,
+          "accountName": "快手-学弈乐"
+        },
+        {
+          "account_id": 1,
+          "account_name": "翕蔚热说",
+          "platform_type": "WECHAT_VIDEO",
+          "ip_group_name": "功能测试A",
+          "follower_count": 1450,
+          "content_count": 50,
+          "revenue": 0,
+          "cost": 0,
+          "roi": 0,
+          "accountId": 1,
+          "accountName": "翕蔚热说"
+        }
+      ],
+      "total": 25
+    }
+  },
+  "unified_stats": {
+    "code": 0,
+    "msg": "ok",
+    "data": {
+      "totalAccounts": 25,
+      "totalFollowers": 4911,
+      "totalContents": 0,
+      "totalReads": 0,
+      "totalRevenue": 0,
+      "overallRoi": 0,
+      "items": [
+        {
+          "accountId": 1,
+          "accountName": "翕蔚热说",
+          "followerCount": 1450
+        },
+        {
+          "accountId": 2,
+          "accountName": "快手-学弈乐",
+          "followerCount": 786
+        },
+        {
+          "accountId": 3,
+          "accountName": "学弈乐-dy",
+          "followerCount": 2675
+        },
+        {
+          "accountId": 9001,
+          "accountName": "SEED-WX-A1",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9002,
+          "accountName": "SEED-WX-A2",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9003,
+          "accountName": "SEED-WX-A3",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9004,
+          "accountName": "SEED-WV-B1",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9005,
+          "accountName": "SEED-WV-B2",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9006,
+          "accountName": "SEED-DY-1",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9007,
+          "accountName": "SEED-DY-2",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9008,
+          "accountName": "SEED-KS-1",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9009,
+          "accountName": "SEED-XHS-1",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9010,
+          "accountName": "SEED-WX-B1",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9011,
+          "accountName": "SEED-DY-A3",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9012,
+          "accountName": "SEED-DY-A4",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9013,
+          "accountName": "SEED-DY-A5",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9014,
+          "accountName": "专员绑定9001",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9015,
+          "accountName": "专员绑定9001",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9016,
+          "accountName": "专员绑定9001",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9017,
+          "accountName": "专员绑定9001",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9018,
+          "accountName": "学习1",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9019,
+          "accountName": "ADR062-smoke-B-1",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9020,
+          "accountName": "111",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9021,
+          "accountName": "DY-RN-DY-RN-SMOKE-77939",
+          "followerCount": 0
+        },
+        {
+          "accountId": 9022,
+          "accountName": "OKOK78395",
+          "followerCount": 0
+        }
+      ]
+    }
+  },
+  "platform_page": {
+    "code": 404,
+    "msg": "请求地址不存在:admin-api/ops/platform-account/page",
+    "data": null
+  }
+}

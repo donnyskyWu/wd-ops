@@ -7,8 +7,9 @@
 
 ## 1. 范围与 FR
 
-- [ ] 13 个 Slice 全部完成（含 S-10~S-13 需求 2–6）
+- [ ] 13 个 Slice 全部完成（含 S-10~S-13 需求 2–6；**S-16~S-19 FR-M2-010 工作任务管理 Post-S7 增量**）
 - [ ] 5 个 FR（FR-M2-001~004 + FR-M2-009）全部实现
+- [ ] **FR-M2-010** 工作任务管理（S-16 ✅ 基础 · S-17 ✅ 登记 · S-18 ✅ 矩阵 · S-19 ✅ 红黑 Job）
 - [ ] 22 个 API 实现完整（含计划 9 个）
 
 ## 2. 功能
@@ -59,11 +60,16 @@
 - [x] **BLK-M2-008** 执行说明：`instruction_text` + SOP 编辑 + 执行页展示
 - [x] **BLK-M2-007** 附件只读：`attachment_urls` JSON + Seed + 执行页链接（无上传 API）
 - [ ] ADR-016 其余阻塞项（BLK-M2-004~006、009~011）已产品确认或标注延期
+- [x] **S-16 FR-M2-010 基础**（2026-08-19）：ADR-071/072 Accepted · V181 表/字典/菜单/AI prompt · DO/Mapper/Controller 骨架
+- [x] **S-17 FR-M2-010 登记**（2026-08-19）：sheet get-or-create/save/confirm/withdraw + Tab1 + V182 sys_param + WorkTaskServiceImplTest
+- [x] **S-18 FR-M2-010 矩阵**（2026-08-19）：matrix/summary API + Tab2 `WorkTaskMatrixTable` 列头 `{author}【{ipGroup}-{leader}】` + WorkTaskMatrixSupportTest
+- [x] **S-19 FR-M2-010 红黑 Job**（2026-08-19）：`workTaskWinPredictionJobHandler` + `WORK_TASK_WIN_PREDICTION` + `MatchProxyService.getFinishedMatchResult` + refresh API + `WorkTaskWinPredictionServiceTest`
 
 ## 3. 全局规范（🔴 必查）
 
 - [ ] SOP 节点 `executor_role` / `reviewer_role` 使用 `<DictSelect dict-type="dict_position" />`
 - [x] SOP 节点 `node_type` 使用 `<DictSelect dict-type="dict_sop_node_type" />`
+- [x] **FR-M2-010 字典**（S-16）：`dict_marketing_plan_type` · `dict_sales_platform` · `dict_win_prediction` · `dict_work_task_sheet_status`
 - [x] 计划步骤 `competition_id` 使用选择器（非手输外部 ID）
 - [x] 任务驱动内容 `document_type` 使用 `<DictSelect dict-type="dict_document_type" />`
 - [ ] 内容 `contentType` / `platformType` 使用 `<DictSelect />`
@@ -120,7 +126,16 @@
 - [ ] API 文档自动生成
 - [ ] 字典项已登记在 GLOBAL-CONVENTIONS
 
-## 10. Sign-off
+## 10. E2E 走查（FR-M2-010）
+
+- [ ] **WORK-TASK-E2E-20260819** Tab1 登记 UI 全流程（菜单/route 阻断 · 见 REPORT §WT-E2E-01/02）
+- [ ] **WORK-TASK-E2E-20260819** Tab1 confirm → 我的任务 → withdraw（字典未灌入 · 见 WT-E2E-03）
+- [x] **WORK-TASK-E2E-20260819** API get-or-create + 单行 save + matrix/summary 空态（39% P0）
+- [ ] **WORK-TASK-E2E-20260819** Tab2 矩阵 badge LIVE_PUBLIC/PAID_SALES（需 confirmed 数据）
+- [ ] **WORK-TASK-E2E-20260819** 红黑 refresh / Job（需 confirmed + 完赛数据）
+- 报告：`docs/delivery/e2e-artifacts/WORK-TASK-E2E-20260819/REPORT.md`
+
+## 11. Sign-off
 
 | 角色 | 姓名 | 日期 | 签名 |
 |------|------|------|------|
