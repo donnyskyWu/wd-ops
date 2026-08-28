@@ -19,7 +19,9 @@
 | `REDIS_HOST` | `redis.prod.internal` | Spring Redis + Football Redis | Session / cache |
 | `REDIS_PASSWORD` | *(secret)* | Redis | |
 | `OA_AES_KEY` | Base64 32-byte key | `oa.crypto.aes-key` | Must match existing prod key for encrypted fields |
-| `COLLECTOR_BASE_URL` | `https://ai.shenyu.com/` | Unified collector | M10 external collect |
+| `COLLECTOR_BASE_URL` | `http://ai.shenyu.com/` | Unified collector | M10 external collect |
+| `COLLECTOR_API_TOKEN` | *(secret)* | `oa.unified-collector.api-token` | Must match unify-collector `API_TOKEN` |
+| `FOOTBALL_AI_SCHEME_GENERATE_API_KEY` | *(secret)* | jingcai.article | Or alias `AUTHOR_AI_SCHEME_API_KEY` |
 | `ADMIN_UI_URL` | `https://admin.shenyu.com` | `football.web.admin-ui.url` | Notification links |
 
 ---
@@ -35,26 +37,23 @@
 | `REDIS_DATABASE` | `0` | Beta uses `1`; confirm prod |
 | `FLYWAY_ENABLED` | `true` | Set `false` if DBA applies SQL manually |
 | `COLLECTOR_API_TOKEN` | empty | Required if collector auth enabled |
+| `FOOTBALL_AI_SCHEME_GENERATE_URL` | `http://ai.author.shenyu.com/api/v1/tasks` | jingcai POST create task |
+| `FOOTBALL_AI_SCHEME_GET_URL` | same as generate URL prefix | jingcai GET poll task |
+| `FOOTBALL_AI_MODEL` | `deepseek-v4-flash` | Passed as `options.model` |
+| `AUTHOR_AI_SCHEME_API_KEY` | — | Legacy alias for `FOOTBALL_AI_SCHEME_GENERATE_API_KEY` |
 | `XXL_JOB_ENABLED` | `true` | Set `false` to disable all XXL handlers |
 | `XXL_JOB_ADMIN_ADDRESSES` | `http://127.0.0.1:9090/xxl-job-admin` | **Override for prod** — shared mp admin per ADR-070 |
 | `XXL_JOB_ACCESS_TOKEN` | `a1b2c3d4e5f67890` | Must match xxl-job-admin token |
 
 ---
 
-## YAML-only (not env-interpolated in base prod file)
+## YAML-only (legacy — now env-interpolated in `application.yaml`)
 
-Set via Nacos config overlay or `--spring.config.additional-location`:
-
-| Key | Purpose | Prod guidance |
-|-----|---------|---------------|
-| `football.ai.scheme-generate-url` | jingcai async article generate | e.g. `http://ai.author.shenyu.com/api/v1/tasks` |
-| `football.ai.scheme-generate-api-key` | AI API key | Secret — from jingcai platform |
-| `football.ai.scheme-get-url` | Poll task result | Same host as generate |
-| `football.ai.model` | LLM model id | Default `deepseek-v4-flash` |
-| `oa.match.internal-base-url` | Match proxy target | Nacos `match-server` or literal prod URL (port 48088) |
-| `oa.work-task.win-prediction.enabled` | Enable 红黑 Job | `true` in prod |
-| `oa.work-task.win-prediction.match-end-buffer-minutes` | Post-match wait | Default `120` |
-| `oa.work-task.win-prediction.scheduled-fallback-enabled` | @Scheduled fallback | **`false` in prod** — use xxl-job only |
+| Key | Env equivalent | Notes |
+|-----|----------------|-------|
+| `football.ai.*` | `FOOTBALL_AI_*` / `AUTHOR_AI_SCHEME_*` | AI 内容生成 jingcai 路径 |
+| `oa.match.internal-base-url` | `OA_MATCH_INTERNAL_BASE_URL` | Match proxy |
+| `oa.work-task.win-prediction.*` | — | 默认已在 `application.yaml` |
 
 ### Private domain report (M6 MVP)
 

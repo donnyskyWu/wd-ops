@@ -1,7 +1,10 @@
-# Beta 测试机 ops-server 外部叠加模板 — 复制为 ops-server-beta-server.yaml 并填入真实口令
-# DO NOT commit ops-server-beta-server.yaml (gitignored).
-# 用法见 docs/delivery/OPS-TEST-SERVER-DEPLOY-GUIDE.md §6.2.1
-# 全部 literal 值，无 ${...} 占位符
+# 生产 ops-server 外部叠加模板 — 复制为 ops-server-prod.yaml 并填入真实口令
+# DO NOT commit ops-server-prod.yaml (gitignored).
+# 用法：
+#   java -jar football-module-ops-server.jar \
+#     --spring.profiles.active=prod \
+#     --spring.config.additional-location=file:/opt/ops/config/ops-server-prod.yaml
+# 全部 literal 值，无 ${...} 占位符；结构与 JAR 内 application-prod.yaml 一致
 
 --- #################### 注册中心 + 配置中心 ####################
 
@@ -12,21 +15,29 @@ spring:
       username: nacos
       password: xxx
       discovery:
-        namespace: beta
+        namespace: prod
         group: DEFAULT_GROUP
         register-enabled: true
         fail-fast: false
         failure-tolerance-enabled: true
+        metadata:
+          version: prod-ops-v189
       config:
         enabled: false
-        namespace: beta
+        namespace: prod
         group: DEFAULT_GROUP
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 10000
+            readTimeout: 120000
 
---- #################### 数据库 + Redis ####################
+--- #################### 数据库 + Redis + Flyway ####################
 
 spring:
   flyway:
-    enabled: false
+    enabled: true
   datasource:
     druid:
       web-stat-filter:
@@ -50,9 +61,9 @@ spring:
       primary: master
       strict: true
       druid:
-        initial-size: 1
-        min-idle: 1
-        max-active: 20
+        initial-size: 2
+        min-idle: 2
+        max-active: 30
         max-wait: 60000
         time-between-eviction-runs-millis: 60000
         min-evictable-idle-time-millis: 600000
@@ -80,9 +91,16 @@ spring:
 
 xxl:
   job:
-    enabled: false
+    enabled: true
+    accessToken: xxx
     admin:
       addresses: http://127.0.0.1:9090/xxl-job-admin
+    executor:
+      appname: football-ops-executor
+      ip:
+      port: -1
+      logpath: /opt/ops/logs/xxl-job/ops-server
+      logretentiondays: 30
 
 lock4j:
   acquire-timeout: 3000
@@ -112,7 +130,6 @@ football:
     scheme-get-url: http://ai.author.shenyu.com/api/v1/tasks
     model: deepseek-v4-flash
     poll-timeout-ms: 600000
-    # AI 内容对话走 jingcai 还是直连 LLM：见 M8「系统参数」ai.content.chat-via-jingcai（默认 true）
 
 oa:
   auth:
@@ -129,8 +146,37 @@ oa:
       database: 1
       password: xxx
   crypto:
-    aes-key: MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=
+    aes-key: xxx
+  file:
+    upload-dir: /opt/ops/data/uploads
+    max-file-size: 52428800
+  notification:
+    platform-base-url: https://beta.h5.shenyu.com/ops
+  match:
+    internal-base-url: http://127.0.0.1:48088
   unified-collector:
     base-url: http://ai.shenyu.com/
-    # Must match unify-collector API_TOKEN on ai.shenyu.com (NOT local test-key-2026)
     api-token: xxx
+    timeout-ms: 30000
+    stub: false
+  collect:
+    schedule:
+      enabled: true
+      scan-cron: "0 * * * * ?"
+    stub:
+      force-fail: false
+  work-task:
+    win-prediction:
+      enabled: true
+      match-end-buffer-minutes: 120
+      scheduled-fallback-enabled: false
+      scheduled-cron: "0 0 * * * ?"
+
+--- #################### 日志 ####################
+
+logging:
+  level:
+    root: INFO
+    football.module.ops: INFO
+  file:
+    name: /opt/ops/logs/ops-server.log

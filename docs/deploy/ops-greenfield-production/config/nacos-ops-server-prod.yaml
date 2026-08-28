@@ -119,7 +119,7 @@ football:
     scheme-generate-api-key: ${FOOTBALL_AI_SCHEME_GENERATE_API_KEY:REPLACE_WITH_PROD_KEY}
     scheme-get-url: ${FOOTBALL_AI_SCHEME_GET_URL:https://ai.author.shenyu.com/api/v1/tasks}
     model: ${FOOTBALL_AI_MODEL:deepseek-v4-flash}
-    poll-timeout-ms: ${FOOTBALL_AI_POLL_TIMEOUT_MS:180000}
+    poll-timeout-ms: ${FOOTBALL_AI_POLL_TIMEOUT_MS:600000}
 
 oa:
   auth:
