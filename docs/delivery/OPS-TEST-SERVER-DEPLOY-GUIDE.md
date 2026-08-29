@@ -40,7 +40,7 @@ Collector：http://127.0.0.1:8000/livez
 | **Nacos（本机）** | `127.0.0.1:8848` | namespace **`local`**（local 与 `-Beta` 共用；Feign/Gateway 服务发现） |
 | **应用进程** | 运维机 / 测试机本机 | Gateway、Football 微服务、football-module-ops、football-front、unify-collector-api |
 
-日常脚本模式：**进程监听本机端口**，通过 `ops-test-remote.env` + `*-overlay-beta.yml` 连远程 **MySQL/Redis**；**Nacos 始终本地** `:8848` namespace `local`（与 local 模式一致，仅 DB/Redis 不同）。测试机部署（`beta-server` profile）仍用远程 Nacos `110.42.49.224` namespace `beta`。
+日常脚本模式：**进程监听本机端口**，通过 `ops-test-remote.env` + `*-overlay-beta.yml` 连远程 **MySQL/Redis**；**Nacos 始终本地** `:8848` namespace `local`（与 local 模式一致，仅 DB/Redis 不同）。测试机部署（`beta` profile）仍用远程 Nacos `110.42.49.224` namespace `beta`。
 
 ```mermaid
 flowchart TB
@@ -428,26 +428,34 @@ mvn -pl football-module-ops/football-module-ops-server -am package -DskipTests
 
 ### 6.2 Profile 与 Beta 叠加
 
-ops-server 配置 SSOT 在 JAR 内五文件：`application.yaml`（共享）+ `application-local.yaml`（本地）+ `application-dev-test-beta.yaml`（Beta 远程 DB/Redis + **本地 Nacos**，本机 JAR）+ `application-beta-server.yaml`（**Beta 测试机部署**，110.42.49.224 远程 Nacos）+ `application-prod.yaml`（正式生产）。`start-integration-oa.ps1` 将 legacy `OaProfiles` 映射为 Spring profile：`local`（默认）或 `dev-test-beta`（`-Beta` / `ops-test-remote.env`）。
+ops-server 配置分层：
+
+| 层级 | 文件 | 内容 |
+|------|------|------|
+| JAR 公共 | `application.yaml` | 框架、MyBatis、**jingcai / 采集 literal** |
+| JAR Bootstrap | `application-{profile}.yaml` | 仅 Nacos 连接（`${NACOS_*}`） |
+| Nacos SSOT | `ops-server-{profile}.yaml` | Beta/Prod：DB、Redis、鉴权、crypto、XXL-JOB |
+| JAR 本地 | `application-local.yaml` / `application-dev-test-beta.yaml` | 本机开发，不拉 Nacos config |
+
+`start-integration-oa.ps1` 将 legacy `OaProfiles` 映射为 Spring profile：`local`（默认）或 `dev-test-beta`（`-Beta` / `ops-test-remote.env`）。
 
 | 模式 | Spring profile | 启动示例 |
 |------|----------------|----------|
 | 本地 | `local` | `.\scripts\start-integration-oa.ps1` |
 | Beta 本机 JAR | `dev-test-beta` | `.\scripts\start-ops-dev.ps1 -Beta` |
-| **Beta 测试机** | `beta-server` | 见下方 §6.2.1 |
+| **Beta 测试机** | `beta` | 见下方 §6.2.1 |
 | 正式 | `prod` | `java -jar football-module-ops-server.jar --spring.profiles.active=prod` |
 
 **Profile 差异摘要**
 
-| 项 | local | dev-test-beta | beta-server | prod |
-|----|-------|---------------|-------------|------|
-| MySQL | localhost `shenyu-ops` | 远程 `${OPS_TEST_*}` | 110.42.49.224 `shenyu-ops`（**overlay 硬编码**） | `${OPS_DB_*}` 环境变量 |
-| Nacos | localhost namespace `local` | **同 local**（127.0.0.1:8848 ns=local） | 110.42.49.224 namespace **`beta`**（**overlay 硬编码**） | `${NACOS_*}`，namespace 默认 `prod` |
+| 项 | local | dev-test-beta | beta | prod |
+|----|-------|---------------|------|------|
+| MySQL | localhost `shenyu-ops` | 远程 `${OPS_TEST_*}` | **Nacos** `ops-server-beta.yaml` | **Nacos** `ops-server-prod.yaml` |
+| Nacos | localhost namespace `local` | **同 local**（127.0.0.1:8848 ns=local） | 110.42.49.224 namespace **`beta`** | prod 集群 namespace **`prod`** |
 | Feign | Nacos 服务发现 | Nacos 服务发现 | Nacos 服务发现 | Nacos 服务发现 |
-| Flyway | enabled | **disabled** | **disabled** | `${FLYWAY_ENABLED:true}` |
-| AES 密钥 | jar 内 dev 默认 | jar 内 dev 默认 | dev 默认（**overlay 硬编码**） | **必设** `${OA_AES_KEY}` |
-| 鉴权 | Gateway login-user | Gateway + football-redis | Gateway + football-redis，**禁用 dev-token** | 同 beta-server |
-| Admin UI | localhost :48080 | localhost :48080 | **`https://beta.h5.shenyu.com`**（**overlay 硬编码**） | `${ADMIN_UI_URL}` |
+| Flyway | enabled | **disabled** | **disabled**（Nacos） | **disabled**（Nacos） |
+| jingcai / 采集 | JAR `application.yaml` | JAR `application.yaml` | JAR `application.yaml` | JAR `application.yaml` |
+| 鉴权 | Gateway login-user | Gateway + football-redis | Gateway + football-redis（Nacos） | 同 beta |
 
 手动 JAR：
 
@@ -464,27 +472,29 @@ java -jar football-module-ops-server.jar --spring.profiles.active=prod
 
 #### 6.2.1 Beta 测试机部署（110.42.49.224）
 
-进程跑在测试机上、与其他 Football 服务同 Nacos `beta` namespace 时使用 **`beta-server`** profile（**无 Feign URL 硬编码**，与 `prod` 一致走服务发现）。
+进程跑在测试机上、与其他 Football 服务同 Nacos `beta` namespace 时使用 **`beta`** profile。
 
-**推荐 — 外部 overlay（全部 literal 值，无需环境变量）**
+**推荐 — Nacos 配置中心（SSOT）**
+
+1. 将 `scripts/integration-config/nacos-ops-server-beta.yaml.example` 复制到 Nacos：
+   - **DataId**：`ops-server-beta.yaml`
+   - **Group**：`DEFAULT_GROUP`
+   - **Namespace**：`beta`
+2. 填入真实 MySQL/Redis/crypto 口令（**勿**在本文件写 jingcai / unified-collector，它们在 JAR `application.yaml`）
+3. 启动：
 
 ```bash
-# 1. 本地生成（gitignore，从 example 复制并填入 ops-test-remote.env 凭据）：
-#    scripts/integration-config/ops-server-beta-server.yaml
-# 2. 复制到测试机：
-#    /opt/ops/config/ops-server-beta-server.yaml
-java -jar football-module-ops-server.jar \
-  --spring.profiles.active=beta-server \
-  --spring.config.additional-location=file:/opt/ops/config/ops-server-beta-server.yaml
+java -jar football-module-ops-server.jar --spring.profiles.active=beta
+# 若 Nacos 密码非默认：-DNACOS_PASSWORD=xxx
 ```
-
-overlay 含完整 `spring.cloud.nacos.*`、`spring.datasource.*`（Druid 连接池）、`spring.data.redis.*`、`spring.flyway.enabled: false`、`oa.auth`、`oa.crypto.aes-key`、`oa.unified-collector.*`、`football.web.admin-ui.url` 等全部硬编码值，**无 `${...}` 占位符**。
 
 | 文件 | 用途 | 可提交 git |
 |------|------|------------|
-| `application-beta-server.yaml`（JAR 内） | 薄 profile 标记（Flyway disabled 兜底） | 是（submodule） |
-| `ops-server-beta-server.yaml.example` | 运维复制模板（口令 `xxx`） | 是 |
-| `ops-server-beta-server.yaml` | 真实口令 overlay（copy-to-server） | **否**（gitignore） |
+| `application-beta.yaml`（JAR） | Nacos Bootstrap（`${NACOS_*}`） | 是 |
+| `nacos-ops-server-beta.yaml.example` | Nacos 发布模板 | 是 |
+| Nacos `ops-server-beta.yaml` | 环境 SSOT（DB/Redis/鉴权） | Nacos 控制台 |
+
+应急兜底仍可用 file overlay（`ops-server-beta.yaml.example` 已 deprecated），非常规路径。
 
 旧 overlay `scripts/integration-config/ops-test-beta-multidb.yml` 已弃用，内容已迁入 `application-dev-test-beta.yaml`。
 
@@ -502,7 +512,7 @@ overlay 含完整 `spring.cloud.nacos.*`、`spring.datasource.*`（Druid 连接�
 | 类别 | 配置 | 说明 |
 |------|------|------|
 | AES 敏感字段 | `oa.crypto.aes-key` | Base64 AES-256；Cookie / 租户凭账号加密；**生产须独立密钥** |
-| 采集 | `oa.unified-collector.*` | 见 §5.4 |
+| 采集 | `oa.unified-collector.*` | JAR `application.yaml` 公共 literal（**不在 Nacos**） |
 | 鉴权 | `oa.auth.gateway-login-user.enabled=true` | Beta 走 Gateway + Redis OAuth2 |
 | Redis | `spring.data.redis.*` | Beta 指向 110.42.49.224 db=1 |
 | 调度 | `oa.collect.schedule.enabled=true` | 内部 + 外部 cron 扫描 |
@@ -548,7 +558,7 @@ overlay 含完整 `spring.cloud.nacos.*`、`spring.datasource.*`（Druid 连接�
 
 仓库**未提供**测试机 systemd / docker-compose 全栈编排。运维可按 §6.1 产物自行：
 
-1. `java -jar football-module-ops-server.jar --spring.profiles.active=beta-server --spring.config.additional-location=file:/opt/ops/config/ops-server-beta-server.yaml`（见 §6.2.1）  
+1. Nacos 发布 `ops-server-beta.yaml` 后：`java -jar football-module-ops-server.jar --spring.profiles.active=beta`（见 §6.2.1）  
 2. `java -jar football-gateway.jar` + `gateway-integration-beta.yaml`  
 3. 其余 Football JAR 同 `start-integration-all.ps1` 端口矩阵  
 4. Nginx 托管 `football-front/apps/web-ele/dist`，反代 `/admin-api` → `:48080`  
@@ -743,7 +753,8 @@ python docs/delivery/e2e-artifacts/EXTERNAL-COLLECT-20260803/smoke_external_coll
 | 文件 | 说明 |
 |------|------|
 | `scripts/integration-config/ops-test-remote.env.example` | Beta 凭据模板 |
-| `scripts/integration-config/ops-server-beta-server.yaml.example` | Beta 测试机 ops-server overlay 模板 |
+| `scripts/integration-config/nacos-ops-server-beta.yaml.example` | Beta Nacos 发布模板（DataId `ops-server-beta.yaml`） |
+| `scripts/integration-config/nacos-ops-server-prod.yaml.example` | Prod Nacos 发布模板（DataId `ops-server-prod.yaml`） |
 | `scripts/integration-config/ops-test-beta-multidb.yml` | ops-server Beta overlay（已弃用，见 dev-test-beta profile） |
 | `scripts/integration-config/gateway-integration-beta.yaml` | Gateway Beta |
 | `scripts/integration-config/football-integration-overlay-beta.yml` | Football Beta |

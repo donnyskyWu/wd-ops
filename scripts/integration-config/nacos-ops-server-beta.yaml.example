@@ -1,6 +1,7 @@
-# Ops Server — Nacos Production SSOT Template
-# DataId: ops-server-prod.yaml · Namespace: prod · Group: DEFAULT_GROUP
-# JAR Bootstrap: application-prod.yaml · jingcai/采集: application.yaml（勿在本文件重复）
+# Nacos 发布模板 — DataId: ops-server-beta.yaml · Namespace: beta · Group: DEFAULT_GROUP
+# 复制到 Nacos 配置中心并填入真实口令；勿提交含密文副本到 git
+# JAR Bootstrap：application-beta.yaml（Nacos 连接）
+# jingcai / 数据采集：application.yaml 公共段（勿在本文件重复，避免覆盖）
 
 --- #################### 数据库 + Redis ####################
 
@@ -45,36 +46,47 @@ spring:
         max-pool-prepared-statement-per-connection-size: 20
       datasource:
         master:
-          url: jdbc:mysql://REPLACE_RDS_HOST:3306/shenyu-ops?useSSL=false&serverTimezone=Asia/Shanghai&useTimeZone=true&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true
-          username: REPLACE_DB_USER
-          password: REPLACE_DB_PASSWORD
+          url: jdbc:mysql://110.42.49.224:3306/shenyu-ops?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+          username: shenyu-ops
+          password: xxx
           driver-class-name: com.mysql.cj.jdbc.Driver
-
   data:
     redis:
-      host: REPLACE_REDIS_HOST
+      host: 110.42.49.224
       port: 6379
-      database: 0
-      password: REPLACE_REDIS_PASSWORD
+      database: 1
+      password: xxx
 
 --- #################### 定时任务 + 分布式锁 ####################
 
 xxl:
   job:
-    enabled: true
+    enabled: false
     admin:
-      addresses: http://REPLACE_XXLJOB_HOST:9090/xxl-job-admin
+      addresses: http://127.0.0.1:9090/xxl-job-admin
 
 lock4j:
   acquire-timeout: 3000
   expire: 30000
 
---- #################### Ops / Football 业务 ####################
+--- #################### 监控端点 ####################
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+--- #################### Ops / Football 业务（Beta） ####################
 
 football:
   web:
     admin-ui:
-      url: https://h5.shenyu.com
+      url: https://beta.h5.shenyu.com
 
 oa:
   auth:
@@ -86,13 +98,9 @@ oa:
       enabled: false
     football-redis:
       enabled: true
-      host: REPLACE_REDIS_HOST
+      host: 110.42.49.224
       port: 6379
       database: 1
-      password: REPLACE_REDIS_PASSWORD
+      password: xxx
   crypto:
-    aes-key: REPLACE_OA_AES_KEY_BASE64
-
-logging:
-  level:
-    org.springframework.context.support.PostProcessorRegistrationDelegate: ERROR
+    aes-key: xxx

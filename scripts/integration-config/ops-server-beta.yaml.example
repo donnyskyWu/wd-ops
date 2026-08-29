@@ -1,0 +1,3 @@
+# @deprecated 请改用 Nacos 发布：scripts/integration-config/nacos-ops-server-beta.yaml.example
+# DataId: ops-server-beta.yaml · Namespace: beta
+# 本文件仅作 file overlay 应急兜底（--spring.config.additional-location），非常规路径
