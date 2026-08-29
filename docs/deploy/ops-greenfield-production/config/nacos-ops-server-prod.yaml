@@ -115,11 +115,11 @@ football:
   security:
     mock-enable: false
   ai:
-    scheme-generate-url: ${FOOTBALL_AI_SCHEME_GENERATE_URL:https://ai.author.shenyu.com/api/v1/tasks}
-    scheme-generate-api-key: ${FOOTBALL_AI_SCHEME_GENERATE_API_KEY:REPLACE_WITH_PROD_KEY}
-    scheme-get-url: ${FOOTBALL_AI_SCHEME_GET_URL:https://ai.author.shenyu.com/api/v1/tasks}
-    model: ${FOOTBALL_AI_MODEL:deepseek-v4-flash}
-    poll-timeout-ms: ${FOOTBALL_AI_POLL_TIMEOUT_MS:600000}
+    scheme-generate-url: http://ai.author.shenyu.com/api/v1/tasks
+    scheme-generate-api-key: pi-sk-9d49187d2ac7e2ad4b796fad
+    scheme-get-url: http://ai.author.shenyu.com/api/v1/tasks
+    model: deepseek-v4-flash
+    poll-timeout-ms: 600000
 
 oa:
   auth:
@@ -151,8 +151,8 @@ oa:
     stub:
       force-fail: false
   unified-collector:
-    base-url: ${COLLECTOR_BASE_URL}
-    api-token: ${COLLECTOR_API_TOKEN:}
+    base-url: http://ai.shenyu.com/
+    api-token: bce3aa7b4922977ccb88063f2ee8ec137c1f5bff44890ba8cf5e35511cbfe434
     timeout-ms: 30000
     stub: false
   work-task:

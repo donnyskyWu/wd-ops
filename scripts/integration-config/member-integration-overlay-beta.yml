@@ -15,5 +15,5 @@ spring:
 football:
   ai:
     scheme-generate-url: http://ai.author.shenyu.com/api/v1/tasks
-    scheme-generate-api-key: ${AUTHOR_AI_SCHEME_API_KEY:CHANGE_ME}
+    scheme-generate-api-key: pi-sk-9d49187d2ac7e2ad4b796fad
     scheme-get-url: http://ai.author.shenyu.com/api/v1/tasks

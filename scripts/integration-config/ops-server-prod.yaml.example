@@ -126,7 +126,7 @@ football:
       url: https://beta.h5.shenyu.com
   ai:
     scheme-generate-url: http://ai.author.shenyu.com/api/v1/tasks
-    scheme-generate-api-key: xxx
+    scheme-generate-api-key: pi-sk-9d49187d2ac7e2ad4b796fad
     scheme-get-url: http://ai.author.shenyu.com/api/v1/tasks
     model: deepseek-v4-flash
     poll-timeout-ms: 600000
@@ -156,7 +156,7 @@ oa:
     internal-base-url: http://127.0.0.1:48088
   unified-collector:
     base-url: http://ai.shenyu.com/
-    api-token: xxx
+    api-token: bce3aa7b4922977ccb88063f2ee8ec137c1f5bff44890ba8cf5e35511cbfe434
     timeout-ms: 30000
     stub: false
   collect:
