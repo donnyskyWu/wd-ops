@@ -19,7 +19,7 @@
 | P-M6-002 | 全平台账号视图 | `/analysis/report/unified-account` | FR-M6-002 |
 | P-M6-003 | 账号状态监控 | `/analysis/report/account-status` | FR-M6-002 |
 | P-M6-004 | 短视频产出统计 | `/analysis/report/video-output` | FR-M6-002 |
-| P-M6-005 | 直播时长统计 | `/analysis/report/live-duration` | FR-M6-002 |
+| P-M6-005 | 直播时长统计（作者维度 · 小时） | `/analysis/report/live-duration` | FR-M6-002 |
 | P-M6-006 | 账号成本分摊 | `/analysis/report/cost-allocation` | FR-M6-002 |
 | P-M6-007 | ROI 分析报表 | `/analysis/report/roi` | FR-M6-002 |
 | P-M6-008 | IP 团队人员配置 | `/analysis/report/team-config` | FR-M6-002 |
@@ -30,6 +30,18 @@
 | P-M6-013 | 自定义查询 | `/analysis/query` | FR-M6-005 |
 | P-M6-014 | 数据大屏 | `/analysis/dashboard/:id` | FR-M6-006 |
 | P-M6-015 | 大屏配置 | `/analysis/dashboard-config` | FR-M6-007 |
+
+---
+
+### P-M6-005 直播时长（2026-08-26）
+
+| 区域 | 内容 |
+|------|------|
+| 筛选 | IP 组 + 日期范围 |
+| 趋势 | ECharts 双轴：场次（柱）+ 总时长/小时（折线） |
+| 明细表 | 日期 · **作者** · 场次 · 总时长(小时) · 均时长(小时) |
+| 导出 | 客户端 Excel（作者/场次/时长列） |
+| **不含** | 峰值在线、账号维度、平台列 |
 
 ---
 

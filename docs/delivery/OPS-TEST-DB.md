@@ -241,3 +241,15 @@ python scripts/integration-config/repair-flyway-failed.py
 
 - 测试口令只放本地 env；**不要**提交到 git，也不要把真实密码写进可提交的 markdown。
 - 轮换口令后只更新本地 `ops-test-remote.env`。
+
+## Unified Collector（本地 profile + 远程采集）
+
+| 场景 | Profile | Collector 地址来源 |
+|------|---------|-------------------|
+| 本地 MySQL + 本地 collector | local | 默认 `http://127.0.0.1:8000` |
+| 本地 MySQL + **远程** collector | local | `scripts/integration-config/ops-test-remote.env` 中的 `COLLECTOR_BASE_URL` / `COLLECTOR_API_TOKEN`（`start-integration-oa.ps1` 在 **local** 模式下仅注入这两项；不切换 DB） |
+| 远程 Beta DB + 远程 collector | `dev-test-beta`（`start-ops-dev.ps1 -Beta`） | 同上 env 全量加载 + `application-dev-test-beta.yaml` 默认 `http://ai.shenyu.com/` |
+
+健康检查（无需 token）：`GET {COLLECTOR_BASE_URL}/livez` → HTTP 200。
+
+手动启动 ops-server 时请在同一 PowerShell 会话导出 env，或使用 `--spring.profiles.active=dev-test-beta`。

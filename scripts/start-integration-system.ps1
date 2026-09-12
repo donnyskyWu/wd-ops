@@ -1,4 +1,4 @@
-﻿# start-integration-system.ps1 锟?Start Football member-server + system-server for local Gateway integration
+# start-integration-system.ps1 锟?Start Football member-server + system-server for local Gateway integration
 #
 # Gateway (football-gateway.jar, profile local) routes /admin-api/system/** 锟?system-server via Nacos namespace "local".
 # system-server requires member-server (AuthorApi Feign). If member jar fails (RocketMQ/Redis/im), run scripts/integration-config/mock-member-author-server.py on :48087 for login smoke.
@@ -31,21 +31,43 @@ function Start-IntegrationJar {
         [int]$Port,
         [string]$Jar,
         [string]$LogFile,
-        [string]$ActiveProfiles
+        [string]$ActiveProfiles,
+        [string]$ExtraConfig = ""
     )
     $busy = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
     if ($busy) {
-        Write-Host "[ok] Port $Port already in use 锟?assuming $Title is running"
+        Write-Host "[ok] Port $Port already in use — assuming $Title is running"
         return
     }
-    $overlay = Join-Path $Root 'scripts\integration-config\football-integration-overlay.yml'
+    $cfg = ""
+    if ($ExtraConfig) {
+        $locs = @($ExtraConfig -split "," | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+        $cfg = "--spring.config.additional-location=" + (($locs | ForEach-Object { "optional:file:$_" }) -join ",")
+    } else {
+        $overlay = Join-Path $Root 'scripts\integration-config\football-integration-overlay.yml'
+        $cfg = "--spring.config.additional-location=optional:file:$overlay"
+    }
+    $javaExe = (Get-Command java -ErrorAction SilentlyContinue).Source
+    if (-not $javaExe) { $javaExe = "java" }
     Write-Host "[start] $Title :$Port -> log: $LogFile"
-    $inner = @"
-`$host.UI.RawUI.WindowTitle = '$Title :$Port'
-& java -jar '$Jar' --spring.profiles.active="$ActiveProfiles" --spring.config.additional-location=optional:file:$overlay *>&1 | Tee-Object -FilePath '$LogFile' -Append
-"@
+    $tempDir = Join-Path $env:TEMP "ops-dev-start"
+    New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
+    $safeTitle = ($Title -replace '[^\w\-]+', '_').Trim('_')
+    if (-not $safeTitle) { $safeTitle = "dev" }
+    $launcher = Join-Path $tempDir "$safeTitle-$PID-$(Get-Random).ps1"
+    $jarLiteral = $Jar.Replace("'", "''")
+    $logLiteral = $LogFile.Replace("'", "''")
+    $titleLiteral = "$Title :$Port".Replace("'", "''")
+    $javaCmd = "& '$javaExe' '-Dfile.encoding=UTF-8' -jar '$jarLiteral' --spring.profiles.active=`"$ActiveProfiles`" $cfg *>&1 | Tee-Object -FilePath '$logLiteral' -Append"
+    $lines = @(
+        '$ErrorActionPreference = ''Continue'''
+        "`$host.UI.RawUI.WindowTitle = '$titleLiteral'"
+        $javaCmd
+    )
+    $utf8Bom = New-Object System.Text.UTF8Encoding $true
+    [System.IO.File]::WriteAllLines($launcher, $lines, $utf8Bom)
     Start-Process -FilePath "powershell.exe" -ArgumentList @(
-        "-NoProfile", "-ExecutionPolicy", "Bypass", "-NoExit", "-Command", $inner
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-NoExit", "-File", $launcher
     ) -WindowStyle Minimized | Out-Null
 }
 
@@ -75,10 +97,18 @@ if (-not (Test-Path $mpJar)) { Write-Error "Jar not found: $mpJar"; exit 1 }
 if (-not (Test-Path $memberJar)) { Write-Error "Jar not found: $memberJar"; exit 1 }
 if (-not (Test-Path $systemJar)) { Write-Error "Jar not found: $systemJar"; exit 1 }
 
-Start-IntegrationJar -Title "mp-server" -Port 48086 -Jar $mpJar -LogFile $MpLog -ActiveProfiles $Profiles
+$overlay = Join-Path $Root 'scripts\integration-config\football-integration-overlay.yml'
+$mpOverlay = Join-Path $Root 'scripts\integration-config\mp-integration-overlay.yml'
+$memberStackOverlay = Join-Path $Root 'scripts\integration-config\member-integration-local-stack.yml'
+$memberOverlay = Join-Path $Root 'scripts\integration-config\member-integration-overlay.yml'
+$mpCfg = if (Test-Path $mpOverlay) { "$overlay,$mpOverlay" } else { $overlay }
+$memberCfgParts = @($memberStackOverlay)
+if (Test-Path $memberOverlay) { $memberCfgParts += $memberOverlay }
+$memberCfg = ($memberCfgParts -join ",")
+
+Start-IntegrationJar -Title "mp-server" -Port 48086 -Jar $mpJar -LogFile $MpLog -ActiveProfiles $Profiles -ExtraConfig $mpCfg
 Start-Sleep -Seconds 8
-# member-server: local-nacos clears jar Redis password; explicit password for requirepass=123456
-Start-IntegrationJar -Title "member-server" -Port 48087 -Jar $memberJar -LogFile $MemberLog -ActiveProfiles $Profiles
+Start-IntegrationJar -Title "member-server" -Port 48087 -Jar $memberJar -LogFile $MemberLog -ActiveProfiles $Profiles -ExtraConfig $memberCfg
 Start-Sleep -Seconds 8
 Start-IntegrationJar -Title "system-server" -Port 48081 -Jar $systemJar -LogFile $SystemLog -ActiveProfiles $Profiles
 

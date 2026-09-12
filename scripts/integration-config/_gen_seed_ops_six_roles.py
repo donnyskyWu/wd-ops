@@ -1,6 +1,18 @@
 #!/usr/bin/env python3
-"""Generate seed-ops-six-roles-rbac.sql (ADR-064)."""
+"""Generate ADR-064 six-role RBAC SQL (dict-style: no hardcoded role / role_menu id).
+
+Outputs:
+  scripts/integration-config/seed-ops-six-roles-rbac.sql
+  scripts/integration-config/ops-greenfield-sources/system/07_ops_six_roles_rbac.sql
+
+Then regenerate 02:
+  python scripts/integration-config/gen-ops-greenfield-sql.py --system-seeds-only
+"""
 from pathlib import Path
+
+INTEG_DIR = Path(__file__).resolve().parent
+GREENFIELD_07 = INTEG_DIR / "ops-greenfield-sources" / "system" / "07_ops_six_roles_rbac.sql"
+SEED_OUT = INTEG_DIR / "seed-ops-six-roles-rbac.sql"
 
 ROLES = {
     "ip_group_leader": {
@@ -356,7 +368,14 @@ ROLES = {
 }
 
 
-def main() -> None:
+def _sql_int_list(ids: list[int], indent: str = "    ") -> str:
+    chunks: list[str] = []
+    for i in range(0, len(ids), 10):
+        chunks.append(indent + ", ".join(str(x) for x in ids[i : i + 10]))
+    return ",\n".join(chunks)
+
+
+def _assert_matrix() -> None:
     assert 6118 not in ROLES["content_editor"]["menus"]
     assert 6156 not in ROLES["content_editor"]["menus"]
     assert 6175 in ROLES["ip_group_leader"]["menus"]
@@ -367,28 +386,20 @@ def main() -> None:
         assert 6134 not in ROLES[code]["menus"]
         assert 6135 not in ROLES[code]["menus"]
 
-    lines: list[str] = [
-        "-- ADR-064: OPS six business roles + system_role_menu (exclude super_admin)",
-        "-- Apply AFTER seed-oa-system-menu.sql (utf8mb4 stdin via apply-seed-oa-menu.py)",
-        "-- Target: Football shenyu-system.system_role / system_role_menu",
-        "-- Idempotent re-run: DELETE only ADR-064 menu bindings; preserves work-task role_menu 6194-6196 (V183).",
-        "SET NAMES utf8mb4;",
-        "",
-        "BEGIN;",
-        "",
-    ]
 
+def _role_body() -> list[str]:
+    """Dict-style role + role_menu: no hardcoded id; identity = code; bind via JOIN."""
+    lines: list[str] = ["BEGIN;", ""]
     for code, r in ROLES.items():
-        rid = r["id"]
-        lines.append(f"-- ===== {r['name']} ({code}) id={rid} menus={len(r['menus'])} =====")
+        lines.append(f"-- ===== {r['name']} ({code}) menus={len(r['menus'])} =====")
         lines.extend(
             [
                 "INSERT INTO system_role (",
-                "    id, name, code, sort, data_scope, data_scope_dept_ids, status, type, remark,",
+                "    name, code, sort, data_scope, data_scope_dept_ids, status, type, remark,",
                 "    creator, create_time, updater, update_time, deleted, tenant_id",
                 ")",
                 "SELECT",
-                f"    {rid}, '{r['name']}', '{code}', {r['sort']}, {r['data_scope']}, '', 0, {r['type']},",
+                f"    '{r['name']}', '{code}', {r['sort']}, {r['data_scope']}, '', 0, {r['type']},",
                 f"    '{r['remark']}',",
                 "    'adr-064-seed', NOW(), 'adr-064-seed', NOW(), b'0', 1",
                 "FROM DUAL",
@@ -396,55 +407,75 @@ def main() -> None:
                 f"    SELECT 1 FROM system_role x WHERE x.code = '{code}' AND x.tenant_id = 1 AND x.deleted = b'0'",
                 ");",
                 "",
-                "UPDATE system_role",
-                f"SET name = '{r['name']}',",
-                f"    sort = {r['sort']},",
-                f"    data_scope = {r['data_scope']},",
-                f"    type = {r['type']},",
-                f"    remark = '{r['remark']}',",
-                "    updater = 'adr-064-seed',",
-                "    update_time = NOW(),",
-                "    deleted = b'0'",
-                f"WHERE code = '{code}' AND tenant_id = 1;",
+                "DELETE rm FROM system_role_menu rm",
+                "INNER JOIN system_role r ON r.id = rm.role_id",
+                f"WHERE r.code = '{code}' AND r.tenant_id = 1 AND r.deleted = b'0'",
+                "  AND rm.menu_id >= 6100 AND rm.menu_id < 7000",
+                "  AND rm.menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (03_work_task_menus_v183)",
                 "",
-                f"SET @role_id_{code} := (",
-                f"    SELECT id FROM system_role WHERE code = '{code}' AND tenant_id = 1 AND deleted = b'0' LIMIT 1",
-                ");",
-                "",
-                "DELETE FROM system_role_menu",
-                f"WHERE role_id = @role_id_{code}",
-                "  AND menu_id >= 6100 AND menu_id < 7000",
-                "  AND menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (V183 / 03_work_task_menus_v183)",
+                "INSERT INTO system_role_menu (role_id, menu_id, creator, tenant_id, user_type)",
+                "SELECT r.id, m.id, 'adr-064-seed', 1, 2",
+                "FROM system_role r",
+                "INNER JOIN system_menu m ON m.id IN (",
+                _sql_int_list(r["menus"]),
+                ")",
+                f"WHERE r.code = '{code}' AND r.tenant_id = 1 AND r.deleted = b'0'",
+                "  AND m.deleted = b'0'",
+                "  AND NOT EXISTS (",
+                "      SELECT 1 FROM system_role_menu rm",
+                "      WHERE rm.role_id = r.id AND rm.menu_id = m.id AND rm.deleted = b'0'",
+                "  );",
                 "",
             ]
         )
-        base = 71000 + (rid - 160) * 200
-        for i, mid in enumerate(r["menus"]):
-            rm_id = base + i
-            lines.append(
-                "INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) "
-                f"SELECT {rm_id}, @role_id_{code}, {mid}, 'adr-064-seed', 1, 2 FROM DUAL "
-                f"WHERE @role_id_{code} IS NOT NULL "
-                f"AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = {rm_id}) "
-                f"AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_{code} AND menu_id = {mid});"
-            )
-        lines.append("")
-
-    lines.extend(
-        [
-            "COMMIT;",
-            "",
-            "-- Expected menu counts (ADR-064 §5):",
-        ]
-    )
+    lines.extend(["COMMIT;", "", "-- Expected menu counts (ADR-064 §5):"])
     for code, r in ROLES.items():
         lines.append(f"--   {code}: {len(r['menus'])}")
+    return lines
 
-    out = Path(__file__).with_name("seed-ops-six-roles-rbac.sql")
-    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"wrote {out} ({out.stat().st_size} bytes)")
+
+SEED_HEADER = [
+    "-- ADR-064: OPS six business roles + system_role_menu (exclude super_admin)",
+    "-- Apply AFTER seed-oa-system-menu.sql (utf8mb4 stdin via apply-seed-oa-menu.py)",
+    "-- Target: Football shenyu-system.system_role / system_role_menu",
+    "-- Pattern: dict-style INSERT (no id; AUTO_INCREMENT) WHERE NOT EXISTS by code + tenant_id + deleted=0.",
+    "-- role_menu: INSERT … SELECT r.id, m.id JOIN by code / menu id; no hardcoded role_id or role_menu.id.",
+    "-- Idempotent: skip existing same-code roles (do not overwrite Football); rebuild Ops menu binds;",
+    "--             preserves work-task role_menu 6194-6196 (V183 / 03_work_task_menus_v183).",
+    "-- Historical: older packs used preferred ids 160–165; re-run binds those rows by code.",
+    "SET NAMES utf8mb4;",
+    "",
+]
+
+GREENFIELD_HEADER = [
+    "-- =============================================================================",
+    "-- System DB ({{SYSTEM_DB_NAME}}) — ADR-064 Ops 六业务角色 + system_role_menu",
+    "-- Generated: by _gen_seed_ops_six_roles.py — do not hand-edit",
+    "-- 目标: {{SYSTEM_DB_HOST}}/{{SYSTEM_DB_NAME}}",
+    "-- 前置: 01_baseline_ops_menus.sql + 03_work_task_menus_v183.sql",
+    "-- Pattern: dict-style — 不写 system_role.id / system_role_menu.id（AUTO_INCREMENT）；",
+    "--          角色身份 = code；role_menu 按 r.code JOIN m.id 绑定。",
+    "-- 幂等: 同 code 已存在则跳过角色插入（不覆盖 Football）；重建 ADR-064 菜单绑定；",
+    "--       保留 6194-6196 工作任务 role_menu（由 03 写入）。",
+    "-- 角色: ip_group_leader / ops_manager / finance / content_editor / ops_operator / data_analyst",
+    "-- =============================================================================",
+    "SET NAMES utf8mb4;",
+    "",
+    "",
+]
+
+
+def main() -> None:
+    _assert_matrix()
+    body = _role_body()
+    seed_sql = "\n".join(SEED_HEADER + body) + "\n"
+    green_sql = "\n".join(GREENFIELD_HEADER + body) + "\n"
+    SEED_OUT.write_text(seed_sql, encoding="utf-8")
+    GREENFIELD_07.write_text(green_sql, encoding="utf-8")
+    print(f"wrote {SEED_OUT} ({SEED_OUT.stat().st_size} bytes)")
+    print(f"wrote {GREENFIELD_07} ({GREENFIELD_07.stat().st_size} bytes)")
     for code, r in ROLES.items():
-        print(f"  {code}: id={r['id']} menus={len(r['menus'])}")
+        print(f"  {code}: menus={len(r['menus'])} (legacy preferred id {r['id']} unused)")
 
 
 if __name__ == "__main__":

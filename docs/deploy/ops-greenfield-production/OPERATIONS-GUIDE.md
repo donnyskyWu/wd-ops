@@ -1,6 +1,6 @@
 # Ops Greenfield 部署 — 操作手册
 
-**版本:** 2026-08-25 · **SSOT:** `docs/deploy/ops-greenfield-production/`  
+**版本:** 2026-08-27 · **SSOT:** `docs/deploy/ops-greenfield-production/`  
 **角色:** Part A = DBA · Part B = DevOps · 增量升级见文末
 
 ---
@@ -60,6 +60,7 @@ Get-Content docs/deploy/ops-greenfield-production/sql/verify-schema.sql -Raw |
 > 若报 `1146 Table 'shenyu-ops.system_menu' doesn't exist`（或 `system_dict_*` / `system_role`）→ 检查是否误在 ops 库跑菜单/字典 SQL，或使用了旧版 `01`；请跑 Step 3 的 `02-shenyu-system-menus.sql`。
 > 若报 `1146 … sys_dict_type` / `sys_dict_data` → 旧版 `01` 未省略 `SET @next_* = (SELECT … FROM sys_dict_*)` 等 dict seed 残留；**重新生成并执行** `gen-ops-greenfield-sql.py` 输出的 `01`（2026-08-25 起已修复）。
 > 若报 `1064` 且错误片段含 `dict INSERTs removed` / 行首 `...`，多为生成器在 `/* */` 块注释内误按 `;` 拆语句（V181 §2）；2026-08-25 起 `split_sql_statements` 已块注释感知并含 `validate_greenfield_sql_landmines` 自检。本地验收：空库执行 `01` 后 `SOURCE sql/verify-schema.sql` 全 OK。
+> 若报 `1067 Invalid default value for 'synced_at'`（V126/V127 列 COMMENT 迁移），原因为 nullable `timestamp DEFAULT NULL` 在 MySQL 严格模式下非法；2026-08-26 起已改为 `timestamp NULL DEFAULT NULL`。请用最新 `01` 重跑空库，或手工将报错 ALTER 改为 `timestamp NULL DEFAULT NULL` 后继续。
 > **本地跑过旧版 `01` 后 ops 起不来（FlywayValidateException）：**
 > - **checksum mismatch**（如 V181 `-912526136` vs JAR `1729697317`）：`python scripts/integration-config/gen-ops-flyway-history.py` 后对照 `ops-flyway-record-history.sql` 更新 checksum，或 Flyway `repair`。
 > - **description mismatch**（如 `seed_base` vs `seed base`）：旧版 history 用文件名 underscore；2026-08-25 起 `gen-ops-flyway-history.py` 已改为空格。已有库执行 `scripts/integration-config/repair-flyway-local-validate.sql`。
@@ -116,15 +117,20 @@ mysql -h HOST -u USER -p shenyu-system \
   < docs/deploy/ops-greenfield-production/sql/02-shenyu-system-menus.sql
 ```
 
-**基线字典（Greenfield 无 wd 库）:** 合并脚本已 **跳过** V148 `wd→system_dict_*` 与 V152 `wd→shenyu-system` 迁移。确认 Football 已有 `dict_*` 字典：
+> **六业务角色（ADR-064）：** `02` 按字典同款写入 `system_role`——**不写 `id`**（AUTO_INCREMENT），`WHERE NOT EXISTS` 按 `code` + `tenant_id` + `deleted=0`。已有同 code 行（含历史 preferred id 160–165）则跳过插入、不覆盖 Football 角色。`system_role_menu` 用 `INSERT … SELECT r.id, m.id FROM system_role r JOIN system_menu m` 按 code 绑定，换数字 id **不影响功能**。
+
+**基线字典（Greenfield 无 wd 库）:** `02` §04 直接向 `system_dict_*` 幂等插入 Ops `dict_*`（约 101 type / 426 data；来源 2026-07-31 dump + V171/V176/ADR-067/CHECKLIST-M1）。V148/V152 `wd→system_dict_*` 仍跳过（无 wd 库）。工作任务 4 type + `LIVE_DRAIN` 仍在 `02` §05/06。
 
 ```sql
 -- Connect: mysql -h HOST -u USER -p shenyu-system
-SELECT type, name FROM system_dict_type
-WHERE type LIKE 'dict\_%' AND deleted = b'0' ORDER BY type LIMIT 20;
+SELECT COUNT(*) FROM system_dict_type WHERE type LIKE 'dict\_%' AND deleted = b'0';
+-- 期望 ≥ 100（含 work-task 4 type）
+SELECT type FROM system_dict_type
+WHERE type IN ('dict_platform_type','dict_ip_group_type','dict_content_type','dict_param_category')
+  AND deleted = b'0';
 ```
 
-若为空 → 从已验证 staging/test 的 `shenyu-system` 导出 `dict_*` 行，或使用 `scripts/integration-config/seed-ops-test-remote-dict.py`（需源库凭证）。
+已部署库缺字典：只需 **重跑 `02`**（幂等），不必重跑 `01`。
 
 **验收:**
 
@@ -148,12 +154,38 @@ WHERE n.node_type='CONTENT_GENERATION' AND n.deleted=0 AND n.tenant_id=1;
 
 编辑 `sql/03-shenyu-ops-seeds.sql` 中 `{{WORK_TASK_DEFAULT_TEMPLATE_ID}}` / `{{WORK_TASK_DEFAULT_NODE_ID}}`（本地测试可参考 [config/env-variables.md](./config/env-variables.md) 示例 `9402` / `9404`），然后：
 
+**`03` 写入（幂等，可对已有库重跑）：**
+
+| 段 | 内容 |
+|----|------|
+| `04_ai_model_config` | 四模型 vendor slug + DashScope compatible-mode（`conn_status=DISCONNECTED`，无 API Key） |
+| `02_ai_prompt_work_task` | `WORK_TASK_WIN_PREDICTION` 提示词 |
+| `05_sys_param` | M8/M9/M10 参数目录（采集 cron、审核开关/角色、钉钉占位、通知 URL 占位、公众号 Cookie 占位） |
+| `03_sys_param_work_task` | `work_task.default_template_id` / `default_node_id`（占位符） |
+
+SOP 模板/节点、版式样式、报表元数据、演示 IP 组已在 **`01` Flyway 拼接**（V11/V20/V23/V43/V80…）。若空库已跑过 `01`，不必为这些再跑 `01`。
+
+部署后在 Admin 补：**M8 AI 模型 API Key → 已连通**；钉钉 AppKey/Secret/AgentId；`notification.platform-base-url`；外部公众号 Cookie（若启用采集）。
+
 ```bash
 mysql -h HOST -u USER -p shenyu-ops \
   < docs/deploy/ops-greenfield-production/sql/03-shenyu-ops-seeds.sql
 ```
 
-**可选业务数据:** IP 组 + anchor 绑定（私域报表 / 工作任务 P0）。通过 Admin UI「IP组管理」录入，或参考 `scripts/integration-config/s0-wd-ip-group-skeleton.sql` 改 tenant/author ID。
+**已有生产库补种（不必重跑 `01`）：** 重跑幂等 `02`（字典）+ `03`（sys_param / AI 模型 / 提示词）。`01` 仅空库执行一次。
+
+**可选业务数据:** IP 组 + anchor 绑定（私域报表 / 工作任务 P0）。通过 Admin UI「IP组管理」录入，或参考 `scripts/integration-config/s0-wd-ip-group-skeleton.sql` 改 tenant/author ID。`01` 含 SEED 演示 IP 组（9000/9001/9002），生产可忽略或停用。
+
+**仍须人工 / 不可进 SQL：**
+
+| 项 | 原因 |
+|----|------|
+| AI 厂商 API Key + `conn_status=CONNECTED` | 密钥禁止入库 |
+| 钉钉 AppKey / Secret / AgentId / Webhook | 环境相关密钥；SQL 只插空占位 |
+| `notification.platform-base-url` | 生产域名 |
+| `collect.external.wechat_official.cookie` | 会话 Cookie |
+| `work_task.default_*` | 须对照本库 SOP id（默认可参考 9402/9404） |
+| `dict_alert_type` | CHECKLIST/API 取值不一致，未编造；首页/预警下拉可能为空 |
 
 DBA 完成 Step 1–4 后通知 DevOps。
 
@@ -226,7 +258,7 @@ docs/deploy/ops-greenfield-production/
 ├── sql/
 │   ├── 01-shenyu-ops-schema.sql    # Flyway V1–V191 + history
 │   ├── 02-shenyu-system-menus.sql  # 菜单 / 字典 / RBAC
-│   ├── 03-shenyu-ops-seeds.sql     # AI prompt + sys_param
+│   ├── 03-shenyu-ops-seeds.sql     # AI model + prompt + sys_param 目录 + work-task SOP params
 │   └── verify-schema.sql
 └── config/
     ├── nacos-ops-server-prod.yaml
@@ -235,13 +267,15 @@ docs/deploy/ops-greenfield-production/
     └── xxl-job-register.md
 ```
 
-| 功能 | Flyway | System SQL |
-|------|--------|------------|
-| Ops 全量表 + SOP seed | V1–V180 | — |
-| 工作任务 | V181–V182 | 02（含 03/05/06/07 段） |
-| 私域报表 MVP | V184 | — |
-| Match pool（已废弃） | V185–V187 → V189 DROP | 勿单独部署 |
-| LIVE_DRAIN 字典 | V188（ops no-op） | 02 内 06 段 |
+| 功能 | Flyway `01` | System `02` | Ops `03` |
+|------|-------------|-------------|----------|
+| Ops 全量表 + SOP / 版式 / 元数据 seed | V1–V180 | — | — |
+| 业务字典 `dict_*` | V190 DROP `sys_dict_*`（不灌） | §04 baseline + §05/06 work-task | — |
+| 系统参数 `sys_param` | V52/V74/V167/V169/V170/V175/V177 | — | §05 catalog + §03 work-task 占位 |
+| 工作任务 | V181–V182 | 02（含 03/05/06/07 段） | AI prompt + SOP 占位 |
+| 私域报表 MVP | V184 | — | — |
+| Match pool（已废弃） | V185–V187 → V189 DROP | 勿单独部署 | — |
+| LIVE_DRAIN 字典 | V188（ops no-op） | 02 内 06 段 | — |
 
 ## 幂等性
 
@@ -280,4 +314,7 @@ docs/deploy/ops-greenfield-production/
 ## 相关
 
 - [rollback.md](./rollback.md) · ADR-064/070/071/072 · E2E: `docs/delivery/e2e-artifacts/WORK-TASK-E2E-20260819/`
+- Legacy sys_*：`docs/delivery/e2e-artifacts/LEGACY-SYS-HARNESS-RETIRE-20260825/REPORT.md`
 - SQL 再生成：`scripts/integration-config/gen-ops-greenfield-sql.py`（需 Flyway 源目录）
+- Flyway 本地修复：`repair-flyway-local-validate.sql` · `repair-flyway-checksums-local.sql`
+- 改动梳理：`docs/delivery/CHANGELOG-OPS-20260826.md`

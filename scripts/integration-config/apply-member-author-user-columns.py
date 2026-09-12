@@ -11,6 +11,7 @@ ALTERS = [
     "ALTER TABLE author_user ADD COLUMN access_mode INT NULL AFTER ban_push",
     "ALTER TABLE author_user ADD COLUMN report_name VARCHAR(255) NULL AFTER access_mode",
     "ALTER TABLE author_user ADD COLUMN device_types JSON NULL AFTER report_name",
+    "ALTER TABLE author_user ADD COLUMN metric_types JSON NULL COMMENT 'AuthorMetricTypeEnum 指标类型集合' AFTER im_proxy_user_ids",
     "ALTER TABLE author_article ADD COLUMN has_free_code INT NULL DEFAULT 0 COMMENT '是否有免费码' AFTER view_count",
     # Required for system-server assign-user-role → MemberUserApi.getUserByMobile
     "ALTER TABLE member_user ADD COLUMN referrer_type TINYINT NULL DEFAULT 0 COMMENT '推荐人类型' AFTER referrer",

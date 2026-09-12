@@ -3,7 +3,7 @@
 > **业务域**：M10 数据采集
 > **功能模块**：采集任务 + 数据质量
 > **详细设计章节**：5.40、5.41（v9.1 编号，对应 5.36-5.37 位置）
-> **版本**：v1.1 | 2026-06-24
+> **版本**：v1.2 | 2026-08-26
 > **状态**：Draft（Phase 2 Channel-A MVP 已实现 · 见 §2.3）
 > **全局规范**：[`docs/engineering/GLOBAL-CONVENTIONS.md`](./../engineering/GLOBAL-CONVENTIONS.md)
 
@@ -58,7 +58,7 @@
 
 ### 2.2 Out of Scope
 
-1. ❌ **不实现** XXL-JOB（使用 Spring `@Scheduled`）
+1. ✅ **已实现** XXL-JOB（基于 `football-spring-boot-starter-job` + `@XxlJob` + `@TenantJob` 多租户循环；详见 [ADR-070](../adr/ADR-070-Ops抓取统一XXL-JOB调度.md)，撤销 ADR-001 §2/§4 XXL-JOB 禁令）
 2. ❌ **不实现** RabbitMQ 异步（使用 Spring `@Async`）
 3. ❌ **不实现** MinIO 对象存储（本地文件系统）
 4. ❌ **不实现** FR-M10-002 数据质量检查（Phase 2 未启动）
@@ -125,9 +125,9 @@
 
 #### 4.1.3 业务规则
 
-- 调度：Spring `@Scheduled(cron = "...")`，不依赖 XXL-JOB
+- **调度**：xxl-job（基于 `football-spring-boot-starter-job`），JobHandler 用 `@XxlJob("xxx")` + `@TenantJob` 多租户循环（[ADR-070](../adr/ADR-070-Ops抓取统一XXL-JOB调度.md) · 撤销 ADR-001 §2/§4 XXL-JOB 禁令）；cron 表达式在 xxl-job-admin 任务管理配置
 - 异步：Spring `@Async`，不依赖 RabbitMQ
-- 失败重试：3 次指数退避
+- 失败重试：3 次指数退避（xxl-job-admin 任务重试配置）
 - 凭证：Channel-A 凭证 SSOT 在 M4 `oa_account`（ADR-047）；任务 `apiConfig` 仍支持 AES-256 加密 JSON
 - **全量采集**：`data_type` 为空时，`CollectPlatformDefaults` 按平台顺序串行执行全部 dataType（ADR-049）
 - **日志状态**：多类型执行时，部分成功 → `PARTIAL`；全部成功 → `SUCCESS`；全部失败 → `FAILED`
@@ -146,7 +146,7 @@
 - `accountId` 用 `<AccountSelect />`
 
 **AC-M10-001-4**（定时调度）
-- 启动后 Spring 调度生效
+- 启动后 ops-server 在 xxl-job-admin「执行器管理」可见新 appname **`football-ops-executor`**（`xxl.job.executor.appname` 显式写死，**禁止**引用 `${spring.application.name}`）；`@XxlJob("collectCronScanJobHandler")` + `@TenantJob` 在「任务管理」注册成功；触发后 `@TenantJob` AOP 多租户循环生效（[ADR-070](../adr/ADR-070-Ops抓取统一XXL-JOB调度.md)）；`MonitorAlertScanner` 同步迁移到 `@XxlJob("monitorAlertScanJobHandler")`（ADR-069 P1 stub 同步改造，见 [ADR-070 §4.4](../adr/ADR-070-Ops抓取统一XXL-JOB调度.md)）
 
 **AC-M10-001-5**（失败重试）
 - 失败 3 次后状态 = FAILED
@@ -230,17 +230,33 @@
 
 ---
 
-## 5. 决策记录
+### 4.3 Ops ↔ unify-collector-api 集成（环境配置 · 非新 FR）
+
+Ops Channel-A 经 `UnifiedCollectorApiClient` 调用远程采集服务。**非**新增采集能力，仅为部署/联调可配置：
+
+| 项 | 说明 |
+|----|------|
+| 配置键 | `oa.unified-collector.base-url` ← 环境变量 **`COLLECTOR_BASE_URL`** |
+| Token | `oa.unified-collector.api-token` ← **`COLLECTOR_API_TOKEN`** |
+| 本地 profile | `application-local.yaml` 默认 `http://127.0.0.1:8000`；`start-integration-oa.ps1` 可通过 `Import-OpsCollectorRemoteEnv` 从 `ops-test-remote.env` 注入远程地址（**仅** collector env，不切换 DB） |
+| 生产 | `application-prod.yaml` / Nacos `nacos-ops-server-prod.yaml` 必设 `COLLECTOR_BASE_URL` |
+| 健康检查 | `GET {COLLECTOR_BASE_URL}/livez` → 200 |
+| 错误提示 | `CollectorErrorMessages` / `UnifiedCollectorApiClient` 失败时展示已配置的 base-url |
+
+联调 SSOT：[OPS-TEST-DB.md § Unified Collector](../delivery/OPS-TEST-DB.md#unified-collector本地-profile--远程采集) · [OPS-DEV-DEPLOY-GUIDE.md §4](../delivery/OPS-DEV-DEPLOY-GUIDE.md)
+
+---
 
 | 编号 | 问题 | 决策 | 原因 |
 |------|------|------|------|
-| ADR-M10-001 | 任务调度依赖 XXL-JOB 吗？ | 不依赖，Spring `@Scheduled` | 中间件简化（ADR-001） |
+| ~~ADR-M10-001~~（已被 ADR-070 撤销） | ~~任务调度依赖 XXL-JOB 吗？~~ | ~~不依赖，Spring `@Scheduled`~~ | ~~中间件简化（ADR-001）~~ |
 | ADR-M10-002 | 异步处理依赖 RabbitMQ 吗？ | 不依赖，Spring `@Async` | 中间件简化（ADR-001） |
 | ADR-M10-003 | 凭证存储？ | 本地 + AES-256 | 中间件简化（ADR-001） |
 | ADR-047 | Channel-A 凭证 SSOT？ | M4 `oa_account` + bind 表 | 消除 M8 双 SSOT |
 | ADR-048 | 企微采集？ | `WeComAdapter` 直连 | 不经 collector bind |
 | ADR-049 | 单任务多 dataType？ | 空 data_type = 全量顺序执行 | 降低运营配置成本 |
 | **ADR-061** | Channel-A 默认一账号一任务？ | **否（假设 A1）**：租户级 **一条**统一任务 + `oa_collect_task_account` 成员；账号 `collect_enabled` 控制入退 | 降低运营配置成本；见 [ADR-061](../adr/ADR-061-租户级统一采集任务.md) |
+| **ADR-070** | Ops 抓取调度是否引入 XXL-JOB？ | **是**：撤销 ADR-001 §2/§4 XXL-JOB 禁令；Ops 抓取类调度（采集 cron 扫描 + 阈值兜底）走 `football-spring-boot-starter-job` + `@XxlJob` + `@TenantJob` 多租户循环；executor appname = **`football-ops-executor`**（显式写死；不复用 `${spring.application.name}`）；admin accessToken 沿用 mp 默认；失败重试 1/5/15min 三段；ADR-069 P1 stub 全租户遍历同步迁移 | 与 Football 同源 7 个 service 一致；多租户语义由 `TenantJobAspect` AOP 自动接管；2026-08-17 §6 Q1–Q6 全部决议 |
 
 > **附注（ADR-061）**：§4.1.2 `account_id` 强关联适用于历史/单账号任务；**统一任务** `account_id=NULL`，成员表挂多账号。调度 cron 默认来自 `sys_param.collect.schedule.cron`（23:00）。
 

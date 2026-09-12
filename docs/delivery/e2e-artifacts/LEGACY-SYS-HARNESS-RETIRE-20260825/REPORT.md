@@ -32,6 +32,8 @@ Stack was **already running** (prior build) at session start — **does not incl
 | `GET /ops/private-domain-report/monthly-achievement` | PASS (rows=2) |
 | `GET /ops/private-domain-report/weekly-funnel` | **PASS** (6 rows; 需 `weekStart`+`weekEnd`，非 `weekLabel`) |
 | `GET /ops/report/live-duration/list` | PASS (total=30 stub) |
+
+> **Superseded (2026-08-26):** 直播时长已升 S-tier（live-server Feign + 作者维度）。见 [LIVE-DURATION-S-TIER-20260826](../LIVE-DURATION-S-TIER-20260826/REPORT.md)。
 | `GET /ops/work-task/sheet/get-or-create` | **PASS** (动态 ipGroupId) |
 | `GET /actuator/health` :48094 | PASS UP |
 

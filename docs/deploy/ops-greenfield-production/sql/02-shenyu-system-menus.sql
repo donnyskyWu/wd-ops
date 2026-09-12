@@ -1,9 +1,9 @@
 -- =============================================================================
 -- shenyu-system — Ops menus / dicts / RBAC (Greenfield execution order)
--- Generated: 2026-08-25 by gen-ops-greenfield-sql.py — do not hand-edit
+-- Generated: 2026-08-28 by gen-ops-greenfield-sql.py — do not hand-edit
 -- Schema SSOT: Beta test shenyu-system @ 110.42.49.224 (OPS-TEST-DB.md): menu.user_type, dict_data.value
 -- Target DB: pass on mysql CLI, e.g. mysql -h HOST -u USER -p shenyu-system < sql/02-shenyu-system-menus.sql
--- Order:  01 → 02 → 05 → 06 → 03 → 07  (04 skipped on greenfield)
+-- Order:  01 → 02 → 04 → 05 → 06 → 03 → 07
 -- =============================================================================
 SET NAMES utf8mb4;
 
@@ -121,6 +121,11 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6172);
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
 SELECT 6173, '公推模板导入', 'ops:layout-template:import', 3, 4, 6120, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6173);
+
+-- S-21a / ADR-028：AI 与 legacy 规则排版共用内容排版权限。
+INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
+SELECT 6290, '内容排版', 'ops:content:typeset', 3, 1, 6117, '', '', '', NULL, 0, b'0', b'1', b'1', 'integration', 2
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_menu WHERE id = 6290);
 
 INSERT INTO system_menu (id, name, permission, type, sort, parent_id, path, icon, component, component_name, status, visible, keep_alive, always_show, creator, user_type)
 SELECT 6121, '计划管理', 'ops:plan:list', 2, 5, 6102, 'plan', 'ep:document', 'ops/production/plan/index', 'Plan', 0, b'1', b'1', b'1', 'integration', 2
@@ -638,6 +643,3702 @@ DELETE FROM system_role_menu WHERE menu_id IN (6137, 6138, 6139, 6155);
 DELETE FROM system_menu WHERE id IN (6137, 6138, 6139, 6155);
 
 -- =============================================================================
+-- ===== 04_baseline_dicts.sql =====
+-- Ops dict_* → system_dict_* (G-DICT-01; no wd DB)
+-- =============================================================================
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '账号状态', 'dict_account_status', 0, 'ops-greenfield:dict_account_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_account_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '账号类型', 'dict_account_type', 0, 'ops-greenfield:dict_account_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_account_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'AI模型类型', 'dict_ai_model_type', 0, 'ops-greenfield:dict_ai_model_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_ai_model_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'AI应用场景', 'dict_ai_scene', 0, 'ops-greenfield:dict_ai_scene', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_ai_scene' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '预警级别', 'dict_alert_level', 0, 'ops-greenfield:dict_alert_level', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_alert_level' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '主播风格', 'dict_anchor_style', 0, 'ops-greenfield:dict_anchor_style', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_anchor_style' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '主播类型', 'dict_anchor_type', 0, 'ops-greenfield:dict_anchor_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_anchor_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '奥创设备绑定状态', 'dict_aochuang_bind_status', 0, 'ops-greenfield:dict_aochuang_bind_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_aochuang_bind_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '奥创消息方向', 'dict_aochuang_message_direction', 0, 'ops-greenfield:dict_aochuang_message_direction', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_aochuang_message_direction' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '奥创消息类型', 'dict_aochuang_message_type', 0, 'ops-greenfield:dict_aochuang_message_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_aochuang_message_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '奥创同步类型', 'dict_aochuang_sync_type', 0, 'ops-greenfield:dict_aochuang_sync_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_aochuang_sync_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '作者状态', 'dict_author_status', 0, 'ops-greenfield:dict_author_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_author_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '作者类型', 'dict_author_type', 0, 'ops-greenfield:dict_author_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_author_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '采集数据类型', 'dict_collect_data_type', 0, 'ops-greenfield:dict_collect_data_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_collect_data_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '采集频率', 'dict_collect_frequency', 0, 'ops-greenfield:dict_collect_frequency', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_collect_frequency' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '采集方式', 'dict_collect_method', 0, 'ops-greenfield:dict_collect_method', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_collect_method' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '采集源', 'dict_collect_source', 0, 'ops-greenfield:dict_collect_source', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_collect_source' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '采集状态', 'dict_collect_status', 0, 'ops-greenfield:dict_collect_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_collect_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'Collector 绑定状态', 'dict_collector_bind_status', 0, 'ops-greenfield:dict_collector_bind_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_collector_bind_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '公司状态', 'dict_company_status', 0, 'ops-greenfield:dict_company_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_company_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '比较符', 'dict_compare_operator', 0, 'ops-greenfield:dict_compare_operator', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_compare_operator' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '配置状态', 'dict_config_status', 0, 'ops-greenfield:dict_config_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_config_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '连接状态', 'dict_conn_status', 0, 'ops-greenfield:dict_conn_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_conn_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'Content body format', 'dict_content_body_format', 0, 'ops-greenfield:dict_content_body_format', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_content_body_format' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '补录类型', 'dict_content_import_type', 0, 'ops-greenfield:dict_content_import_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_content_import_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '内容篇幅类型', 'dict_content_length_type', 0, 'ops-greenfield:dict_content_length_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_content_length_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '内容审核结果', 'dict_content_review_result', 0, 'ops-greenfield:dict_content_review_result', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_content_review_result' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '生产内容状态', 'dict_content_status', 0, 'ops-greenfield:dict_content_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_content_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '内容类型', 'dict_content_type', 0, 'ops-greenfield:dict_content_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_content_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '支付方式', 'dict_cost_pay_method', 0, 'ops-greenfield:dict_cost_pay_method', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_cost_pay_method' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '成本周期', 'dict_cost_period', 0, 'ops-greenfield:dict_cost_period', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_cost_period' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '成本类型', 'dict_cost_type', 0, 'ops-greenfield:dict_cost_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_cost_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '大屏类型', 'dict_dashboard_type', 0, 'ops-greenfield:dict_dashboard_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_dashboard_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '数据来源', 'dict_data_source', 0, 'ops-greenfield:dict_data_source', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_data_source' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '文档类型', 'dict_document_type', 0, 'ops-greenfield:dict_document_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_document_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '电商平台', 'dict_ecom_platform', 0, 'ops-greenfield:dict_ecom_platform', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_ecom_platform' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '漏斗类型', 'dict_funnel_type', 0, 'ops-greenfield:dict_funnel_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_funnel_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '性别', 'dict_gender', 0, 'ops-greenfield:dict_gender', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_gender' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '证件类型', 'dict_id_type', 0, 'ops-greenfield:dict_id_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_id_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '行业', 'dict_industry', 0, 'ops-greenfield:dict_industry', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_industry' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '中介人关系类型', 'dict_intermediary_relation', 0, 'ops-greenfield:dict_intermediary_relation', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_intermediary_relation' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'IP组等级', 'dict_ip_group_level', 0, 'ops-greenfield:dict_ip_group_level', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_ip_group_level' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'IP组状态', 'dict_ip_group_status', 0, 'ops-greenfield:dict_ip_group_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_ip_group_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'IP组类型', 'dict_ip_group_type', 0, 'ops-greenfield:dict_ip_group_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_ip_group_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '判定模式', 'dict_judge_mode', 0, 'ops-greenfield:dict_judge_mode', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_judge_mode' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '知识库分类', 'dict_knowledge_category', 0, 'ops-greenfield:dict_knowledge_category', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_knowledge_category' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '版式导入任务状态', 'dict_layout_import_job_status', 0, 'ops-greenfield:dict_layout_import_job_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_layout_import_job_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'Layout style category', 'dict_layout_style_category', 0, 'ops-greenfield:dict_layout_style_category', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_layout_style_category' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'Layout style status', 'dict_layout_style_status', 0, 'ops-greenfield:dict_layout_style_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_layout_style_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'Layout template source', 'dict_layout_template_source', 0, 'ops-greenfield:dict_layout_template_source', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_layout_template_source' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'Layout template status', 'dict_layout_template_status', 0, 'ops-greenfield:dict_layout_template_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_layout_template_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '日志级别', 'dict_log_level', 0, 'ops-greenfield:dict_log_level', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_log_level' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '日志模块', 'dict_log_module', 0, 'ops-greenfield:dict_log_module', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_log_module' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '日志类型', 'dict_log_type', 0, 'ops-greenfield:dict_log_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_log_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '关键词匹配类型', 'dict_match_type', 0, 'ops-greenfield:dict_match_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_match_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '消息分类', 'dict_message_category', 0, 'ops-greenfield:dict_message_category', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_message_category' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '消息状态', 'dict_message_status', 0, 'ops-greenfield:dict_message_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_message_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '元数据实体状态', 'dict_metadata_entity_status', 0, 'ops-greenfield:dict_metadata_entity_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_metadata_entity_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '元数据查询条件类别', 'dict_metadata_query_condition_type', 0, 'ops-greenfield:dict_metadata_query_condition_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_metadata_query_condition_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '监测频率', 'dict_monitor_freq', 0, 'ops-greenfield:dict_monitor_freq', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_monitor_freq' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '通知渠道', 'dict_notify_channel', 0, 'ops-greenfield:dict_notify_channel', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_notify_channel' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '参数分类', 'dict_param_category', 0, 'ops-greenfield:dict_param_category', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_param_category' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '参数类型', 'dict_param_type', 0, 'ops-greenfield:dict_param_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_param_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '绩效等级', 'dict_perf_grade', 0, 'ops-greenfield:dict_perf_grade', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_perf_grade' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '指标类型', 'dict_perf_metric_type', 0, 'ops-greenfield:dict_perf_metric_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_perf_metric_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '考核周期', 'dict_perf_period', 0, 'ops-greenfield:dict_perf_period', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_perf_period' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '考核状态', 'dict_perf_status', 0, 'ops-greenfield:dict_perf_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_perf_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '手机状态', 'dict_phone_status', 0, 'ops-greenfield:dict_phone_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_phone_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '手机类型', 'dict_phone_type', 0, 'ops-greenfield:dict_phone_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_phone_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '计划状态', 'dict_plan_status', 0, 'ops-greenfield:dict_plan_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_plan_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '平台类型', 'dict_platform_type', 0, 'ops-greenfield:dict_platform_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_platform_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '岗位', 'dict_position', 0, 'ops-greenfield:dict_position', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_position' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '私域身份类型', 'dict_private_domain_identity_type', 0, 'ops-greenfield:dict_private_domain_identity_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_private_domain_identity_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '私域匹配方式', 'dict_private_domain_match_method', 0, 'ops-greenfield:dict_private_domain_match_method', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_private_domain_match_method' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '私域桥接审核状态', 'dict_private_domain_review_status', 0, 'ops-greenfield:dict_private_domain_review_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_private_domain_review_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '提示词类型', 'dict_prompt_type', 0, 'ops-greenfield:dict_prompt_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_prompt_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '资质类型', 'dict_qualification_type', 0, 'ops-greenfield:dict_qualification_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_qualification_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '数据质量检查类型', 'dict_quality_check_type', 0, 'ops-greenfield:dict_quality_check_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_quality_check_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '数据质量等级', 'dict_quality_level', 0, 'ops-greenfield:dict_quality_level', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_quality_level' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '查询状态', 'dict_query_status', 0, 'ops-greenfield:dict_query_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_query_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '实名人状态', 'dict_realname_status', 0, 'ops-greenfield:dict_realname_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_realname_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '审核阶段', 'dict_review_stage', 0, 'ops-greenfield:dict_review_stage', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_review_stage' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '审核状态', 'dict_review_status', 0, 'ops-greenfield:dict_review_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_review_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'ROI分析维度', 'dict_roi_dimension', 0, 'ops-greenfield:dict_roi_dimension', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_roi_dimension' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '赛事方案类型', 'dict_scheme_type', 0, 'ops-greenfield:dict_scheme_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_scheme_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'SIM运营商', 'dict_sim_operator', 0, 'ops-greenfield:dict_sim_operator', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_sim_operator' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '手机卡状态', 'dict_sim_status', 0, 'ops-greenfield:dict_sim_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_sim_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'SOP任务状态', 'dict_sop_node_status', 0, 'ops-greenfield:dict_sop_node_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_sop_node_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT 'SOP节点类型', 'dict_sop_node_type', 0, 'ops-greenfield:dict_sop_node_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_sop_node_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '同步频率', 'dict_sync_frequency', 0, 'ops-greenfield:dict_sync_frequency', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_sync_frequency' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '采集同步模式', 'dict_sync_mode', 0, 'ops-greenfield:dict_sync_mode', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_sync_mode' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '租户状态', 'dict_tenant_status', 0, 'ops-greenfield:dict_tenant_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_tenant_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '第三方平台', 'dict_third_platform', 0, 'ops-greenfield:dict_third_platform', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_third_platform' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '阈值分类', 'dict_threshold_category', 0, 'ops-greenfield:dict_threshold_category', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_threshold_category' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '阈值指标', 'dict_threshold_metric', 0, 'ops-greenfield:dict_threshold_metric', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_threshold_metric' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '阈值类型', 'dict_threshold_type', 0, 'ops-greenfield:dict_threshold_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_threshold_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '时间维度', 'dict_time_dimension', 0, 'ops-greenfield:dict_time_dimension', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_time_dimension' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '三方关联类型', 'dict_triple_rel_type', 0, 'ops-greenfield:dict_triple_rel_type', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_triple_rel_type' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '用户状态', 'dict_user_status', 0, 'ops-greenfield:dict_user_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_user_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '公众号使用状态', 'dict_wechat_usage_status', 0, 'ops-greenfield:dict_wechat_usage_status', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_wechat_usage_status' AND st.deleted = b'0'
+);
+
+INSERT INTO system_dict_type (name, type, status, remark, creator, create_time, updater, update_time, deleted)
+SELECT '是否', 'dict_yes_no', 0, 'ops-greenfield:dict_yes_no', 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_type st WHERE st.type = 'dict_yes_no' AND st.deleted = b'0'
+);
+
+-- ----- dict data -----
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '正常', 'NORMAL', 'dict_account_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_account_status' AND sd.value = 'NORMAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '停用', 'DISABLED', 'dict_account_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_account_status' AND sd.value = 'DISABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '官方账号', 'OFFICIAL_ACCOUNT', 'dict_account_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_account_type' AND sd.value = 'OFFICIAL_ACCOUNT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '个人账号', 'PERSONAL_ACCOUNT', 'dict_account_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_account_type' AND sd.value = 'PERSONAL_ACCOUNT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '服务号', 'SERVICE_ACCOUNT', 'dict_account_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_account_type' AND sd.value = 'SERVICE_ACCOUNT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '订阅号', 'SUBSCRIPTION_ACCOUNT', 'dict_account_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_account_type' AND sd.value = 'SUBSCRIPTION_ACCOUNT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '通义千问', 'QWEN', 'dict_ai_model_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_model_type' AND sd.value = 'QWEN' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '文心一言', 'ERNIE', 'dict_ai_model_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_model_type' AND sd.value = 'ERNIE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '智谱 AI', 'GLM', 'dict_ai_model_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_model_type' AND sd.value = 'GLM' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, 'DeepSeek', 'DEEPSEEK', 'dict_ai_model_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_model_type' AND sd.value = 'DEEPSEEK' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, 'Kimi', 'KIMI', 'dict_ai_model_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_model_type' AND sd.value = 'KIMI' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 6, '豆包', 'DOUBAO', 'dict_ai_model_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_model_type' AND sd.value = 'DOUBAO' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 7, 'OpenAI GPT', 'GPT', 'dict_ai_model_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_model_type' AND sd.value = 'GPT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 8, 'Claude', 'CLAUDE', 'dict_ai_model_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_model_type' AND sd.value = 'CLAUDE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 9, 'Gemini', 'GEMINI', 'dict_ai_model_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_model_type' AND sd.value = 'GEMINI' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 10, '月之暗面', 'MOONSHOT', 'dict_ai_model_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_model_type' AND sd.value = 'MOONSHOT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '内容生成', 'CONTENT_GEN', 'dict_ai_scene', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_scene' AND sd.value = 'CONTENT_GEN' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '标题优化', 'TITLE_OPT', 'dict_ai_scene', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_scene' AND sd.value = 'TITLE_OPT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 10, '短视频文案', 'SHORT_VIDEO', 'dict_ai_scene', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_scene' AND sd.value = 'SHORT_VIDEO' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 11, '直播脚本', 'LIVE_SCRIPT', 'dict_ai_scene', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_scene' AND sd.value = 'LIVE_SCRIPT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 12, '小红书笔记', 'XIAOHONGSHU', 'dict_ai_scene', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_scene' AND sd.value = 'XIAOHONGSHU' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 13, '公众号文章', 'WECHAT_ARTICLE', 'dict_ai_scene', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_scene' AND sd.value = 'WECHAT_ARTICLE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 14, '数据分析', 'DATA_ANALYSIS', 'dict_ai_scene', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_scene' AND sd.value = 'DATA_ANALYSIS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 15, '周报月报', 'REPORT', 'dict_ai_scene', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_scene' AND sd.value = 'REPORT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 16, '竞品分析', 'COMPETITOR', 'dict_ai_scene', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_scene' AND sd.value = 'COMPETITOR' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 17, 'AI内容对话', 'AI_CONTENT_CHAT', 'dict_ai_scene', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_scene' AND sd.value = 'AI_CONTENT_CHAT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 18, '内容生成', 'CONTENT_GENERATE', 'dict_ai_scene', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ai_scene' AND sd.value = 'CONTENT_GENERATE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '提示', 'INFO', 'dict_alert_level', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_alert_level' AND sd.value = 'INFO' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '低', 'LOW', 'dict_alert_level', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_alert_level' AND sd.value = 'LOW' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '中', 'MEDIUM', 'dict_alert_level', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_alert_level' AND sd.value = 'MEDIUM' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '警告', 'WARNING', 'dict_alert_level', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_alert_level' AND sd.value = 'WARNING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '紧急', 'CRITICAL', 'dict_alert_level', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_alert_level' AND sd.value = 'CRITICAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '高', 'HIGH', 'dict_alert_level', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_alert_level' AND sd.value = 'HIGH' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '激进型', 'aggressive', 'dict_anchor_style', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_anchor_style' AND sd.value = 'aggressive' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '稳健型', 'conservative', 'dict_anchor_style', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_anchor_style' AND sd.value = 'conservative' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '数据型', 'data', 'dict_anchor_style', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_anchor_style' AND sd.value = 'data' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '情感型', 'emotional', 'dict_anchor_style', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_anchor_style' AND sd.value = 'emotional' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '综合分析型', 'comprehensive', 'dict_anchor_style', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_anchor_style' AND sd.value = 'comprehensive' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 0, '直播', 'LIVE', 'dict_anchor_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_anchor_type' AND sd.value = 'LIVE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '未绑定', 'UNBOUND', 'dict_aochuang_bind_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_aochuang_bind_status' AND sd.value = 'UNBOUND' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '自动绑定', 'AUTO', 'dict_aochuang_bind_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_aochuang_bind_status' AND sd.value = 'AUTO' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '手工绑定', 'MANUAL', 'dict_aochuang_bind_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_aochuang_bind_status' AND sd.value = 'MANUAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '待绑定', 'PENDING', 'dict_aochuang_bind_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_aochuang_bind_status' AND sd.value = 'PENDING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '发送', 'SENT', 'dict_aochuang_message_direction', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_aochuang_message_direction' AND sd.value = 'SENT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '接收', 'RECEIVED', 'dict_aochuang_message_direction', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_aochuang_message_direction' AND sd.value = 'RECEIVED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '文本', 'TEXT', 'dict_aochuang_message_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_aochuang_message_type' AND sd.value = 'TEXT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '图片', 'IMAGE', 'dict_aochuang_message_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_aochuang_message_type' AND sd.value = 'IMAGE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '语音', 'VOICE', 'dict_aochuang_message_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_aochuang_message_type' AND sd.value = 'VOICE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '视频', 'VIDEO', 'dict_aochuang_message_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_aochuang_message_type' AND sd.value = 'VIDEO' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '其他', 'OTHER', 'dict_aochuang_message_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_aochuang_message_type' AND sd.value = 'OTHER' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '好友', 'FRIENDS', 'dict_aochuang_sync_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_aochuang_sync_type' AND sd.value = 'FRIENDS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '消息', 'MESSAGES', 'dict_aochuang_sync_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_aochuang_sync_type' AND sd.value = 'MESSAGES' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '启用', 'ENABLED', 'dict_author_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_author_status' AND sd.value = 'ENABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '停用', 'DISABLED', 'dict_author_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_author_status' AND sd.value = 'DISABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 0, '直播', 'LIVE', 'dict_author_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_author_type' AND sd.value = 'LIVE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '短视频', 'SHORT_VIDEO', 'dict_author_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_author_type' AND sd.value = 'SHORT_VIDEO' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '图文', 'ARTICLE', 'dict_author_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_author_type' AND sd.value = 'ARTICLE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '直播+短视频', 'BOTH', 'dict_author_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_author_type' AND sd.value = 'BOTH' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '图文', 'IMAGE_TEXT', 'dict_author_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_author_type' AND sd.value = 'IMAGE_TEXT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '公众号粉丝', 'MP_FOLLOWER_LIST', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'MP_FOLLOWER_LIST' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '公众号图文', 'MP_ARTICLE_LIST', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'MP_ARTICLE_LIST' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '公众号粉丝统计', 'MP_FOLLOWER_STATS', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'MP_FOLLOWER_STATS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '企微日统计', 'WECOM_DAILY_STATS', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'WECOM_DAILY_STATS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '抖音粉丝列表', 'DOUYIN_FOLLOWER_LIST', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'DOUYIN_FOLLOWER_LIST' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '公众号图文明细', 'MP_ARTICLE_STATS', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'MP_ARTICLE_STATS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '抖音作品列表', 'DOUYIN_VIDEO_LIST', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'DOUYIN_VIDEO_LIST' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '公众号图文内容', 'MP_ARTICLE_CONTENT', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'MP_ARTICLE_CONTENT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 6, '抖音作品明细', 'DOUYIN_VIDEO_STATS', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'DOUYIN_VIDEO_STATS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 7, '视频号作品列表', 'WECHAT_VIDEO_LIST', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'WECHAT_VIDEO_LIST' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 8, '视频号作品明细', 'WECHAT_VIDEO_STATS', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'WECHAT_VIDEO_STATS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 9, '快手作品列表', 'KUAISHOU_VIDEO_LIST', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'KUAISHOU_VIDEO_LIST' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 10, '快手作品明细', 'KUAISHOU_VIDEO_STATS', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'KUAISHOU_VIDEO_STATS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 11, '小红书笔记列表', 'XIAOHONGSHU_NOTE_LIST', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'XIAOHONGSHU_NOTE_LIST' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 12, '小红书笔记明细', 'XIAOHONGSHU_NOTE_STATS', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'XIAOHONGSHU_NOTE_STATS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 20, '快手竞品作品列表', 'EXT_KUAISHOU_USER_VIDEOS', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'EXT_KUAISHOU_USER_VIDEOS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 21, '公众号搜索', 'EXT_WECHAT_MP_SEARCH', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'EXT_WECHAT_MP_SEARCH' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 22, '公众号图文列表', 'EXT_WECHAT_MP_ARTICLE_LIST', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'EXT_WECHAT_MP_ARTICLE_LIST' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 23, '抖音用户资料', 'EXT_DOUYIN_USER_PROFILE', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'EXT_DOUYIN_USER_PROFILE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 24, '抖音竞品作品列表', 'EXT_DOUYIN_USER_VIDEOS', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'EXT_DOUYIN_USER_VIDEOS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 25, '视频号用户', 'EXT_WECHAT_VIDEO_USER', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'EXT_WECHAT_VIDEO_USER' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 26, '视频号作品列表', 'EXT_WECHAT_VIDEO_WORK_LIST', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'EXT_WECHAT_VIDEO_WORK_LIST' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 27, '视频号粉丝统计', 'EXT_WECHAT_VIDEO_FOLLOWER_STATS', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'EXT_WECHAT_VIDEO_FOLLOWER_STATS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 30, '抖音直播列表', 'DOUYIN_LIVE_LIST', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'DOUYIN_LIVE_LIST' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 31, '抖音直播明细', 'DOUYIN_LIVE_STATS', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'DOUYIN_LIVE_STATS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 32, '视频号直播列表', 'WECHAT_VIDEO_LIVE_LIST', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'WECHAT_VIDEO_LIVE_LIST' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 33, '视频号直播明细', 'WECHAT_VIDEO_LIVE_STATS', 'dict_collect_data_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_data_type' AND sd.value = 'WECHAT_VIDEO_LIVE_STATS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '每日', 'DAILY', 'dict_collect_frequency', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_frequency' AND sd.value = 'DAILY' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '每小时', 'HOURLY', 'dict_collect_frequency', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_frequency' AND sd.value = 'HOURLY' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '每周', 'WEEKLY', 'dict_collect_frequency', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_frequency' AND sd.value = 'WEEKLY' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '内部采集', 'INTERNAL', 'dict_collect_method', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_method' AND sd.value = 'INTERNAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, 'API对接', 'API', 'dict_collect_method', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_method' AND sd.value = 'API' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '爬虫', 'CRAWLER', 'dict_collect_method', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_method' AND sd.value = 'CRAWLER' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '外部竞品', 'EXTERNAL', 'dict_collect_method', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_method' AND sd.value = 'EXTERNAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '公众号 API', 'WECHAT_MP_API', 'dict_collect_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_source' AND sd.value = 'WECHAT_MP_API' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '视频号 API', 'WECHAT_CHANNELS_API', 'dict_collect_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_source' AND sd.value = 'WECHAT_CHANNELS_API' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '抖音开放平台', 'DOUYIN_OPEN_API', 'dict_collect_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_source' AND sd.value = 'DOUYIN_OPEN_API' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '奥创接口', 'AOCHUANG_API', 'dict_collect_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_source' AND sd.value = 'AOCHUANG_API' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '企微 API', 'WECOM_API', 'dict_collect_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_source' AND sd.value = 'WECOM_API' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 6, '个微 API', 'PERSONAL_WECHAT_API', 'dict_collect_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_source' AND sd.value = 'PERSONAL_WECHAT_API' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 7, '快手 Cookie 采集', 'KUAISHOU_OPEN_API', 'dict_collect_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_source' AND sd.value = 'KUAISHOU_OPEN_API' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 8, '小红书 Cookie 采集', 'XIAOHONGSHU_OPEN_API', 'dict_collect_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_source' AND sd.value = 'XIAOHONGSHU_OPEN_API' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 9, 'Bilibili Cookie 采集', 'BILIBILI_OPEN_API', 'dict_collect_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_source' AND sd.value = 'BILIBILI_OPEN_API' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 10, '统一采集-外部竞品', 'UNIFY_COLLECTOR_EXTERNAL', 'dict_collect_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_source' AND sd.value = 'UNIFY_COLLECTOR_EXTERNAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '待执行', 'PENDING', 'dict_collect_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_status' AND sd.value = 'PENDING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '执行中', 'RUNNING', 'dict_collect_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_status' AND sd.value = 'RUNNING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '成功', 'SUCCESS', 'dict_collect_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_status' AND sd.value = 'SUCCESS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '失败', 'FAILED', 'dict_collect_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_status' AND sd.value = 'FAILED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '部分成功', 'PARTIAL', 'dict_collect_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_status' AND sd.value = 'PARTIAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 6, '已停止', 'STOPPED', 'dict_collect_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collect_status' AND sd.value = 'STOPPED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '已绑定', 'BOUND', 'dict_collector_bind_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collector_bind_status' AND sd.value = 'BOUND' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '待绑定', 'PENDING', 'dict_collector_bind_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collector_bind_status' AND sd.value = 'PENDING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '绑定失败', 'FAILED', 'dict_collector_bind_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_collector_bind_status' AND sd.value = 'FAILED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '启用', 'ENABLED', 'dict_company_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_company_status' AND sd.value = 'ENABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '停用', 'DISABLED', 'dict_company_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_company_status' AND sd.value = 'DISABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '大于等于', 'GTE', 'dict_compare_operator', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_compare_operator' AND sd.value = 'GTE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '小于等于', 'LTE', 'dict_compare_operator', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_compare_operator' AND sd.value = 'LTE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '等于', 'EQ', 'dict_compare_operator', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_compare_operator' AND sd.value = 'EQ' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '启用', 'ENABLED', 'dict_config_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_config_status' AND sd.value = 'ENABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '停用', 'DISABLED', 'dict_config_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_config_status' AND sd.value = 'DISABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '已连接', 'CONNECTED', 'dict_conn_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_conn_status' AND sd.value = 'CONNECTED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '未连接', 'DISCONNECTED', 'dict_conn_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_conn_status' AND sd.value = 'DISCONNECTED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '连接正常', 'OK', 'dict_conn_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_conn_status' AND sd.value = 'OK' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, 'Token失效', 'TOKEN_FAIL', 'dict_conn_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_conn_status' AND sd.value = 'TOKEN_FAIL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '权限不足', 'PERMISSION_DENIED', 'dict_conn_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_conn_status' AND sd.value = 'PERMISSION_DENIED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '纯文本', 'PLAIN', 'dict_content_body_format', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_body_format' AND sd.value = 'PLAIN' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '富版式', 'LAYOUT', 'dict_content_body_format', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_body_format' AND sd.value = 'LAYOUT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '接口异常', 'API_EXCEPTION', 'dict_content_import_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_import_type' AND sd.value = 'API_EXCEPTION' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '线下补录', 'OFFLINE', 'dict_content_import_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_import_type' AND sd.value = 'OFFLINE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '短篇500字', 'SHORT', 'dict_content_length_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_length_type' AND sd.value = 'SHORT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '中篇1000字', 'MEDIUM', 'dict_content_length_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_length_type' AND sd.value = 'MEDIUM' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '长篇3000字', 'LONG', 'dict_content_length_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_length_type' AND sd.value = 'LONG' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '通过', 'APPROVE', 'dict_content_review_result', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_review_result' AND sd.value = 'APPROVE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '驳回', 'REJECT', 'dict_content_review_result', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_review_result' AND sd.value = 'REJECT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '草稿', 'DRAFT', 'dict_content_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_status' AND sd.value = 'DRAFT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '待一级审核', 'PENDING_FIRST_REVIEW', 'dict_content_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_status' AND sd.value = 'PENDING_FIRST_REVIEW' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '待二级审核', 'PENDING_SECOND_REVIEW', 'dict_content_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_status' AND sd.value = 'PENDING_SECOND_REVIEW' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '待终审', 'PENDING_FINAL_REVIEW', 'dict_content_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_status' AND sd.value = 'PENDING_FINAL_REVIEW' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '已驳回', 'REJECTED', 'dict_content_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_status' AND sd.value = 'REJECTED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 6, '待发布', 'PENDING_PUBLISH', 'dict_content_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_status' AND sd.value = 'PENDING_PUBLISH' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 7, '已发布草稿', 'PUBLISHED_DRAFT', 'dict_content_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_status' AND sd.value = 'PUBLISHED_DRAFT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 8, '已正式发布', 'FORMALLY_PUBLISHED', 'dict_content_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_status' AND sd.value = 'FORMALLY_PUBLISHED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 9, '已发布', 'PUBLISHED', 'dict_content_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_status' AND sd.value = 'PUBLISHED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 10, '已下架', 'UNPUBLISHED', 'dict_content_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_status' AND sd.value = 'UNPUBLISHED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 11, '已完成', 'COMPLETED', 'dict_content_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_status' AND sd.value = 'COMPLETED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 0, '全部', 'ALL', 'dict_content_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_type' AND sd.value = 'ALL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '短视频', 'SHORT_VIDEO', 'dict_content_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_type' AND sd.value = 'SHORT_VIDEO' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '文章', 'ARTICLE', 'dict_content_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_type' AND sd.value = 'ARTICLE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '直播', 'LIVE', 'dict_content_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_type' AND sd.value = 'LIVE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '视频', 'VIDEO', 'dict_content_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_content_type' AND sd.value = 'VIDEO' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '微信', 'WECHAT', 'dict_cost_pay_method', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_cost_pay_method' AND sd.value = 'WECHAT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '支付宝', 'ALIPAY', 'dict_cost_pay_method', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_cost_pay_method' AND sd.value = 'ALIPAY' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '银行卡', 'BANK', 'dict_cost_pay_method', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_cost_pay_method' AND sd.value = 'BANK' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '对公转账', 'CORPORATE', 'dict_cost_pay_method', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_cost_pay_method' AND sd.value = 'CORPORATE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '一次性', 'ONCE', 'dict_cost_period', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_cost_period' AND sd.value = 'ONCE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '月度', 'MONTH', 'dict_cost_period', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_cost_period' AND sd.value = 'MONTH' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '季度', 'QUARTER', 'dict_cost_period', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_cost_period' AND sd.value = 'QUARTER' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '购买成本', 'PURCHASE', 'dict_cost_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_cost_type' AND sd.value = 'PURCHASE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '人力成本', 'PROCESS_HUMAN', 'dict_cost_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_cost_type' AND sd.value = 'PROCESS_HUMAN' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '投放成本', 'AD_SPEND', 'dict_cost_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_cost_type' AND sd.value = 'AD_SPEND' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '业务大屏', 'BUSINESS', 'dict_dashboard_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_dashboard_type' AND sd.value = 'BUSINESS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '运营大屏', 'OPS', 'dict_dashboard_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_dashboard_type' AND sd.value = 'OPS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, 'API采集', 'API', 'dict_data_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_data_source' AND sd.value = 'API' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '手工补录', 'IMPORT', 'dict_data_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_data_source' AND sd.value = 'IMPORT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '短视频文案', 'SHORT_VIDEO_SCRIPT', 'dict_document_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_document_type' AND sd.value = 'SHORT_VIDEO_SCRIPT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '新号引流', 'NEW_ACCOUNT_TRAFFIC', 'dict_document_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_document_type' AND sd.value = 'NEW_ACCOUNT_TRAFFIC' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '赛后复盘', 'POST_MATCH_REVIEW', 'dict_document_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_document_type' AND sd.value = 'POST_MATCH_REVIEW' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '正式方案', 'OFFICIAL_PLAN', 'dict_document_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_document_type' AND sd.value = 'OFFICIAL_PLAN' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '预热前瞻', 'PREHEAT_PREVIEW', 'dict_document_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_document_type' AND sd.value = 'PREHEAT_PREVIEW' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '淘宝', 'TAOBAO', 'dict_ecom_platform', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ecom_platform' AND sd.value = 'TAOBAO' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '京东', 'JD', 'dict_ecom_platform', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ecom_platform' AND sd.value = 'JD' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '拼多多', 'PDD', 'dict_ecom_platform', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ecom_platform' AND sd.value = 'PDD' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '自定义', 'CUSTOM', 'dict_funnel_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_funnel_type' AND sd.value = 'CUSTOM' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '转化', 'CONVERSION', 'dict_funnel_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_funnel_type' AND sd.value = 'CONVERSION' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '私域转化', 'PRIVATE_DOMAIN', 'dict_funnel_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_funnel_type' AND sd.value = 'PRIVATE_DOMAIN' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '男', 'MALE', 'dict_gender', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_gender' AND sd.value = 'MALE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '女', 'FEMALE', 'dict_gender', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_gender' AND sd.value = 'FEMALE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '身份证', 'ID_CARD', 'dict_id_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_id_type' AND sd.value = 'ID_CARD' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '护照', 'PASSPORT', 'dict_id_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_id_type' AND sd.value = 'PASSPORT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '新媒体', 'new_media', 'dict_industry', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_industry' AND sd.value = 'new_media' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, 'MCN', 'mcn', 'dict_industry', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_industry' AND sd.value = 'mcn' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '文化传媒', 'media', 'dict_industry', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_industry' AND sd.value = 'media' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '教育', 'education', 'dict_industry', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_industry' AND sd.value = 'education' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '电商', 'ecommerce', 'dict_industry', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_industry' AND sd.value = 'ecommerce' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '直签', 'DIRECT', 'dict_intermediary_relation', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_intermediary_relation' AND sd.value = 'DIRECT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '中介代理', 'INTERMEDIARY', 'dict_intermediary_relation', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_intermediary_relation' AND sd.value = 'INTERMEDIARY' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '机构合作', 'AGENCY', 'dict_intermediary_relation', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_intermediary_relation' AND sd.value = 'AGENCY' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, 'S级', 'S', 'dict_ip_group_level', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ip_group_level' AND sd.value = 'S' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, 'A级', 'A', 'dict_ip_group_level', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ip_group_level' AND sd.value = 'A' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, 'B级', 'B', 'dict_ip_group_level', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ip_group_level' AND sd.value = 'B' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, 'C级', 'C', 'dict_ip_group_level', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ip_group_level' AND sd.value = 'C' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '启用', 'ENABLED', 'dict_ip_group_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ip_group_status' AND sd.value = 'ENABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '停用', 'DISABLED', 'dict_ip_group_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ip_group_status' AND sd.value = 'DISABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '大组', 'BIG', 'dict_ip_group_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ip_group_type' AND sd.value = 'BIG' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '小组', 'SMALL', 'dict_ip_group_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_ip_group_type' AND sd.value = 'SMALL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '全部满足', 'AND', 'dict_judge_mode', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_judge_mode' AND sd.value = 'AND' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '任一满足', 'OR', 'dict_judge_mode', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_judge_mode' AND sd.value = 'OR' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '模板库', 'TEMPLATE_LIB', 'dict_knowledge_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_knowledge_category' AND sd.value = 'TEMPLATE_LIB' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '运营技巧', 'OPS_TIPS', 'dict_knowledge_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_knowledge_category' AND sd.value = 'OPS_TIPS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '案例库', 'CASE_LIB', 'dict_knowledge_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_knowledge_category' AND sd.value = 'CASE_LIB' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '行业资料', 'INDUSTRY_LIB', 'dict_knowledge_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_knowledge_category' AND sd.value = 'INDUSTRY_LIB' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '运营经验', 'EXPERIENCE_LIB', 'dict_knowledge_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_knowledge_category' AND sd.value = 'EXPERIENCE_LIB' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '待处理', 'PENDING', 'dict_layout_import_job_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_import_job_status' AND sd.value = 'PENDING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '处理中', 'RUNNING', 'dict_layout_import_job_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_import_job_status' AND sd.value = 'RUNNING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '成功', 'SUCCESS', 'dict_layout_import_job_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_import_job_status' AND sd.value = 'SUCCESS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '失败', 'FAILED', 'dict_layout_import_job_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_import_job_status' AND sd.value = 'FAILED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '标题', 'HEADING', 'dict_layout_style_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_style_category' AND sd.value = 'HEADING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '正文', 'BODY', 'dict_layout_style_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_style_category' AND sd.value = 'BODY' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '图文', 'IMAGE_TEXT', 'dict_layout_style_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_style_category' AND sd.value = 'IMAGE_TEXT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '引导', 'GUIDE', 'dict_layout_style_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_style_category' AND sd.value = 'GUIDE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '分隔', 'DIVIDER', 'dict_layout_style_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_style_category' AND sd.value = 'DIVIDER' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '已启用', 'ENABLED', 'dict_layout_style_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_style_status' AND sd.value = 'ENABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '已停用', 'DISABLED', 'dict_layout_style_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_style_status' AND sd.value = 'DISABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '手动创建', 'MANUAL', 'dict_layout_template_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_template_source' AND sd.value = 'MANUAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '链接导入', 'URL', 'dict_layout_template_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_template_source' AND sd.value = 'URL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, 'Word 导入', 'DOCX', 'dict_layout_template_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_template_source' AND sd.value = 'DOCX' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '粘贴导入', 'PASTE', 'dict_layout_template_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_template_source' AND sd.value = 'PASTE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '系统预置', 'PRESET', 'dict_layout_template_source', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_template_source' AND sd.value = 'PRESET' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '草稿', 'DRAFT', 'dict_layout_template_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_template_status' AND sd.value = 'DRAFT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '已启用', 'ENABLED', 'dict_layout_template_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_template_status' AND sd.value = 'ENABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '已停用', 'DISABLED', 'dict_layout_template_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_layout_template_status' AND sd.value = 'DISABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, 'DEBUG', 'DEBUG', 'dict_log_level', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_log_level' AND sd.value = 'DEBUG' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, 'INFO', 'INFO', 'dict_log_level', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_log_level' AND sd.value = 'INFO' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, 'WARN', 'WARN', 'dict_log_level', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_log_level' AND sd.value = 'WARN' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, 'ERROR', 'ERROR', 'dict_log_level', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_log_level' AND sd.value = 'ERROR' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '系统', 'SYSTEM', 'dict_log_module', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_log_module' AND sd.value = 'SYSTEM' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '用户', 'USER', 'dict_log_module', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_log_module' AND sd.value = 'USER' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '账号', 'ACCOUNT', 'dict_log_module', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_log_module' AND sd.value = 'ACCOUNT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '内容', 'CONTENT', 'dict_log_module', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_log_module' AND sd.value = 'CONTENT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '财务', 'FINANCE', 'dict_log_module', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_log_module' AND sd.value = 'FINANCE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '登录', 'LOGIN', 'dict_log_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_log_type' AND sd.value = 'LOGIN' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '操作', 'OPERATION', 'dict_log_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_log_type' AND sd.value = 'OPERATION' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '异常', 'EXCEPTION', 'dict_log_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_log_type' AND sd.value = 'EXCEPTION' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '审计', 'AUDIT', 'dict_log_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_log_type' AND sd.value = 'AUDIT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '模糊匹配', 'FUZZY', 'dict_match_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_match_type' AND sd.value = 'FUZZY' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '精确匹配', 'EXACT', 'dict_match_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_match_type' AND sd.value = 'EXACT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '预警通知', 'ALERT', 'dict_message_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_message_category' AND sd.value = 'ALERT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '系统通知', 'SYSTEM', 'dict_message_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_message_category' AND sd.value = 'SYSTEM' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '业务通知', 'BUSINESS', 'dict_message_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_message_category' AND sd.value = 'BUSINESS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '待发送', 'PENDING', 'dict_message_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_message_status' AND sd.value = 'PENDING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '已发送', 'SENT', 'dict_message_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_message_status' AND sd.value = 'SENT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '发送失败', 'FAILED', 'dict_message_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_message_status' AND sd.value = 'FAILED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '启用', 'ENABLED', 'dict_metadata_entity_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_metadata_entity_status' AND sd.value = 'ENABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '停用', 'DISABLED', 'dict_metadata_entity_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_metadata_entity_status' AND sd.value = 'DISABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 10, '文本', 'TEXT', 'dict_metadata_query_condition_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_metadata_query_condition_type' AND sd.value = 'TEXT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 20, '数值', 'NUMBER', 'dict_metadata_query_condition_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_metadata_query_condition_type' AND sd.value = 'NUMBER' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 30, '日期', 'DATE', 'dict_metadata_query_condition_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_metadata_query_condition_type' AND sd.value = 'DATE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 40, '日期范围', 'DATE_RANGE', 'dict_metadata_query_condition_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_metadata_query_condition_type' AND sd.value = 'DATE_RANGE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 50, '枚举字典', 'DICT', 'dict_metadata_query_condition_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_metadata_query_condition_type' AND sd.value = 'DICT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 60, 'IP组选择', 'IP_GROUP_SELECT', 'dict_metadata_query_condition_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_metadata_query_condition_type' AND sd.value = 'IP_GROUP_SELECT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 70, '人员选择', 'USER_SELECT', 'dict_metadata_query_condition_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_metadata_query_condition_type' AND sd.value = 'USER_SELECT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 80, '平台选择', 'PLATFORM_SELECT', 'dict_metadata_query_condition_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_metadata_query_condition_type' AND sd.value = 'PLATFORM_SELECT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 90, '账号选择', 'ACCOUNT_SELECT', 'dict_metadata_query_condition_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_metadata_query_condition_type' AND sd.value = 'ACCOUNT_SELECT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 100, '赛事选择', 'COMPETITION_SELECT', 'dict_metadata_query_condition_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_metadata_query_condition_type' AND sd.value = 'COMPETITION_SELECT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '5分钟', '5MIN', 'dict_monitor_freq', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_monitor_freq' AND sd.value = '5MIN' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '30分钟', '30MIN', 'dict_monitor_freq', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_monitor_freq' AND sd.value = '30MIN' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '1小时', '1H', 'dict_monitor_freq', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_monitor_freq' AND sd.value = '1H' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '24小时', '24H', 'dict_monitor_freq', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_monitor_freq' AND sd.value = '24H' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '站内消息', 'IN_APP', 'dict_notify_channel', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_notify_channel' AND sd.value = 'IN_APP' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '钉钉', 'DINGTALK', 'dict_notify_channel', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_notify_channel' AND sd.value = 'DINGTALK' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '短信', 'SMS', 'dict_notify_channel', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_notify_channel' AND sd.value = 'SMS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '基础配置', 'BASIC', 'dict_param_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_param_category' AND sd.value = 'BASIC' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '采集配置', 'COLLECT', 'dict_param_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_param_category' AND sd.value = 'COLLECT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, 'AI配置', 'AI', 'dict_param_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_param_category' AND sd.value = 'AI' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '通知配置', 'NOTIFICATION', 'dict_param_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_param_category' AND sd.value = 'NOTIFICATION' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '内容审核', 'CONTENT_REVIEW', 'dict_param_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_param_category' AND sd.value = 'CONTENT_REVIEW' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 6, '钉钉配置', 'DINGTALK', 'dict_param_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_param_category' AND sd.value = 'DINGTALK' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 7, '工作任务', 'WORK_TASK', 'dict_param_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_param_category' AND sd.value = 'WORK_TASK' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '字符串', 'STRING', 'dict_param_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_param_type' AND sd.value = 'STRING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '数字', 'NUMBER', 'dict_param_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_param_type' AND sd.value = 'NUMBER' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '布尔', 'BOOLEAN', 'dict_param_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_param_type' AND sd.value = 'BOOLEAN' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, 'JSON', 'JSON', 'dict_param_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_param_type' AND sd.value = 'JSON' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, 'S（优秀）', 'S', 'dict_perf_grade', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_perf_grade' AND sd.value = 'S' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, 'A（良好）', 'A', 'dict_perf_grade', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_perf_grade' AND sd.value = 'A' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, 'B（合格）', 'B', 'dict_perf_grade', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_perf_grade' AND sd.value = 'B' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, 'C（待改进）', 'C', 'dict_perf_grade', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_perf_grade' AND sd.value = 'C' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, 'D（不合格）', 'D', 'dict_perf_grade', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_perf_grade' AND sd.value = 'D' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '基础指标', 'BASIC', 'dict_perf_metric_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_perf_metric_type' AND sd.value = 'BASIC' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '复合指标', 'COMPOSITE', 'dict_perf_metric_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_perf_metric_type' AND sd.value = 'COMPOSITE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '月度', 'MONTH', 'dict_perf_period', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_perf_period' AND sd.value = 'MONTH' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '季度', 'QUARTER', 'dict_perf_period', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_perf_period' AND sd.value = 'QUARTER' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '周度', 'WEEK', 'dict_perf_period', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_perf_period' AND sd.value = 'WEEK' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '年度', 'YEAR', 'dict_perf_period', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_perf_period' AND sd.value = 'YEAR' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '自定义', 'CUSTOM', 'dict_perf_period', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_perf_period' AND sd.value = 'CUSTOM' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '草稿', 'DRAFT', 'dict_perf_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_perf_status' AND sd.value = 'DRAFT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '已确认', 'CONFIRMED', 'dict_perf_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_perf_status' AND sd.value = 'CONFIRMED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '在用', 'ENABLED', 'dict_phone_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_phone_status' AND sd.value = 'ENABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '停用', 'DISABLED', 'dict_phone_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_phone_status' AND sd.value = 'DISABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, 'Android', 'ANDROID', 'dict_phone_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_phone_type' AND sd.value = 'ANDROID' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, 'iPhone', 'IPHONE', 'dict_phone_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_phone_type' AND sd.value = 'IPHONE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '草稿', 'DRAFT', 'dict_plan_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_plan_status' AND sd.value = 'DRAFT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '进行中', 'IN_PROGRESS', 'dict_plan_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_plan_status' AND sd.value = 'IN_PROGRESS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '终止审批中', 'TERMINATE_PENDING', 'dict_plan_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_plan_status' AND sd.value = 'TERMINATE_PENDING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '已终止', 'TERMINATED', 'dict_plan_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_plan_status' AND sd.value = 'TERMINATED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 0, '全部', 'ALL', 'dict_platform_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_platform_type' AND sd.value = 'ALL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '微信公众号', 'WECHAT_OFFICIAL', 'dict_platform_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_platform_type' AND sd.value = 'WECHAT_OFFICIAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '抖音', 'DOUYIN', 'dict_platform_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_platform_type' AND sd.value = 'DOUYIN' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '企业微信', 'WEWORK', 'dict_platform_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_platform_type' AND sd.value = 'WEWORK' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '视频号', 'WECHAT_VIDEO', 'dict_platform_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_platform_type' AND sd.value = 'WECHAT_VIDEO' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '快手', 'KUAISHOU', 'dict_platform_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_platform_type' AND sd.value = 'KUAISHOU' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 6, '小红书', 'XIAOHONGSHU', 'dict_platform_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_platform_type' AND sd.value = 'XIAOHONGSHU' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 7, '个微', 'WECHAT_PERSONAL', 'dict_platform_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_platform_type' AND sd.value = 'WECHAT_PERSONAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 8, '服务号', 'SERVICE_ACCOUNT', 'dict_platform_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_platform_type' AND sd.value = 'SERVICE_ACCOUNT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '运营', 'OPERATOR', 'dict_position', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_position' AND sd.value = 'OPERATOR' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '编辑', 'EDITOR', 'dict_position', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_position' AND sd.value = 'EDITOR' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '主播', 'ANCHOR', 'dict_position', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_position' AND sd.value = 'ANCHOR' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '销售', 'SALES', 'dict_position', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_position' AND sd.value = 'SALES' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '运营组长', 'OPS_LEADER', 'dict_position', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_position' AND sd.value = 'OPS_LEADER' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '运营官方号', 'OPS_OFFICIAL', 'dict_position', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_position' AND sd.value = 'OPS_OFFICIAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 6, '直播运营', 'LIVE_OPERATOR', 'dict_position', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_position' AND sd.value = 'LIVE_OPERATOR' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '奥创好友', 'AOCHUANG_FRIEND', 'dict_private_domain_identity_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_private_domain_identity_type' AND sd.value = 'AOCHUANG_FRIEND' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '公众号粉丝', 'MP_FOLLOWER', 'dict_private_domain_identity_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_private_domain_identity_type' AND sd.value = 'MP_FOLLOWER' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '企微客户', 'WECOM_CUSTOMER', 'dict_private_domain_identity_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_private_domain_identity_type' AND sd.value = 'WECOM_CUSTOMER' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '企微员工', 'WECOM_EMPLOYEE', 'dict_private_domain_identity_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_private_domain_identity_type' AND sd.value = 'WECOM_EMPLOYEE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '手机', 'PHONE', 'dict_private_domain_identity_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_private_domain_identity_type' AND sd.value = 'PHONE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 6, '实名人', 'REALNAME', 'dict_private_domain_identity_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_private_domain_identity_type' AND sd.value = 'REALNAME' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '人工', 'MANUAL', 'dict_private_domain_match_method', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_private_domain_match_method' AND sd.value = 'MANUAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '规则', 'RULE', 'dict_private_domain_match_method', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_private_domain_match_method' AND sd.value = 'RULE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '手机号', 'PHONE', 'dict_private_domain_match_method', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_private_domain_match_method' AND sd.value = 'PHONE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, 'UnionID', 'UNIONID', 'dict_private_domain_match_method', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_private_domain_match_method' AND sd.value = 'UNIONID' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, 'AI', 'AI', 'dict_private_domain_match_method', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_private_domain_match_method' AND sd.value = 'AI' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '待审核', 'PENDING', 'dict_private_domain_review_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_private_domain_review_status' AND sd.value = 'PENDING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '已通过', 'APPROVED', 'dict_private_domain_review_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_private_domain_review_status' AND sd.value = 'APPROVED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '已驳回', 'REJECTED', 'dict_private_domain_review_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_private_domain_review_status' AND sd.value = 'REJECTED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '视频分析', 'VIDEO_ANALYSIS', 'dict_prompt_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_prompt_type' AND sd.value = 'VIDEO_ANALYSIS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '图文分析', 'IMAGE_TEXT_ANALYSIS', 'dict_prompt_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_prompt_type' AND sd.value = 'IMAGE_TEXT_ANALYSIS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '数据解读', 'DATA_INTERPRET', 'dict_prompt_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_prompt_type' AND sd.value = 'DATA_INTERPRET' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '内容生成', 'CONTENT_GEN', 'dict_prompt_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_prompt_type' AND sd.value = 'CONTENT_GEN' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '企业', 'ENTERPRISE', 'dict_qualification_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_qualification_type' AND sd.value = 'ENTERPRISE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '个人', 'PERSONAL', 'dict_qualification_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_qualification_type' AND sd.value = 'PERSONAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '完整性', 'COMPLETENESS', 'dict_quality_check_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_quality_check_type' AND sd.value = 'COMPLETENESS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '准确性', 'ACCURACY', 'dict_quality_check_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_quality_check_type' AND sd.value = 'ACCURACY' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '一致性', 'CONSISTENCY', 'dict_quality_check_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_quality_check_type' AND sd.value = 'CONSISTENCY' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '时效性', 'TIMELINESS', 'dict_quality_check_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_quality_check_type' AND sd.value = 'TIMELINESS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '唯一性', 'UNIQUENESS', 'dict_quality_check_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_quality_check_type' AND sd.value = 'UNIQUENESS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '优', 'EXCELLENT', 'dict_quality_level', 0, 'success', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_quality_level' AND sd.value = 'EXCELLENT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '良', 'GOOD', 'dict_quality_level', 0, 'primary', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_quality_level' AND sd.value = 'GOOD' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '中', 'MEDIUM', 'dict_quality_level', 0, 'warning', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_quality_level' AND sd.value = 'MEDIUM' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '差', 'POOR', 'dict_quality_level', 0, 'danger', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_quality_level' AND sd.value = 'POOR' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '草稿', 'DRAFT', 'dict_query_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_query_status' AND sd.value = 'DRAFT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '已发布', 'PUBLISHED', 'dict_query_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_query_status' AND sd.value = 'PUBLISHED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '启用', 'ENABLED', 'dict_realname_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_realname_status' AND sd.value = 'ENABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '停用', 'DISABLED', 'dict_realname_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_realname_status' AND sd.value = 'DISABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '一级审核', 'FIRST_REVIEW', 'dict_review_stage', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_review_stage' AND sd.value = 'FIRST_REVIEW' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '二级审核', 'SECOND_REVIEW', 'dict_review_stage', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_review_stage' AND sd.value = 'SECOND_REVIEW' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '终审', 'FINAL_REVIEW', 'dict_review_stage', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_review_stage' AND sd.value = 'FINAL_REVIEW' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '待审核', 'PENDING', 'dict_review_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_review_status' AND sd.value = 'PENDING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '审核中', 'REVIEWING', 'dict_review_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_review_status' AND sd.value = 'REVIEWING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '已通过', 'APPROVED', 'dict_review_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_review_status' AND sd.value = 'APPROVED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '已驳回', 'REJECTED', 'dict_review_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_review_status' AND sd.value = 'REJECTED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, 'IP组', 'IP_GROUP', 'dict_roi_dimension', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_roi_dimension' AND sd.value = 'IP_GROUP' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '账号', 'ACCOUNT', 'dict_roi_dimension', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_roi_dimension' AND sd.value = 'ACCOUNT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '人员', 'PERSON', 'dict_roi_dimension', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_roi_dimension' AND sd.value = 'PERSON' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '胜平负分析', 'WIN_DRAW_LOSE', 'dict_scheme_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_scheme_type' AND sd.value = 'WIN_DRAW_LOSE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '让球分析', 'HANDICAP', 'dict_scheme_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_scheme_type' AND sd.value = 'HANDICAP' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '大小球分析', 'OVER_UNDER', 'dict_scheme_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_scheme_type' AND sd.value = 'OVER_UNDER' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '比分预测', 'SCORE_PREDICT', 'dict_scheme_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_scheme_type' AND sd.value = 'SCORE_PREDICT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '综合推荐', 'COMPREHENSIVE', 'dict_scheme_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_scheme_type' AND sd.value = 'COMPREHENSIVE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '中国移动', 'MOBILE', 'dict_sim_operator', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sim_operator' AND sd.value = 'MOBILE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '中国联通', 'UNICOM', 'dict_sim_operator', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sim_operator' AND sd.value = 'UNICOM' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '中国电信', 'TELECOM', 'dict_sim_operator', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sim_operator' AND sd.value = 'TELECOM' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '在用', 'ENABLED', 'dict_sim_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sim_status' AND sd.value = 'ENABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '停用', 'DISABLED', 'dict_sim_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sim_status' AND sd.value = 'DISABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '损坏', 'DAMAGED', 'dict_sim_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sim_status' AND sd.value = 'DAMAGED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '丢失', 'LOST', 'dict_sim_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sim_status' AND sd.value = 'LOST' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '待执行', 'PENDING', 'dict_sop_node_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sop_node_status' AND sd.value = 'PENDING' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '执行中', 'IN_PROGRESS', 'dict_sop_node_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sop_node_status' AND sd.value = 'IN_PROGRESS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '已完成', 'COMPLETED', 'dict_sop_node_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sop_node_status' AND sd.value = 'COMPLETED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '待审核', 'PENDING_REVIEW', 'dict_sop_node_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sop_node_status' AND sd.value = 'PENDING_REVIEW' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '审核通过', 'APPROVED', 'dict_sop_node_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sop_node_status' AND sd.value = 'APPROVED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 6, '审核驳回', 'REJECTED', 'dict_sop_node_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sop_node_status' AND sd.value = 'REJECTED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 7, '节点完成', 'DONE', 'dict_sop_node_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sop_node_status' AND sd.value = 'DONE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 8, '计划草稿', 'PLAN_DRAFT', 'dict_sop_node_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sop_node_status' AND sd.value = 'PLAN_DRAFT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 9, '已终止', 'TERMINATED', 'dict_sop_node_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sop_node_status' AND sd.value = 'TERMINATED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '内容生成', 'CONTENT_GENERATION', 'dict_sop_node_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sop_node_type' AND sd.value = 'CONTENT_GENERATION' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '内容发布', 'CONTENT_PUBLISH', 'dict_sop_node_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sop_node_type' AND sd.value = 'CONTENT_PUBLISH' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '普通节点', 'NORMAL', 'dict_sop_node_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sop_node_type' AND sd.value = 'NORMAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '每日', 'DAILY', 'dict_sync_frequency', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sync_frequency' AND sd.value = 'DAILY' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '每小时', 'HOURLY', 'dict_sync_frequency', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sync_frequency' AND sd.value = 'HOURLY' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '增量', 'INCREMENTAL', 'dict_sync_mode', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sync_mode' AND sd.value = 'INCREMENTAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '全量', 'FULL', 'dict_sync_mode', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_sync_mode' AND sd.value = 'FULL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '正常', 'NORMAL', 'dict_tenant_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_tenant_status' AND sd.value = 'NORMAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '试用', 'TRIAL', 'dict_tenant_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_tenant_status' AND sd.value = 'TRIAL' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '已到期', 'EXPIRED', 'dict_tenant_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_tenant_status' AND sd.value = 'EXPIRED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '已停用', 'DISABLED', 'dict_tenant_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_tenant_status' AND sd.value = 'DISABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '新榜', 'NEWRANK', 'dict_third_platform', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_third_platform' AND sd.value = 'NEWRANK' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '飞瓜', 'FEIGUA', 'dict_third_platform', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_third_platform' AND sd.value = 'FEIGUA' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '预警阈值', 'ALERT', 'dict_threshold_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_category' AND sd.value = 'ALERT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '粉丝阈值', 'FANS', 'dict_threshold_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_category' AND sd.value = 'FANS' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '作品阈值', 'WORK', 'dict_threshold_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_category' AND sd.value = 'WORK' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '账号覆盖', 'OVERRIDE', 'dict_threshold_category', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_category' AND sd.value = 'OVERRIDE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '爆款阈值', 'HIT_THRESHOLD', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'HIT_THRESHOLD' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '播放量', 'PLAY_COUNT', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'PLAY_COUNT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '点赞数', 'LIKE_COUNT', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'LIKE_COUNT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '低分阈值', 'LOW_SCORE', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'LOW_SCORE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '评论数', 'COMMENT_COUNT', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'COMMENT_COUNT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '粉丝预警', 'FAN_ALERT', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'FAN_ALERT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '转发数', 'SHARE_COUNT', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'SHARE_COUNT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 5, '阅读量', 'READ_COUNT', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'READ_COUNT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 6, '粉丝增长', 'FAN_GROWTH', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'FAN_GROWTH' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 7, '粉丝数', 'FAN_COUNT', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'FAN_COUNT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 8, '粉丝数', 'FOLLOWER', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'FOLLOWER' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 9, '互动率', 'ENGAGEMENT', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'ENGAGEMENT' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 10, '转化率', 'CONVERSION', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'CONVERSION' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 11, '直播在线人数', 'LIVE_ONLINE', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'LIVE_ONLINE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 12, '负面情绪比例', 'NEGATIVE_RATE', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'NEGATIVE_RATE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 13, '发布频率', 'POST_FREQUENCY', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'POST_FREQUENCY' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 17, 'GMV', 'GMV', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'GMV' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 18, '阅读量骤降', 'VIEW_DROP', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'VIEW_DROP' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 19, '播放量骤降', 'PLAY_DROP', 'dict_threshold_metric', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_metric' AND sd.value = 'PLAY_DROP' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '百分比', 'PERCENTAGE', 'dict_threshold_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_type' AND sd.value = 'PERCENTAGE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '绝对值', 'ABSOLUTE', 'dict_threshold_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_threshold_type' AND sd.value = 'ABSOLUTE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '按日', 'DAY', 'dict_time_dimension', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_time_dimension' AND sd.value = 'DAY' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '按周', 'WEEK', 'dict_time_dimension', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_time_dimension' AND sd.value = 'WEEK' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '按月', 'MONTH', 'dict_time_dimension', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_time_dimension' AND sd.value = 'MONTH' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '完整三方', 'FULL_TRIPLE', 'dict_triple_rel_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_triple_rel_type' AND sd.value = 'FULL_TRIPLE' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '微信+视频', 'WECHAT_VIDEO', 'dict_triple_rel_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_triple_rel_type' AND sd.value = 'WECHAT_VIDEO' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '微信+企微', 'WECHAT_WEWORK', 'dict_triple_rel_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_triple_rel_type' AND sd.value = 'WECHAT_WEWORK' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 4, '视频+企微', 'VIDEO_WEWORK', 'dict_triple_rel_type', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_triple_rel_type' AND sd.value = 'VIDEO_WEWORK' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '启用', 'ENABLED', 'dict_user_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_user_status' AND sd.value = 'ENABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '停用', 'DISABLED', 'dict_user_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_user_status' AND sd.value = 'DISABLED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '锁定', 'LOCKED', 'dict_user_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_user_status' AND sd.value = 'LOCKED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '注册', 'REGISTERED', 'dict_wechat_usage_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_wechat_usage_status' AND sd.value = 'REGISTERED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '认证', 'CERTIFIED', 'dict_wechat_usage_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_wechat_usage_status' AND sd.value = 'CERTIFIED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 3, '续费', 'RENEWED', 'dict_wechat_usage_status', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_wechat_usage_status' AND sd.value = 'RENEWED' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 1, '是', 'YES', 'dict_yes_no', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_yes_no' AND sd.value = 'YES' AND sd.deleted = b'0'
+);
+
+INSERT INTO system_dict_data (sort, label, value, dict_type, status, color_type, css_class, remark, creator, create_time, updater, update_time, deleted)
+SELECT 2, '否', 'NO', 'dict_yes_no', 0, 'default', '', NULL, 'deploy-dict-seed', NOW(), 'deploy-dict-seed', NOW(), b'0'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_dict_data sd WHERE sd.dict_type = 'dict_yes_no' AND sd.value = 'NO' AND sd.deleted = b'0'
+);
+
+-- =============================================================================
 -- ===== 05_work_task_dicts_v183.sql =====
 -- Work task 4 dict_type + 11 dict_data
 -- =============================================================================
@@ -885,18 +4586,18 @@ LIMIT 1;
 
 -- =============================================================================
 -- ===== 07_ops_six_roles_rbac.sql =====
--- ADR-064 six Ops roles + role_menu
+-- ADR-064 six Ops roles by code (no hardcoded id) + role_menu JOIN
 -- =============================================================================
 
 BEGIN;
 
--- ===== IP组长 (ip_group_leader) id=160 menus=48 =====
+-- ===== IP组长 (ip_group_leader) menus=48 =====
 INSERT INTO system_role (
-    id, name, code, sort, data_scope, data_scope_dept_ids, status, type, remark,
+    name, code, sort, data_scope, data_scope_dept_ids, status, type, remark,
     creator, create_time, updater, update_time, deleted, tenant_id
 )
 SELECT
-    160, 'IP组长', 'ip_group_leader', 20, 5, '', 0, 1,
+    'IP组长', 'ip_group_leader', 20, 5, '', 0, 1,
     'ADR-064：IP组组长；一级内容审核（本组）',
     'adr-064-seed', NOW(), 'adr-064-seed', NOW(), b'0', 1
 FROM DUAL
@@ -904,82 +4605,36 @@ WHERE NOT EXISTS (
     SELECT 1 FROM system_role x WHERE x.code = 'ip_group_leader' AND x.tenant_id = 1 AND x.deleted = b'0'
 );
 
-UPDATE system_role
-SET name = 'IP组长',
-    sort = 20,
-    data_scope = 5,
-    type = 1,
-    remark = 'ADR-064：IP组组长；一级内容审核（本组）',
-    updater = 'adr-064-seed',
-    update_time = NOW(),
-    deleted = b'0'
-WHERE code = 'ip_group_leader' AND tenant_id = 1;
+DELETE rm FROM system_role_menu rm
+INNER JOIN system_role r ON r.id = rm.role_id
+WHERE r.code = 'ip_group_leader' AND r.tenant_id = 1 AND r.deleted = b'0'
+  AND rm.menu_id >= 6100 AND rm.menu_id < 7000
+  AND rm.menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (03_work_task_menus_v183)
 
-SET @role_id_ip_group_leader := (
-    SELECT id FROM system_role WHERE code = 'ip_group_leader' AND tenant_id = 1 AND deleted = b'0' LIMIT 1
-);
+INSERT INTO system_role_menu (role_id, menu_id, creator, tenant_id, user_type)
+SELECT r.id, m.id, 'adr-064-seed', 1, 2
+FROM system_role r
+INNER JOIN system_menu m ON m.id IN (
+    6100, 6101, 6102, 6103, 6106, 6107, 6108, 6109, 6112, 6113,
+    6114, 6115, 6116, 6117, 6118, 6119, 6120, 6121, 6122, 6123,
+    6124, 6126, 6128, 6130, 6142, 6143, 6144, 6145, 6146, 6147,
+    6148, 6149, 6150, 6151, 6152, 6153, 6154, 6156, 6157, 6158,
+    6159, 6168, 6170, 6171, 6172, 6173, 6174, 6175
+)
+WHERE r.code = 'ip_group_leader' AND r.tenant_id = 1 AND r.deleted = b'0'
+  AND m.deleted = b'0'
+  AND NOT EXISTS (
+      SELECT 1 FROM system_role_menu rm
+      WHERE rm.role_id = r.id AND rm.menu_id = m.id AND rm.deleted = b'0'
+  );
 
-DELETE FROM system_role_menu
-WHERE role_id = @role_id_ip_group_leader
-  AND menu_id >= 6100 AND menu_id < 7000
-  AND menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (03_work_task_menus_v183)
-
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71000, @role_id_ip_group_leader, 6100, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71000) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6100);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71001, @role_id_ip_group_leader, 6101, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71001) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6101);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71002, @role_id_ip_group_leader, 6102, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71002) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6102);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71003, @role_id_ip_group_leader, 6103, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71003) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6103);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71004, @role_id_ip_group_leader, 6106, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71004) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6106);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71005, @role_id_ip_group_leader, 6107, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71005) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6107);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71006, @role_id_ip_group_leader, 6108, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71006) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6108);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71007, @role_id_ip_group_leader, 6109, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71007) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6109);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71008, @role_id_ip_group_leader, 6112, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71008) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6112);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71009, @role_id_ip_group_leader, 6113, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71009) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6113);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71010, @role_id_ip_group_leader, 6114, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71010) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6114);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71011, @role_id_ip_group_leader, 6115, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71011) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6115);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71012, @role_id_ip_group_leader, 6116, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71012) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6116);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71013, @role_id_ip_group_leader, 6117, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71013) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6117);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71014, @role_id_ip_group_leader, 6118, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71014) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6118);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71015, @role_id_ip_group_leader, 6119, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71015) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6119);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71016, @role_id_ip_group_leader, 6120, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71016) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6120);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71017, @role_id_ip_group_leader, 6121, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71017) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6121);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71018, @role_id_ip_group_leader, 6122, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71018) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6122);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71019, @role_id_ip_group_leader, 6123, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71019) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6123);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71020, @role_id_ip_group_leader, 6124, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71020) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6124);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71021, @role_id_ip_group_leader, 6126, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71021) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6126);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71022, @role_id_ip_group_leader, 6128, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71022) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6128);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71023, @role_id_ip_group_leader, 6130, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71023) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6130);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71024, @role_id_ip_group_leader, 6142, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71024) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6142);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71025, @role_id_ip_group_leader, 6143, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71025) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6143);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71026, @role_id_ip_group_leader, 6144, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71026) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6144);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71027, @role_id_ip_group_leader, 6145, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71027) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6145);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71028, @role_id_ip_group_leader, 6146, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71028) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6146);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71029, @role_id_ip_group_leader, 6147, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71029) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6147);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71030, @role_id_ip_group_leader, 6148, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71030) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6148);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71031, @role_id_ip_group_leader, 6149, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71031) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6149);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71032, @role_id_ip_group_leader, 6150, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71032) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6150);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71033, @role_id_ip_group_leader, 6151, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71033) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6151);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71034, @role_id_ip_group_leader, 6152, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71034) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6152);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71035, @role_id_ip_group_leader, 6153, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71035) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6153);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71036, @role_id_ip_group_leader, 6154, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71036) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6154);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71037, @role_id_ip_group_leader, 6156, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71037) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6156);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71038, @role_id_ip_group_leader, 6157, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71038) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6157);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71039, @role_id_ip_group_leader, 6158, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71039) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6158);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71040, @role_id_ip_group_leader, 6159, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71040) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6159);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71041, @role_id_ip_group_leader, 6168, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71041) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6168);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71042, @role_id_ip_group_leader, 6170, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71042) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6170);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71043, @role_id_ip_group_leader, 6171, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71043) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6171);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71044, @role_id_ip_group_leader, 6172, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71044) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6172);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71045, @role_id_ip_group_leader, 6173, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71045) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6173);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71046, @role_id_ip_group_leader, 6174, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71046) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6174);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71047, @role_id_ip_group_leader, 6175, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ip_group_leader IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71047) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ip_group_leader AND menu_id = 6175);
-
--- ===== 运营主管 (ops_manager) id=161 menus=71 =====
+-- ===== 运营主管 (ops_manager) menus=69 =====
 INSERT INTO system_role (
-    id, name, code, sort, data_scope, data_scope_dept_ids, status, type, remark,
+    name, code, sort, data_scope, data_scope_dept_ids, status, type, remark,
     creator, create_time, updater, update_time, deleted, tenant_id
 )
 SELECT
-    161, '运营主管', 'ops_manager', 21, 1, '', 0, 2,
+    '运营主管', 'ops_manager', 21, 1, '', 0, 2,
     'ADR-064：运营主管；二级内容审核；租户 ALL',
     'adr-064-seed', NOW(), 'adr-064-seed', NOW(), b'0', 1
 FROM DUAL
@@ -987,104 +4642,38 @@ WHERE NOT EXISTS (
     SELECT 1 FROM system_role x WHERE x.code = 'ops_manager' AND x.tenant_id = 1 AND x.deleted = b'0'
 );
 
-UPDATE system_role
-SET name = '运营主管',
-    sort = 21,
-    data_scope = 1,
-    type = 2,
-    remark = 'ADR-064：运营主管；二级内容审核；租户 ALL',
-    updater = 'adr-064-seed',
-    update_time = NOW(),
-    deleted = b'0'
-WHERE code = 'ops_manager' AND tenant_id = 1;
+DELETE rm FROM system_role_menu rm
+INNER JOIN system_role r ON r.id = rm.role_id
+WHERE r.code = 'ops_manager' AND r.tenant_id = 1 AND r.deleted = b'0'
+  AND rm.menu_id >= 6100 AND rm.menu_id < 7000
+  AND rm.menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (03_work_task_menus_v183)
 
-SET @role_id_ops_manager := (
-    SELECT id FROM system_role WHERE code = 'ops_manager' AND tenant_id = 1 AND deleted = b'0' LIMIT 1
-);
+INSERT INTO system_role_menu (role_id, menu_id, creator, tenant_id, user_type)
+SELECT r.id, m.id, 'adr-064-seed', 1, 2
+FROM system_role r
+INNER JOIN system_menu m ON m.id IN (
+    6100, 6101, 6102, 6103, 6104, 6105, 6106, 6107, 6108, 6109,
+    6110, 6111, 6112, 6113, 6114, 6115, 6116, 6117, 6118, 6119,
+    6120, 6121, 6122, 6123, 6124, 6125, 6126, 6127, 6128, 6129,
+    6130, 6131, 6132, 6133, 6136, 6140, 6141, 6142, 6143, 6144,
+    6145, 6146, 6147, 6148, 6149, 6150, 6151, 6152, 6153, 6154,
+    6156, 6157, 6158, 6159, 6160, 6161, 6162, 6163, 6164, 6165,
+    6166, 6167, 6168, 6170, 6171, 6172, 6173, 6174, 6175
+)
+WHERE r.code = 'ops_manager' AND r.tenant_id = 1 AND r.deleted = b'0'
+  AND m.deleted = b'0'
+  AND NOT EXISTS (
+      SELECT 1 FROM system_role_menu rm
+      WHERE rm.role_id = r.id AND rm.menu_id = m.id AND rm.deleted = b'0'
+  );
 
-DELETE FROM system_role_menu
-WHERE role_id = @role_id_ops_manager
-  AND menu_id >= 6100 AND menu_id < 7000
-  AND menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (03_work_task_menus_v183)
-
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71200, @role_id_ops_manager, 6100, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71200) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6100);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71201, @role_id_ops_manager, 6101, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71201) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6101);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71202, @role_id_ops_manager, 6102, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71202) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6102);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71203, @role_id_ops_manager, 6103, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71203) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6103);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71204, @role_id_ops_manager, 6104, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71204) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6104);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71205, @role_id_ops_manager, 6105, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71205) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6105);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71206, @role_id_ops_manager, 6106, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71206) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6106);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71207, @role_id_ops_manager, 6107, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71207) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6107);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71208, @role_id_ops_manager, 6108, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71208) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6108);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71209, @role_id_ops_manager, 6109, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71209) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6109);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71210, @role_id_ops_manager, 6110, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71210) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6110);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71211, @role_id_ops_manager, 6111, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71211) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6111);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71212, @role_id_ops_manager, 6112, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71212) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6112);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71213, @role_id_ops_manager, 6113, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71213) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6113);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71214, @role_id_ops_manager, 6114, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71214) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6114);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71215, @role_id_ops_manager, 6115, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71215) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6115);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71216, @role_id_ops_manager, 6116, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71216) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6116);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71217, @role_id_ops_manager, 6117, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71217) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6117);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71218, @role_id_ops_manager, 6118, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71218) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6118);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71219, @role_id_ops_manager, 6119, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71219) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6119);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71220, @role_id_ops_manager, 6120, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71220) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6120);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71221, @role_id_ops_manager, 6121, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71221) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6121);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71222, @role_id_ops_manager, 6122, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71222) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6122);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71223, @role_id_ops_manager, 6123, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71223) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6123);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71224, @role_id_ops_manager, 6124, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71224) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6124);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71225, @role_id_ops_manager, 6125, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71225) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6125);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71226, @role_id_ops_manager, 6126, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71226) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6126);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71227, @role_id_ops_manager, 6127, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71227) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6127);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71228, @role_id_ops_manager, 6128, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71228) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6128);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71229, @role_id_ops_manager, 6129, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71229) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6129);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71230, @role_id_ops_manager, 6130, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71230) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6130);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71231, @role_id_ops_manager, 6131, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71231) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6131);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71232, @role_id_ops_manager, 6132, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71232) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6132);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71233, @role_id_ops_manager, 6133, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71233) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6133);
--- 71234/71235 6134 私域桥接 / 6135 数据质量 已移除（Phase 2 OOS）
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71236, @role_id_ops_manager, 6136, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71236) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6136);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71237, @role_id_ops_manager, 6140, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71237) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6140);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71238, @role_id_ops_manager, 6141, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71238) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6141);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71239, @role_id_ops_manager, 6142, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71239) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6142);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71240, @role_id_ops_manager, 6143, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71240) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6143);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71241, @role_id_ops_manager, 6144, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71241) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6144);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71242, @role_id_ops_manager, 6145, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71242) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6145);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71243, @role_id_ops_manager, 6146, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71243) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6146);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71244, @role_id_ops_manager, 6147, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71244) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6147);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71245, @role_id_ops_manager, 6148, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71245) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6148);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71246, @role_id_ops_manager, 6149, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71246) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6149);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71247, @role_id_ops_manager, 6150, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71247) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6150);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71248, @role_id_ops_manager, 6151, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71248) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6151);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71249, @role_id_ops_manager, 6152, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71249) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6152);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71250, @role_id_ops_manager, 6153, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71250) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6153);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71251, @role_id_ops_manager, 6154, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71251) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6154);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71252, @role_id_ops_manager, 6156, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71252) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6156);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71253, @role_id_ops_manager, 6157, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71253) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6157);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71254, @role_id_ops_manager, 6158, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71254) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6158);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71255, @role_id_ops_manager, 6159, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71255) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6159);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71256, @role_id_ops_manager, 6160, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71256) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6160);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71257, @role_id_ops_manager, 6161, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71257) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6161);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71258, @role_id_ops_manager, 6162, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71258) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6162);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71259, @role_id_ops_manager, 6163, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71259) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6163);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71260, @role_id_ops_manager, 6164, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71260) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6164);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71261, @role_id_ops_manager, 6165, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71261) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6165);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71262, @role_id_ops_manager, 6166, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71262) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6166);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71263, @role_id_ops_manager, 6167, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71263) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6167);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71264, @role_id_ops_manager, 6168, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71264) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6168);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71265, @role_id_ops_manager, 6170, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71265) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6170);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71266, @role_id_ops_manager, 6171, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71266) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6171);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71267, @role_id_ops_manager, 6172, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71267) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6172);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71268, @role_id_ops_manager, 6173, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71268) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6173);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71269, @role_id_ops_manager, 6174, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71269) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6174);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71270, @role_id_ops_manager, 6175, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_manager IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71270) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_manager AND menu_id = 6175);
-
--- ===== 财务人员 (finance) id=162 menus=34 =====
+-- ===== 财务人员 (finance) menus=34 =====
 INSERT INTO system_role (
-    id, name, code, sort, data_scope, data_scope_dept_ids, status, type, remark,
+    name, code, sort, data_scope, data_scope_dept_ids, status, type, remark,
     creator, create_time, updater, update_time, deleted, tenant_id
 )
 SELECT
-    162, '财务人员', 'finance', 22, 1, '', 0, 2,
+    '财务人员', 'finance', 22, 1, '', 0, 2,
     'ADR-064：财务域；成本/ROI/绩效结果',
     'adr-064-seed', NOW(), 'adr-064-seed', NOW(), b'0', 1
 FROM DUAL
@@ -1092,68 +4681,35 @@ WHERE NOT EXISTS (
     SELECT 1 FROM system_role x WHERE x.code = 'finance' AND x.tenant_id = 1 AND x.deleted = b'0'
 );
 
-UPDATE system_role
-SET name = '财务人员',
-    sort = 22,
-    data_scope = 1,
-    type = 2,
-    remark = 'ADR-064：财务域；成本/ROI/绩效结果',
-    updater = 'adr-064-seed',
-    update_time = NOW(),
-    deleted = b'0'
-WHERE code = 'finance' AND tenant_id = 1;
+DELETE rm FROM system_role_menu rm
+INNER JOIN system_role r ON r.id = rm.role_id
+WHERE r.code = 'finance' AND r.tenant_id = 1 AND r.deleted = b'0'
+  AND rm.menu_id >= 6100 AND rm.menu_id < 7000
+  AND rm.menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (03_work_task_menus_v183)
 
-SET @role_id_finance := (
-    SELECT id FROM system_role WHERE code = 'finance' AND tenant_id = 1 AND deleted = b'0' LIMIT 1
-);
+INSERT INTO system_role_menu (role_id, menu_id, creator, tenant_id, user_type)
+SELECT r.id, m.id, 'adr-064-seed', 1, 2
+FROM system_role r
+INNER JOIN system_menu m ON m.id IN (
+    6100, 6101, 6102, 6103, 6106, 6107, 6108, 6109, 6111, 6112,
+    6113, 6114, 6115, 6116, 6117, 6126, 6127, 6142, 6143, 6144,
+    6146, 6147, 6148, 6149, 6150, 6151, 6152, 6153, 6154, 6156,
+    6157, 6158, 6168, 6174
+)
+WHERE r.code = 'finance' AND r.tenant_id = 1 AND r.deleted = b'0'
+  AND m.deleted = b'0'
+  AND NOT EXISTS (
+      SELECT 1 FROM system_role_menu rm
+      WHERE rm.role_id = r.id AND rm.menu_id = m.id AND rm.deleted = b'0'
+  );
 
-DELETE FROM system_role_menu
-WHERE role_id = @role_id_finance
-  AND menu_id >= 6100 AND menu_id < 7000
-  AND menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (03_work_task_menus_v183)
-
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71400, @role_id_finance, 6100, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71400) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6100);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71401, @role_id_finance, 6101, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71401) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6101);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71402, @role_id_finance, 6102, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71402) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6102);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71403, @role_id_finance, 6103, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71403) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6103);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71404, @role_id_finance, 6106, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71404) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6106);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71405, @role_id_finance, 6107, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71405) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6107);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71406, @role_id_finance, 6108, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71406) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6108);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71407, @role_id_finance, 6109, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71407) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6109);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71408, @role_id_finance, 6111, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71408) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6111);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71409, @role_id_finance, 6112, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71409) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6112);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71410, @role_id_finance, 6113, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71410) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6113);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71411, @role_id_finance, 6114, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71411) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6114);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71412, @role_id_finance, 6115, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71412) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6115);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71413, @role_id_finance, 6116, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71413) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6116);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71414, @role_id_finance, 6117, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71414) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6117);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71415, @role_id_finance, 6126, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71415) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6126);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71416, @role_id_finance, 6127, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71416) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6127);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71417, @role_id_finance, 6142, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71417) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6142);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71418, @role_id_finance, 6143, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71418) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6143);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71419, @role_id_finance, 6144, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71419) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6144);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71420, @role_id_finance, 6146, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71420) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6146);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71421, @role_id_finance, 6147, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71421) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6147);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71422, @role_id_finance, 6148, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71422) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6148);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71423, @role_id_finance, 6149, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71423) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6149);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71424, @role_id_finance, 6150, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71424) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6150);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71425, @role_id_finance, 6151, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71425) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6151);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71426, @role_id_finance, 6152, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71426) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6152);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71427, @role_id_finance, 6153, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71427) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6153);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71428, @role_id_finance, 6154, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71428) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6154);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71429, @role_id_finance, 6156, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71429) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6156);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71430, @role_id_finance, 6157, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71430) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6157);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71431, @role_id_finance, 6158, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71431) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6158);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71432, @role_id_finance, 6168, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71432) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6168);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71433, @role_id_finance, 6174, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_finance IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71433) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_finance AND menu_id = 6174);
-
--- ===== 内容编辑 (content_editor) id=163 menus=29 =====
+-- ===== 内容编辑 (content_editor) menus=29 =====
 INSERT INTO system_role (
-    id, name, code, sort, data_scope, data_scope_dept_ids, status, type, remark,
+    name, code, sort, data_scope, data_scope_dept_ids, status, type, remark,
     creator, create_time, updater, update_time, deleted, tenant_id
 )
 SELECT
-    163, '内容编辑', 'content_editor', 23, 5, '', 0, 2,
+    '内容编辑', 'content_editor', 23, 5, '', 0, 2,
     'ADR-064：内容编辑；SELF+本组只读；不审（无6118）',
     'adr-064-seed', NOW(), 'adr-064-seed', NOW(), b'0', 1
 FROM DUAL
@@ -1161,63 +4717,34 @@ WHERE NOT EXISTS (
     SELECT 1 FROM system_role x WHERE x.code = 'content_editor' AND x.tenant_id = 1 AND x.deleted = b'0'
 );
 
-UPDATE system_role
-SET name = '内容编辑',
-    sort = 23,
-    data_scope = 5,
-    type = 2,
-    remark = 'ADR-064：内容编辑；SELF+本组只读；不审（无6118）',
-    updater = 'adr-064-seed',
-    update_time = NOW(),
-    deleted = b'0'
-WHERE code = 'content_editor' AND tenant_id = 1;
+DELETE rm FROM system_role_menu rm
+INNER JOIN system_role r ON r.id = rm.role_id
+WHERE r.code = 'content_editor' AND r.tenant_id = 1 AND r.deleted = b'0'
+  AND rm.menu_id >= 6100 AND rm.menu_id < 7000
+  AND rm.menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (03_work_task_menus_v183)
 
-SET @role_id_content_editor := (
-    SELECT id FROM system_role WHERE code = 'content_editor' AND tenant_id = 1 AND deleted = b'0' LIMIT 1
-);
+INSERT INTO system_role_menu (role_id, menu_id, creator, tenant_id, user_type)
+SELECT r.id, m.id, 'adr-064-seed', 1, 2
+FROM system_role r
+INNER JOIN system_menu m ON m.id IN (
+    6100, 6101, 6102, 6103, 6108, 6109, 6112, 6113, 6114, 6115,
+    6116, 6117, 6119, 6120, 6121, 6124, 6125, 6128, 6148, 6149,
+    6150, 6151, 6152, 6153, 6154, 6157, 6158, 6168, 6174
+)
+WHERE r.code = 'content_editor' AND r.tenant_id = 1 AND r.deleted = b'0'
+  AND m.deleted = b'0'
+  AND NOT EXISTS (
+      SELECT 1 FROM system_role_menu rm
+      WHERE rm.role_id = r.id AND rm.menu_id = m.id AND rm.deleted = b'0'
+  );
 
-DELETE FROM system_role_menu
-WHERE role_id = @role_id_content_editor
-  AND menu_id >= 6100 AND menu_id < 7000
-  AND menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (03_work_task_menus_v183)
-
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71600, @role_id_content_editor, 6100, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71600) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6100);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71601, @role_id_content_editor, 6101, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71601) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6101);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71602, @role_id_content_editor, 6102, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71602) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6102);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71603, @role_id_content_editor, 6103, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71603) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6103);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71604, @role_id_content_editor, 6108, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71604) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6108);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71605, @role_id_content_editor, 6109, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71605) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6109);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71606, @role_id_content_editor, 6112, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71606) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6112);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71607, @role_id_content_editor, 6113, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71607) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6113);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71608, @role_id_content_editor, 6114, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71608) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6114);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71609, @role_id_content_editor, 6115, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71609) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6115);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71610, @role_id_content_editor, 6116, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71610) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6116);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71611, @role_id_content_editor, 6117, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71611) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6117);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71612, @role_id_content_editor, 6119, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71612) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6119);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71613, @role_id_content_editor, 6120, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71613) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6120);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71614, @role_id_content_editor, 6121, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71614) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6121);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71615, @role_id_content_editor, 6124, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71615) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6124);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71616, @role_id_content_editor, 6125, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71616) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6125);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71617, @role_id_content_editor, 6128, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71617) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6128);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71618, @role_id_content_editor, 6148, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71618) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6148);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71619, @role_id_content_editor, 6149, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71619) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6149);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71620, @role_id_content_editor, 6150, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71620) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6150);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71621, @role_id_content_editor, 6151, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71621) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6151);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71622, @role_id_content_editor, 6152, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71622) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6152);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71623, @role_id_content_editor, 6153, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71623) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6153);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71624, @role_id_content_editor, 6154, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71624) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6154);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71625, @role_id_content_editor, 6157, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71625) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6157);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71626, @role_id_content_editor, 6158, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71626) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6158);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71627, @role_id_content_editor, 6168, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71627) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6168);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71628, @role_id_content_editor, 6174, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_content_editor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71628) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_content_editor AND menu_id = 6174);
-
--- ===== 运营 (ops_operator) id=164 menus=34 =====
+-- ===== 运营 (ops_operator) menus=34 =====
 INSERT INTO system_role (
-    id, name, code, sort, data_scope, data_scope_dept_ids, status, type, remark,
+    name, code, sort, data_scope, data_scope_dept_ids, status, type, remark,
     creator, create_time, updater, update_time, deleted, tenant_id
 )
 SELECT
-    164, '运营', 'ops_operator', 24, 5, '', 0, 2,
+    '运营', 'ops_operator', 24, 5, '', 0, 2,
     'ADR-064：运营（含主播/快手）；IP_GROUP+SELF；无审核/无全部任务',
     'adr-064-seed', NOW(), 'adr-064-seed', NOW(), b'0', 1
 FROM DUAL
@@ -1225,68 +4752,35 @@ WHERE NOT EXISTS (
     SELECT 1 FROM system_role x WHERE x.code = 'ops_operator' AND x.tenant_id = 1 AND x.deleted = b'0'
 );
 
-UPDATE system_role
-SET name = '运营',
-    sort = 24,
-    data_scope = 5,
-    type = 2,
-    remark = 'ADR-064：运营（含主播/快手）；IP_GROUP+SELF；无审核/无全部任务',
-    updater = 'adr-064-seed',
-    update_time = NOW(),
-    deleted = b'0'
-WHERE code = 'ops_operator' AND tenant_id = 1;
+DELETE rm FROM system_role_menu rm
+INNER JOIN system_role r ON r.id = rm.role_id
+WHERE r.code = 'ops_operator' AND r.tenant_id = 1 AND r.deleted = b'0'
+  AND rm.menu_id >= 6100 AND rm.menu_id < 7000
+  AND rm.menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (03_work_task_menus_v183)
 
-SET @role_id_ops_operator := (
-    SELECT id FROM system_role WHERE code = 'ops_operator' AND tenant_id = 1 AND deleted = b'0' LIMIT 1
-);
+INSERT INTO system_role_menu (role_id, menu_id, creator, tenant_id, user_type)
+SELECT r.id, m.id, 'adr-064-seed', 1, 2
+FROM system_role r
+INNER JOIN system_menu m ON m.id IN (
+    6100, 6101, 6102, 6106, 6107, 6108, 6109, 6112, 6113, 6114,
+    6115, 6116, 6117, 6119, 6120, 6121, 6122, 6124, 6143, 6144,
+    6146, 6147, 6148, 6149, 6150, 6151, 6152, 6153, 6154, 6156,
+    6157, 6158, 6168, 6174
+)
+WHERE r.code = 'ops_operator' AND r.tenant_id = 1 AND r.deleted = b'0'
+  AND m.deleted = b'0'
+  AND NOT EXISTS (
+      SELECT 1 FROM system_role_menu rm
+      WHERE rm.role_id = r.id AND rm.menu_id = m.id AND rm.deleted = b'0'
+  );
 
-DELETE FROM system_role_menu
-WHERE role_id = @role_id_ops_operator
-  AND menu_id >= 6100 AND menu_id < 7000
-  AND menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (03_work_task_menus_v183)
-
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71800, @role_id_ops_operator, 6100, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71800) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6100);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71801, @role_id_ops_operator, 6101, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71801) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6101);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71802, @role_id_ops_operator, 6102, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71802) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6102);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71803, @role_id_ops_operator, 6106, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71803) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6106);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71804, @role_id_ops_operator, 6107, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71804) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6107);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71805, @role_id_ops_operator, 6108, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71805) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6108);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71806, @role_id_ops_operator, 6109, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71806) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6109);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71807, @role_id_ops_operator, 6112, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71807) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6112);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71808, @role_id_ops_operator, 6113, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71808) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6113);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71809, @role_id_ops_operator, 6114, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71809) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6114);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71810, @role_id_ops_operator, 6115, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71810) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6115);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71811, @role_id_ops_operator, 6116, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71811) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6116);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71812, @role_id_ops_operator, 6117, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71812) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6117);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71813, @role_id_ops_operator, 6119, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71813) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6119);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71814, @role_id_ops_operator, 6120, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71814) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6120);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71815, @role_id_ops_operator, 6121, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71815) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6121);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71816, @role_id_ops_operator, 6122, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71816) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6122);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71817, @role_id_ops_operator, 6124, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71817) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6124);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71818, @role_id_ops_operator, 6143, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71818) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6143);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71819, @role_id_ops_operator, 6144, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71819) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6144);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71820, @role_id_ops_operator, 6146, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71820) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6146);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71821, @role_id_ops_operator, 6147, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71821) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6147);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71822, @role_id_ops_operator, 6148, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71822) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6148);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71823, @role_id_ops_operator, 6149, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71823) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6149);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71824, @role_id_ops_operator, 6150, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71824) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6150);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71825, @role_id_ops_operator, 6151, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71825) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6151);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71826, @role_id_ops_operator, 6152, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71826) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6152);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71827, @role_id_ops_operator, 6153, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71827) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6153);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71828, @role_id_ops_operator, 6154, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71828) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6154);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71829, @role_id_ops_operator, 6156, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71829) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6156);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71830, @role_id_ops_operator, 6157, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71830) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6157);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71831, @role_id_ops_operator, 6158, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71831) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6158);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71832, @role_id_ops_operator, 6168, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71832) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6168);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 71833, @role_id_ops_operator, 6174, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_ops_operator IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 71833) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_ops_operator AND menu_id = 6174);
-
--- ===== 数据分析 (data_analyst) id=165 menus=54 =====
+-- ===== 数据分析 (data_analyst) menus=52 =====
 INSERT INTO system_role (
-    id, name, code, sort, data_scope, data_scope_dept_ids, status, type, remark,
+    name, code, sort, data_scope, data_scope_dept_ids, status, type, remark,
     creator, create_time, updater, update_time, deleted, tenant_id
 )
 SELECT
-    165, '数据分析', 'data_analyst', 25, 1, '', 0, 2,
+    '数据分析', 'data_analyst', 25, 1, '', 0, 2,
     'ADR-064：分析域 ALL；监测/报表 RWD；采集 R；无内容审核',
     'adr-064-seed', NOW(), 'adr-064-seed', NOW(), b'0', 1
 FROM DUAL
@@ -1294,96 +4788,36 @@ WHERE NOT EXISTS (
     SELECT 1 FROM system_role x WHERE x.code = 'data_analyst' AND x.tenant_id = 1 AND x.deleted = b'0'
 );
 
-UPDATE system_role
-SET name = '数据分析',
-    sort = 25,
-    data_scope = 1,
-    type = 2,
-    remark = 'ADR-064：分析域 ALL；监测/报表 RWD；采集 R；无内容审核',
-    updater = 'adr-064-seed',
-    update_time = NOW(),
-    deleted = b'0'
-WHERE code = 'data_analyst' AND tenant_id = 1;
+DELETE rm FROM system_role_menu rm
+INNER JOIN system_role r ON r.id = rm.role_id
+WHERE r.code = 'data_analyst' AND r.tenant_id = 1 AND r.deleted = b'0'
+  AND rm.menu_id >= 6100 AND rm.menu_id < 7000
+  AND rm.menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (03_work_task_menus_v183)
 
-SET @role_id_data_analyst := (
-    SELECT id FROM system_role WHERE code = 'data_analyst' AND tenant_id = 1 AND deleted = b'0' LIMIT 1
-);
-
-DELETE FROM system_role_menu
-WHERE role_id = @role_id_data_analyst
-  AND menu_id >= 6100 AND menu_id < 7000
-  AND menu_id NOT IN (6194, 6195, 6196);  -- preserve work-task (03_work_task_menus_v183)
-
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72000, @role_id_data_analyst, 6100, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72000) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6100);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72001, @role_id_data_analyst, 6101, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72001) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6101);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72002, @role_id_data_analyst, 6102, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72002) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6102);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72003, @role_id_data_analyst, 6103, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72003) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6103);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72004, @role_id_data_analyst, 6104, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72004) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6104);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72005, @role_id_data_analyst, 6106, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72005) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6106);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72006, @role_id_data_analyst, 6107, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72006) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6107);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72007, @role_id_data_analyst, 6108, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72007) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6108);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72008, @role_id_data_analyst, 6109, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72008) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6109);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72009, @role_id_data_analyst, 6110, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72009) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6110);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72010, @role_id_data_analyst, 6111, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72010) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6111);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72011, @role_id_data_analyst, 6112, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72011) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6112);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72012, @role_id_data_analyst, 6113, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72012) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6113);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72013, @role_id_data_analyst, 6114, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72013) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6114);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72014, @role_id_data_analyst, 6115, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72014) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6115);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72015, @role_id_data_analyst, 6116, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72015) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6116);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72016, @role_id_data_analyst, 6117, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72016) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6117);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72017, @role_id_data_analyst, 6119, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72017) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6119);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72018, @role_id_data_analyst, 6120, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72018) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6120);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72019, @role_id_data_analyst, 6121, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72019) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6121);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72020, @role_id_data_analyst, 6122, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72020) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6122);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72021, @role_id_data_analyst, 6124, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72021) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6124);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72022, @role_id_data_analyst, 6125, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72022) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6125);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72023, @role_id_data_analyst, 6126, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72023) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6126);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72024, @role_id_data_analyst, 6127, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72024) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6127);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72025, @role_id_data_analyst, 6128, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72025) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6128);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72026, @role_id_data_analyst, 6129, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72026) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6129);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72027, @role_id_data_analyst, 6130, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72027) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6130);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72028, @role_id_data_analyst, 6131, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72028) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6131);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72029, @role_id_data_analyst, 6132, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72029) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6132);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72030, @role_id_data_analyst, 6133, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72030) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6133);
--- 72031/72032 6134 私域桥接 / 6135 数据质量 已移除（Phase 2 OOS）
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72033, @role_id_data_analyst, 6136, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72033) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6136);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72034, @role_id_data_analyst, 6142, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72034) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6142);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72035, @role_id_data_analyst, 6143, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72035) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6143);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72036, @role_id_data_analyst, 6144, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72036) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6144);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72037, @role_id_data_analyst, 6145, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72037) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6145);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72038, @role_id_data_analyst, 6146, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72038) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6146);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72039, @role_id_data_analyst, 6147, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72039) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6147);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72040, @role_id_data_analyst, 6148, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72040) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6148);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72041, @role_id_data_analyst, 6149, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72041) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6149);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72042, @role_id_data_analyst, 6150, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72042) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6150);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72043, @role_id_data_analyst, 6151, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72043) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6151);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72044, @role_id_data_analyst, 6152, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72044) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6152);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72045, @role_id_data_analyst, 6153, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72045) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6153);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72046, @role_id_data_analyst, 6154, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72046) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6154);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72047, @role_id_data_analyst, 6156, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72047) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6156);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72048, @role_id_data_analyst, 6157, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72048) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6157);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72049, @role_id_data_analyst, 6158, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72049) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6158);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72050, @role_id_data_analyst, 6159, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72050) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6159);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72051, @role_id_data_analyst, 6165, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72051) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6165);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72052, @role_id_data_analyst, 6168, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72052) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6168);
-INSERT INTO system_role_menu (id, role_id, menu_id, creator, tenant_id, user_type) SELECT 72053, @role_id_data_analyst, 6174, 'adr-064-seed', 1, 2 FROM DUAL WHERE @role_id_data_analyst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE id = 72053) AND NOT EXISTS (SELECT 1 FROM system_role_menu WHERE role_id = @role_id_data_analyst AND menu_id = 6174);
+INSERT INTO system_role_menu (role_id, menu_id, creator, tenant_id, user_type)
+SELECT r.id, m.id, 'adr-064-seed', 1, 2
+FROM system_role r
+INNER JOIN system_menu m ON m.id IN (
+    6100, 6101, 6102, 6103, 6104, 6106, 6107, 6108, 6109, 6110,
+    6111, 6112, 6113, 6114, 6115, 6116, 6117, 6119, 6120, 6121,
+    6122, 6124, 6125, 6126, 6127, 6128, 6129, 6130, 6131, 6132,
+    6133, 6136, 6142, 6143, 6144, 6145, 6146, 6147, 6148, 6149,
+    6150, 6151, 6152, 6153, 6154, 6156, 6157, 6158, 6159, 6165,
+    6168, 6174
+)
+WHERE r.code = 'data_analyst' AND r.tenant_id = 1 AND r.deleted = b'0'
+  AND m.deleted = b'0'
+  AND NOT EXISTS (
+      SELECT 1 FROM system_role_menu rm
+      WHERE rm.role_id = r.id AND rm.menu_id = m.id AND rm.deleted = b'0'
+  );
 
 COMMIT;
 
 -- Expected menu counts (ADR-064 §5):
 --   ip_group_leader: 48
---   ops_manager: 71
+--   ops_manager: 69
 --   finance: 34
 --   content_editor: 29
 --   ops_operator: 34
---   data_analyst: 54
-
--- =============================================================================
--- ===== 04_baseline_dicts.sql =====
--- SKIPPED — Greenfield production has no wd DB; confirm Football dict_* exists
--- =============================================================================
-
--- SKIPPED on greenfield production.
--- Reason: 04_baseline_dicts.sql merges dict_* from legacy wd DB (V152).
--- Action:  Confirm Football dict_* exists in shenyu-system (see OPERATIONS-GUIDE.md).
-
+--   data_analyst: 52

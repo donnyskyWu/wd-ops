@@ -126,7 +126,7 @@
 #### 4.1.3 主流程
 
 1. 进入"SOP 模板管理"
-2. 新建/编辑模板（`template_name`, `content_type`, `platform_type`, `description`）
+2. 新建/编辑模板（`template_name`, `content_type`, `platform_type`, **`marketing_plan`**, `description`）
 3. 添加节点（`node_name`, `node_type`, `node_order`, `executor_role`, `need_review`, `reviewer_role`, `predecessors`, `parallel_group`, `sla_hours`）
 4. 后端 `validate-dag` 检测环
 5. 启用模板（`status=1`）
@@ -141,6 +141,7 @@
 
 #### 4.1.5 业务规则
 
+- **营销计划 1:1**（ADR-074）：`marketing_plan` 启用时同租户唯一；工作任务 confirm 按此字段解析 SOP
 - **DAG 合法性**：拓扑排序检测存在环 → 拒绝保存
 - **预置模板**：初始化导入"标准内容生产运营流程"（14 节点，4 路并行，详见 `## 5.8.6`）
 - **节点数上限**：单模板 ≤ 50 节点
@@ -168,6 +169,7 @@
 | `template_name` | VARCHAR(100) | `<Input />` | - |
 | `content_type` | VARCHAR(20) | `<DictSelect dict-type="dict_content_type" />` | 字典 |
 | `platform_type` | VARCHAR(20) | `<DictSelect dict-type="dict_platform_type" />` | 字典 |
+| `marketing_plan` | VARCHAR(32) | `<DictSelect dict-type="dict_marketing_plan_type" />` | 字典；**启用时必填**；启用态 1:1（ADR-074） |
 | `description` | VARCHAR(500) | `<TextArea />` | - |
 | `status` | TINYINT | `<Switch />` | - |
 | 节点 `executor_role` | VARCHAR(30) | `<DictSelect dict-type="dict_position" />` | 字典 |
@@ -177,6 +179,7 @@
 | 节点 `parallel_group` | VARCHAR(50) | `<Input />` | - |
 | 节点 `sla_hours` | INT | `<InputNumber />` | - |
 | 节点 `node_type` | VARCHAR(30) | `<DictSelect dict-type="dict_sop_node_type" />` | 字典（**必填**，ADR-016） |
+| 节点 `document_type` | VARCHAR(32) | `<DictSelect dict-type="dict_document_type" />` | 字典；**仅** `CONTENT_GENERATION` 必填（ADR-077） |
 
 **`dict_sop_node_type` 取值**（ADR-016，替代原 7 值）：
 
@@ -217,6 +220,11 @@
 - Given 编辑 SOP 节点
 - When 设置 `node_type`
 - Then 弹出 `dict_sop_node_type` 选择器，仅含「内容生成 / 内容发布 / 普通节点」三值；保存后持久化
+
+**AC-M2-001-7**（内容生成节点文档类型，ADR-077）
+- Given 编辑 SOP 节点且 `node_type=CONTENT_GENERATION`
+- When 未选 `document_type` 保存
+- Then 失败，错误码 **1503**；选中 `dict_document_type` 五值之一后保存成功并持久化
 
 ---
 
@@ -280,7 +288,7 @@ SOP 任务实例，跟踪任务执行状态、节点进度、审核结果、SLA 
 2. 按 DAG 顺序激活节点
 3. 执行人在「我的任务」中，状态=`PENDING`（待执行）时点击「执行」→ 打开**任务执行页**（需求 4–5）
 4. 执行页：查看基本信息 / 执行说明 / 附件；按 `node_type` 展示操作区
-5. 执行人保存或完成任务；`node_type=CONTENT_GENERATION` 时须有关联内容且 `status=COMPLETED` 方可完成
+5. 执行人保存或完成任务：`CONTENT_GENERATION` 须关联内容 **审核通过**（ADR-079）；其它节点须填写工作说明（`deliverables`）
 6. 需审核节点 → 提交审核 → 审核通过/驳回
 7. SLA 超时 → 钉钉通知
 
@@ -309,7 +317,8 @@ SOP 任务实例，跟踪任务执行状态、节点进度、审核结果、SLA 
 
 | 区域 | 内容 |
 |------|------|
-| 基本信息 | 任务名称、节点名称、计划、IP 组、赛事、SLA |
+| 基本信息 | 任务名称、节点名称、计划、IP 组、赛事；**不展示 SLA**（ADR-080） |
+| 登记备注 | 工作任务来源：`赛事-营销计划-是否直播（直播时间仅是）-销售平台；`（ADR-080） |
 | 执行说明 | 节点/步骤说明文案（来源 **BLK-M2-008**） |
 | 附件 | 只读列表 + 上传（存储 **BLK-M2-007**） |
 | 操作区-内容生成 | 按钮「进入内容创作」→ 带 `taskId`+`competitionId`；已有关联内容则展示摘要 + 编辑入口 |
@@ -348,15 +357,30 @@ SOP 任务实例，跟踪任务执行状态、节点进度、审核结果、SLA 
 - When 在「我的任务」点击「执行」
 - Then 打开任务执行页，展示基本信息与操作区
 
-**AC-M2-002-6**（内容生成节点完成门禁，需求 5）
-- Given 任务节点 `node_type=CONTENT_GENERATION`，无关联内容或内容 `status≠COMPLETED`
-- When 点击「完成」
-- Then 拒绝完成并提示须先完成内容创作
+**AC-M2-002-6**（内容生成节点完成门禁 · ADR-079）
+- Given 任务 `node_type=CONTENT_GENERATION`，无关联内容，或内容不在审核通过集合（`PENDING_PUBLISH` / `PUBLISHED_DRAFT` / `FORMALLY_PUBLISHED` / `PUBLISHED` / `UNPUBLISHED`）
+- When 在执行页或任务列表点击「完成」
+- Then 拒绝（1500）；列表/执行页规则相同
 
-**AC-M2-002-7**（内容生成节点正常完成，需求 5）
-- Given 已有关联内容且 `status=COMPLETED`
-- When 点击「完成」
-- Then 任务状态→`DONE`（或 `PENDING_REVIEW` 若 `need_review=1`）
+**AC-M2-002-7**（内容生成节点正常完成 · ADR-079）
+- Given 关联内容状态 ∈ 审核通过集合
+- When 点击「完成」（列表或执行页）
+- Then 任务 → `DONE`（或 `PENDING_REVIEW` 若 `need_review=1`）
+
+**AC-M2-002-8**（内容生成：可提交审核 · ADR-079）
+- Given 关联内容 `DRAFT` 或 `REJECTED`
+- When 打开执行页或任务列表
+- Then 展示「提交审核」，效果同内容模块 `POST /ops/content/{id}/submit-review`
+
+**AC-M2-002-9**（非内容生成须工作说明 · ADR-079）
+- Given `node_type ≠ CONTENT_GENERATION`，工作说明（`deliverables`）为空
+- When 在执行页或任务列表点击「完成」
+- Then 拒绝（1500「请填写工作说明」）；填写非空后可完成
+
+**AC-M2-002-10**（执行页节点名与登记备注 · ADR-080）
+- Given 工作任务 confirm 生成的 task
+- When 打开列表或执行页
+- Then 「节点名称」=`oa_sop_node.node_name`；执行页不展示 SLA；执行页备注=`赛事-营销计划-是否直播（直播时间仅是）-销售平台；`
 
 ---
 
@@ -472,6 +496,21 @@ SOP 任务实例，跟踪任务执行状态、节点进度、审核结果、SLA 
 - Given 已 AI 生成视频且未上传
 - When 点击「确认」
 - Then `final_video_url` 取 AI 生成视频 URL
+
+**AC-M2-003-11**（登记自动首写列，ADR-077 · 例外 ADR-054 D8）
+- Given 工作任务 confirm 自动 DRAFT 且 `document_type=OFFICIAL_PLAN`
+- When afterCommit jingcai 成功
+- Then 结果写入 `paid_body`（`isPaywall=true`，不落库新列）；非正式方案写入 `free_body`。之后手工 AI 采纳仍由用户选列。
+
+**AC-M2-003-12**（自动草稿失败可重试，ADR-077）
+- Given 自动 jingcai 失败
+- When 用户在任务/内容上点「重试」
+- Then 复用现有 generate（含 `isPaywall` 上下文）；内容保持 `DRAFT`；任务不自动完成。
+
+**AC-M2-003-13**（内容列表批量操作，ADR-081）
+- Given 内容列表勾选若干行
+- When 点批量删除 / 批量提交审核 / 批量转知识库
+- Then 仅对符合单条资格的行调用现有单条 API；不合格跳过；结果展示成功/跳过/失败数量。
 
 ---
 
@@ -737,6 +776,7 @@ SOP 任务实例，跟踪任务执行状态、节点进度、审核结果、SLA 
 |------|------|------|------|------|
 | ADR-M2-001 | 异步发布依赖 RabbitMQ 吗？ | 不依赖，用 Spring `@Async` | 中间件简化（ADR-001） | 2026-06-07 |
 | ADR-M2-002 | SOP 模板是否支持版本管理？ | 不支持 | 简化设计，启用新模板时停用旧模板 | 2026-06-07 |
+| ADR-077 | 登记 confirm 是否自动建内容并 jingcai？ | 是（工作任务 confirm；计划管理除外） | 见 [ADR-077](../adr/ADR-077-SOP内容生成节点文档类型与登记自动草稿AI.md) | 2026-09-02 |
 
 ---
 

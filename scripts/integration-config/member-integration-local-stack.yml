@@ -1,0 +1,48 @@
+# member-server local stack overlay (use INSTEAD of football-integration-overlay.yml).
+# football-integration-overlay excludes RocketMQAutoConfiguration; loader.path stub is unreliable on SB 3.5 / Windows.
+# This file keeps RocketMQ auto-config (local name-server placeholder) so RocketMQTemplate bean exists.
+# Pair with member-integration-overlay.yml for shenyu-member datasource.
+spring:
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+      discovery:
+        enabled: true
+        register-enabled: true
+        namespace: local
+        group: DEFAULT_GROUP
+        fail-fast: false
+        failure-tolerance-enabled: true
+        ip: 127.0.0.1
+      config:
+        enabled: false
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      password: 123456
+
+football:
+  captcha:
+    enable: false
+  security:
+    mock-enable: true
+  websocket:
+    sender-type: local
+
+rocketmq:
+  name-server: 127.0.0.1:9876
+  producer:
+    group: member-integration-local
+  consumer:
+    listeners:
+      article-push-consumer-group:
+        ARTICLE_PUSH_TOPIC: false
+      MEMBER_BIZ_TOPIC_CONSUMER:
+        MEMBER_BIZ_TOPIC: false
+
+im:
+  appId: 1
+  serverSecret: integration-local-placeholder
+  url: http://127.0.0.1:1/im-placeholder

@@ -1,4 +1,4 @@
-# start-integration-oa.ps1 — Start football-module-ops (ADR-058 CLEANUP)
+﻿# start-integration-oa.ps1 — Start football-module-ops (ADR-058 CLEANUP)
 #
 # Monorepo football-module-ops-server JAR on :48094 (Nacos registry id: ops-server).
 # Default: --spring.profiles.active=local (application-local.yaml).
@@ -107,6 +107,11 @@ if (-not $javaExe) { Write-Error "java not on PATH"; exit 1 }
 $springProfile = if ($UseBeta) { "dev-test-beta" } else { "local" }
 $extraCfg = "--spring.profiles.active=$springProfile"
 $titleNote = if ($UseBeta) { "BETA $($env:OPS_TEST_DB_HOST)" } else { "local" }
+if (-not $UseBeta) {
+    if (Get-Command Import-OpsCollectorRemoteEnv -ErrorAction SilentlyContinue) {
+        $null = Import-OpsCollectorRemoteEnv -Root $Root
+    }
+}
 Write-Host "        profile: $springProfile" -ForegroundColor DarkGray
 if ($UseBeta -and (Test-Path -LiteralPath $BetaOverlay)) {
     Write-Host "        (legacy overlay still present; jar profile dev-test-beta is SSOT)" -ForegroundColor DarkGray

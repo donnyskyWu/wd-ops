@@ -59,6 +59,7 @@
 - [x] `POST /metric/preview` 预览可用
 
 - [x] 8 张报表（FR-M6-002）；snake_case 响应 + DictLabel
+- [x] 直播时长 S-tier（2026-08-26）：live-server Feign + 作者维度 + 小时单位；见 [LIVE-DURATION-S-TIER-20260826](../delivery/e2e-artifacts/LIVE-DURATION-S-TIER-20260826/REPORT.md)
 
 - [x] `dict_roi_dimension`（V42）
 

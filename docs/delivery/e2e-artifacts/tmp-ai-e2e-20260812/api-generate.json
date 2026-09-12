@@ -1,0 +1,28 @@
+{
+  "request": {
+    "sessionId": "8598957b-6aea-4378-9311-e69700122827",
+    "modelId": 8,
+    "message": "请生成一版简短内容用于E2E冒烟",
+    "documentType": "POST_MATCH_REVIEW",
+    "contentType": "ARTICLE",
+    "roundCount": 1,
+    "preferenceSummary": "",
+    "conversationHistory": [],
+    "context": {
+      "matchName": "解放者杯-拉普拉塔大学生 VS 天主大学-2026-08-12 08:30",
+      "authorName": "解说员浩南",
+      "schemeTypes": [
+        "COMPREHENSIVE"
+      ],
+      "historyRecord": "近10场 6胜2平2负",
+      "anchorStyle": "comprehensive",
+      "productDescription": "E2E冒烟"
+    }
+  },
+  "http": 200,
+  "response": {
+    "code": 1400,
+    "msg": "Author AI 生成失败：生成失败: 至少设置一个模型 API Key：ANTHROPIC_API_KEY / DEEPSEEK_API_KEY / MINIMAX_API_KEY / DASHSCOPE_API_KEY / GPT_PROXY_API_KEY",
+    "data": null
+  }
+}

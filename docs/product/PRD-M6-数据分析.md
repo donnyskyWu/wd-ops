@@ -3,8 +3,8 @@
 > **业务域**：M6 数据分析
 > **功能模块**：指标管理 + 8 张报表 + 漏斗 + 自定义查询 + 大屏
 > **详细设计章节**：5.25、5.26、5.27、5.28、5.29、5.30、5.31
-> **版本**：v1.3 | 2026-06-12
-> **状态**：Draft（报表/漏斗/自定义查询实现已对齐）
+> **版本**：v1.4 | 2026-08-26
+> **状态**：Draft（报表/漏斗/自定义查询实现已对齐；直播时长 S-tier 2026-08-26）
 > **全局规范**：[`docs/engineering/GLOBAL-CONVENTIONS.md`](./../engineering/GLOBAL-CONVENTIONS.md)
 
 ---
@@ -121,6 +121,40 @@
 - 枚举列前端用 `<DictLabel />` 展示（如 `dict_platform_type`、`dict_roi_dimension`）
 - ROI 维度字典：`dict_roi_dimension`（V42 迁移）
 - 种子指标：V44 `seed_metrics`；漏斗步骤种子：V45
+
+#### 2.4 直播时长报表（5.26.4 · S-tier 2026-08-26）
+
+**维度**：按 **作者**（`oa_ip_group_anchor_rel.anchor_user_id` → member 作者昵称），可选 IP 组筛选；**非**账号维度 stub。
+
+**数据源**：`LiveRoomApi.getLiveRoomCount(authorId, dateTime[])`（Feign → live-server）；Ops 侧 `LiveRoomReadService` 封装 RPC。
+
+| 字段 | 说明 |
+|------|------|
+| `author_id` / `author_name` | 作者 ID / 昵称 |
+| `session_count` | 直播场次（`liveCount`） |
+| `total_duration` | 总时长，**小时**，保留 1 位小数（RPC 返回分钟，后端 ÷60） |
+| `avg_duration` | 均时长 = 总时长 ÷ 场次，**小时** |
+| `date` / `stat_date` | 列表行取查询区间 `endDate`；趋势按日 |
+
+**Out of Scope（v1）**：
+
+- `peak_viewers`（峰值在线）— API 可占位 `"-"`，**前端不展示**
+- 按账号 / 平台拆分明细 — 后续迭代
+- 导出 — 前端 Excel 客户端导出；后端 `export` 仍为 stub job
+
+**趋势图**：双轴 — 柱状「场次」+ 折线「总时长(小时)」；按日聚合 IP 组下全部作者。
+
+#### 验收（直播时长）
+
+**AC-M6-002-4**（直播时长 · 作者汇总）
+- Given IP 组下存在 `oa_ip_group_anchor_rel` 绑定作者，且 live-server 有场次数据
+- When 查询 `/ops/report/live-duration/list` 与 `/trend`
+- Then 列表按作者分页，含场次与时长（小时）；趋势按日汇总；**无** peak_viewers 列
+
+**AC-M6-002-5**（直播时长 · 空 IP 组）
+- Given 未选 IP 组
+- When 查询列表
+- Then 租户下全部 anchor 作者参与汇总（与 `resolveAnchorAuthorIds` 一致）
 
 ---
 

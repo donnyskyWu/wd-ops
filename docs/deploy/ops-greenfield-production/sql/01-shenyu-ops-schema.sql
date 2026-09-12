@@ -1,6 +1,6 @@
 -- =============================================================================
 -- shenyu-ops — ALL Flyway SQL migrations + flyway_schema_history (recommended DBA path)
--- Generated: 2026-08-25 by gen-ops-greenfield-sql.py — do not hand-edit
+-- Generated: 2026-08-26 by gen-ops-greenfield-sql.py — do not hand-edit
 -- Target DB: pass on mysql CLI, e.g. mysql -h HOST -u USER -p shenyu-ops < sql/01-shenyu-ops-schema.sql
 -- Includes: 186 migrations + idempotent flyway_schema_history
 -- Note:   V113 Java migration excluded from history — JAR first start补跑
@@ -5313,7 +5313,7 @@ ALTER TABLE oa_aochuang_friend MODIFY COLUMN avatar varchar(512) DEFAULT NULL CO
 
 ALTER TABLE oa_aochuang_friend MODIFY COLUMN remark varchar(200) DEFAULT NULL COMMENT '备注';
 
-ALTER TABLE oa_aochuang_friend MODIFY COLUMN synced_at timestamp DEFAULT NULL COMMENT '同步时间';
+ALTER TABLE oa_aochuang_friend MODIFY COLUMN synced_at timestamp NULL DEFAULT NULL COMMENT '同步时间';
 
 ALTER TABLE oa_aochuang_friend MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -5349,7 +5349,7 @@ ALTER TABLE oa_aochuang_message MODIFY COLUMN content text DEFAULT NULL COMMENT 
 
 ALTER TABLE oa_aochuang_message MODIFY COLUMN message_time timestamp NOT NULL COMMENT '消息时间';
 
-ALTER TABLE oa_aochuang_message MODIFY COLUMN synced_at timestamp DEFAULT NULL COMMENT '同步时间';
+ALTER TABLE oa_aochuang_message MODIFY COLUMN synced_at timestamp NULL DEFAULT NULL COMMENT '同步时间';
 
 ALTER TABLE oa_aochuang_message MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -5377,7 +5377,7 @@ ALTER TABLE oa_aochuang_sync_cursor MODIFY COLUMN personal_wechat_id bigint NOT 
 
 ALTER TABLE oa_aochuang_sync_cursor MODIFY COLUMN cursor_value varchar(256) DEFAULT NULL COMMENT '游标值';
 
-ALTER TABLE oa_aochuang_sync_cursor MODIFY COLUMN last_sync_at timestamp DEFAULT NULL COMMENT '最后同步时间';
+ALTER TABLE oa_aochuang_sync_cursor MODIFY COLUMN last_sync_at timestamp NULL DEFAULT NULL COMMENT '最后同步时间';
 
 ALTER TABLE oa_aochuang_sync_cursor MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -5405,7 +5405,7 @@ ALTER TABLE oa_aocreate_account MODIFY COLUMN aochuang_account_id varchar(64) NO
 
 ALTER TABLE oa_aocreate_account MODIFY COLUMN status varchar(32) NOT NULL DEFAULT 'ENABLED' COMMENT '状态';
 
-ALTER TABLE oa_aocreate_account MODIFY COLUMN last_device_sync_at timestamp DEFAULT NULL COMMENT '最后设备同步时间';
+ALTER TABLE oa_aocreate_account MODIFY COLUMN last_device_sync_at timestamp NULL DEFAULT NULL COMMENT '最后设备同步时间';
 
 ALTER TABLE oa_aocreate_account MODIFY COLUMN conn_status varchar(32) DEFAULT NULL COMMENT '连接状态';
 
@@ -5541,7 +5541,7 @@ ALTER TABLE oa_collect_log MODIFY COLUMN status varchar(32) NOT NULL COMMENT '�
 
 ALTER TABLE oa_collect_log MODIFY COLUMN start_at timestamp NOT NULL COMMENT '开始时间';
 
-ALTER TABLE oa_collect_log MODIFY COLUMN end_at timestamp DEFAULT NULL COMMENT '结束时间';
+ALTER TABLE oa_collect_log MODIFY COLUMN end_at timestamp NULL DEFAULT NULL COMMENT '结束时间';
 
 ALTER TABLE oa_collect_log MODIFY COLUMN duration_ms bigint DEFAULT NULL COMMENT '耗时(毫秒)';
 
@@ -5589,9 +5589,9 @@ ALTER TABLE oa_collect_task MODIFY COLUMN api_config_encrypted text DEFAULT NULL
 
 ALTER TABLE oa_collect_task MODIFY COLUMN status varchar(32) NOT NULL DEFAULT 'PENDING' COMMENT '状态';
 
-ALTER TABLE oa_collect_task MODIFY COLUMN last_run_at timestamp DEFAULT NULL COMMENT '最后运行时间';
+ALTER TABLE oa_collect_task MODIFY COLUMN last_run_at timestamp NULL DEFAULT NULL COMMENT '最后运行时间';
 
-ALTER TABLE oa_collect_task MODIFY COLUMN next_run_at timestamp DEFAULT NULL COMMENT '下次运行时间';
+ALTER TABLE oa_collect_task MODIFY COLUMN next_run_at timestamp NULL DEFAULT NULL COMMENT '下次运行时间';
 
 ALTER TABLE oa_collect_task MODIFY COLUMN run_count int NOT NULL DEFAULT '0' COMMENT '运行次数';
 
@@ -5615,9 +5615,9 @@ ALTER TABLE oa_collector_account_bind MODIFY COLUMN id bigint NOT NULL AUTO_INCR
 
 ALTER TABLE oa_collector_account_bind MODIFY COLUMN tenant_id bigint NOT NULL COMMENT '租户ID';
 
-ALTER TABLE oa_collector_account_bind MODIFY COLUMN last_bind_at timestamp DEFAULT NULL COMMENT 'last_bind时间';
+ALTER TABLE oa_collector_account_bind MODIFY COLUMN last_bind_at timestamp NULL DEFAULT NULL COMMENT 'last_bind时间';
 
-ALTER TABLE oa_collector_account_bind MODIFY COLUMN last_health_check_at timestamp DEFAULT NULL COMMENT 'last_health_check时间';
+ALTER TABLE oa_collector_account_bind MODIFY COLUMN last_health_check_at timestamp NULL DEFAULT NULL COMMENT 'last_health_check时间';
 
 ALTER TABLE oa_collector_account_bind MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -5671,7 +5671,7 @@ ALTER TABLE oa_content MODIFY COLUMN platform_type varchar(32) NOT NULL COMMENT 
 
 ALTER TABLE oa_content MODIFY COLUMN content_type varchar(32) DEFAULT NULL COMMENT '内容类型';
 
-ALTER TABLE oa_content MODIFY COLUMN publish_time timestamp DEFAULT NULL COMMENT '发布时间';
+ALTER TABLE oa_content MODIFY COLUMN publish_time timestamp NULL DEFAULT NULL COMMENT '发布时间';
 
 ALTER TABLE oa_content MODIFY COLUMN read_count bigint NOT NULL DEFAULT '0' COMMENT '阅读数';
 
@@ -5747,7 +5747,7 @@ ALTER TABLE oa_content_data_import MODIFY COLUMN remark varchar(500) DEFAULT NUL
 
 ALTER TABLE oa_content_data_import MODIFY COLUMN reviewer_id bigint DEFAULT NULL COMMENT '审核者ID';
 
-ALTER TABLE oa_content_data_import MODIFY COLUMN review_time timestamp DEFAULT NULL COMMENT '审核时间';
+ALTER TABLE oa_content_data_import MODIFY COLUMN review_time timestamp NULL DEFAULT NULL COMMENT '审核时间';
 
 ALTER TABLE oa_content_data_import MODIFY COLUMN submitter_id bigint DEFAULT NULL COMMENT 'SubmitterID';
 
@@ -5829,9 +5829,9 @@ ALTER TABLE oa_content_plan_step MODIFY COLUMN plan_id bigint NOT NULL COMMENT '
 
 ALTER TABLE oa_content_plan_step MODIFY COLUMN node_id bigint NOT NULL COMMENT 'NodeID';
 
-ALTER TABLE oa_content_plan_step MODIFY COLUMN scheduled_start timestamp DEFAULT NULL COMMENT 'scheduled_start';
+ALTER TABLE oa_content_plan_step MODIFY COLUMN scheduled_start timestamp NULL DEFAULT NULL COMMENT 'scheduled_start';
 
-ALTER TABLE oa_content_plan_step MODIFY COLUMN scheduled_end timestamp DEFAULT NULL COMMENT 'scheduled_end';
+ALTER TABLE oa_content_plan_step MODIFY COLUMN scheduled_end timestamp NULL DEFAULT NULL COMMENT 'scheduled_end';
 
 ALTER TABLE oa_content_plan_step MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -5859,7 +5859,7 @@ ALTER TABLE oa_content_publish_record MODIFY COLUMN platform_type varchar(32) NO
 
 ALTER TABLE oa_content_publish_record MODIFY COLUMN error_message varchar(500) DEFAULT NULL COMMENT '错误信息';
 
-ALTER TABLE oa_content_publish_record MODIFY COLUMN published_at timestamp DEFAULT NULL COMMENT 'published时间';
+ALTER TABLE oa_content_publish_record MODIFY COLUMN published_at timestamp NULL DEFAULT NULL COMMENT 'published时间';
 
 ALTER TABLE oa_content_publish_record MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -5931,9 +5931,9 @@ ALTER TABLE oa_douyin_follower MODIFY COLUMN nickname varchar(200) DEFAULT NULL 
 
 ALTER TABLE oa_douyin_follower MODIFY COLUMN avatar varchar(512) DEFAULT NULL COMMENT '头像';
 
-ALTER TABLE oa_douyin_follower MODIFY COLUMN followed_at timestamp DEFAULT NULL COMMENT 'followed时间';
+ALTER TABLE oa_douyin_follower MODIFY COLUMN followed_at timestamp NULL DEFAULT NULL COMMENT 'followed时间';
 
-ALTER TABLE oa_douyin_follower MODIFY COLUMN synced_at timestamp DEFAULT NULL COMMENT '同步时间';
+ALTER TABLE oa_douyin_follower MODIFY COLUMN synced_at timestamp NULL DEFAULT NULL COMMENT '同步时间';
 
 ALTER TABLE oa_douyin_follower MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -5967,7 +5967,7 @@ ALTER TABLE oa_douyin_video MODIFY COLUMN cover_url varchar(1024) DEFAULT NULL C
 
 ALTER TABLE oa_douyin_video MODIFY COLUMN duration int DEFAULT NULL COMMENT '时长';
 
-ALTER TABLE oa_douyin_video MODIFY COLUMN published_at timestamp DEFAULT NULL COMMENT 'published时间';
+ALTER TABLE oa_douyin_video MODIFY COLUMN published_at timestamp NULL DEFAULT NULL COMMENT 'published时间';
 
 ALTER TABLE oa_douyin_video MODIFY COLUMN play_count int DEFAULT NULL COMMENT '播放数';
 
@@ -5979,9 +5979,9 @@ ALTER TABLE oa_douyin_video MODIFY COLUMN comment_count int DEFAULT NULL COMMENT
 
 ALTER TABLE oa_douyin_video MODIFY COLUMN collect_count int DEFAULT NULL COMMENT '收藏数';
 
-ALTER TABLE oa_douyin_video MODIFY COLUMN synced_at timestamp DEFAULT NULL COMMENT '同步时间';
+ALTER TABLE oa_douyin_video MODIFY COLUMN synced_at timestamp NULL DEFAULT NULL COMMENT '同步时间';
 
-ALTER TABLE oa_douyin_video MODIFY COLUMN stats_synced_at timestamp DEFAULT NULL COMMENT 'stats_synced时间';
+ALTER TABLE oa_douyin_video MODIFY COLUMN stats_synced_at timestamp NULL DEFAULT NULL COMMENT 'stats_synced时间';
 
 ALTER TABLE oa_douyin_video MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -6015,7 +6015,7 @@ ALTER TABLE oa_external_work MODIFY COLUMN completion_rate decimal(6,4) DEFAULT 
 
 ALTER TABLE oa_external_work MODIFY COLUMN like_count int NOT NULL DEFAULT '0' COMMENT '点赞数';
 
-ALTER TABLE oa_external_work MODIFY COLUMN publish_time timestamp DEFAULT NULL COMMENT '发布时间';
+ALTER TABLE oa_external_work MODIFY COLUMN publish_time timestamp NULL DEFAULT NULL COMMENT '发布时间';
 
 ALTER TABLE oa_external_work MODIFY COLUMN industry varchar(32) DEFAULT NULL COMMENT 'industry';
 
@@ -6185,7 +6185,7 @@ ALTER TABLE oa_kuaishou_video MODIFY COLUMN cover_url varchar(1024) DEFAULT NULL
 
 ALTER TABLE oa_kuaishou_video MODIFY COLUMN duration int DEFAULT NULL COMMENT '时长';
 
-ALTER TABLE oa_kuaishou_video MODIFY COLUMN published_at timestamp DEFAULT NULL COMMENT 'published时间';
+ALTER TABLE oa_kuaishou_video MODIFY COLUMN published_at timestamp NULL DEFAULT NULL COMMENT 'published时间';
 
 ALTER TABLE oa_kuaishou_video MODIFY COLUMN play_count int DEFAULT NULL COMMENT '播放数';
 
@@ -6197,9 +6197,9 @@ ALTER TABLE oa_kuaishou_video MODIFY COLUMN comment_count int DEFAULT NULL COMME
 
 ALTER TABLE oa_kuaishou_video MODIFY COLUMN collect_count int DEFAULT NULL COMMENT '收藏数';
 
-ALTER TABLE oa_kuaishou_video MODIFY COLUMN synced_at timestamp DEFAULT NULL COMMENT '同步时间';
+ALTER TABLE oa_kuaishou_video MODIFY COLUMN synced_at timestamp NULL DEFAULT NULL COMMENT '同步时间';
 
-ALTER TABLE oa_kuaishou_video MODIFY COLUMN stats_synced_at timestamp DEFAULT NULL COMMENT 'stats_synced时间';
+ALTER TABLE oa_kuaishou_video MODIFY COLUMN stats_synced_at timestamp NULL DEFAULT NULL COMMENT 'stats_synced时间';
 
 ALTER TABLE oa_kuaishou_video MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -6529,7 +6529,7 @@ ALTER TABLE oa_private_domain_conversion_bridge MODIFY COLUMN tenant_id bigint N
 
 ALTER TABLE oa_private_domain_conversion_bridge MODIFY COLUMN linked_by varchar(64) DEFAULT NULL COMMENT 'linked_by';
 
-ALTER TABLE oa_private_domain_conversion_bridge MODIFY COLUMN linked_at timestamp DEFAULT NULL COMMENT 'linked时间';
+ALTER TABLE oa_private_domain_conversion_bridge MODIFY COLUMN linked_at timestamp NULL DEFAULT NULL COMMENT 'linked时间';
 
 ALTER TABLE oa_private_domain_conversion_bridge MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -6819,7 +6819,7 @@ ALTER TABLE oa_wechat_mp_article MODIFY COLUMN url varchar(1024) DEFAULT NULL CO
 
 ALTER TABLE oa_wechat_mp_article MODIFY COLUMN cover_url varchar(1024) DEFAULT NULL COMMENT '封面URL';
 
-ALTER TABLE oa_wechat_mp_article MODIFY COLUMN published_at timestamp DEFAULT NULL COMMENT 'published时间';
+ALTER TABLE oa_wechat_mp_article MODIFY COLUMN published_at timestamp NULL DEFAULT NULL COMMENT 'published时间';
 
 ALTER TABLE oa_wechat_mp_article MODIFY COLUMN read_count int DEFAULT NULL COMMENT '阅读数';
 
@@ -6827,7 +6827,7 @@ ALTER TABLE oa_wechat_mp_article MODIFY COLUMN like_count int DEFAULT NULL COMME
 
 ALTER TABLE oa_wechat_mp_article MODIFY COLUMN share_count int DEFAULT NULL COMMENT '分享数';
 
-ALTER TABLE oa_wechat_mp_article MODIFY COLUMN synced_at timestamp DEFAULT NULL COMMENT '同步时间';
+ALTER TABLE oa_wechat_mp_article MODIFY COLUMN synced_at timestamp NULL DEFAULT NULL COMMENT '同步时间';
 
 ALTER TABLE oa_wechat_mp_article MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -6857,9 +6857,9 @@ ALTER TABLE oa_wechat_mp_follower MODIFY COLUMN avatar varchar(512) DEFAULT NULL
 
 ALTER TABLE oa_wechat_mp_follower MODIFY COLUMN unionid varchar(64) DEFAULT NULL COMMENT 'UnionID';
 
-ALTER TABLE oa_wechat_mp_follower MODIFY COLUMN subscribed_at timestamp DEFAULT NULL COMMENT 'subscribed时间';
+ALTER TABLE oa_wechat_mp_follower MODIFY COLUMN subscribed_at timestamp NULL DEFAULT NULL COMMENT 'subscribed时间';
 
-ALTER TABLE oa_wechat_mp_follower MODIFY COLUMN synced_at timestamp DEFAULT NULL COMMENT '同步时间';
+ALTER TABLE oa_wechat_mp_follower MODIFY COLUMN synced_at timestamp NULL DEFAULT NULL COMMENT '同步时间';
 
 ALTER TABLE oa_wechat_mp_follower MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -6909,7 +6909,7 @@ ALTER TABLE oa_wechat_video_work MODIFY COLUMN cover_url varchar(1024) DEFAULT N
 
 ALTER TABLE oa_wechat_video_work MODIFY COLUMN duration int DEFAULT NULL COMMENT '时长';
 
-ALTER TABLE oa_wechat_video_work MODIFY COLUMN published_at timestamp DEFAULT NULL COMMENT 'published时间';
+ALTER TABLE oa_wechat_video_work MODIFY COLUMN published_at timestamp NULL DEFAULT NULL COMMENT 'published时间';
 
 ALTER TABLE oa_wechat_video_work MODIFY COLUMN play_count int DEFAULT NULL COMMENT '播放数';
 
@@ -6921,9 +6921,9 @@ ALTER TABLE oa_wechat_video_work MODIFY COLUMN comment_count int DEFAULT NULL CO
 
 ALTER TABLE oa_wechat_video_work MODIFY COLUMN collect_count int DEFAULT NULL COMMENT '收藏数';
 
-ALTER TABLE oa_wechat_video_work MODIFY COLUMN synced_at timestamp DEFAULT NULL COMMENT '同步时间';
+ALTER TABLE oa_wechat_video_work MODIFY COLUMN synced_at timestamp NULL DEFAULT NULL COMMENT '同步时间';
 
-ALTER TABLE oa_wechat_video_work MODIFY COLUMN stats_synced_at timestamp DEFAULT NULL COMMENT 'stats_synced时间';
+ALTER TABLE oa_wechat_video_work MODIFY COLUMN stats_synced_at timestamp NULL DEFAULT NULL COMMENT 'stats_synced时间';
 
 ALTER TABLE oa_wechat_video_work MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -6995,7 +6995,7 @@ ALTER TABLE oa_xiaohongshu_note MODIFY COLUMN note_url varchar(1024) DEFAULT NUL
 
 ALTER TABLE oa_xiaohongshu_note MODIFY COLUMN cover_url varchar(1024) DEFAULT NULL COMMENT '封面URL';
 
-ALTER TABLE oa_xiaohongshu_note MODIFY COLUMN published_at timestamp DEFAULT NULL COMMENT 'published时间';
+ALTER TABLE oa_xiaohongshu_note MODIFY COLUMN published_at timestamp NULL DEFAULT NULL COMMENT 'published时间';
 
 ALTER TABLE oa_xiaohongshu_note MODIFY COLUMN play_count int DEFAULT NULL COMMENT '播放数';
 
@@ -7007,9 +7007,9 @@ ALTER TABLE oa_xiaohongshu_note MODIFY COLUMN comment_count int DEFAULT NULL COM
 
 ALTER TABLE oa_xiaohongshu_note MODIFY COLUMN collect_count int DEFAULT NULL COMMENT '收藏数';
 
-ALTER TABLE oa_xiaohongshu_note MODIFY COLUMN synced_at timestamp DEFAULT NULL COMMENT '同步时间';
+ALTER TABLE oa_xiaohongshu_note MODIFY COLUMN synced_at timestamp NULL DEFAULT NULL COMMENT '同步时间';
 
-ALTER TABLE oa_xiaohongshu_note MODIFY COLUMN stats_synced_at timestamp DEFAULT NULL COMMENT 'stats_synced时间';
+ALTER TABLE oa_xiaohongshu_note MODIFY COLUMN stats_synced_at timestamp NULL DEFAULT NULL COMMENT 'stats_synced时间';
 
 ALTER TABLE oa_xiaohongshu_note MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -7089,7 +7089,7 @@ ALTER TABLE sys_message MODIFY COLUMN status varchar(32) NOT NULL DEFAULT 'PENDI
 
 ALTER TABLE sys_message MODIFY COLUMN fail_reason varchar(512) DEFAULT NULL COMMENT '失败原因';
 
-ALTER TABLE sys_message MODIFY COLUMN send_time timestamp DEFAULT NULL COMMENT 'send时间';
+ALTER TABLE sys_message MODIFY COLUMN send_time timestamp NULL DEFAULT NULL COMMENT 'send时间';
 
 ALTER TABLE sys_message MODIFY COLUMN creator varchar(64) DEFAULT 'system' COMMENT '创建者';
 
@@ -7101,7 +7101,7 @@ ALTER TABLE sys_message MODIFY COLUMN update_time timestamp NOT NULL DEFAULT CUR
 
 ALTER TABLE sys_message MODIFY COLUMN deleted smallint NOT NULL DEFAULT '0' COMMENT '逻辑删除标记(0=未删除,1=已删除)';
 
-ALTER TABLE sys_message MODIFY COLUMN read_time timestamp DEFAULT NULL COMMENT '阅读时间';
+ALTER TABLE sys_message MODIFY COLUMN read_time timestamp NULL DEFAULT NULL COMMENT '阅读时间';
 
 
 -- ========== sys_metadata_entity ==========
@@ -7235,11 +7235,11 @@ ALTER TABLE oa_personal_wechat_account MODIFY COLUMN aochuang_avatar varchar(512
 
 ALTER TABLE oa_personal_wechat_account MODIFY COLUMN aochuang_is_alive smallint DEFAULT NULL COMMENT '奥创是否在线';
 
-ALTER TABLE oa_personal_wechat_account MODIFY COLUMN last_device_sync_at timestamp DEFAULT NULL COMMENT '最后设备同步时间';
+ALTER TABLE oa_personal_wechat_account MODIFY COLUMN last_device_sync_at timestamp NULL DEFAULT NULL COMMENT '最后设备同步时间';
 
-ALTER TABLE oa_personal_wechat_account MODIFY COLUMN last_friend_sync_at timestamp DEFAULT NULL COMMENT '最后好友同步时间';
+ALTER TABLE oa_personal_wechat_account MODIFY COLUMN last_friend_sync_at timestamp NULL DEFAULT NULL COMMENT '最后好友同步时间';
 
-ALTER TABLE oa_personal_wechat_account MODIFY COLUMN last_message_sync_at timestamp DEFAULT NULL COMMENT '最后消息同步时间';
+ALTER TABLE oa_personal_wechat_account MODIFY COLUMN last_message_sync_at timestamp NULL DEFAULT NULL COMMENT '最后消息同步时间';
 
 ALTER TABLE oa_personal_wechat_account MODIFY COLUMN collect_status varchar(32) DEFAULT NULL COMMENT '采集状态';
 
@@ -7273,13 +7273,13 @@ ALTER TABLE oa_realname MODIFY COLUMN id_card_back_key varchar(512) DEFAULT NULL
 
 
 -- ========== oa_task ==========
-ALTER TABLE oa_task MODIFY COLUMN scheduled_start timestamp DEFAULT NULL COMMENT '计划开始时间';
+ALTER TABLE oa_task MODIFY COLUMN scheduled_start timestamp NULL DEFAULT NULL COMMENT '计划开始时间';
 
-ALTER TABLE oa_task MODIFY COLUMN scheduled_end timestamp DEFAULT NULL COMMENT '计划结束时间';
+ALTER TABLE oa_task MODIFY COLUMN scheduled_end timestamp NULL DEFAULT NULL COMMENT '计划结束时间';
 
 
 -- ========== oa_wework_account ==========
-ALTER TABLE oa_wework_account MODIFY COLUMN last_health_check_at timestamp DEFAULT NULL COMMENT '最后健康检查时间';
+ALTER TABLE oa_wework_account MODIFY COLUMN last_health_check_at timestamp NULL DEFAULT NULL COMMENT '最后健康检查时间';
 
 -- =============================================================================
 -- ===== V128__ip_group_level.sql =====
@@ -10437,6 +10437,29 @@ SELECT 1;
 SELECT 1;
 
 -- =============================================================================
+-- ===== V192__m2_content_match_scheme.sql =====
+-- =============================================================================
+
+ALTER TABLE oa_production_content
+    ADD COLUMN match_scheme_json JSON NULL COMMENT 'Football matchScheme SSOT（ADR-076）' AFTER competition_name,
+    ADD COLUMN match_type TINYINT NULL COMMENT '1竞足2传足3北单4足球5临场' AFTER match_scheme_json,
+    ADD COLUMN competition_ids_json JSON NULL COMMENT 'N场scheduleId快照' AFTER match_type;
+
+-- =============================================================================
+-- ===== V196__adr077_s21a_sop_node_document_type.sql =====
+-- =============================================================================
+
+ALTER TABLE oa_sop_node
+    ADD COLUMN document_type VARCHAR(32) NULL COMMENT 'dict_document_type；仅 CONTENT_GENERATION 必填（ADR-077）' AFTER node_type;
+
+ALTER TABLE oa_task
+    ADD COLUMN document_type VARCHAR(32) NULL COMMENT '自 SOP 节点拷贝的 dict_document_type（ADR-077 D2，Slice B 写入）' AFTER node_id;
+
+ALTER TABLE oa_production_content
+    ADD COLUMN ai_generate_status VARCHAR(32) NULL COMMENT 'dict_ai_generate_status（ADR-077）' AFTER document_type,
+    ADD COLUMN ai_generate_error VARCHAR(500) NULL COMMENT 'jingcai 失败原因，可展示（ADR-077）' AFTER ai_generate_status;
+
+-- =============================================================================
 -- ===== record-flyway-history.sql =====
 -- Idempotent INSERT into flyway_schema_history (186 SQL entries)
 -- =============================================================================
@@ -10576,8 +10599,8 @@ INSERT INTO flyway_schema_history (installed_rank, version, description, type, s
 INSERT INTO flyway_schema_history (installed_rank, version, description, type, script, checksum, installed_by, execution_time, success) SELECT 119, '122', 'multi platform collect', 'SQL', 'V122__multi_platform_collect.sql', -1722998031, 'manual-dba-greenfield', 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE version = '122' AND success = 1);
 INSERT INTO flyway_schema_history (installed_rank, version, description, type, script, checksum, installed_by, execution_time, success) SELECT 120, '123', 'm2 wechat draft formal publish', 'SQL', 'V123__m2_wechat_draft_formal_publish.sql', 19134224, 'manual-dba-greenfield', 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE version = '123' AND success = 1);
 INSERT INTO flyway_schema_history (installed_rank, version, description, type, script, checksum, installed_by, execution_time, success) SELECT 121, '124', 'm10 collect task stopped status', 'SQL', 'V124__m10_collect_task_stopped_status.sql', -124820529, 'manual-dba-greenfield', 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE version = '124' AND success = 1);
-INSERT INTO flyway_schema_history (installed_rank, version, description, type, script, checksum, installed_by, execution_time, success) SELECT 122, '126', 'add remaining table column comments', 'SQL', 'V126__add_remaining_table_column_comments.sql', 468653211, 'manual-dba-greenfield', 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE version = '126' AND success = 1);
-INSERT INTO flyway_schema_history (installed_rank, version, description, type, script, checksum, installed_by, execution_time, success) SELECT 123, '127', 'fix remaining column comments', 'SQL', 'V127__fix_remaining_column_comments.sql', 1719789222, 'manual-dba-greenfield', 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE version = '127' AND success = 1);
+INSERT INTO flyway_schema_history (installed_rank, version, description, type, script, checksum, installed_by, execution_time, success) SELECT 122, '126', 'add remaining table column comments', 'SQL', 'V126__add_remaining_table_column_comments.sql', 907594312, 'manual-dba-greenfield', 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE version = '126' AND success = 1);
+INSERT INTO flyway_schema_history (installed_rank, version, description, type, script, checksum, installed_by, execution_time, success) SELECT 123, '127', 'fix remaining column comments', 'SQL', 'V127__fix_remaining_column_comments.sql', 1868755889, 'manual-dba-greenfield', 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE version = '127' AND success = 1);
 INSERT INTO flyway_schema_history (installed_rank, version, description, type, script, checksum, installed_by, execution_time, success) SELECT 124, '128', 'ip group level', 'SQL', 'V128__ip_group_level.sql', 1040027754, 'manual-dba-greenfield', 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE version = '128' AND success = 1);
 INSERT INTO flyway_schema_history (installed_rank, version, description, type, script, checksum, installed_by, execution_time, success) SELECT 125, '129', 'seed dashboard content rolling', 'SQL', 'V129__seed_dashboard_content_rolling.sql', 174315594, 'manual-dba-greenfield', 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE version = '129' AND success = 1);
 INSERT INTO flyway_schema_history (installed_rank, version, description, type, script, checksum, installed_by, execution_time, success) SELECT 126, '130', 'oa author ext', 'SQL', 'V130__oa_author_ext.sql', 487786431, 'manual-dba-greenfield', 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE version = '130' AND success = 1);

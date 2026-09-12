@@ -21,7 +21,7 @@
 #   .\scripts\start-integration-all.ps1 -TestRemote         # alias of -Beta
 #
 # member-server vs mock (INTEGRATION-PROGRESS ��20 / ��23 #4):
-#   DEFAULT: football-module-member-server JAR on :48087 (+ integration-member-stub RocketMQ bean).
+#   DEFAULT: football-module-member-server JAR on :48087 + member-integration-local-stack.yml (RocketMQ bean).
 #   Required for Football �����б�: GET /admin-api/member/article/page (Gateway -> :48087).
 #   -UseMemberMock: Python mock-member-author-server.py �� login Feign stub only; article/* -> 404.
 #   Ops author CRUD: oa-server @DS("member") reads localhost:3306/shenyu-member directly.
@@ -208,6 +208,7 @@ function Start-IntegrationJar {
         [string]$LogFile,
         [string]$ActiveProfiles,
         [string]$ExtraConfig = "",
+        [string]$JvmArgs = "",
         [string]$ExtraArgs = ""
     )
     if (Test-PortListen -Port $Port) {
@@ -228,13 +229,29 @@ function Start-IntegrationJar {
     if ($Beta -and $ExtraConfig) {
         Write-Host "        config: $ExtraConfig" -ForegroundColor DarkGray
     }
-    $inner = @"
-`$host.UI.RawUI.WindowTitle = '$Title :$Port'
-& java '-Dfile.encoding=UTF-8' -jar '$Jar' --spring.profiles.active="$ActiveProfiles" $cfg $ExtraArgs *>&1 | Tee-Object -FilePath '$LogFile' -Append
-"@
-    # Inherit parent env (OPS_TEST_* when -Beta) so overlay placeholders resolve
+    $javaExe = (Get-Command java -ErrorAction SilentlyContinue).Source
+    if (-not $javaExe) { $javaExe = "java" }
+    $tempDir = Join-Path $env:TEMP "ops-dev-start"
+    New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
+    $safeTitle = ($Title -replace '[^\w\-]+', '_').Trim('_')
+    if (-not $safeTitle) { $safeTitle = "dev" }
+    $launcher = Join-Path $tempDir "$safeTitle-$PID-$(Get-Random).ps1"
+    $jarLiteral = $Jar.Replace("'", "''")
+    $logLiteral = $LogFile.Replace("'", "''")
+    $titleLiteral = "$Title :$Port".Replace("'", "''")
+    $jvmLiteral = $JvmArgs.Trim()
+    $javaCmd = "& '$javaExe' '-Dfile.encoding=UTF-8'"
+    if ($jvmLiteral) { $javaCmd += " $jvmLiteral" }
+    $javaCmd += " -jar '$jarLiteral' --spring.profiles.active=`"$ActiveProfiles`" $cfg $ExtraArgs *>&1 | Tee-Object -FilePath '$logLiteral' -Append"
+    $lines = @(
+        '$ErrorActionPreference = ''Continue'''
+        "`$host.UI.RawUI.WindowTitle = '$titleLiteral'"
+        $javaCmd
+    )
+    $utf8Bom = New-Object System.Text.UTF8Encoding $true
+    [System.IO.File]::WriteAllLines($launcher, $lines, $utf8Bom)
     Start-Process -FilePath "powershell.exe" -ArgumentList @(
-        "-NoProfile", "-ExecutionPolicy", "Bypass", "-NoExit", "-Command", $inner
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-NoExit", "-File", $launcher
     ) -WindowStyle Minimized | Out-Null
 }
 
@@ -293,6 +310,7 @@ if (-not $Beta -and $OaProfiles -match "dev-local-multidb") {
         "apply-system-user-author-table.py",
         "apply-system-user-data-table.py",
         "apply-member-author-user-columns.py",
+        "apply-mp-account-columns.py",
         "apply-author-article-json-fields.py",
         # shenyu-system: restore menu names corrupted to '?' (0x3F) by non-utf8 import
         "apply-patch-system-menu-names-utf8.py"
@@ -336,6 +354,11 @@ if ($Beta) {
     $MpOverlay = Join-Path $Root "scripts\integration-config\mp-integration-overlay.yml"
     $GatewayOverlay = Join-Path $Root "scripts\integration-config\gateway-integration-local.yaml"
 }
+$MemberStackOverlay = if ($Beta) {
+    Join-Path $Root "scripts\integration-config\member-integration-local-stack-beta.yml"
+} else {
+    Join-Path $Root "scripts\integration-config\member-integration-local-stack.yml"
+}
 $GatewayJar = Join-Path $Root "football-backend-saas\football-gateway\target\football-gateway.jar"
 $MpJar = Join-Path $Root "football-backend-saas\football-module-mp\football-module-mp-server\target\football-module-mp-server.jar"
 $SystemJar = Join-Path $Root "football-backend-saas\football-module-system\football-module-system-server\target\football-module-system-server.jar"
@@ -364,7 +387,7 @@ if (-not $SkipBuild) {
     Push-Location (Join-Path $Root "football-backend-saas")
     $modules = "football-gateway,football-module-mp/football-module-mp-server,football-module-system/football-module-system-server,football-module-infra/football-module-infra-server,football-module-pay/football-module-pay-server,football-module-ops/football-module-ops-server"
     if ($WantFullMemberServer) { $modules += ",football-module-member/football-module-member-server" }
-    mvn -pl $modules -am package -DskipTests
+    mvn -pl $modules -am package "-Dmaven.test.skip=true"
     $buildOk = $LASTEXITCODE -eq 0
     Pop-Location
     if (-not $buildOk) { Write-Error "Maven build failed"; exit 1 }
@@ -372,7 +395,16 @@ if (-not $SkipBuild) {
 
 Start-IntegrationJar -Title "gateway" -Port 48080 -Jar $GatewayJar -LogFile (Join-Path $LogDir "gateway-integration.log") `
     -ActiveProfiles "dev" -ExtraConfig $GatewayOverlay -ExtraArgs "--spring.cloud.gateway.server.webflux.httpclient.response-timeout=300s"
-Start-Sleep -Seconds 5
+Start-Sleep -Seconds 8
+if (-not (Test-PortListen -Port 48080)) {
+    Write-Warning "[gateway] :48080 not listening after first start (often remote Redis timeout in Beta)"
+    if ($Beta -and (Get-Command Test-OpsTestRemoteRedisReachable -ErrorAction SilentlyContinue)) {
+        $null = Test-OpsTestRemoteRedisReachable -Retries 6 -RetryIntervalSec 5
+    }
+    Start-IntegrationJar -Title "gateway-retry" -Port 48080 -Jar $GatewayJar -LogFile (Join-Path $LogDir "gateway-integration.log") `
+        -ActiveProfiles "dev" -ExtraConfig $GatewayOverlay -ExtraArgs "--spring.cloud.gateway.server.webflux.httpclient.response-timeout=300s"
+    Start-Sleep -Seconds 10
+}
 
 $mpCfg = if ($MpOverlay -and (Test-Path $MpOverlay)) { "$Overlay,$MpOverlay" } else { $Overlay }
 Start-IntegrationJar -Title "mp-server" -Port 48086 -Jar $MpJar -LogFile (Join-Path $LogDir "mp-server-integration.log") `
@@ -381,20 +413,15 @@ Start-Sleep -Seconds 8
 
 if ($WantFullMemberServer) {
     Stop-MemberMockIfBlocking -Port 48087
-    $StubJar = Join-Path $Root "scripts\integration-config\integration-member-stub\target\integration-member-stub.jar"
-    if (-not (Test-Path $StubJar)) {
-        Write-Host "[build] integration-member-stub (RocketMQTemplate for local member-server) ..."
-        Push-Location (Join-Path $Root "scripts\integration-config\integration-member-stub")
-        mvn -q package -DskipTests
-        Pop-Location
-        if (-not (Test-Path $StubJar)) {
-            Write-Error "integration-member-stub.jar not found; member-server cannot start without RocketMQ bean stub"
-            exit 1
-        }
+    if (-not (Test-Path $MemberStackOverlay)) {
+        Write-Error "member stack overlay not found: $MemberStackOverlay"
+        exit 1
     }
-    $memberCfg = if (Test-Path $MemberOverlay) { "$Overlay,$MemberOverlay" } else { $Overlay }
+    $memberCfgParts = @($MemberStackOverlay)
+    if (Test-Path $MemberOverlay) { $memberCfgParts += $MemberOverlay }
+    $memberCfg = ($memberCfgParts -join ",")
     Start-IntegrationJar -Title "member-server" -Port 48087 -Jar $MemberJar -LogFile (Join-Path $LogDir "member-server-integration.log") `
-        -ActiveProfiles $FootballProfiles -ExtraConfig $memberCfg -ExtraArgs "-Dloader.path=$StubJar"
+        -ActiveProfiles $FootballProfiles -ExtraConfig $memberCfg
 } else {
     if (-not (Test-PortListen -Port 48087)) {
         $mockPy = Join-Path $Root "scripts\integration-config\mock-member-author-server.py"

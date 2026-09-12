@@ -4,7 +4,7 @@
 |------|---|
 | 编号 | ADR-054 |
 | 标题 | OPS 内容生产与 Football `author_article` Master + Extension 合并 |
-| 状态 | **Accepted**（2026-07-18，用户书面确认过渡架构） |
+| 状态 | **Accepted**（2026-07-18，用户书面确认过渡架构）；**§8.4 matchScheme Out of Scope 已由 [ADR-076](./ADR-076-OPS内容生产amphipoda玩法与matchScheme对齐.md) supersede（2026-08-31）** |
 | 日期 | 2026-07-18 |
 | 决策人 | 架构 / 产品 |
 | 关联 | [ADR-050](./ADR-050-Ops与Football多库复用总纲.md) · [ADR-051](./ADR-051-Ops与Football多库复用-作者域.md) · [ADR-053](./ADR-053-M2-AI内容对话生成.md) · [OPS-CONTENT-SCHEME-MERGE-ANALYSIS](../delivery/OPS-CONTENT-SCHEME-MERGE-ANALYSIS.md) §13 |
@@ -35,7 +35,7 @@ Football **发布方案**（`author_article`，`#/release/amphipoda`）与 OPS *
 | D5 | **双 status 分轨** | OPS `oa_production_content.status` = 工作流；Football `author_article.status` = **上架状态** |
 | D6 | **售卖字段迁入 ContentEditPanel** | `price`、`privilegeTypes`、`refundType` 等在 OPS 编辑页维护并 sync 至 Master |
 | D7 | **OPS 双正文字段** | `paid_body`（付费内容）+ `free_body`（免费内容）**独立存储**于 `oa_production_content`（或 ext）；**正式方案可同时有付费与免费** |
-| D8 | **AI 采纳：用户选择目标列** | 用户从 AI 生成片段**手动选择**写入 `paid_body` 或 `free_body`；**禁止**仅凭 `documentType` 自动映射 |
+| D8 | **AI 采纳：用户选择目标列** | 用户从 AI 生成片段**手动选择**写入 `paid_body` 或 `free_body`；**禁止**仅凭 `documentType` 自动映射。**例外（仅自动首写）**：[ADR-077](./ADR-077-SOP内容生成节点文档类型与登记自动草稿AI.md) D11 — `OFFICIAL_PLAN` → `paid_body`，其余 → `free_body`；其后手工采纳仍走本条 |
 | D9 | **Football sync 正文规则** | OPS `paid_body` → `author_article.content`；OPS `free_body` → `author_article.free_content`；**两列可同时非空** |
 | D10 | **可选 Football 字段：预设默认 / NULL** | Phase 1–4 **不要求** `matchScheme`；有 Football 默认值的字段用预设，无默认则 NULL（见 §8.5） |
 | D11 | **`matchScheme` Out of Scope** | Phase 1–4 **不实现**；待产品明确要求后再 Slice |
@@ -445,3 +445,4 @@ WHERE ext.id IS NULL;
 |------|------|------|
 | 2026-07-18 | Agent | 初稿；基于 OPS-CONTENT-SCHEME-MERGE-ANALYSIS §13 + 用户 9 点提案 formalize |
 | 2026-07-18 | Agent | 修订：OPS `paid_body`/`free_body` 双栏；AI 用户选列；sync 分列；`matchScheme` Out of Scope P1–4；Football 可选字段预设 §8.5；风险降级 |
+| 2026-09-02 | Agent | D8 例外指针：ADR-077 自动首写按 `documentType` 映射列；其后仍用户选列 |

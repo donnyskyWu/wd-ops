@@ -1,0 +1,46 @@
+# member-server beta stack overlay (remote DB/Redis; local Nacos :8848 ns=local).
+# Same RocketMQ strategy as member-integration-local-stack.yml — do not use football-integration-overlay-beta here.
+spring:
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+      discovery:
+        enabled: true
+        register-enabled: true
+        namespace: local
+        group: DEFAULT_GROUP
+        fail-fast: false
+        failure-tolerance-enabled: true
+        ip: 127.0.0.1
+      config:
+        enabled: false
+  data:
+    redis:
+      host: ${OPS_TEST_REDIS_HOST:110.42.49.224}
+      port: ${OPS_TEST_REDIS_PORT:6379}
+      database: ${OPS_TEST_REDIS_DATABASE:1}
+      password: ${OPS_TEST_REDIS_PASSWORD:CHANGE_ME}
+
+football:
+  captcha:
+    enable: false
+  security:
+    mock-enable: true
+  websocket:
+    sender-type: local
+
+rocketmq:
+  name-server: 127.0.0.1:9876
+  producer:
+    group: member-integration-beta
+  consumer:
+    listeners:
+      article-push-consumer-group:
+        ARTICLE_PUSH_TOPIC: false
+      MEMBER_BIZ_TOPIC_CONSUMER:
+        MEMBER_BIZ_TOPIC: false
+
+im:
+  appId: 1
+  serverSecret: integration-local-placeholder
+  url: http://127.0.0.1:1/im-placeholder

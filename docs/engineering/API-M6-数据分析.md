@@ -91,11 +91,30 @@
 - `GET /admin-api/oa/report/video-output/ranking`
 - `POST /admin-api/oa/report/video-output/export`
 
-### 2.4 直播时长
+### 2.4 直播时长（S-tier · 2026-08-26）
 
-- `GET /admin-api/oa/report/live-duration/list`
-- `GET /admin-api/oa/report/live-duration/trend`
-- `POST /admin-api/oa/report/live-duration/export`
+- `GET /admin-api/ops/report/live-duration/list`
+- `GET /admin-api/ops/report/live-duration/trend`
+- `POST /admin-api/ops/report/live-duration/export`（stub export job；前端用 list 分页拉全量 Excel）
+
+**数据源**：Feign `LiveRoomApi.getLiveRoomCount(authorId, dateTime[])`；作者范围来自 `oa_ip_group_anchor_rel`（`ipGroupId` 可选）。
+
+**list 请求参数**：`ipGroupId`、`startDate`、`endDate`、`pageNum`、`pageSize`
+
+**list 响应行**（snake_case）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `author_id` | Long | 作者 ID |
+| `author_name` | String | member 昵称 |
+| `session_count` | Long | 场次 |
+| `total_duration` | Decimal | 总时长（**小时**，1 位小数） |
+| `avg_duration` | Decimal | 均时长（**小时**） |
+| `date` | Date | 区间结束日 |
+
+**trend 响应点**：`date` / `stat_date`、`session_count`、`total_duration`（小时）
+
+**v1 不含**：`peak_viewers`（后端占位 `"-"`，前端不展示）
 
 ### 2.5 账号成本分摊
 

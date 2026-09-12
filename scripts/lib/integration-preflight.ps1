@@ -45,6 +45,104 @@ function Import-OpsTestRemoteEnv {
     return $true
 }
 
+
+# Load COLLECTOR_* and FOOTBALL_AI_* / AUTHOR_AI_SCHEME_* from ops-test-remote.env.
+# Skips collector load when COLLECTOR_BASE_URL is already set. Does not load DB/Redis secrets.
+function Import-OpsCollectorRemoteEnv {
+    param(
+        [string]$Root = "",
+        [switch]$Quiet
+    )
+    if (-not $Root) {
+        $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+    }
+    $envFile = Join-Path $Root "scripts\integration-config\ops-test-remote.env"
+    if (-not (Test-Path $envFile)) {
+        if (-not $Quiet) {
+            Write-Host "[overlay] No ops-test-remote.env — set COLLECTOR_* / FOOTBALL_AI_* for remote ai.shenyu.com" -ForegroundColor DarkGray
+        }
+        return $false
+    }
+    $keys = @(
+        "COLLECTOR_BASE_URL", "COLLECTOR_API_TOKEN",
+        "FOOTBALL_AI_SCHEME_GENERATE_URL", "FOOTBALL_AI_SCHEME_GET_URL",
+        "FOOTBALL_AI_SCHEME_GENERATE_API_KEY", "FOOTBALL_AI_MODEL",
+        "AUTHOR_AI_SCHEME_BASE_URL", "AUTHOR_AI_SCHEME_API_KEY"
+    )
+    Get-Content -LiteralPath $envFile -Encoding UTF8 | ForEach-Object {
+        $line = $_.Trim()
+        if (-not $line -or $line.StartsWith("#") -or $line -notmatch "=") { return }
+        $k, $v = $line.Split("=", 2)
+        $k = $k.Trim()
+        if ($keys -notcontains $k) { return }
+        if ($k -eq "COLLECTOR_BASE_URL" -and $env:COLLECTOR_BASE_URL) { return }
+        $v = $v.Trim().Trim('"').Trim("'")
+        Set-Item -Path "env:$k" -Value $v
+    }
+    $base = $env:AUTHOR_AI_SCHEME_BASE_URL
+    if ($base -and -not $env:FOOTBALL_AI_SCHEME_GENERATE_URL) {
+        $env:FOOTBALL_AI_SCHEME_GENERATE_URL = ($base.TrimEnd('/')) + "/api/v1/tasks"
+    }
+    if ($base -and -not $env:FOOTBALL_AI_SCHEME_GET_URL) {
+        $env:FOOTBALL_AI_SCHEME_GET_URL = ($base.TrimEnd('/')) + "/api/v1/tasks"
+    }
+    if ($env:AUTHOR_AI_SCHEME_API_KEY -and -not $env:FOOTBALL_AI_SCHEME_GENERATE_API_KEY) {
+        $env:FOOTBALL_AI_SCHEME_GENERATE_API_KEY = $env:AUTHOR_AI_SCHEME_API_KEY
+    }
+    $loaded = $false
+    if ($env:COLLECTOR_BASE_URL) {
+        if (-not $Quiet) {
+            Write-Host "[collector] Loaded from ops-test-remote.env -> $($env:COLLECTOR_BASE_URL)" -ForegroundColor Cyan
+        }
+        $loaded = $true
+    } elseif (-not $Quiet) {
+        Write-Host "[collector] COLLECTOR_BASE_URL not in ops-test-remote.env; default http://ai.shenyu.com/ needs COLLECTOR_API_TOKEN" -ForegroundColor DarkGray
+    }
+    if ($env:FOOTBALL_AI_SCHEME_GENERATE_API_KEY -and -not $Quiet) {
+        Write-Host "[jingcai] Loaded FOOTBALL_AI from ops-test-remote.env (model=$($env:FOOTBALL_AI_MODEL))" -ForegroundColor Cyan
+        $loaded = $true
+    }
+    return $loaded
+}
+
+# Beta: remote Redis must accept TCP + AUTH before Gateway Redisson starts.
+function Test-OpsTestRemoteRedisReachable {
+    param(
+        [int]$Retries = 5,
+        [int]$RetryIntervalSec = 3
+    )
+    $hostName = $env:OPS_TEST_REDIS_HOST
+    if (-not $hostName) { $hostName = "110.42.49.224" }
+    $port = 6379
+    if ($env:OPS_TEST_REDIS_PORT) { $port = [int]$env:OPS_TEST_REDIS_PORT }
+    Write-Host "[beta] Preflight remote Redis ${hostName}:${port} ..."
+    for ($i = 1; $i -le $Retries; $i++) {
+        $tcp = Test-NetConnection -ComputerName $hostName -Port $port -WarningAction SilentlyContinue
+        if (-not $tcp.TcpTestSucceeded) {
+            Write-Warning "Remote Redis TCP failed (attempt $i/$Retries)"
+            Start-Sleep -Seconds $RetryIntervalSec
+            continue
+        }
+        if (Test-CommandExists "redis-cli") {
+            $pw = $env:OPS_TEST_REDIS_PASSWORD
+            if ($pw) {
+                $out = & redis-cli -h $hostName -p $port -a $pw ping 2>&1
+                if ($out -match "PONG") {
+                    Write-Host "[ok] Remote Redis PONG"
+                    return $true
+                }
+                Write-Warning "Remote Redis AUTH/ping failed (attempt $i/$Retries)"
+                Start-Sleep -Seconds $RetryIntervalSec
+                continue
+            }
+        }
+        Write-Host "[ok] Remote Redis TCP reachable"
+        return $true
+    }
+    Write-Error "Beta remote Redis unreachable (Gateway needs Redisson)"
+    return $false
+}
+
 function Test-PortListen {
     param([int]$Port)
     return [bool](Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
@@ -411,7 +509,7 @@ function Get-IntegrationHealthRows {
         @{ Service = "infra-server"; Port = 48082; Url = "http://127.0.0.1:48082/actuator/health" },
         @{ Service = "pay-server"; Port = 48085; Url = "http://127.0.0.1:48085/actuator/health" },
         @{ Service = "mp-server"; Port = 48086; Url = "http://127.0.0.1:48086/rpc-api/mp/accountInfo/page?pageNo=1&pageSize=1"; Headers = @{ "tenant-id" = "1" } },
-        @{ Service = "member-server"; Port = 48087; Url = "http://127.0.0.1:48087/actuator/health" },
+        @{ Service = "member-server"; Port = 48087; Url = "http://127.0.0.1:48087/admin-api/member/article/page?pageNo=1&pageSize=1"; Headers = @{ "tenant-id" = "1" } },
         @{ Service = "match-server"; Port = 48088; Url = "http://127.0.0.1:48088/actuator/health" },
         @{
             Service      = "football-module-ops"
@@ -765,6 +863,9 @@ function Ensure-OpsFlywayPreflight {
         $null = Invoke-IntegrationPython -ScriptPath (Join-Path $cfg "apply_v175_external_collect.py") -Label "apply_v175_external_collect"
         $null = Invoke-IntegrationPython -ScriptPath (Join-Path $cfg "apply_v179_content_plan_ip_group.py") -Label "apply_v179_content_plan_ip_group"
         $null = Invoke-IntegrationPython -ScriptPath (Join-Path $cfg "apply_v184_weekly_feedback.py") -Label "apply_v184_weekly_feedback"
+        $null = Invoke-IntegrationPython -ScriptPath (Join-Path $cfg "apply_v192_work_task_adr074.py") -Label "apply_v192_work_task_adr074"
+        $null = Invoke-IntegrationPython -ScriptPath (Join-Path $cfg "apply_v194_work_task_merge.py") -Label "apply_v194_work_task_merge"
+        $null = Invoke-IntegrationPython -ScriptPath (Join-Path $cfg "apply_v195_m2_content_match_scheme.py") -Label "apply_v195_m2_content_match_scheme"
     } else {
         Write-Host "`n--- Local Flyway preflight (shenyu-ops) ---"
         $repair = Join-Path $cfg "repair-flyway-failed.py"
@@ -793,6 +894,8 @@ function Show-IntegrationTroubleshooting {
     Write-Host "   Fix: run start-ops-dev.ps1 (default FullMemberServer); avoid -UseMemberMock"
     Write-Host "4. football-module-ops :48094 DOWN -> OPS pages (内容管理/任务/IP组) all fail with 系统错误"
     Write-Host "   Log: $LogDir\ops-server-nacos-run.log (Nacos registry id remains ops-server)"
+    Write-Host "   mp-server :48086 crash on boot -> python scripts/integration-config/apply-mp-account-columns.py (local shenyu-mp)"
+    Write-Host "   member-server :48087 RocketMQTemplate -> uses member-integration-local-stack.yml (see start-integration-all.ps1)"
     Write-Host "   Flyway: failed row in flyway_schema_history -> python scripts/integration-config/repair-flyway-failed.py --local"
     Write-Host "   Beta: Flyway disabled -> apply_v173/v175/v179/v184 scripts (see OPS-TEST-DB.md)"
     Write-Host "   Local: MySQL localhost:3306 five DBs missing -> football-module-ops API 500"
@@ -802,6 +905,7 @@ function Show-IntegrationTroubleshooting {
     Write-Host "   Check: football-front/apps/web-ele/vite.config.mts + .env.development; restart :5777"
     Write-Host "8. views/ops empty -> restore from git (football-front SSOT); remount retired"
     Write-Host "9. football-front :5777 DOWN -> vite missing or pnpm dev:ele crashed"
+    Write-Host "10. Account detail / 采集 Tab: Token 无效 -> set COLLECTOR_API_TOKEN in ops-test-remote.env (remote http://ai.shenyu.com/); restart start-integration-oa.ps1"
     Write-Host "   Log: $LogDir\football-front-dev.log"
     Write-Host "   Fix: cd football-front && pnpm install ; then restart start-ops-dev.ps1"
     Write-Host ""

@@ -1,4 +1,4 @@
-﻿# Ops × Football 开发调试与部署操作指南
+# Ops × Football 开发调试与部署操作指南
 
 > **版本**：v1.2 | 2026-07-23  
 > **性质**：运维/开发上手 SSOT（基于仓库现有脚本与配置，不编造未实现的 CI/CD）  
@@ -370,7 +370,7 @@ SELECT id, name, path FROM `shenyu-system`.system_menu WHERE id IN (6100,6159,61
 | 模式 | 端口 | 说明 |
 |------|------|------|
 | **默认 mock** | 48087 | `mock-member-author-server.py` — 仅登录 Feign 桩 |
-| **FullMemberServer** | 48087 | 真 `football-module-member-server` JAR；可能依赖 RocketMQ |
+| **FullMemberServer** | 48087 | 真 `football-module-member-server` JAR；overlay 见 `member-integration-local-stack.yml`（本地 RocketMQ placeholder，无需 stub JAR） |
 
 Ops 作者 CRUD 经 football-module-ops Feign/RPC 读 **shenyu-member**（历史 Standalone 曾 `@DS("member")` 直连）。
 
@@ -452,7 +452,8 @@ if ($conn) { Stop-Process -Id $conn.OwningProcess -Force }
 | Standalone dev-token 401 | localhost wd 被 S0 TRUNCATE | 改走 Integration 路径，或手工恢复 dev-token（见 OPS-STARTUP-MATRIX §4.4） |
 | `-SkipBuild` 启动失败 | JAR 不存在 | `start-ops-dev.ps1 -FirstRun` |
 | user/dict API 500（`user_type` 列） | schema 未 patch | 脚本会自动跑 `apply-system-role-menu-user-type.py`；或手动执行 |
-| collector 联调无数据 | stub 模式 | `oa.unified-collector.stub: false` + collector :8000 运行 |
+| collector 联调无数据 / Connection refused :8000 | local profile 未设远程 collector | 复制 `ops-test-remote.env.example` → `ops-test-remote.env`，设 `COLLECTOR_BASE_URL`；`start-integration-oa.ps1` 自动 `Import-OpsCollectorRemoteEnv`；见 [OPS-TEST-DB.md § Unified Collector](./OPS-TEST-DB.md#unified-collector本地-profile--远程采集) |
+| collector 联调无数据（stub） | stub 模式 | `oa.unified-collector.stub: false` + collector 可达 |
 | Integration 用 dev-token 调 Gateway | 鉴权路径错误 | Gate 路径须 Football 登录 Bearer，**不用** dev-token |
 | 登录后无「运营数据」/ IP组管理 | `shenyu-system.system_menu` 未灌 OPS seed（6100+） | 按 §2.7 执行 `apply-seed-oa-menu.py --database shenyu-system`；重新登录 |
 | OPS 菜单中文 `????` | PowerShell 管道导入破坏 UTF-8 | 只用 `apply-seed-oa-menu.py`（utf8mb4 stdin），勿 `Get-Content \| mysql` |
@@ -477,6 +478,22 @@ if ($conn) { Stop-Process -Id $conn.OwningProcess -Force }
 ```
 
 生产 UI 为 **football-front**（hash 路由），**不是** ops-platform-ui-vue :3000。
+
+#### 4.1.1 Greenfield 零 Ops 库（2026-08-25）
+
+全新生产环境（无历史 `shenyu-ops`）使用 DBA 三包 SSOT：
+
+| 文档 | 用途 |
+|------|------|
+| [ops-greenfield-production/README.md](../deploy/ops-greenfield-production/README.md) | 三包 SQL 快速执行 + 终态表清单 |
+| [OPERATIONS-GUIDE.md](../deploy/ops-greenfield-production/OPERATIONS-GUIDE.md) | DBA 4 步 + DevOps 部署 + Flyway 排障 |
+| `sql/01` → `02` → `03` | Schema（V1–V191，omit legacy sys_*）→ system 菜单 → ops seeds |
+
+**顺序**：DB 三包（同一 release tag 的 SQL）→ 再部署同 tag 的 `football-module-ops-server.jar`。JAR Flyway 仅补 V113 Java migration；勿在 DBA 已灌满 history 的库上重跑 `01`。
+
+**增量升级**（已有 Ops）：JAR Flyway V190/V191 或 `drop-ops-legacy-sys-tables.sql`；见 OPERATIONS-GUIDE 附录。
+
+**本地 Flyway 修复**（非生产）：`repair-flyway-local-validate.sql`（description 空格）、`repair-flyway-checksums-local.sql`（checksum 对齐 JAR）。
 
 ### 4.2 构建命令
 

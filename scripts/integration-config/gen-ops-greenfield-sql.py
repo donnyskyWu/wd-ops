@@ -3,10 +3,11 @@
 
 Run from repo root:
   python scripts/integration-config/gen-ops-greenfield-sql.py
+  python scripts/integration-config/gen-ops-greenfield-sql.py --system-seeds-only  # skip 01 when Flyway src missing
 
 Prerequisites:
-  1. Flyway SQL source (184 files) — set FLYWAY_SRC or checkout football-backend-saas submodule
-  2. Run gen-ops-flyway-history.py first (generates ops-flyway-record-history.sql)
+  1. Flyway SQL source (186 files) — set FLYWAY_SRC or checkout football-backend-saas submodule (not needed with --system-seeds-only)
+  2. Run gen-ops-flyway-history.py first when regenerating 01 (generates ops-flyway-record-history.sql)
 
 Outputs (docs/deploy/ops-greenfield-production/sql/):
   01-shenyu-ops-schema.sql
@@ -56,19 +57,21 @@ GENERATED_TAG = date.today().isoformat()
 SYSTEM_SCRIPTS: list[tuple[str, Path | None, str]] = [
     ("01_baseline_ops_menus.sql", SYSTEM_DIR / "01_baseline_ops_menus.sql", "6100–6168 Ops baseline menus + super_admin role_menu"),
     ("02_menu_supplement.sql", SYSTEM_DIR / "02_menu_supplement.sql", "6175 all-tasks menu, collect path fixes, remove OOS menus"),
+    ("04_baseline_dicts.sql", SYSTEM_DIR / "04_baseline_dicts.sql", "Ops dict_* → system_dict_* (G-DICT-01; no wd DB)"),
     ("05_work_task_dicts_v183.sql", SYSTEM_DIR / "05_work_task_dicts_v183.sql", "Work task 4 dict_type + 11 dict_data"),
     ("06_live_drain_v188.sql", SYSTEM_DIR / "06_live_drain_v188.sql", "LIVE_DRAIN marketing plan dict"),
     ("03_work_task_menus_v183.sql", SYSTEM_DIR / "03_work_task_menus_v183.sql", "6194–6196 work task menus + role_menu"),
-    ("07_ops_six_roles_rbac.sql", SYSTEM_DIR / "07_ops_six_roles_rbac.sql", "ADR-064 six Ops roles + role_menu"),
-    (
-        "04_baseline_dicts.sql",
-        None,
-        "SKIPPED — Greenfield production has no wd DB; confirm Football dict_* exists",
-    ),
+    ("07_ops_six_roles_rbac.sql", SYSTEM_DIR / "07_ops_six_roles_rbac.sql", "ADR-064 six Ops roles by code (no hardcoded id) + role_menu JOIN"),
 ]
 
 SEED_SCRIPTS: list[tuple[str, Path, str]] = [
+    (
+        "04_ai_model_config.sql",
+        SEEDS_DIR / "04_ai_model_config.sql",
+        "M8 AI model config — DashScope Chat Completions vendor slugs (ADR-053)",
+    ),
     ("02_ai_prompt_work_task.sql", SEEDS_DIR / "02_ai_prompt_work_task.sql", "WORK_TASK_WIN_PREDICTION AI prompt (V181 §3)"),
+    ("05_sys_param.sql", SEEDS_DIR / "05_sys_param.sql", "M8/M9/M10 sys_param catalog (V52/V74/V167/V169/V170/V175/V177)"),
     ("03_sys_param_work_task.sql", SEEDS_DIR / "03_sys_param_work_task.sql", "work_task.default_template_id / default_node_id (V181 §4 + V182)"),
 ]
 
@@ -85,7 +88,7 @@ OPS_WHOLE_NOOP_MIGRATIONS: dict[str, str] = {
         "V163 + V172 DROP; SSOT = shenyu-system. No CREATE on greenfield."
     ),
     "V148__merge_ops_dict_to_football_manual.sql": (
-        "wd.sys_dict_* → system_dict_* merge. Greenfield has no wd DB; Football baseline dict_* + 02 §05/06."
+        "wd.sys_dict_* → system_dict_* merge. Greenfield has no wd DB; apply 02 §04_baseline_dicts + §05/06."
     ),
     "V137__sync_shenyu_system_menus.sql": (
         "Football menu baseline sync (~1300 rows). Greenfield: Football seed + 02-shenyu-system-menus.sql."
@@ -533,7 +536,7 @@ def build_system_scripts() -> str:
         f"-- Generated: {GENERATED_TAG} by gen-ops-greenfield-sql.py — do not hand-edit",
         "-- Schema SSOT: Beta test shenyu-system @ 110.42.49.224 (OPS-TEST-DB.md): menu.user_type, dict_data.value",
         "-- Target DB: pass on mysql CLI, e.g. mysql -h HOST -u USER -p shenyu-system < sql/02-shenyu-system-menus.sql",
-        "-- Order:  01 → 02 → 05 → 06 → 03 → 07  (04 skipped on greenfield)",
+        "-- Order:  01 → 02 → 04 → 05 → 06 → 03 → 07",
         "-- =============================================================================",
         "SET NAMES utf8mb4;",
         "",
@@ -543,9 +546,7 @@ def build_system_scripts() -> str:
         block = section_header(f"===== {filename} =====", description)
         if path is None:
             block.extend([
-                "-- SKIPPED on greenfield production.",
-                "-- Reason: 04_baseline_dicts.sql merges dict_* from legacy wd DB (V152).",
-                "-- Action:  Confirm Football dict_* exists in shenyu-system (see OPERATIONS-GUIDE.md).",
+                "-- SKIPPED.",
                 "",
             ])
         else:
@@ -562,12 +563,13 @@ def build_ops_seeds() -> str:
 
     header = [
         "-- =============================================================================",
-        "-- shenyu-ops — business seeds (work task AI prompt + sys_param)",
+        "-- shenyu-ops — business seeds (AI model + AI prompt + sys_param catalog + work-task SOP params)",
         f"-- Generated: {GENERATED_TAG} by gen-ops-greenfield-sql.py — do not hand-edit",
         "--",
         "-- *** BEFORE RUNNING ***",
         "-- 1. Run prerequisite verify queries (see pointer below) or OPERATIONS-GUIDE.md Step 4",
         "-- 2. Edit {{WORK_TASK_DEFAULT_TEMPLATE_ID}} / {{WORK_TASK_DEFAULT_NODE_ID}}",
+        "-- 3. After seed: configure M8 AI model API keys via Admin UI (sql does not contain secrets)",
         "--",
         "-- Target DB: pass on mysql CLI, e.g. mysql -h HOST -u USER -p shenyu-ops < sql/03-shenyu-ops-seeds.sql",
         "-- =============================================================================",
@@ -603,31 +605,32 @@ def build_ops_seeds() -> str:
 
 
 def main() -> int:
+    skip_schema = "--system-seeds-only" in sys.argv
     flyway_dir = flyway_sql_dir()
-    if not flyway_dir.is_dir():
-        print(f"ERROR: Flyway source not found: {flyway_dir}", file=sys.stderr)
-        print("Set FLYWAY_SRC to migration directory.", file=sys.stderr)
-        return 1
+    results: list[tuple[Path, str]] = []
 
-    migrations, files_used = build_flyway_migrations(flyway_dir)
-    if len(files_used) != 186:
-        print(f"WARNING: expected 186 SQL migrations, got {len(files_used)}", file=sys.stderr)
+    if skip_schema:
+        print("Skipping 01-shenyu-ops-schema.sql (--system-seeds-only)")
+    else:
+        if not flyway_dir.is_dir():
+            print(f"ERROR: Flyway source not found: {flyway_dir}", file=sys.stderr)
+            print("Set FLYWAY_SRC to migration directory, or pass --system-seeds-only.", file=sys.stderr)
+            return 1
+        migrations, files_used = build_flyway_migrations(flyway_dir)
+        if len(files_used) != 186:
+            print(f"WARNING: expected 186 SQL migrations, got {len(files_used)}", file=sys.stderr)
+        schema_sql = build_flyway_with_history(migrations)
+        results.append((OUT_SCHEMA, schema_sql))
+        print(f"Flyway migrations concatenated: {len(files_used)}")
 
-    schema_sql = build_flyway_with_history(migrations)
-    system_sql = build_system_scripts()
-    seeds_sql = build_ops_seeds()
+    results.append((OUT_SYSTEM, build_system_scripts()))
+    results.append((OUT_SEEDS, build_ops_seeds()))
 
-    results = [
-        (OUT_SCHEMA, schema_sql),
-        (OUT_SYSTEM, system_sql),
-        (OUT_SEEDS, seeds_sql),
-    ]
     for path, content in results:
         validate_greenfield_sql_landmines(content, path.name)
         lines = write_text(path, content)
         print(f"Wrote {path.relative_to(REPO_ROOT)} ({lines:,} lines)")
 
-    print(f"Flyway migrations concatenated: {len(files_used)}")
     return 0
 
 

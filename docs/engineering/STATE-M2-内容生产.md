@@ -60,7 +60,7 @@ stateDiagram-v2
 - **BR-015**（执行人变更）：任务分配后不可变更执行人
 - **BR-016**（任务可撤回）：PENDING/IN_PROGRESS 可撤回
 - **BR-017**（执行入口）：我的任务 + `PENDING` → 任务执行页（需求 4）
-- **BR-018**（内容生成完成门禁）：`node_type=CONTENT_GENERATION` 须关联内容 `status=COMPLETED`（需求 5，ADR-016）
+- **BR-018**（内容生成完成门禁 · ADR-079）：`node_type=CONTENT_GENERATION` 须关联内容 **审核通过**（`PENDING_PUBLISH` 及之后，不含 `COMPLETED`）
 
 ### 1.5 任务执行流（需求 4–5）
 
@@ -68,11 +68,11 @@ stateDiagram-v2
 stateDiagram-v2
     [*] --> PENDING: 计划启动
     PENDING --> IN_PROGRESS: 执行页打开/开始
-    IN_PROGRESS --> DONE: 完成（普通节点或内容已 COMPLETED）
+    IN_PROGRESS --> DONE: 完成（普通节点须工作说明；内容生成须审核通过）
     IN_PROGRESS --> PENDING_REVIEW: 完成且 need_review=1
     note right of IN_PROGRESS
-      CONTENT_GENERATION 节点
-      完成前须 oa_content.status=COMPLETED
+      CONTENT_GENERATION：完成前须内容审核通过（ADR-079）
+      非 CONTENT_GENERATION：完成前须 deliverables 非空
     end note
 ```
 

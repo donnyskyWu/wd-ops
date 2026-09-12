@@ -2,6 +2,7 @@
 
 > **M2 自检清单** | 版本 v1.3 | 2026-06-13
 > **关联**：[`SLICES-M2-内容生产.md`](./SLICES-M2-内容生产.md)、[`GLOBAL-CONVENTIONS.md`](../engineering/GLOBAL-CONVENTIONS.md)
+> **独立增量**：[`CHECKLIST-M2-AI排版增量.md`](./CHECKLIST-M2-AI排版增量.md)（FR-M2-012）
 
 ---
 
@@ -41,7 +42,7 @@
 - [x] **S-10 节点类型**（AC-M2-001-6）：`dict_sop_node_type` 三值 + 属性面板
 - [x] **S-11 步骤赛事**（AC-M2-009-4）：步骤/任务 `competition_id` 继承
 - [x] `M2PlanS11IT` 通过
-- [x] **S-12 任务执行页**（AC-M2-002-5~7）：我的任务「执行」+ 内容完成门禁 2008
+- [x] **S-12 任务执行页**（AC-M2-002-5~7）：我的任务「执行」+ 内容完成门禁（ADR-079 收紧为审核通过 / 1500）
 - [x] `M2TaskS12IT` 通过
 - [x] **S-13 任务内容编辑**（AC-M2-003-6~10）：文档类型 / 文案引用 / 保存确认 COMPLETED
 - [x] `M2ContentS13IT` 通过
@@ -64,6 +65,12 @@
 - [x] **S-17 FR-M2-010 登记**（2026-08-19）：sheet get-or-create/save/confirm/withdraw + Tab1 + V182 sys_param + WorkTaskServiceImplTest
 - [x] **S-18 FR-M2-010 矩阵**（2026-08-19）：matrix/summary API + Tab2 `WorkTaskMatrixTable` 列头 `{author}【{ipGroup}-{leader}】` + WorkTaskMatrixSupportTest
 - [x] **S-19 FR-M2-010 红黑 Job**（2026-08-19）：`workTaskWinPredictionJobHandler` + `WORK_TASK_WIN_PREDICTION` + `MatchProxyService.getFinishedMatchResult` + refresh API + `WorkTaskWinPredictionServiceTest`
+- [x] **S-21-D ADR-077 失败/重试 UX**（2026-09-03）：执行页 `linkedContent` + 内容列表 COL-AI-GEN + 编辑顶栏 Badge「生成中/失败/成功」；FAILED 展示原因 + 重试；`POST /ops/content/{id}/retry-ai-generate` 再入队 Job；QUEUED/GENERATING 禁用重试；不自动完成任务
+- [x] **S-21-E ADR-077 withdraw 取消 Job + 删草稿**（2026-09-03）：`POST /sheet/withdraw` 先 1502 校验，再取消 QUEUED/GENERATING jingcai（不写 SUCCESS），删除仍为 DRAFT 的关联内容，再 CANCEL task（ADR-074）；非 DRAFT 保留；同 TX
+- [x] **S-22 ADR-078 confirm 钉钉提醒执行人**（2026-09-03）：confirm afterCommit `notifyWorkTasksPending` → `TASK_PENDING`（每 task 一条，接收人=节点 `assignee_id`）；`plan_id=NULL` 可发；钉钉失败不回滚 confirm；jingcai 不另发；无新 Flyway
+- [x] **S-23 ADR-079 任务完成门禁**（2026-09-03）：非 CG 须 `deliverables`；CG 须内容审核通过才完成；`DRAFT`/`REJECTED` 展示内容提交审核；`complete` 与 `execute/complete` 同一校验（1500）
+- [x] **S-24 ADR-080 节点名称与执行页登记备注**（2026-09-03 / 2026-09-04）：`nodeName`=`oa_sop_node.node_name`；execute 隐藏 SLA；`workTaskRemark` 每场一段（标签非编码）
+- [x] **S-25 ADR-081 内容列表批量操作**（2026-09-04）：勾选后批量删除 / 提交审核 / 转知识库；资格与行内一致；无新 API
 
 ## 3. 全局规范（🔴 必查）
 

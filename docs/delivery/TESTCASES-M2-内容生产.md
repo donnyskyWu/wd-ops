@@ -2,6 +2,7 @@
 
 > **M2 测试用例** | 版本 v1.2 | 2026-06-12
 > **覆盖 AC**：AC-M2-001-1~6, AC-M2-002-1~7, AC-M2-003-1~10, AC-M2-004-1~3, AC-M2-009-1~4
+> **独立增量**：[`TESTCASES-M2-AI排版增量.md`](./TESTCASES-M2-AI排版增量.md)（FR-M2-012；P0 39 / P1 5）
 
 ---
 
@@ -114,14 +115,15 @@
 - **步骤**：执行人登录，我的任务 PENDING → 点击「执行」
 - **预期**：打开 `/task/{id}/execute`，展示基本信息
 
-### TC-M2-002-09 内容生成完成门禁（AC-M2-002-6，✅ S-12）
+### TC-M2-002-09 内容生成完成门禁（AC-M2-002-6，ADR-079）
 
-- **步骤**：`nodeType=CONTENT_GENERATION`，无 COMPLETED 内容 → POST `execute/complete`
-- **预期**：错误码 2008
+- **步骤**：`nodeType=CONTENT_GENERATION`，无关联内容或内容非审核通过 → POST `complete` 或 `execute/complete`
+- **预期**：错误码 **1500**（须先关联内容记录 / 内容须审核通过后方可完成任务）；列表与执行页相同
 
-### TC-M2-002-10 内容生成正常完成（AC-M2-002-7，✅ S-12）
+### TC-M2-002-10 内容生成正常完成（AC-M2-002-7，ADR-079）
 
-- **步骤**：关联内容 `status=COMPLETED` → POST `execute/complete`
+- **步骤**：关联内容 `status=PENDING_PUBLISH`（或其后发布态）→ POST `complete` / `execute/complete`
+- **预期**：任务 `DONE` 或 `PENDING_REVIEW`
 - **预期**：任务 → DONE 或 PENDING_REVIEW
 
 ---
@@ -267,6 +269,11 @@
 - **步骤**：AI 生成视频、未上传 → confirm
 - **预期**：`finalVideoUrl` = 生成视频 URL
 
+### TC-M2-003-18 内容列表批量操作（AC-M2-003-13 / ADR-081）**P0**
+
+- **步骤**：勾选 DRAFT + 已发布混选 → 批量删除 / 批量提交审核 / 批量转知识库
+- **预期**：仅合格行调用单条 API；不合格跳过；toast 含成功/跳过/失败数；无新批量路径
+
 ---
 
 ## 6. 知识库（FR-M2-004）
@@ -314,7 +321,7 @@
 | TC-M2-E-03 | 账号平台不匹配 | 2006 |
 | TC-M2-E-04 | 审核人岗位不匹配 | 2007 |
 | TC-M2-E-05 | AI 接口超时 | 提示"AI 服务暂不可用" |
-| TC-M2-E-06 | 内容生成节点无内容完成 | 2008（✅ S-12） |
+| TC-M2-E-06 | 内容生成节点无内容完成 | 1500（ADR-079；原 2008） |
 | TC-M2-E-07 | 步骤赛事不在计划池 | 1500（✅ S-11） |
 
 ---
@@ -379,3 +386,86 @@
 - 1403：越权操作
 
 详见 [`GLOBAL-CONVENTIONS.md § 4`](./GLOBAL-CONVENTIONS.md)
+
+---
+
+## S-21-D ADR-077 失败/重试 UX（P0）
+
+### TC-M2-003-12-P0-01 FAILED 可重试
+
+- **前置**：自动草稿 `aiGenerateStatus=FAILED`，`aiGenerateError` 非空，内容仍 DRAFT
+- **步骤**：任务执行页 / 内容列表 / 编辑顶栏点「重试」→ `POST /ops/content/{id}/retry-ai-generate`
+- **预期**：状态先 `QUEUED`；Job 再走 `processContent`（现网 generate）；任务不自动完成
+
+### TC-M2-003-12-P0-02 QUEUED/GENERATING 禁止重试
+
+- **步骤**：对 `QUEUED` 或 `GENERATING` 调 retry
+- **预期**：2010；不二次入队；按钮禁用
+
+自动化：`WorkTaskConfirmJingcaiJobTest.retryFailed_*` / `retryWhileQueued_*` / `retryWhileGenerating_*`
+
+---
+
+## S-22 ADR-078 确认登记提醒执行人（P0）
+
+### TC-M2-010-17-P0-01 confirm 通知节点 assignee
+
+- **前置**：DRAFT 行可确认；SOP 节点 `resolveAssignee` 得到 Football `assignee_id`
+- **步骤**：`POST /ops/work-task/sheet/confirm`
+- **预期**：每条新 PENDING task 调用 `notifyWorkTasksPending`，事件 `TASK_PENDING`，`biz_key=task:{id}:PENDING`，接收人=**task.assignee_id**（非登记行 assignee）；`plan_id` 可为 null
+
+### TC-M2-010-17-P0-02 钉钉失败不回滚 confirm
+
+- **步骤**：notify 抛错或钉钉 HTTP 失败
+- **预期**：confirm HTTP 成功；sheet 已确认；task 仍 PENDING
+
+自动化：`WorkTaskServiceImplTest.confirmSheet_notifiesAssignees*` / `confirmSheet_succeedsWhenNotifyThrows` · `NotificationServiceImplTest.notifyWorkTasksPending_*`
+
+---
+
+## S-23 ADR-079 任务完成门禁（P0）
+
+### TC-M2-002-11-P0-01 非内容生成须工作说明
+
+- **步骤**：`NORMAL`（或非 `CONTENT_GENERATION`）`IN_PROGRESS`，`deliverables` 空 → POST `complete` 与 `execute/complete`
+- **预期**：1500「请填写工作说明」
+
+### TC-M2-002-11-P0-02 非内容生成填写后可完成
+
+- **步骤**：同上，`deliverables` 非空
+- **预期**：任务 `DONE`（或 `PENDING_REVIEW`）
+
+### TC-M2-002-11-P0-03 内容生成 DRAFT 不可完成、可提交审核
+
+- **步骤**：关联内容 `DRAFT` → 完成
+- **预期**：1500；UI 展示内容「提交审核」→ `POST /ops/content/{id}/submit-review`
+
+### TC-M2-002-11-P0-04 内容生成审核通过可完成
+
+- **步骤**：关联内容 `PENDING_PUBLISH` → 完成
+- **预期**：成功；列表与执行页相同
+
+自动化：`TaskCompleteSupportTest` · `ContentStatusSupportTest`
+
+---
+
+## S-24 ADR-080 节点名称与执行页登记备注（P0）
+
+### TC-M2-010-18-P0-01 节点名称来自 SOP 节点
+
+- **步骤**：confirm 生成多节点 task；列表 / execute `nodeName`
+- **预期**：等于对应 `oa_sop_node.node_name`；不等于营销计划字典标签
+
+### TC-M2-010-18-P0-02 plan_name 含 SOP 节点名
+
+- **步骤**：confirm 插入 `oa_task`
+- **预期**：`plan_name` 含该节点 `node_name`（ADR-077 D5）
+
+### TC-M2-010-18-P0-03 执行 VO 含登记备注
+
+- **步骤**：`GET /ops/task/{id}/execute`，task 有 `work_task_assignment_id`
+- **预期**：`workTaskRemark` 为每场一段 `赛事-营销计划标签-是/否（HH:mm 仅是）-销售平台标签；`（合并 3 场=3 段）；原四字段仍 read-through 首行；执行页不展示 SLA
+
+自动化：`WorkTaskTaskBuilderSupportTest` · `WorkTaskExecuteRemarkSupportTest` · `WorkTaskServiceImplTest.confirmSheet_planNameUsesSopNodeName`
+
+---

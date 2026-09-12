@@ -93,7 +93,8 @@ if ($Beta) {
         Write-Host "`n--- [2/6] Skip Nacos (-SkipNacos) ---"
     }
     Write-Host "`n--- [3/6] Redis remote $($env:OPS_TEST_REDIS_HOST):$($env:OPS_TEST_REDIS_PORT) db=$($env:OPS_TEST_REDIS_DATABASE) ---"
-    Write-Host "[ok] Using beta Redis from env (skip local requirepass 123456)"
+    Write-Host "[ok] Using beta Redis from env (skip local requirepass 123456)"
+    if (-not (Test-OpsTestRemoteRedisReachable)) { exit 1 }
     Write-Host "`n--- [4/6] MySQL beta $($env:OPS_TEST_DB_HOST):$($env:OPS_TEST_DB_PORT) ---"
     Write-Host "[ok] master=$($env:OPS_TEST_MASTER_DB) system=$($env:OPS_TEST_SYSTEM_DB) (skip localhost check)"
 } else {

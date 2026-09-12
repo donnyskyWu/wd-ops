@@ -99,11 +99,12 @@
   "predecessors": [1],
   "parallelGroup": "GROUP_A",
   "slaHours": 24,
-  "nodeType": "CONTENT_GENERATION"
+  "nodeType": "CONTENT_GENERATION",
+  "documentType": "OFFICIAL_PLAN"
 }
 ```
 
-**字典**：`executorRole` / `reviewerRole` 使用 `dict_position` value；`nodeType` 使用 `dict_sop_node_type`（ADR-016：CONTENT_GENERATION / CONTENT_PUBLISH / NORMAL）。
+**字典**：`executorRole` / `reviewerRole` 使用 `dict_position` value；`nodeType` 使用 `dict_sop_node_type`（ADR-016：CONTENT_GENERATION / CONTENT_PUBLISH / NORMAL）。`documentType` 使用 `dict_document_type`；**仅** `CONTENT_GENERATION` 必填（ADR-077）。
 
 ---
 
@@ -122,13 +123,15 @@
   "predecessors": [1],
   "parallelGroup": "GROUP_A",
   "slaHours": 24,
-  "nodeType": "NORMAL"
+  "nodeType": "NORMAL",
+  "documentType": null
 }
 ```
 
 **校验**：
 - `nodeName` `@NotBlank @Size(max=50)`
 - `nodeType` `@NotBlank @InDict(type="dict_sop_node_type")`
+- `documentType`：`nodeType=CONTENT_GENERATION` 时 `@NotBlank @InDict(type="dict_document_type")`（否则 **1503**，ADR-077）；其它节点类型可空
 - `executorRole` `@InDict(type="dict_position")`
 - `needReview=1` → `reviewerRole` 必填
 - `predecessors` → 同模板节点 ID 列表
@@ -280,18 +283,22 @@
 }
 ```
 
-**业务**：
-- 校验当前用户 = `assignee_id`
-- 状态：`IN_PROGRESS` → `COMPLETED`
-- 若 `need_review=1` → 提交审核
+**业务**（[ADR-079](../adr/ADR-079-任务完成工作说明与内容审核通过门禁.md)）：
+- 校验当前用户 = `assignee_id`；状态须 `IN_PROGRESS`
+- `nodeType ≠ CONTENT_GENERATION` → `deliverables` trim 非空，否则 **1500**「请填写工作说明」（字段=`oa_task.deliverables`）
+- `nodeType = CONTENT_GENERATION` → 须关联内容且状态 ∈ 审核通过集合（`PENDING_PUBLISH` / `PUBLISHED_DRAFT` / `FORMALLY_PUBLISHED` / `PUBLISHED` / `UNPUBLISHED`），否则 **1500**；**不**要求工作说明
+- 状态：`IN_PROGRESS` → `DONE`（`need_review=0`）或 `PENDING_REVIEW`（`need_review=1`）
+
+列表与执行页走 **同一**校验。
 
 ---
 
 ### 2.4 POST `/admin-api/oa/task/{id}/submit-review`
 
 **业务**：
-- 状态：`COMPLETED` → `PENDING_REVIEW`
+- 状态：`COMPLETED` 或 `IN_PROGRESS` → `PENDING_REVIEW`
 - 创建 `oa_sop_review` 记录
+- **ADR-079**：完成门禁与 `complete` 相同（防列表旁路）
 
 ---
 
@@ -317,9 +324,14 @@
   "ipGroupName": "八卦一组",
   "competitionId": "cmp-001",
   "competitionName": "2026 春季城市赛",
+  "marketingPlan": "KUAISHOU_PAID_COURSE",
+  "isLive": 1,
+  "liveTime": "20:00:00",
+  "salesPlatform": "PRIVATE,KUAISHOU",
+  "workTaskRemark": "英超 · 阿森纳vs切尔西-快手付费课程-是（20:00）-私域、快手；",
   "executionInstruction": "...",
   "attachments": [],
-  "linkedContent": { "id": 100, "title": "...", "status": "DRAFT" },
+  "linkedContent": { "id": 100, "title": "...", "status": "DRAFT", "documentType": "OFFICIAL_PLAN", "aiGenerateStatus": "GENERATING", "aiGenerateError": null },
   "ipGroupTabs": [
     {
       "taskId": 1,
@@ -338,20 +350,33 @@
 }
 ```
 
+- `nodeName` = `oa_sop_node.node_name`（按 `oa_task.node_id`）；工作任务来源 **不得**用营销计划覆盖（ADR-080）。
+- `marketingPlan` / `isLive` / `liveTime` / `salesPlatform`：有关联登记行时 **read-through** 首行（ADR-080）；计划 task 为 null。执行页 **不展示** `slaDeadline`。
+- `workTaskRemark`：执行页「备注」SSOT。每条关联登记行一段 `赛事-营销计划标签-是/否（HH:mm 仅直播）-销售平台标签；`（ADR-075 合并组 = 多段）。
 - `executionInstruction` 来源 `oa_sop_node.instruction_text`（空则回退 `nodeName`）；`attachments` 来源同表 `attachment_urls` JSON 只读，**无上传 API**（BLK-M2-007 上传仍阻塞）。
-- `linkedContent`：内容生成节点关联的 `oa_content`（0..1）。
+- `linkedContent`：内容生成节点关联的内容（0..1）。ADR-077：工作任务 confirm 后通常已存在 DRAFT；含 `documentType` / `aiGenerateStatus` / `aiGenerateError`。
 - `ipGroupId` / `ipGroupName`：当前任务所属 IP 组（ADR-070）。
 - `ipGroupTabs`：同计划、同节点、同赛事的多 IP 组并行任务 Tab；**仅 sibling 数 > 1 时非空**（详见 [API-M2-计划管理 §11](API-M2-计划管理.md)）。
+- **列表** `GET /task/list` · `/my-tasks` 的 `TaskVO` 另含 `nodeType` + `linkedContent`（至少 `id`/`status`），供 ADR-079 按钮显隐。
 
 ### 2.7 POST `/admin-api/oa/task/{id}/execute/save`（✅ S-12）
 
 保存执行页草稿（交付说明等，字段待 BLK 定稿）。
 
-### 2.8 POST `/admin-api/oa/task/{id}/execute/complete`（需求 5，✅ S-12）
+### 2.8 POST `/admin-api/oa/task/{id}/execute/complete`（需求 5，✅ S-12 · ADR-079）
+
+**请求体**（可选，与 `complete` 对齐）：
+
+```json
+{
+  "deliverables": "工作说明"
+}
+```
 
 **业务**：
-- 校验当前用户 = `assignee_id`
-- `nodeType=CONTENT_GENERATION` → 须 `linkedContent.status=COMPLETED`，否则 **2008**
+- 校验当前用户 = `assignee_id`；状态须 `IN_PROGRESS`
+- 门禁与 `POST /task/{id}/complete` **相同**（ADR-079）：非内容生成须工作说明；内容生成须关联内容审核通过
+- `deliverables`：本次 body 非空则写入；否则用已存 `oa_task.deliverables`
 - 状态：`IN_PROGRESS` → `DONE`（`need_review=0`）或 `PENDING_REVIEW`（`need_review=1`）
 
 ---
@@ -538,12 +563,29 @@
 
 ---
 
+### 3.6a POST `/admin-api/ops/content/{id}/retry-ai-generate`（ADR-077 Slice D）
+
+**请求**：无 body。权限：`ops:content:list` 或 `ops:task:list`；任务关联内容另须执行人（ADR-016）。
+
+**业务**：
+- 仅 `aiGenerateStatus=FAILED` 可重试；`QUEUED` / `GENERATING` → **2010**
+- 重置 `QUEUED` 后异步再入队同一 jingcai Job（`WorkTaskConfirmJingcaiJob.processContent`，内部仍走现网 generate）
+- 内容保持 `DRAFT`；**不**自动完成任务
+
+**响应**：`ProductionContentVO`（含更新后的 `aiGenerateStatus` / `aiGenerateError`）
+
+---
+
 ### 3.6 DELETE `/admin-api/oa/content/{id}`
 
 **业务**（S-R22-Mike）：
 - 仅 `DRAFT` / `REJECTED` 可删除
 - 其他状态 → `2010` CONTENT_STATUS_INVALID
 - 逻辑删除（`deleted=1`）
+
+### 3.6.1 内容列表批量操作（ADR-081）
+
+**不新增**路径。前端对当前页勾选行串行调用 §3.4 / §3.6 / `POST /ops/content/{id}/transfer-to-knowledge`。资格与单条一致；不合格跳过。
 
 ---
 
@@ -815,7 +857,7 @@
 
 | 错误码 | 含义 |
 |--------|------|
-| 1500 | 关联实体不存在 |
+| 1500 | 关联实体不存在；ADR-079：请填写工作说明 / 须先关联内容记录 / 内容须审核通过后方可完成任务 |
 | 1501 | 关联实体已停用/注销 |
 | 1502 | 关联实体已被引用 |
 | 1503 | 字典值不合法 |
@@ -827,7 +869,7 @@
 | 2005 | 模板无节点，无法启用 |
 | 2006 | 账号平台类型与内容平台类型不匹配 |
 | 2007 | 审核人岗位不匹配 |
-| 2008 | 内容生成节点完成门禁：无关联内容或内容未 COMPLETED |
+| 2008 | **（ADR-079 取代）** 原内容生成完成门禁；现用 **1500** |
 | 2010 | 内容状态不允许删除 |
 | **2011** | 版式模板不存在或类型不匹配（FR-M2-005） |
 | **2012** | 内容已有版式且未确认覆盖 |

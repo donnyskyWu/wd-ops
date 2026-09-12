@@ -617,6 +617,7 @@
 
 
 | 文档 | **DOC-SYNC-20260615** | M1/M2/M4/M5/M9 · V85–V88 · FR-143/145/147 + ADR-024~026 | ✅ | [CHANGELOG-IMPL-20260615.md](./changelog/CHANGELOG-IMPL-20260615.md) |
+| 文档 | **DOC-SYNC-20260826** | M6 直播时长 S-tier · M10 COLLECTOR_BASE_URL · Greenfield deploy pack · Legacy sys_* harness | ✅ | [CHANGELOG-OPS-20260826.md](./CHANGELOG-OPS-20260826.md) |
 
 
 

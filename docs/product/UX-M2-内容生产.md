@@ -85,8 +85,9 @@
 | F-PARALLEL-GROUP | `<Input />` | - | ❌ |
 | F-SLA-HOURS | `<InputNumber />` | - | ❌ |
 | F-NODE-TYPE | `<DictSelect dict-type="dict_sop_node_type" />` | `dict_sop_node_type` | ✅（ADR-016） |
+| F-NODE-DOC-TYPE | `<DictSelect dict-type="dict_document_type" />` | `dict_document_type` | ✅（仅 `CONTENT_GENERATION`，ADR-077） |
 
-**`dict_sop_node_type` 选项**：内容生成 / 内容发布 / 普通节点。
+**`dict_sop_node_type` 选项**：内容生成 / 内容发布 / 普通节点。`F-NODE-DOC-TYPE` 在节点类型=内容生成时显示且必填。
 
 ### 3.3 状态
 
@@ -112,7 +113,8 @@
 | TBL-TASK | 表格 | `oa_task` |
 | COL-SCHEDULE | 列 | `scheduled_start` / `scheduled_end`（计划起止） |
 | BTN-EXECUTE | 链接 | 「执行」（仅「我的任务」Tab + 可执行态） |
-| BTN-SUBMIT-REVIEW | 链接 | 「提交审核」（任务级，非内容确认） |
+| BTN-SUBMIT-REVIEW | 链接 | 「提交审核」：① 内容生成 + 关联内容 `DRAFT`/`REJECTED` → 内容 `submit-review`；② 非内容生成且 SOP `need_review=1` → 任务级审核（须先填工作说明，ADR-079） |
+| BTN-COMPLETE | 链接 | 「完成」：非内容生成须工作说明；内容生成仅当内容审核通过（ADR-079） |
 
 ### 4.1 任务详情（弹窗/抽屉）
 
@@ -136,7 +138,7 @@
 
 ```
 +----------------------------------------------------------+
-| 任务基本信息（名称、节点、计划、IP组、赛事、SLA）          |
+| 任务基本信息（名称、节点、IP组、赛事、状态；不展示 SLA；工作任务来源时同区仅一行「备注」：赛事-营销计划-是否直播（直播时间）-销售平台； 合并组多场多段） |
 +----------------------------------------------------------+
 | 执行说明（只读，`oa_sop_node.instruction_text`）                        |
 | 附件列表只读（`attachment_urls` JSON；上传见 BLK-M2-007）                            |
@@ -154,13 +156,18 @@
 |------|------|------|
 | BTN-CONTENT-EDIT | 按钮 | 打开 `ContentEditDialog`（`taskId`）；非路由菜单 |
 | BTN-SAVE | 按钮 | 保存执行页草稿字段 |
-| BTN-COMPLETE | 按钮 | 完成；内容生成节点校验内容 `COMPLETED`（AC-M2-002-6） |
+| BTN-COMPLETE | 按钮 | 完成；非内容生成须工作说明；内容生成须内容审核通过（ADR-079） |
+| BTN-CONTENT-SUBMIT-REVIEW | 按钮 | 内容生成且关联内容 `DRAFT`/`REJECTED`：「提交审核」→ `POST /ops/content/{id}/submit-review` |
 
 | 状态 | 表现 |
 |------|------|
-| 无关联内容 | 提示「请先进入内容创作」 |
-| 内容未完成 | 完成按钮禁用 + Tooltip |
+| 无关联内容 | 提示「请先进入内容创作」（工作任务 confirm 后通常已有 DRAFT，ADR-077） |
+| 内容可提交审核 | 展示「提交审核」（`DRAFT`/`REJECTED`） |
+| 内容未审核通过 | 完成按钮禁用 + Tooltip「内容须审核通过后方可完成任务」 |
+| 非内容生成未填工作说明 | 完成禁用或提交时 1500「请填写工作说明」 |
 | 完成成功 | Toast + 返回我的任务列表 |
+| AI 生成中 | Badge「生成中」（`aiGenerateStatus=QUEUED/GENERATING`） |
+| AI 失败 | Badge「失败」+ 原因 + 按钮「重试」（ADR-077） |
 
 ---
 
@@ -172,8 +179,12 @@
 |------|------|----------|
 | BTN-ADD | 按钮 | 「新增内容」→ 打开 `ContentEditDialog` |
 | BTN-EXPORT | 按钮 | 导出 CSV（ADR-018） |
+| BTN-BATCH-DELETE | 按钮 | 「批量删除」：勾选行中 `DRAFT`/`REJECTED`（ADR-081） |
+| BTN-BATCH-SUBMIT | 按钮 | 「批量提交审核」：勾选行中 `DRAFT`/`REJECTED`（ADR-081） |
+| BTN-BATCH-TRANSFER | 按钮 | 「批量转知识库」：勾选行中可转知识库（ADR-081） |
 | BTN-VIEW | 链接 | 只读弹窗 + 审核流程 steps |
-| BTN-SUBMIT | 链接 | 「提交审核」（DRAFT） |
+| BTN-SUBMIT | 链接 | 「提交审核」（DRAFT / REJECTED） |
+| COL-AI-GEN | 列 / Badge | 「生成中」/「失败」+ 失败可「重试」（ADR-077 `aiGenerateStatus`） |
 
 > **无**独立侧栏菜单「内容创作」；`/content/edit` 路由保留供深链。
 
