@@ -1,7 +1,7 @@
 # TESTCASES-M2-内容生产 — AI 排版增量
 
 > **FR**：FR-M2-012 | **Slice**：S-21a（已批准）  
-> **版本**：v1.1 | 2026-09-08 | **状态**：Ready  
+> **版本**：v1.2 | 2026-09-17 | **状态**：Ready  
 > **优先级**：P0 阻断 Slice/Gate；P1 不阻断 MVP  
 > **SSOT**：[ADR-028](../adr/ADR-028-M2-AI排版语义分段.md) · [PRD 增量](../product/PRD-M2-AI排版增量.md) · [UX 增量](../product/UX-M2-AI排版增量.md) · [API 增量](../engineering/API-M2-AI排版增量.md) · [ADR-020](../adr/ADR-020-M2-公推模板版式套用语义.md)
 
@@ -9,7 +9,7 @@
 
 ## 0. 范围与判定口径
 
-- MVP 覆盖 `TEMPLATE_GUIDED`、`AUTO`、preview/apply、语义分段、正文保真、默认映射降级、两款内置模板 seed、权限/数据范围/租户隔离及 ADR-027 legacy 规则链回归。
+- MVP 覆盖 `TEMPLATE_GUIDED`、`AUTO`、preview/apply、语义分段、正文保真、默认映射降级、两款内置模板 seed、权限/数据范围/租户隔离、ADR-027 legacy 规则链回归，以及 **FOOTBALL_AI 一键排版**（四套预设、body-first、free-only apply、实体解码、无 LLM）。
 - AUTO 按 **Accepted ADR-028/API 增量**执行：服务端 `FootballTemplateDecider` 在 `decision-scan` / `analysis-report` 间决策。`docs/football-layout/SKILL.md` 中“用户必须选择模板”的交互规则不适用于本 API；其 semantic-parser、模板组件和默认参数仍作为参照。
 - `styleHints` 是 Phase 1.5 / MVP+，仅列 P1，不计入 MVP DoD。
 - API 未定义 idempotency key、版本号或并发 apply 冲突策略；MVP 仅验收已定义的 preview 无写入、`overwrite` 覆盖门和并发 preview 隔离，不推断“并发 apply 谁胜出”。
@@ -374,7 +374,121 @@
 | **步骤** | 查看预览区，并改选一个公推模板重新 preview |
 | **期望** | 展示“内容特征接近，已使用决策扫读版”提示；仍可 apply；改选模板后请求切为 TEMPLATE_GUIDED |
 
-## 5. P1 — MVP 后增强/非阻断验证
+## 5. P0 — FOOTBALL_AI 一键排版
+
+> **FR-M2-012-7** · 端点 `POST /typeset` · `mode=FOOTBALL_AI` · 无 LLM（ADR-027 §4.3 · API §9）
+
+### TC-M2-012-P0-40 竞彩营销版 preset
+
+| 项 | 内容 |
+|----|------|
+| **关联** | FR-M2-012-7；AC-M2-012-21；API §9 |
+| **类型** | 自动化（IT/集成） |
+| **前置** | tenant 1 存在 V204 `football-ai:marketing` PRESET 且 ENABLED；ARTICLE 正文非空 |
+| **步骤** | POST `/admin-api/oa/content/typeset`，传 `mode=FOOTBALL_AI`、`footballTemplate=marketing`、`body` 为典型竞彩短文 |
+| **期望** | code=0；返回 `layoutHtml`/`layoutJson`；`selectedFootballTemplate=marketing`；`selectedTemplateName` 含「竞彩营销」；HTML 含 marketing 样式特征（如圆角分析卡、`#e94560` 强调）；**不调用** M8 `AI_TYPESET_SEMANTIC` |
+
+### TC-M2-012-P0-41 简洁通读版 preset
+
+| 项 | 内容 |
+|----|------|
+| **关联** | FR-M2-012-7；API §9；UX §2.3 |
+| **类型** | 自动化（IT/集成） |
+| **前置** | V204 `football-ai:clean-read` PRESET ENABLED；正文为长段通读型短文 |
+| **步骤** | POST typeset，`mode=FOOTBALL_AI`、`footballTemplate=clean-read`、传 `body` |
+| **期望** | code=0；`selectedFootballTemplate=clean-read`；layout 无头图/卡片装饰，导语 + 长文通读结构；无 LLM 调用 |
+
+### TC-M2-012-P0-42 赛事分析版 AUTO 决策
+
+| 项 | 内容 |
+|----|------|
+| **关联** | FR-M2-012-7；FR-M2-012-2；API §9；UX Q3 |
+| **类型** | 自动化（IT）+ 人工（UI 模板名展示） |
+| **前置** | V198 `decision-scan` / `analysis-report` seed 均 ENABLED；分别准备偏决策扫读与偏情报分析的两份正文 |
+| **步骤** | POST typeset，`mode=FOOTBALL_AI`，**不传** `footballTemplate`；前端「赛事分析版」卡片触发同等请求 |
+| **期望** | code=0；`selectedFootballTemplate` 为 `decision-scan` 或 `analysis-report` 之一；AUTO 时返回 `templateDecision`（confidence/reasons）；分段走启发式 `SemanticSegmentHeuristicUpgrader`，**不调用 LLM**；UI 预览区展示已选模板中文名 |
+
+### TC-M2-012-P0-43 付费引流版 paidBoundary
+
+| 项 | 内容 |
+|----|------|
+| **关联** | FR-M2-012-7；API §9 `paramOverrides.paidBoundary`；UX Q4 |
+| **类型** | 自动化（IT）+ 人工（双栏编辑器） |
+| **前置** | 内容同时存在免费区与付费区正文；marketing PRESET 可用 |
+| **步骤** | 对**免费区** POST typeset：`footballTemplate=marketing`、`paramOverrides.paidBoundary=true`；对付费区传相同 preset 但 **不传** `paidBoundary` |
+| **期望** | 免费区 layout 末尾含付费分界线 markup；付费区 layout **无** paidBoundary 插入；`selectedFootballTemplate=marketing`；两区分别 typeset、互不覆盖 |
+
+### TC-M2-012-P0-44 仅免费区有正文 free-only apply
+
+| 项 | 内容 |
+|----|------|
+| **关联** | FR-M2-012-7；AC-M2-012-22；ADR-027 §4.3 |
+| **类型** | 人工走查 / Playwright |
+| **前置** | ARTICLE 仅 `free_body` 非空，付费区 `body`/`layout_html` 为空或初始态；记录付费区四个版式字段快照 |
+| **步骤** | 打开 `WechatQuickTypesetDialog` → 任选预设 → 预览 →「使用此排版」 |
+| **期望** | 仅免费编辑器刷新 `free_body`/`layout_json`/`layout_html`；付费编辑器与 DB 付费区版式字段**不变**；正文纯文本 SSOT 未改写 |
+
+### TC-M2-012-P0-45 html 与 body 均为空拒绝
+
+| 项 | 内容 |
+|----|------|
+| **关联** | FR-M2-012-7；AC-M2-012-23；API §9 |
+| **类型** | 自动化（IT） |
+| **前置** | 有效权限 Token |
+| **步骤** | POST typeset，`mode=FOOTBALL_AI`，`html=""` 且 `body=""`（或均省略） |
+| **期望** | HTTP 400 / Bean Validation 失败；不进入分段/merge；不写库 |
+
+### TC-M2-012-P0-46 body-first 优先于 styled HTML
+
+| 项 | 内容 |
+|----|------|
+| **关联** | FR-M2-012-7；AC-M2-012-24；API §9；ADR-020 |
+| **类型** | 自动化（单测/IT） |
+| **前置** | 构造可区分的 `body` 纯文本与 `html` styled 版本（二者 extractPlainText 结果不同）；mock 或 spy 分段输入来源 |
+| **步骤** | POST typeset，同时传 `body` 与 `html`；再仅传 `html`（body 空）作对照 |
+| **期望** | 同时存在时分段输入取 **请求 `body`**，不从 styled div 重新拆段；`plainTextBefore` 与 `body` 一致；仅 html 时 fallback 到 html 提取文本 |
+
+### TC-M2-012-P0-47 LayoutMergeFidelityGate 拒绝丢字
+
+| 项 | 内容 |
+|----|------|
+| **关联** | FR-M2-012-7；AC-M2-012-25；API §9 |
+| **类型** | 自动化（单测/IT） |
+| **前置** | mock merge 或分段结果导致归一化纯文本与输入 body 不一致 |
+| **步骤** | POST typeset preview 路径（或带 id 的 typeset）；随后尝试写回编辑器/apply |
+| **期望** | 返回 `LAYOUT_SCHEMA_INVALID` / 保真相关错误；不返回可应用的 layout；**不写库**、不覆盖编辑器 |
+
+### TC-M2-012-P0-48 HTML 实体解码保真
+
+| 项 | 内容 |
+|----|------|
+| **关联** | FR-M2-012-7；PRD §FR-M2-012-7 ¶6；ADR-020 |
+| **类型** | 自动化（单测） |
+| **前置** | 正文含 `&ldquo;`/`&rdquo;`/`&nbsp;` 等实体及中文标点（如「」、——） |
+| **步骤** | 经 `OpsHtmlTextHelper.decodeEntities`（最多 3 pass）后进入 FOOTBALL_AI 分段；检查 merge 前后可见字符 |
+| **期望** | 解码后中文标点与引号可见字符保留；`escapeHtml` 不破坏中文标点；保真 Gate 通过 |
+
+### TC-M2-012-P0-49 FOOTBALL_AI 不调用 LLM
+
+| 项 | 内容 |
+|----|------|
+| **关联** | FR-M2-012-7；ADR-027 §4.3；API §9 |
+| **类型** | 自动化（IT + mock 计数） |
+| **前置** | mock/spy `AiLlmInvokeSupport` 或 M8 调用计数器；四套 preset 各准备一份正文 |
+| **步骤** | 分别对 marketing、clean-read、decision-scan（显式）、AUTO（空 footballTemplate）发起 typeset |
+| **期望** | 四次请求 LLM 调用次数均为 **0**；分段均来自 `SemanticSegmentHeuristicUpgrader`；不与 `/typeset/ai-semantic/*` 混用 |
+
+### TC-M2-012-P0-50 一键排版弹窗 preview→apply 闭环
+
+| 项 | 内容 |
+|----|------|
+| **关联** | FR-M2-012-7；UX §2.3 Q1~Q5 |
+| **类型** | 人工走查 / Playwright |
+| **前置** | 可编辑 ARTICLE、标题或任一侧正文非空；有 `oa:content:typeset` 权限 |
+| **步骤** | 工具栏「一键排版」→ 切换四套风格卡片（每次自动刷新预览 iframe）→「使用此排版」；验证 `layoutSync` 写回 |
+| **期望** | 预览调用 `POST /typeset` · `mode=FOOTBALL_AI`；预览失败仅提示重试、**不 fallback** 到 AI 排版；应用后 `layout_json`/`layout_html` 同步、正文纯文本不变；Toast/刷新行为符合 UX |
+
+## 6. P1 — MVP 后增强/非阻断验证
 
 ### TC-M2-012-P1-01 strict 映射失败
 
@@ -421,7 +535,7 @@
 | **步骤** | 发起 preview 并尝试关闭侧栏；检查超时提示和移动端对比区 |
 | **期望** | loading 时侧栏不可关闭；超过 60s 显示指定提示；移动端侧栏全屏、排版后区域可滚动 |
 
-## 6. P0 Gate 统计与验收
+## 7. P0 Gate 统计与验收
 
 | 类别 | P0 | P1 |
 |------|---:|---:|
@@ -429,7 +543,8 @@
 | 权限/数据范围/租户 | 4 | 0 |
 | 前端与 legacy 回归 | 6 | 1 |
 | FootballTemplateDecider | 6 | 0 |
-| **合计** | **39** | **5** |
+| FOOTBALL_AI 一键排版 | 11 | 0 |
+| **合计** | **50** | **5** |
 
 ### 2026-09-11 收尾执行快照（report 87478759 续）
 
@@ -475,19 +590,26 @@
 - **P0 合计仍为 37/39**（本轮复验 LLM 不新增 P0 计数；P0-30 N/A；P0-32 阻塞）。
 - **失败（0）**。
 
+### 2026-09-17 文档同步（FR-M2-012-7 TESTCASES 补全）
+
+- **新增 P0-40~50**（11 条）：覆盖 FOOTBALL_AI 四套预设、body-first、free-only apply、空正文校验、实体解码、保真 Gate、无 LLM、弹窗 preview→apply。
+- **P0 合计：37/50**（原 37/39 仍有效；**P0-40~50 全部待验证**；P0-30 AUTO-only N/A；P0-32 Playwright 仍阻塞）。
+- **失败（0）**；未宣称新增用例已通过。
+- FOOTBALL_AI 实现与 V204 seed 已于 2026-09-14 落地（CHECKLIST §0 已勾选）；本轮仅补测试规格与 Gate 归档，**未复跑自动化**。
+
 ### Gate 通过口径
 
-- [ ] 本文 **39/39 条 P0 全部通过**，失败数为 0；P1 记录结果但不阻断 MVP。
+- [ ] 本文 **50/50 条 P0 全部通过**（含 P0-30 N/A 口径按产品决策不计失败），失败数为 0；P1 记录结果但不阻断 MVP。
 - [ ] 后端自动化覆盖两模式、两款内置 seed 路由、错误码、保真门、默认降级、权限/租户及 overwrite。
 - [ ] 前端自动化覆盖 AI 默认入口、TEMPLATE_GUIDED/AUTO、预览后应用、降级 warning、覆盖确认和 legacy 切换。
 - [ ] seed 验证确认 `decision-scan`、`analysis-report` 与 `AI_TYPESET_SEMANTIC` 均存在、可解析、租户策略符合实现 Spec。
 - [ ] 相关模块 `CHECKLIST-M2-AI排版增量.md` 100%；上一阶段 P0 冒烟仍绿；按所属阶段重跑 `mvn verify` / `playwright test`。
 - [ ] Gate 报告归档并更新 `MASTER-EXECUTION-TRACKER.md` 后，方可宣称通过。
 
-## 7. 实现前阻塞
+## 8. 实现前阻塞
 
 **无。** 原 BLK-M2-012-01（Slice 未批准）与 BLK-M2-012-02（评分算法未定）已于 2026-09-08 关闭。并发 apply 的锁/版本/冲突响应与 idempotency key 仍为未定义的非 MVP 边界，本 Slice 不实现、不验收。
 
 ---
 
-*Ready · 2026-09-08*
+*Ready · v1.2 · 2026-09-17*

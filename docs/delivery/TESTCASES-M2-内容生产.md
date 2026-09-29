@@ -2,7 +2,7 @@
 
 > **M2 测试用例** | 版本 v1.2 | 2026-06-12
 > **覆盖 AC**：AC-M2-001-1~6, AC-M2-002-1~7, AC-M2-003-1~10, AC-M2-004-1~3, AC-M2-009-1~4
-> **独立增量**：[`TESTCASES-M2-AI排版增量.md`](./TESTCASES-M2-AI排版增量.md)（FR-M2-012；P0 39 / P1 5）
+> **独立增量**：[`TESTCASES-M2-AI排版增量.md`](./TESTCASES-M2-AI排版增量.md)（FR-M2-012；P0 50 / P1 5；Gate 见 [GATE-S21a-报告-20260917.md](./gates/GATE-S21a-报告-20260917.md)）
 
 ---
 

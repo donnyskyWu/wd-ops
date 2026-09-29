@@ -2,7 +2,7 @@
 
 > **Slice**：S-21a  
 > **版本**：v1.0 | 2026-09-08  
-> **状态**：**Implemented / Wrap-up**（核心代码与单测已落地；Slice DoD 未 100%；阶段 Gate 未通过）  
+> **状态**：**Implemented / Wrap-up**（核心代码与单测已落地；2026-09-14 增 FOOTBALL_AI 一键排版 + V204；Slice DoD 未 100%；阶段 Gate 未通过）  
 > **优先级**：P0  
 > **预估工时**：6~8 人日  
 > **关联 FR**：FR-M2-012-1~6  
@@ -48,7 +48,8 @@
 4. 两款内置 PRESET 模板 schema/默认参数与 M8 `AI_TYPESET_SEMANTIC` seed。
 5. `SegmentSlotMapper` 语义映射、paragraph/repeat 降级、`LayoutMergeService` 增量入口。
 6. 工作台 AI/RULE 切换、可清空模板选择、对比预览、低置信度/降级提示、确认应用。
-7. TESTCASES P0 39 条对应自动化与 legacy 回归。
+7. **一键排版**（FOOTBALL_AI）：四套预设 UI + V204 seed + free-only apply + `LayoutMergeFidelityGate`（见 PRD FR-M2-012-7 · ADR-027 §4.3）。
+8. TESTCASES P0 39 条对应自动化与 legacy 回归。
 
 ### 2.2 Out of Scope
 

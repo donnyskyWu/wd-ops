@@ -16,7 +16,7 @@
 | 模块 | M2 内容生产 |
 | 业务域 | 内容生产（PROD） |
 | 详细设计 | `## 5.8~5.11` |
-| 父 PRD | `@完整PRD-v9.1-开发版.md` |
+| 父 PRD | [`完整PRD-v9.2-开发版.md`](../../完整PRD-v9.2-开发版.md) §5.8~5.12（L1 SSOT） |
 | 关联 UX | `docs/product/UX-M2-内容生产.md` |
 | 关联 API | `docs/engineering/API-M2-内容生产.md` · `docs/engineering/API-M2-计划管理.md` |
 | 关联 STATE | `docs/engineering/STATE-M2-内容生产.md` |

@@ -1,0 +1,132 @@
+USE shenyu-ops;
+-- =============================================================================
+-- PATCH · xlsx-import-20260928 · holder_user_id / operator_user_id / short_video_status / live_status
+-- 适用：已执行 import-accounts-shenyu-ops-20260928.sql 但字段仍为 NULL，或需与 Excel 再对齐
+-- 依赖：V206__oa_account_short_video_live_operator.sql
+-- 可重复执行（幂等：写入与生成器 INSERT 相同值）
+-- =============================================================================
+
+SET NAMES utf8mb4;
+START TRANSACTION;
+
+UPDATE oa_account SET operator_user_id = 2077584626269876224, short_video_status = '正常', live_status = '2026/6/26永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140001 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584627645607936, operator_user_id = 2081995136448966656, short_video_status = '限流9/5解除', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140002 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '正常', live_status = '封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140003 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584625191940096, operator_user_id = 2077584622360784896, short_video_status = '2026/8/30永封', live_status = '2026/6/12永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140004 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '2025/12/23永封', live_status = '2025/12/23永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140005 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584620871806976, short_video_status = '正常', live_status = '2026/6/26永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140006 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622939598848, short_video_status = '2026/414永封', live_status = '2026/414永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140007 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622855712768, short_video_status = '正常', live_status = '2026/7/4永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140008 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '2025/11/8永封', live_status = '2025/11/8永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140009 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET operator_user_id = 1749825673829120202, short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140010 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '2025/12/14永封', live_status = '2025/12/14永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140011 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584620871806976, short_video_status = '2025/12/12永封', live_status = '2025/12/12永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140012 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622939598848, short_video_status = '正常', live_status = '2026/7/29永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140013 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622855712768, operator_user_id = 2077584621811331072, short_video_status = '正常', live_status = '2026/6/27永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140014 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584621811331072, short_video_status = '2026/3/31永封', live_status = '2026/3/31永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140015 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '盗号', live_status = '盗号', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140016 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622855712768, operator_user_id = 2077584624470519808, short_video_status = '正常', live_status = '2026/7/15永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140017 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET operator_user_id = 2077584622658580480, short_video_status = '正常', live_status = '2026/6/26永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140018 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584627645607936, operator_user_id = 2077584623770071040, short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140019 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584625191940096, short_video_status = '2026/7/30永封', live_status = '2026/5/15日永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140020 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584625191940096, short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140021 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '2026/3/10永封', live_status = '2026/3/10永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140022 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '2026/3/13永封', live_status = '2026/3/13永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140023 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '2026/3/6永封', live_status = '2026/3/6永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140024 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '永封', live_status = '2026/5/9永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140025 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140026 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '永封', live_status = '2026/4/26永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140027 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584621425455104, operator_user_id = 2077584627645607936, short_video_status = '正常', live_status = '2026/7/2永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140028 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584626039189504, short_video_status = '正常', live_status = '2026/4/28永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140029 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '2026/9/3永封', live_status = '2026/6/30永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140030 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584624688623616, operator_user_id = 2077584626777387008, short_video_status = '正常', live_status = '2026/6/26永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140031 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '2026/4/8永封', live_status = '2026/4/8永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140032 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '2026/1/26永封', live_status = '2026/1/26永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140033 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '2026/4/10永封', live_status = '2026/4/10永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140034 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584621425455104, short_video_status = '正常', live_status = '2026/6/15永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140035 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '永封', live_status = '永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140036 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '2026/3/3永封', live_status = '2026/3/3永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140037 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622855712768, short_video_status = '永封', live_status = '2026/2/8永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140038 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140039 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584621425455104, short_video_status = '正常', live_status = '2026/5/15永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140040 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET operator_user_id = 2077584625716228096, short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140041 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '正常', live_status = '2026/4/13永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140043 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584625191940096, short_video_status = '2026/4/8永封', live_status = '2026/4/8永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140044 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584624361467904, short_video_status = '2026/3/3永封', live_status = '2026/3/3永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140045 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2081995136448966656, short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140046 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622855712768, short_video_status = '正常', live_status = '2026/6/24永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140047 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584623770071040, short_video_status = '正常', live_status = '2026/6/19永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140048 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584624067866624, short_video_status = '正常', live_status = '2026/4/29永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140049 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET operator_user_id = 2077584625284214784, short_video_status = '正常', live_status = '2026/6/10永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140050 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '正常', live_status = '2026/5/19永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140051 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584620481736704, short_video_status = '2026/3/10永封', live_status = '2026/3/10永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140052 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2081995141054312448, short_video_status = '正常', live_status = '2026/6/2永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140053 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '永封', live_status = '2025/5/17永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140054 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622855712768, operator_user_id = 2077584624688623616, short_video_status = '2026/9/20永封', live_status = '2026/7/7永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140055 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584624067866624, short_video_status = '正常', live_status = '2026/5/16永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140056 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584627645607936, short_video_status = '正常', live_status = '2026/6/30永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140057 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622855712768, short_video_status = '2026/8/5永封', live_status = '2026/5/2永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140058 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584627645607936, operator_user_id = 2077584626475397120, short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140059 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '2026/3/26永封', live_status = '2026/3/26永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140060 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '盗号', live_status = '盗号', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140061 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622855712768, short_video_status = '正常', live_status = '2026/6/14永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140062 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '2026/2/21永封', live_status = '2026/2/21永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140063 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584621811331072, operator_user_id = 2077584625913360384, short_video_status = '正常', live_status = '2026/6/20永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140064 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET operator_user_id = 2077584625061916672, short_video_status = '2026/8/21永封', live_status = '2026/6/25永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140065 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '9/28解封', live_status = '2026/6/24永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140066 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584627645607936, operator_user_id = 2077584626039189504, short_video_status = '正常', live_status = '2026/5/31永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140067 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584626475397120, operator_user_id = 2077584623459692544, short_video_status = '正常', live_status = '2026/6/14永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140068 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622939598848, short_video_status = '正常', live_status = '2026/7/25永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140069 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622855712768, short_video_status = '正常', live_status = '2026/6/21大峰永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140070 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '正常', live_status = '2026/8/1永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140071 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '正常', live_status = '2026/6/24永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140072 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET operator_user_id = 2077584621425455104, short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140073 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584627645607936, short_video_status = '正常', live_status = '粉掉光了', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140074 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584626651557888, short_video_status = '正常', live_status = '2026/7/4永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140075 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '正常', live_status = '封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140076 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622855712768, operator_user_id = 2077584621328986112, short_video_status = '正常', live_status = '2026/7/16永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140077 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET operator_user_id = 2077584626651557888, short_video_status = '正常', live_status = '2026/7/15永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140078 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET operator_user_id = 2077584627645607936, short_video_status = '正常', live_status = '2026/6/30永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140079 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622855712768, operator_user_id = 2077584620481736704, short_video_status = '正常', live_status = '2026/7/3永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140080 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584626039189504, short_video_status = '正常', live_status = '封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140081 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584622855712768, operator_user_id = 2063956664177983488, short_video_status = '封', live_status = '2026/7/6永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140082 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584623770071040, operator_user_id = 2077584625456181248, short_video_status = '正常', live_status = '2026/6/29永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140083 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584626475397120, short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140084 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584620481736704, short_video_status = '没流量', live_status = '没流量', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140085 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140086 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584620481736704, short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140087 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584627645607936, short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140088 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584627645607936, short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140089 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '正常', live_status = '正常', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140090 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET short_video_status = '正常', live_status = '永封', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140091 AND platform_type = 'DOUYIN';
+UPDATE oa_account SET holder_user_id = 2077584625284214784, live_status = '短+直播', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140092 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584623459692544, updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140093 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584623971397632, short_video_status = '仅发短视频', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140094 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584621811331072, live_status = '短+直播', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140096 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584625191940096, updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140097 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584622855712768, short_video_status = '仅发短视频', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140098 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584623770071040, updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140099 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584623770071040, live_status = '短+直播', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140100 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584622939598848, updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140101 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584623770071040, live_status = '短+直播', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140102 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET live_status = '短+直播', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140103 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET live_status = '短+直播', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140104 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET live_status = '短+直播', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140105 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584621811331072, short_video_status = '仅发短视频', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140106 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET live_status = '短+直播', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140107 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET live_status = '短+直播', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140108 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET short_video_status = '仅发短视频', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140109 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584620871806976, short_video_status = '仅发短视频', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140110 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584620871806976, live_status = '短+直播', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140111 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077601185465954304, live_status = '短+直播', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140112 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584625191940096, live_status = '短+直播', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140113 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584626269876224, live_status = '短+直播', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140114 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584627645607936, updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140115 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584627645607936, updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140116 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584627645607936, updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140117 AND platform_type = 'KUAISHOU';
+UPDATE oa_account SET holder_user_id = 2077584622855712768, live_status = '短+直播', updater = 'patch-user-fields-20260928' WHERE tenant_id = 1 AND id = 140118 AND platform_type = 'KUAISHOU';
+
+-- patched_rows=116
+COMMIT;
+
+-- END

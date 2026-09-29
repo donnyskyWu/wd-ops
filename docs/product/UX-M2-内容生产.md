@@ -206,6 +206,8 @@
 | F-BODY | **`<RichTextEditor />`**（ARTICLE）或 `<Textarea />`（其他） | layout_html + body 摘要 | 条件 |
 | F-LAYOUT-STRUCT | **`<LayoutEditor />`**（右侧，LAYOUT 时） | layout_json | 条件（ARTICLE+已套用模板） |
 | F-LAYOUT-TPL | `<LayoutTemplateSelect />` | `oa_wechat_layout_template` | 条件（`ARTICLE`） |
+| BTN-QUICK-TYPESET | 按钮 | 「一键排版」→ `WechatQuickTypesetDialog`（FOOTBALL_AI 四套预设） | 条件（`ARTICLE`） |
+| BTN-AI-TYPESET | 按钮 | 「AI 排版」→ `AiTypesettingDialog`（LLM 语义） | 条件（`ARTICLE`） |
 | BTN-APPLY-TPL | 按钮 | 「选择版式模板」→ 选择器 + 二次确认 | 条件（`ARTICLE`） |
 | F-GENERATED-VIDEO | 预览 | AI 生成视频 URL | 条件（短视频） |
 | F-FINAL-VIDEO | `<Input />` | 最终视频 URL | ❌ |
@@ -253,6 +255,7 @@
 | TBL-TPL | 卡片/表格：缩略图、名称、document_type 标签、来源（手动/链接/Word） |
 | BTN-PREVIEW | 抽屉预览 `layout_html` |
 | BTN-APPLY | 应用（若已有版式 → `MessageBox.confirm`） |
+| FREE-ONLY | 行为 | 仅免费区有正文、付费区为空 → preview/apply **只写免费栏**（`detectTemplateMergeTarget`） |
 
 ### 5.3 AI 辅助创作弹窗
 

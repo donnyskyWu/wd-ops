@@ -114,6 +114,7 @@ OPS 内容编辑页对齐 Football「发布方案」：**N 场绑定、竞彩玩
 |----|------|
 | AC-M2-011-7 | 保存后 ext.`author_article_id` 对应行 `match_scheme` 非 stub |
 | AC-M2-011-8 | 更新玩法后 resync 覆盖 Football 侧玩法 |
+| AC-M2-011-14 | OPS 内容 **无** `matchScheme`（null/未填） | Football sync | Feign 传 `matchScheme=[]`；member 校验通过；OPS 保存不阻断 |
 
 ---
 

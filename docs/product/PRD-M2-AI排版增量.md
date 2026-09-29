@@ -2,8 +2,8 @@
 
 > **业务域**：M2 内容生产  
 > **增量 FR**：FR-M2-012  
-> **版本**：v1.1 | 2026-09-08  
-> **状态**：**Accepted**（2026-09-08 产品决策关闭 OQ-M2-012-01~03）  
+> **版本**：v1.2 | 2026-09-17  
+> **状态**：**Accepted**（2026-09-08 产品决策关闭 OQ-M2-012-01~03；v1.2 同步一键排版 FOOTBALL_AI 与 V204 预设）  
 > **父文档**：[`PRD-M2-内容生产.md`](./PRD-M2-内容生产.md)  
 > **关联 ADR**：[ADR-028](../adr/ADR-028-M2-AI排版语义分段.md) · [ADR-020](../adr/ADR-020-M2-公推模板版式套用语义.md) · [ADR-027](../adr/ADR-027-M2-版式资源工作台.md)
 
@@ -57,6 +57,7 @@ AI 排版语义分段使用系统「AI 模型配置」中的 Chat Completion LLM
 | **FR-M2-012-4** | 排版预览 + 确认应用 | P0 |
 | **FR-M2-012-5** | football-layout 语义 taxonomy 对齐 | P0 |
 | **FR-M2-012-6** | 映射降级 + styleHints（Phase 1.5+） | P0（降级）/ P1（styleHints） |
+| **FR-M2-012-7** | 一键排版 — football-layout 规则预设（`FOOTBALL_AI`） | P0 |
 
 ### 2.2 Out of Scope
 
@@ -75,10 +76,13 @@ AI 排版语义分段使用系统「AI 模型配置」中的 Chat Completion LLM
 | US-M2-012-3 | 内容创作者 | 我不确定用哪套模板，希望系统 **按正文语义自动选择** 决策扫读版或情报分析版并排版（football-layout 智能排版） | P0 |
 | US-M2-012-4 | 审核人 | 我审核时看到的排版效果与创作者 AI 排版后一致 | P0 |
 | US-M2-012-5 | 运营管理者 | 团队排版风格统一，且基于标准模板库而非每人手工调样式 | P1 |
+| US-M2-012-6 | 内容创作者 | 我写完正文后，希望 **不调用 LLM** 也能一键套用竞彩/通读/分析/引流四套公众号预设 | P0 |
 
 ---
 
 ## 4. 功能需求
+
+> **入口区分（v1.2）**：**「AI 排版」** = LLM 语义分段（`/typeset/ai-semantic/*`，FR-M2-012-1~6）；**「一键排版」** = 规则分段 + football-layout 内置 PRESET（`POST /typeset` · `mode=FOOTBALL_AI`，FR-M2-012-7）。二者共用 `LayoutMergeService` 与正文保真铁律，**不**互相 fallback。
 
 ### FR-M2-012-1 模板引导模式（TEMPLATE_GUIDED）
 
@@ -202,6 +206,47 @@ LLM 输出 `segmentType` 枚举与 `docs/football-layout/shared/semantic-parser.
 
 ---
 
+### FR-M2-012-7 一键排版 — football-layout 规则预设（FOOTBALL_AI）
+
+#### 描述
+
+内容编辑页工具栏 **「一键排版」**（`WechatQuickTypesetDialog`），对已有正文执行 **无 LLM** 的规则分段 + 内置 PRESET 渲染：
+
+1. 客户端优先传 `body`（纯文本 SSOT）；`html` 与 `body` **至少一方非空**（`@AssertTrue`）
+2. `POST /typeset` · `mode=FOOTBALL_AI`；可选 `footballTemplate` 覆盖内置模板标识
+3. 服务端：`SemanticSegmentHeuristicUpgrader` 启发式分段 → `FootballLayoutPipeline` → `LayoutMergeService.mergeSemantic`
+4. 四套 UI 预设（V204 seed）：
+
+| UI 预设 | `footballTemplate` | 内置 PRESET tag | 说明 |
+|---------|-------------------|-----------------|------|
+| 竞彩营销版 | `marketing` | `football-ai:marketing` | 圆角分析卡、无首行缩进、`#e94560` 强调 |
+| 简洁通读版 | `clean-read` | `football-ai:clean-read` | 无头图/卡片，导语 + 长文通读 |
+| 赛事分析版 | *(空 = AUTO)* | `decision-scan` / `analysis-report` | 由 `FootballTemplateDecider` 二选一（同 FR-M2-012-2） |
+| 付费引流版 | `marketing` + `paramOverrides.paidBoundary=true`（仅免费区） | 同竞彩营销 | 免费区末尾插入付费分界线 |
+
+5. 存在 **免费区 + 付费区** 时，分别对两区调用 typeset 并写回对应编辑器；仅免费区有正文时只更新免费栏（free-only apply）
+6. HTML 实体解码（`OpsHtmlTextHelper`）与 Unicode 保真：`escapeHtml` 不得破坏中文标点等可见字符
+
+#### 与 FR-M2-012-2 关系
+
+| 维度 | AI 排版 AUTO（LLM） | 一键排版 赛事分析版（FOOTBALL_AI） |
+|------|---------------------|----------------------------------|
+| 分段 | LLM + `AI_TYPESET_SEMANTIC` | 启发式规则分段 |
+| 模板决策 | `FootballTemplateDecider` | 同左（`footballTemplate` 为空时） |
+| 端点 | `/typeset/ai-semantic/*` | `/typeset` |
+
+#### 验收标准
+
+| AC | Given | When | Then |
+|----|-------|------|------|
+| AC-M2-012-21 | ARTICLE 有 body | 选「竞彩营销版」一键排版 | 返回 `layoutHtml`；`selectedFootballTemplate=marketing` |
+| AC-M2-012-22 | 仅免费区有正文 | 一键排版任意预设 | 只更新 `free_body` / 免费编辑器；付费区不变 |
+| AC-M2-012-23 | `html` 与 `body` 均为空 | POST typeset | 校验失败（400） |
+| AC-M2-012-24 | 客户端已传 `body` | FOOTBALL_AI typeset | 优先用 `body`，不从 styled HTML 重新拆段（body-first） |
+| AC-M2-012-25 | merge 后用户正文丢失 | preview/apply | `LayoutMergeFidelityGate` 拒绝；不写库 |
+
+---
+
 ## 5. 与 FR-M2-005 关系
 
 | 能力 | FR-M2-005 | FR-M2-012 |
@@ -225,4 +270,4 @@ LLM 输出 `segmentType` 枚举与 `docs/football-layout/shared/semantic-parser.
 
 ---
 
-*Accepted · 2026-09-08*
+*Accepted · 2026-09-08 · v1.2 一键排版 FOOTBALL_AI · 2026-09-17*

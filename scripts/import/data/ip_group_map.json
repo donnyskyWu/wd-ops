@@ -1,0 +1,5 @@
+{
+  "_comment": "Excel 分配小组名 -> oa_ip_group.id（Beta 110.42.49.224 tenant=1）",
+  "_source": "110.42.49.224/shenyu-ops",
+  "_beta_ip_groups": "9000:SEED-运营大组, 9001:SEED-八卦一组, 9002:SEED-美妆一组, 92001:E2E-DF-测试IP组, 92002:系统小组, 92003:运行小组"
+}

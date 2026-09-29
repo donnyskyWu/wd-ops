@@ -1,7 +1,7 @@
 # UX-M2-内容生产 — AI 排版增量
 
-> **版本**：v1.2 | 2026-09-09  
-> **状态**：Accepted（2026-09-08；v1.2 修订入口 2026-09-09）  
+> **版本**：v1.3 | 2026-09-17  
+> **状态**：Accepted（2026-09-08；v1.2 入口修订 2026-09-09；v1.3 一键排版四套预设 2026-09-17）  
 > **关联 PRD**：[PRD-M2-AI排版增量](./PRD-M2-AI排版增量.md)  
 > **关联 ADR**：[ADR-028](../adr/ADR-028-M2-AI排版语义分段.md) · [ADR-027](../adr/ADR-027-M2-版式资源工作台.md)  
 > **页面**：`ContentEditPanel` → 编辑器工具栏「AI 排版」按钮 → `AiTypesettingDialog` 弹窗
@@ -12,8 +12,9 @@
 
 | 页面/组件 | 变更 |
 |-----------|------|
-| `ContentEditPanel` | 编辑器工具栏「付费全屏」后新增 **「AI 排版」** 按钮（v1.2 起为主入口），打开 `AiTypesettingDialog` 弹窗 |
-| `AiTypesettingDialog` | v1.2 新增：独立弹窗，内嵌 AI 排版面板（原工作台「一键排版」Tab 内容迁入） |
+| `ContentEditPanel` | 工具栏：**「一键排版」**（规则预设）+ **「AI 排版」**（LLM 语义）；均位于「付费全屏」之后 |
+| `WechatQuickTypesetDialog` | v1.3：**「一键排版」**主弹窗；四套 football-layout 预设，无 LLM |
+| `AiTypesettingDialog` | v1.2：**「AI 排版」**弹窗；LLM 语义分段 + AUTO/TEMPLATE_GUIDED |
 | `LayoutResourceSidebar` | v1.2 **移除「一键排版」Tab**，仅保留样式/模板 Tab |
 | 内容审核 `LayoutViewer` | **不变**（只读渲染 apply 后的 `layout_html`） |
 
@@ -26,8 +27,8 @@
 ### 2.1 布局（原 ADR-027/028 工作台 Tab 3，v1.2 迁至弹窗）
 
 ```
-工具栏：[免费全屏] [付费全屏] [AI 排版] [一键排版] [展开/收起版式工作台]
-                                    ↑ 主入口（付费全屏后）
+工具栏：[免费全屏] [付费全屏] [一键排版] [AI 排版] [展开/收起版式工作台]
+                              ↑ 规则预设（无 LLM）  ↑ LLM 语义排版
 ┌─ AI 排版（AiTypesettingDialog 弹窗）───────────┐
 │ ◉ AI 排版（推荐）    ○ 规则排版（备选/legacy）   │  ← Segmented；默认 AI
 ├───────────────────────────────────────────────┤
@@ -68,11 +69,42 @@
 
 ---
 
-## 3. 交互规则
+## 2.3 工具栏「一键排版」弹窗（v1.3 · `WechatQuickTypesetDialog`）
+
+```
+┌─ 一键排版 ─────────────────────────────────────┐
+│ 选择风格（卡片列表，默认「竞彩营销版」）           │
+│  ○ 竞彩营销版  ○ 简洁通读版                      │
+│  ○ 赛事分析版  ○ 付费引流版                      │
+├───────────────────────────────────────────────┤
+│ [排版预览 iframe]                               │
+│ ℹ 规则分段 + football-layout 内置模板，无需 AI   │
+├───────────────────────────────────────────────┤
+│ [取消]  [使用此排版]                             │
+└────────────────────────────────────────────────┘
+```
+
+| 控件 ID | 说明 |
+|---------|------|
+| `CARD-QUICK-STYLE` | 四套预设；选中后自动刷新预览 |
+| `VIEW-PREVIEW` | 调用 `POST /typeset` · `mode=FOOTBALL_AI`；付费/免费分区预览 |
+| `BTN-QUICK-APPLY` | 写回对应编辑器；有免费+付费时分别 typeset |
 
 | # | 规则 |
 |---|------|
-| U1 | 仅 `content_type=ARTICLE` 且非只读时显示工具栏「AI 排版」按钮（v1.2 原工作台「一键排版」Tab 已移除） |
+| Q1 | 与 AI 排版相同：`ARTICLE` 且非只读；标题或任一侧正文非空方可打开 |
+| Q2 | **不调用 LLM**；预览失败提示重试，不 fallback 到 AI 排版 |
+| Q3 | 「赛事分析版」不传 `footballTemplate`，由后端 AUTO 在决策扫读版/情报分析版间二选一；预览区展示已选模板名 |
+| Q4 | 「付费引流版」仅对 **免费区** 传 `paramOverrides.paidBoundary=true` |
+| Q5 | 应用后通过 `layoutSync` 同步 `layout_json` / `layout_html`；正文纯文本 SSOT 不变 |
+
+---
+
+## 3. 交互规则（AI 排版弹窗）
+
+| # | 规则 |
+|---|------|
+| U1 | 仅 `content_type=ARTICLE` 且非只读时显示「一键排版」「AI 排版」按钮（v1.2 起工作台 Tab 已移除） |
 | U2 | `body`（或 `layout_html` 提取纯文本）与 `free_body` 均为空 → `BTN-AI-PREVIEW` **disabled**，tooltip「请先输入正文」 |
 | U3 | AI 排版 **固定 AUTO**；不展示公推模板库选择器；预览后展示已选 football-layout 内置版式名 |
 | U4 | Preview 成功后才展示对比区与「应用排版」 |
@@ -155,4 +187,4 @@ AiContentDrawer 采纳正文 → body 有内容
 
 ---
 
-*Accepted · 2026-09-08 · v1.2 入口修订 · 2026-09-09*
+*Accepted · 2026-09-08 · v1.2 入口修订 · 2026-09-09 · v1.3 一键排版四套预设 · 2026-09-17*

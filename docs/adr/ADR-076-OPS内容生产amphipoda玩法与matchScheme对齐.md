@@ -86,6 +86,8 @@ flowchart LR
 | `match_type` | `match_type` |
 | `paid_body` / `free_body` | `content` / `free_content`（ADR-054 不变） |
 
+**Feign 空玩法（2026-09-14 · ops-only）**：`MemberArticleWriteService.parseMatchScheme(null|blank|非法 JSON)` → **`[]`**（非 `null`），避免 member-server `@NotEmpty` 校验失败。OPS 未配置 `matchScheme` 的草稿/存量内容 sync 时 **不阻塞** 保存；有 `match_scheme_json` 时仍全量覆盖。
+
 ---
 
 ## 5. jingcai 组包（OPS 实现要点）

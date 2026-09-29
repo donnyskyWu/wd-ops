@@ -1,7 +1,7 @@
 # CHECKLIST-M2-内容生产 — AI 排版增量
 
 > **FR**：FR-M2-012 | **Slice**：S-21a（已批准）  
-> **版本**：v1.1 | 2026-09-08 | **状态**：Ready  
+> **版本**：v1.2 | 2026-09-17 | **状态**：Ready  
 > **关联**：[ADR-028](../adr/ADR-028-M2-AI排版语义分段.md) · [PRD 增量](../product/PRD-M2-AI排版增量.md) · [UX 增量](../product/UX-M2-AI排版增量.md) · [API 增量](../engineering/API-M2-AI排版增量.md) · [TESTCASES 增量](./TESTCASES-M2-AI排版增量.md)
 
 ---
@@ -9,10 +9,11 @@
 ## 0. MVP 边界与 DoD
 
 - [ ] 本 Slice 仅实现 FR-M2-012 MVP；不实现改写/润色、非 ARTICLE、批量/定时排版、135/秀米、NL 参数调整（ADR-028 §3；PRD §1.3）
+- [x] FR-M2-012-7 一键排版 FOOTBALL_AI：四套预设 UI + V204 seed + body-first + free-only apply（PRD v1.2 · ADR-027 §4.3；2026-09-14）
 - [ ] ADR-027 规则链保留为备选/legacy；AI 排版为默认入口，二者模式和 API 语义不混用（ADR-028 §2.8；TC-M2-012-P0-28、33）
 - [ ] AUTO 以 Accepted ADR/API 为准，由服务端在 `decision-scan` / `analysis-report` 中决策；`football-layout/SKILL.md` 原“用户必须选择”交互不进入 OPS AUTO（ADR-028 §2.1、§2.4）
 - [ ] `styleHints` 明确归入 Phase 1.5 / MVP+，本文 §11 不计入 MVP Checklist 完成率与 DoD（PRD FR-M2-012-6；API §3.1.1）
-- [ ] **Slice DoD：本文 §1~§10 的 MVP checklist 100% 勾选 + TESTCASES P0 39/39 通过**（PHASE-DEV-METHOD R-I05）
+- [ ] **Slice DoD：本文 §1~§10 的 MVP checklist 100% 勾选 + TESTCASES P0 50/50 通过**（PHASE-DEV-METHOD R-I05；含 FR-M2-012-7 FOOTBALL_AI P0-40~50）
 - [ ] **阶段 Gate：相关模块 Checklist 100% + P0 100% + seed 验证 + `mvn verify` / `playwright test` 范围无失败 + 上一阶段 P0 仍绿 + Gate 报告归档**（PHASE-DEV-METHOD R-G03~R-G08）
 
 ## 1. 实现前 Gate
@@ -40,6 +41,11 @@
 - [x] preview 事务不写 `body_format/layout_json/layout_html/layout_template_id`（FR-M2-012-4；TC-M2-012-P0-06、23）
 - [ ] apply 仅写 API §2.2 明确的版式字段和 `body_format=LAYOUT`，不改 `body` 原始字符串（AC-M2-012-2、9；TC-M2-012-P0-02、05、21）
 - [ ] 2031/2036/2037/2039/2041/2042、1500/1501/1503/1504 与 API 增量触发条件一致，无新增猜测错误码（API §6）
+- [ ] FOOTBALL_AI `POST /typeset`：`marketing`/`clean-read`/AUTO/`paidBoundary` 四套预设响应字段与 API §9 一致（TC-M2-012-P0-40~43）
+- [ ] FOOTBALL_AI `html` 与 `body` 均为空时 Bean Validation 400；body-first 优先请求 `body`（TC-M2-012-P0-45~46）
+- [ ] FOOTBALL_AI 保真失败返回 `LAYOUT_SCHEMA_INVALID`，不写库（TC-M2-012-P0-47）
+- [ ] `OpsHtmlTextHelper.decodeEntities` 与 FOOTBALL_AI 分段共用，不破坏中文标点（TC-M2-012-P0-48）
+- [ ] FOOTBALL_AI 全程不调用 M8 `AI_TYPESET_SEMANTIC`（TC-M2-012-P0-49）
 
 ## 3. 后端语义管线与正文保真
 
@@ -95,11 +101,15 @@
 - [ ] 2037/2039/2042 分别使用 UX U7/U8/U9 文案；失败时不展示可应用的陈旧 preview（TC-M2-012-P0-32）
 - [x] 非 ARTICLE 隐藏入口、无模板显示空态、无权限隐藏或只读，均与 UX §6 一致（TC-M2-012-P0-24、29）— Vitest + `ContentEditPanel` `showArticleLayout`/`effectiveReadonly`
 - [ ] RULE 模式完整保留 ADR-027 原 UI/API，不把规则链 AUTO 显示或发送为 AI AUTO（UX §5；TC-M2-012-P0-28、33）
+- [ ] `WechatQuickTypesetDialog` 四套风格卡片、预览 iframe 自动刷新、「使用此排版」写回（UX §2.3；TC-M2-012-P0-50）
+- [ ] 一键排版预览失败不 fallback 到 AI 排版；仅免费区有正文时 free-only apply（UX Q4~Q5；TC-M2-012-P0-44）
 
 ## 7. 模板与提示词 seed
 
 - [x] 新增内置 `decision-scan`（决策扫读版）seed，含可由 `LayoutMergeService` 解析的 `layout_schema` 与默认参数（ADR-028 §3.1 #6；TC-M2-012-P0-03）
 - [x] 新增内置 `analysis-report`（情报分析版）seed，含可由 `LayoutMergeService` 解析的 `layout_schema` 与默认参数（ADR-028 §3.1 #6；TC-M2-012-P0-04）
+- [x] V204 新增 `football-ai:marketing`（竞彩营销版）与 `football-ai:clean-read`（简洁通读版）PRESET（FR-M2-012-7；TC-M2-012-P0-40~41；2026-09-14）
+- [ ] V204 seed 经 `SeedVerificationIT` 验证 ENABLED、schema 可解析（TC-M2-012-P0-40~41）
 - [x] 两款 seed 的稳定标识、名称和解析方式支持 AUTO 返回 `selectedTemplateId/Name`，且不会与普通 catalog 扫描语义混淆（API §3.3）
 - [x] 两款 seed 均覆盖默认 paragraph / repeat fallback 槽，满足 MVP 降级策略（ADR-028 §2.5；TC-M2-012-P0-16、17）
 - [x] 新增 M8 `AI_TYPESET_SEMANTIC` 提示词 seed，约束不增删改字符、仅输出允许枚举、text 为连续子串（API §5）
@@ -120,7 +130,7 @@
 
 ## 9. 测试与回归
 
-- [ ] `TESTCASES-M2-AI排版增量.md` P0 **37/39**（P0-30 AUTO-only N/A；P0-32 E2E 待补），失败数 0
+- [ ] `TESTCASES-M2-AI排版增量.md` P0 **37/50**（P0-30 AUTO-only N/A；P0-32 E2E 待补；**P0-40~50 FOOTBALL_AI 待验**），失败数 0
 - [x] 服务单测覆盖 Fidelity Gate 的 CRLF、空白归一化、增删字、换序和原始 body 不变（TC-M2-012-P0-13、14）— `TypesetFidelityGateTest` 8/8（2026-09-11）
 - [x] 服务单测覆盖 taxonomy 校验、推荐列表、标题、溢出/不足和默认降级（TC-M2-012-P0-15~18）— `AiSemanticTypesetServiceTest` 5/5 + `SegmentSlotMapperTest` 4/4 + `FootballLayoutSemanticRendererTest` 34/34（2026-09-11）
 - [x] decider 单测覆盖精确分值、长度边界、特征去重、同分/分差 1 fallback、输出稳定性与 seed 不可用 2042（TC-M2-012-P0-03、04、19、34~38）— `FootballTemplateDeciderTest` 5/5（2026-09-11）
@@ -143,7 +153,7 @@
 - [ ] 回滚演练验证 `body` 始终可读且原始字符串未被 AI 排版改写（FR-M2-012-3；TC-M2-012-P0-14、21）
 - [ ] PRD/UX/API/ADR、本文 TESTCASES/CHECKLIST、批准后的 SLICES 相互链接且编号无悬空（FR-M2-012；TC-M2-012-P0-01~39）
 - [x] 自动化报告、seed 验证、人工抽检与 E2E 证据归档到 `docs/delivery/e2e-artifacts/` 对应目录（Gate R-G05、R-G08）— 本轮 session 2 报告见 `e2e-artifacts/S21a-AI-TYPESET-WRAPUP-20260911/REPORT.md`（非正式 Gate Sign-off）
-- [ ] 所属阶段 Gate 报告按 `GATE-S{n}-报告-{YYYYMMDD}.md` 归档并完成 Sign-off（PHASE-DEV-METHOD R-G08）
+- [x] 所属阶段 Gate 报告按 `GATE-S{n}-报告-{YYYYMMDD}.md` 归档（**GATE-S21a-报告-20260917.md** — 结论未通过，待 P0/Checklist 补齐后 Sign-off）
 - [ ] 更新 `MASTER-EXECUTION-TRACKER.md` 前确认 Gate 全项通过；不得仅凭本 Slice 通过宣称下一阶段可联调（PHASE-DEV-METHOD R-G01~R-G08）
 
 ## 11. Phase 1.5 / MVP+（不计入 MVP DoD）
@@ -155,9 +165,15 @@
 
 ## 12. Sign-off
 
+### 2026-09-17 文档同步
+
+- **P0：37/50**（原 AI 语义 37/39 仍有效；**新增 P0-40~50 共 11 条 FOOTBALL_AI 全部待验**；P0-30 N/A；P0-32 Playwright 仍阻塞）；失败数 **0**。
+- **Checklist §1~§10：49/121 ≈ 40%**（增 FR-M2-012-7 / V204 / FOOTBALL_AI 条目；Gate 报告已归档但未 Sign-off）。
+- **Gate**：[`GATE-S21a-报告-20260917.md`](./gates/GATE-S21a-报告-20260917.md) — **未通过**。
+
 ### 2026-09-11 收尾状态（续 · session 2）
 
-- **P0：37/39**（自动 33 + 人工 4；P0-30 AUTO-only N/A；P0-32 Playwright 待补）；失败数 **0**。详见 `TESTCASES-M2-AI排版增量.md` §6。
+- **P0：37/39**（自动 33 + 人工 4；P0-30 AUTO-only N/A；P0-32 Playwright 待补）；失败数 **0**。详见 `TESTCASES-M2-AI排版增量.md` §7。
 - **Checklist §1~§10：45/111 ≈ 41%**（本轮补勾选 Fidelity/decider/单测/冒烟项；Gate/SeedVerificationIT/Playwright/全量 verify 仍缺）。
 - **S-21a 聚焦单测 83/83**（AiSemanticTypesetIT 8 + Service 5 + Renderer 34 + ParagraphEmphasis 6 + decider 5 + fidelity 8 + mapper 4 + body 7 + prod 3 + 权限 3）；前端 Vitest **7/7**。
 - **联调栈 UP**：ops :48094、Gateway :48080、front :5777 均 200；真实 LLM AUTO preview content **9448** code=0（decision-scan，5 segments，7.5s）；marketing content **9449** code=0（analysis-report，9421B html）。
@@ -176,4 +192,4 @@
 
 ---
 
-*Ready · 2026-09-08*
+*Ready · v1.2 · 2026-09-17*

@@ -618,6 +618,7 @@
 
 | 文档 | **DOC-SYNC-20260615** | M1/M2/M4/M5/M9 · V85–V88 · FR-143/145/147 + ADR-024~026 | ✅ | [CHANGELOG-IMPL-20260615.md](./changelog/CHANGELOG-IMPL-20260615.md) |
 | 文档 | **DOC-SYNC-20260826** | M6 直播时长 S-tier · M10 COLLECTOR_BASE_URL · Greenfield deploy pack · Legacy sys_* harness | ✅ | [CHANGELOG-OPS-20260826.md](./CHANGELOG-OPS-20260826.md) |
+| Slice | **S-21a** | M2 AI 排版 FR-M2-012（含 FOOTBALL_AI 一键排版） | 🔄 | [GATE-S21a-报告-20260917.md](./gates/GATE-S21a-报告-20260917.md) — P0 37/50 · Checklist ≈40% · **Gate 未通过** |
 
 
 
@@ -3120,6 +3121,7 @@ curl http://localhost:8080/oa/...
 
 
 | 2026-08-17 | GATE-Phase2-A | ADR-070 已采纳（§6 Q1–Q6 全部决议）· Ops 抓取统一走 xxl-job + @TenantJob（撤销 ADR-001 §2/§4 XXL-JOB 禁令）· executor appname=`football-ops-executor`（显式）· 沿用 mp 默认 accessToken（待运维确认泄露面）· 1/5/15min 三段重试 · **含 ADR-069 P1 全租户遍历同步改造** | M10 | 架构 / Ops Owner | ✅ Accepted | 2026-08-17 |
+| 2026-09-17 | **GATE-S21a** | M2 AI 排版 Slice：P0 **37/50**（P0-32 Playwright 缺失；P0-40~50 FOOTBALL_AI 待验）；Checklist **≈40%**；SeedVerificationIT 未跑；ops-server 全量 verify 未重跑 | M2 | 开发 / 测试 | 🔴 Open | |
 
 
 

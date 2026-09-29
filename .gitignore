@@ -68,6 +68,15 @@ test-results/
 *.dumpstream
 hs_err_pid*.log
 
+# Repo root scratch (jar unpack / E2E screenshots / one-off scripts)
+/_tmp_*
+/tmp_*
+/BOOT-INF/
+/META-INF/
+/LOG_FILE_IS_UNDEFINED*
+/*.png
+/logs/
+/__pycache__/
 
 football-front.tar
 *.tar

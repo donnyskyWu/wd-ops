@@ -1,7 +1,7 @@
 # API-M2-内容生产 — AI 排版增量
 
-> **版本**：v1.1 | 2026-09-08  
-> **状态**：Accepted（2026-09-08）  
+> **版本**：v1.2 | 2026-09-17  
+> **状态**：Accepted（2026-09-08；v1.2 同步 FOOTBALL_AI 一键排版与 V204 预设）  
 > **Base Path**：`/admin-api/oa`（Gateway 前缀以环境为准；Football 单仓迁移后路径不变）  
 > **关联 PRD**：[PRD-M2-AI排版增量](../product/PRD-M2-AI排版增量.md)  
 > **关联 ADR**：[ADR-028](../adr/ADR-028-M2-AI排版语义分段.md)
@@ -16,11 +16,12 @@
 |------|--------|
 | `POST /content/{id}/apply-layout-template` | 无语义，顺序 merge；**保留** |
 | `POST /content/{id}/apply-layout-template/preview` | 同上 preview；**保留** |
-| ADR-027 typeset（规则链，若已暴露） | **legacy**；新入口优先本增量 |
+| ADR-027 typeset（规则链 / FOOTBALL_AI） | **一键排版**走 `/typeset` · `FOOTBALL_AI`；规则链 `AUTO`/`TEMPLATE` 为 legacy |
+| 本增量 §9 | **一键排版**（无 LLM）与 §2 **AI 语义排版**（LLM）并列，不互相 fallback |
 
 ---
 
-## 2. 端点
+## 2. 端点（AI 语义排版 · LLM）
 
 ### 2.1 POST `/admin-api/oa/content/{id}/typeset/ai-semantic/preview`
 
@@ -290,6 +291,10 @@ body → semantic-parser (shared/semantic-parser.md)
 |----------------------------|-----------|------|
 | `decision-scan` | 决策扫读版 | `template-decision-scan.md` |
 | `analysis-report` | 情报分析版 | `template-analysis-report.md` |
+| `marketing` | 竞彩营销版 | V204 PRESET · `football-ai:marketing` |
+| `clean-read` | 简洁通读版 | V204 PRESET · `football-ai:clean-read` |
+
+> **注**：`marketing` / `clean-read` 主要用于 **§9 FOOTBALL_AI 一键排版**；AI 语义 AUTO 仍仅在 `decision-scan` / `analysis-report` 间决策。
 
 #### 3.3.1 可观测特征
 
@@ -438,4 +443,73 @@ body → semantic-parser (shared/semantic-parser.md)
 
 ---
 
-*Accepted · 2026-09-08*
+---
+
+## 9. 一键排版 — `POST /typeset` · `mode=FOOTBALL_AI`（ADR-027 §4.3）
+
+**权限**：`oa:content:typeset`（与 AI 语义排版相同）
+
+**端点**：
+
+- `POST /admin-api/oa/content/typeset`（编辑态，无 content id）
+- `POST /admin-api/oa/content/{id}/typeset`（可选带 id）
+
+**请求体** `ContentTypesetReq`（扩展字段）：
+
+```json
+{
+  "html": "<p>可选 HTML</p>",
+  "body": "纯文本正文（优先）",
+  "mode": "FOOTBALL_AI",
+  "footballTemplate": "marketing",
+  "paramOverrides": { "paidBoundary": true }
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `mode` | String | ✅ | `FOOTBALL_AI` |
+| `html` | String | 条件 | 与 `body` **至少一方非空** |
+| `body` | String | 条件 | **body-first**：客户端已提取纯文本时优先使用，避免从 styled div 重新拆段 |
+| `footballTemplate` | String | ❌ | `marketing` \| `clean-read` \| `decision-scan` \| `analysis-report`；空 = AUTO 决策（仅 decision-scan / analysis-report） |
+| `paramOverrides` | Object | ❌ | 如 `paidBoundary: true`（付费引流版免费区末尾分界线） |
+
+**响应** `ContentTypesetVO`（节选）：
+
+| 字段 | 说明 |
+|------|------|
+| `html` | 渲染后完整 layout HTML |
+| `layoutJson` | merge 输出实例（客户端写回编辑器时 preserve） |
+| `selectedFootballTemplate` | 实际选用的内置标识 |
+| `selectedTemplateId` / `selectedTemplateName` | 对应 PRESET 模板 id/名称 |
+| `plainTextBefore` / `plainTextAfter` | 保真校验前后纯文本 |
+| `templateDecision` | 仅 AUTO（`footballTemplate` 为空且选中 decision-scan/analysis-report） |
+
+**管线**（无 LLM）：
+
+```
+body/html → SemanticSegmentHeuristicUpgrader
+         → FootballLayoutPipeline.resolve(tenantId, body, segments, footballTemplate)
+         → SegmentSlotMapper → LayoutMergeService.mergeSemantic
+         → LayoutMergeFidelityGate（套用/写回前）
+```
+
+**与 §2 差异**：
+
+| 项 | §2 AI 语义 | §9 FOOTBALL_AI |
+|----|-----------|----------------|
+| 分段 | LLM `AI_TYPESET_SEMANTIC` | 启发式规则 |
+| 端点 | `/typeset/ai-semantic/*` | `/typeset` |
+| 写库 | apply 端点写 content | 前端写回编辑器 / 统一 layout API |
+
+**错误**：
+
+| 码 | 触发 |
+|----|------|
+| 400 | `html` 与 `body` 均为空（Bean Validation） |
+| 2013 / LAYOUT_APPLY_BODY_EMPTY | body 解析后为空 |
+| LAYOUT_SCHEMA_INVALID | `LayoutMergeFidelityGate` 未通过 |
+
+---
+
+*Accepted · 2026-09-08 · v1.2 FOOTBALL_AI · 2026-09-17*
