@@ -352,7 +352,9 @@ if ($Beta) {
     $Overlay = Join-Path $Root "scripts\integration-config\football-integration-overlay.yml"
     $MemberOverlay = Join-Path $Root "scripts\integration-config\member-integration-overlay.yml"
     $MpOverlay = Join-Path $Root "scripts\integration-config\mp-integration-overlay.yml"
-    $GatewayOverlay = Join-Path $Root "scripts\integration-config\gateway-integration-local.yaml"
+    $GatewayLocal = Join-Path $Root "scripts\integration-config\gateway-integration-local.yaml"
+    # ADR-084：ROI/OA/approval-costs 默认 grayLb://ops-server（:48094）；不再追加 gateway-roi-selfhost.yaml → :48180。
+    $GatewayOverlay = $GatewayLocal
 }
 $MemberStackOverlay = if ($Beta) {
     Join-Path $Root "scripts\integration-config\member-integration-local-stack-beta.yml"

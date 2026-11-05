@@ -1,0 +1,158 @@
+# DEPRECATED（ADR-084）：本地联调不再加载本文件；ROI/OA 走 ops-server :48094。
+# 完整路由 = jar 原 22 条 + 投产 selfhost。additional-location 会整表覆盖，不能只写一条。
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: roi-selfhost
+              uri: http://127.0.0.1:48180
+              order: -1
+              predicates:
+                - Path=/admin-api/ops/roi/**,/admin-api/ops/oa/**,/admin-api/ops/finance/approval-costs/**
+              metadata:
+                response-timeout: 120000
+                connect-timeout: 5000
+            ## system-server 服务
+            - id: system-admin-api # 路由的编号
+              uri: grayLb://system-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/admin-api/system/**
+              filters:
+                  - RewritePath=/admin-api/system/v3/api-docs, /v3/api-docs # 配置，保证转发到 /v3/api-docs
+            - id: system-app-api # 路由的编号
+              uri: grayLb://system-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/app-api/system/**
+              filters:
+                  - RewritePath=/app-api/system/v3/api-docs, /v3/api-docs
+            ## infra-server 服务
+            - id: infra-admin-api # 路由的编号
+              uri: grayLb://infra-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/admin-api/infra/**
+              filters:
+                  - RewritePath=/admin-api/infra/v3/api-docs, /v3/api-docs
+            - id: infra-app-api # 路由的编号
+              uri: grayLb://infra-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/app-api/infra/**
+              filters:
+                  - RewritePath=/app-api/infra/v3/api-docs, /v3/api-docs
+            - id: infra-spring-boot-admin # 路由的编号（Spring Boot Admin）
+              uri: grayLb://infra-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/admin/**
+            - id: infra-websocket # 路由的编号（WebSocket）
+              uri: grayLb://infra-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/infra/ws/**
+            ## member-server 服务
+            - id: member-admin-api # 路由的编号
+              uri: grayLb://member-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/admin-api/member/**
+              filters:
+                - RewritePath=/admin-api/member/v3/api-docs, /v3/api-docs
+            - id: member-app-api # 路由的编号
+              uri: grayLb://member-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/app-api/member/**
+              filters:
+                - RewritePath=/app-api/member/v3/api-docs, /v3/api-docs
+            ## bpm-server 服务
+            - id: bpm-admin-api # 路由的编号
+              uri: grayLb://bpm-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/admin-api/bpm/**
+              filters:
+                  - RewritePath=/admin-api/bpm/v3/api-docs, /v3/api-docs
+            ## report-server 服务
+            - id: report-admin-api # 路由的编号
+              uri: grayLb://report-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/admin-api/report/**
+              filters:
+                - RewritePath=/admin-api/report/v3/api-docs, /v3/api-docs
+            - id: report-jimu # 路由的编号（积木报表）
+              uri: grayLb://report-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/jmreport/**, /drag/**, /jimubi/**
+            ## pay-server 服务
+            - id: pay-admin-api # 路由的编号
+              uri: grayLb://pay-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/admin-api/pay/**
+              filters:
+                - RewritePath=/admin-api/pay/v3/api-docs, /v3/api-docs # 配置，保证转发到 /v3/api-docs
+            - id: pay-app-api # 路由的编号
+              uri: grayLb://pay-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/app-api/pay/**
+              filters:
+                - RewritePath=/app-api/pay/v3/api-docs, /v3/api-docs
+            ## match-server 服务
+            - id: match-admin-api # 路由的编号
+              uri: grayLb://match-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/admin-api/match/**
+              filters:
+                - RewritePath=/admin-api/match/v3/api-docs, /v3/api-docs
+            - id: match-app-api # 路由的编号
+              uri: grayLb://match-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/app-api/match/**
+              filters:
+                - RewritePath=/app-api/match/v3/api-docs, /v3/api-docs
+            ## mp-server 服务
+            - id: mp-admin-api # 路由的编号
+              uri: grayLb://mp-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/admin-api/mp/**
+              filters:
+                - RewritePath=/admin-api/mp/v3/api-docs, /v3/api-docs
+            ## mp-server 服务
+            - id: mp-app-api # 路由的编号
+              uri: grayLb://mp-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/app-api/mp/**
+              filters:
+                - RewritePath=/app-api/mp/v3/api-docs, /v3/api-docs
+            ## live-server 服务
+            - id: live-admin-api # 路由的编号
+              uri: grayLb://live-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/admin-api/live/**
+              filters:
+                - RewritePath=/admin-api/live/v3/api-docs, /v3/api-docs
+            ## live-server 服务
+            - id: live-app-api # 路由的编号
+              uri: grayLb://live-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/app-api/live/**
+              filters:
+                - RewritePath=/app-api/live/v3/api-docs, /v3/api-docs
+            ## wecom-server 服务
+            - id: wecom-admin-api # 路由的编号
+              uri: grayLb://wecom-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/admin-api/wecom/**
+              filters:
+                - RewritePath=/admin-api/wecom/v3/api-docs, /v3/api-docs
+            - id: wecom-app-api # 路由的编号
+              uri: grayLb://wecom-server
+              predicates: # 断言，作为路由的匹配条件，对应 RouteDefinition 数组
+                - Path=/app-api/wecom/**
+              filters:
+                - RewritePath=/app-api/wecom/v3/api-docs, /v3/api-docs
+            ## ops-server 服务（Ops 运营数据平台）— ADR-058 P-C：/admin-api/ops/** 直挂，无 Rewrite
+            - id: ops-admin-api
+              uri: grayLb://ops-server
+              predicates:
+                - Path=/admin-api/ops/**
+              metadata:
+                response-timeout: 300000
+                connect-timeout: 10000
+              filters:
+                - RewritePath=/admin-api/ops/v3/api-docs, /v3/api-docs

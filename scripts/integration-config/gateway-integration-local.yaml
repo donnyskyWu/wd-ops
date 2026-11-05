@@ -1,5 +1,6 @@
 # Gateway overlay for local integration: Nacos discovery + grayLb routes (from jar application.yaml).
-# Routes are NOT overridden here — gateway-server JAR defines grayLb://system-server|ops-server|... .
+# ROI/投产比（ADR-084）：/admin-api/ops/roi/**、/ops/oa/** 走 Gateway JAR 默认 grayLb://ops-server :48094；48180 selfhost 已废弃。
+# 勿在本文件只写一条 routes，additional-location 会整表覆盖 jar 路由。
 # Requires local Nacos :8848 namespace local and all Football services registered before Gateway routes work.
 spring:
   cloud:
