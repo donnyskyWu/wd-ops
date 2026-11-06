@@ -13,7 +13,7 @@
 [CmdletBinding()]
 param(
     [string]$Profiles = "dev,dev-nacos,dev-nacos-local,dev-local-multidb",
-    [int]$WaitSeconds = 120,
+    [int]$WaitSeconds = 180,
     [switch]$SkipNacosPrerequisiteCheck,
     [switch]$UseLegacyOa,
     [switch]$Rebuild
@@ -117,13 +117,28 @@ if ($UseBeta -and (Test-Path -LiteralPath $BetaOverlay)) {
     Write-Host "        (legacy overlay still present; jar profile dev-test-beta is SSOT)" -ForegroundColor DarkGray
 }
 
-$inner = @"
-`$host.UI.RawUI.WindowTitle = 'football-module-ops :48094 ($titleNote)'
-& '$javaExe' '-Dfile.encoding=UTF-8' -jar '$MonorepoJar' $extraCfg --spring.cloud.nacos.discovery.ip=127.0.0.1 *>&1 | Tee-Object -FilePath '$BackendLog' -Append
-"@
-
+# UTF-8 BOM launcher + -File (same as Start-IntegrationJar): avoids -Command mangling Chinese paths / java switches
+$tempDir = Join-Path $env:TEMP "ops-dev-start"
+New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
+$launcher = Join-Path $tempDir "ops-server-$PID-$(Get-Random).ps1"
+$jarLiteral = $MonorepoJar.Replace("'", "''")
+$logLiteral = $BackendLog.Replace("'", "''")
+$titleLiteral = "football-module-ops :48094 ($titleNote)".Replace("'", "''")
+$javaLiteral = $javaExe.Replace("'", "''")
+$lines = @(
+    '$ErrorActionPreference = ''Continue'''
+    "`$host.UI.RawUI.WindowTitle = '$titleLiteral'"
+    $flywayJvm = if ($UseBeta) { "" } else { "-Dspring.flyway.validate-on-migrate=false" }
+    if ($flywayJvm) {
+        "& '$javaLiteral' '-Dfile.encoding=UTF-8' '$flywayJvm' -jar '$jarLiteral' $extraCfg --spring.cloud.nacos.discovery.ip=127.0.0.1 *>&1 | Tee-Object -FilePath '$logLiteral' -Append"
+    } else {
+        "& '$javaLiteral' '-Dfile.encoding=UTF-8' -jar '$jarLiteral' $extraCfg --spring.cloud.nacos.discovery.ip=127.0.0.1 *>&1 | Tee-Object -FilePath '$logLiteral' -Append"
+    }
+)
+$utf8Bom = New-Object System.Text.UTF8Encoding $true
+[System.IO.File]::WriteAllLines($launcher, $lines, $utf8Bom)
 Start-Process -FilePath "powershell.exe" -ArgumentList @(
-    "-NoProfile", "-ExecutionPolicy", "Bypass", "-NoExit", "-Command", $inner
+    "-NoProfile", "-ExecutionPolicy", "Bypass", "-NoExit", "-File", $launcher
 ) -WindowStyle Minimized | Out-Null
 
 Write-Host "Log: $BackendLog"

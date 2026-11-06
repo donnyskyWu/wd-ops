@@ -6,6 +6,7 @@
 -- 回滚：生产需备份；边界表可停用行；字典勿删历史业务引用
 -- 关联：ADR-084；native_read_boundary_20261030.md；Flyway V42 dict_roi_dimension
 -- 生成：python docs/delivery/handover/sql-release-20261105/_build_sql_release_20261105.py
+-- 说明：本库脚本无 CREATE FUNCTION/触发器，无需 log_bin_trust_function_creators（1419）
 -- =============================================================================
 
 SET NAMES utf8mb4;

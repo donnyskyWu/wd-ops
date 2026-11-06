@@ -241,8 +241,16 @@ function Start-IntegrationJar {
     $titleLiteral = "$Title :$Port".Replace("'", "''")
     $jvmLiteral = $JvmArgs.Trim()
     $javaCmd = "& '$javaExe' '-Dfile.encoding=UTF-8'"
-    if ($jvmLiteral) { $javaCmd += " $jvmLiteral" }
-    $javaCmd += " -jar '$jarLiteral' --spring.profiles.active=`"$ActiveProfiles`" $cfg $ExtraArgs *>&1 | Tee-Object -FilePath '$logLiteral' -Append"
+    if ($jvmLiteral) {
+        # Quote each -D token so PowerShell does not treat .encoding= / -300s as switches (gateway ClassNotFoundException)
+        $quotedJvm = ($jvmLiteral -split '\s+' | Where-Object { $_ } | ForEach-Object { "'$($_.Replace("'", "''"))'" }) -join ' '
+        $javaCmd += " $quotedJvm"
+    }
+    $javaCmd += " -jar '$jarLiteral' --spring.profiles.active=`"$ActiveProfiles`" $cfg"
+    # --% prevents PowerShell from treating e.g. ...response-timeout=300s as switch -300s (gateway-retry ClassNotFoundException)
+    $extraLiteral = $ExtraArgs.Trim()
+    if ($extraLiteral) { $javaCmd += " --% $extraLiteral" }
+    $javaCmd += " *>&1 | Tee-Object -FilePath '$logLiteral' -Append"
     $lines = @(
         '$ErrorActionPreference = ''Continue'''
         "`$host.UI.RawUI.WindowTitle = '$titleLiteral'"
@@ -395,8 +403,16 @@ if (-not $SkipBuild) {
     if (-not $buildOk) { Write-Error "Maven build failed"; exit 1 }
 }
 
+$GatewayJvmLocal = ""
+if (-not $Beta) {
+    # dev profile JAR defaults to remote Nacos IP; override for local Docker :8848 + Redis :6379/123456
+    $GatewayJvmLocal = "-Dspring.cloud.nacos.server-addr=127.0.0.1:8848 -Dspring.cloud.nacos.discovery.namespace=local -Dspring.cloud.nacos.config.enabled=false -Dspring.data.redis.host=127.0.0.1 -Dspring.data.redis.password=123456"
+}
+# Free stale/zombie listeners so SkipBuild daily runs do not skip a dead :48080
+Stop-ListenersOnPort -Port 48080
+Start-Sleep -Seconds 1
 Start-IntegrationJar -Title "gateway" -Port 48080 -Jar $GatewayJar -LogFile (Join-Path $LogDir "gateway-integration.log") `
-    -ActiveProfiles "dev" -ExtraConfig $GatewayOverlay -ExtraArgs "--spring.cloud.gateway.server.webflux.httpclient.response-timeout=300s"
+    -ActiveProfiles "dev" -ExtraConfig $GatewayOverlay -JvmArgs $GatewayJvmLocal -ExtraArgs "--spring.cloud.gateway.server.webflux.httpclient.response-timeout=300s"
 Start-Sleep -Seconds 8
 if (-not (Test-PortListen -Port 48080)) {
     Write-Warning "[gateway] :48080 not listening after first start (often remote Redis timeout in Beta)"
@@ -404,7 +420,7 @@ if (-not (Test-PortListen -Port 48080)) {
         $null = Test-OpsTestRemoteRedisReachable -Retries 6 -RetryIntervalSec 5
     }
     Start-IntegrationJar -Title "gateway-retry" -Port 48080 -Jar $GatewayJar -LogFile (Join-Path $LogDir "gateway-integration.log") `
-        -ActiveProfiles "dev" -ExtraConfig $GatewayOverlay -ExtraArgs "--spring.cloud.gateway.server.webflux.httpclient.response-timeout=300s"
+        -ActiveProfiles "dev" -ExtraConfig $GatewayOverlay -JvmArgs $GatewayJvmLocal -ExtraArgs "--spring.cloud.gateway.server.webflux.httpclient.response-timeout=300s"
     Start-Sleep -Seconds 10
 }
 
@@ -558,7 +574,8 @@ if (-not $SkipFrontend) {
 Write-Host "`n--- Waiting for key endpoints (up to ${WaitSeconds}s) ---"
 # system actuator is wrapped by yudao (HTTP 200 + code:404) �� any HTTP response means process is up
 $null = Wait-HttpEndpoint -Url "http://127.0.0.1:48081/actuator/health" -TimeoutSec $WaitSeconds -Label "system-server"
-$null = Wait-HttpEndpoint -Url "http://127.0.0.1:48080/admin-api/system/tenant/simple-list" -TimeoutSec ([Math]::Min(60, $WaitSeconds)) -Label "gateway"
+# Gateway boots ~40s; tenant route needs system-server — allow full WaitSeconds (was capped at 60s → false DOWN)
+$null = Wait-HttpEndpoint -Url "http://127.0.0.1:48080/admin-api/system/tenant/simple-list" -TimeoutSec $WaitSeconds -Label "gateway"
 if (-not $SkipOa) {
     $null = Wait-HttpEndpoint -Url "http://127.0.0.1:48094/actuator/health" -FallbackUrl "http://127.0.0.1:48094/v3/api-docs" -Port 48094 -TimeoutSec ([Math]::Min(60, $WaitSeconds)) -Label "football-module-ops"
 }

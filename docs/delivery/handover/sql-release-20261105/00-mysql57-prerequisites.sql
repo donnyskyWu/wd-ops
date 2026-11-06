@@ -1,0 +1,59 @@
+-- =============================================================================
+-- MySQL 5.7 / 托管实例 · 导入 shenyu-ops.sql 前的前置条件
+-- 文件：00-mysql57-prerequisites.sql（本文件仅说明与校验；勿当作业务 DDL 执行）
+-- =============================================================================
+--
+-- 现象（Error 1419）
+--   ERROR 1419 (HY000): You do not have the SUPER privilege and binary logging
+--   is enabled (you *might* want to use the less safe log_bin_trust_function_creators
+--   variable)
+--
+-- 原因简述
+--   开启 binlog（log_bin=ON）且执行账号无 SUPER 时，MySQL 默认拒绝 CREATE FUNCTION，
+--   以免不可信函数在复制/恢复时产生非确定性 binlog。本 release 的 shenyu-ops.sql 在
+--   Section 03 等含 CREATE FUNCTION/PROCEDURE（审批成本列扩展等）；须在导入 routines 前
+--   由 DBA 打开 log_bin_trust_function_creators。M-Live 默认 minimal 包无例程（ADR-085）。
+--
+--   说明：Section 03 起即含 DELIMITER 块（存储过程）。binlog 开启时仍可能触发 1419。
+--
+-- 执行顺序（推荐拆分，见 RUNME.md / DBA-1419-一次性设置.md）
+--   1. 备份
+--   2. mysql … shenyu-ops < shenyu-ops-schema.sql（无 1419）
+--   3. 【本步】DBA 设置 log_bin_trust_function_creators = 1（见下）
+--   4. mysql … shenyu-ops < shenyu-ops-routines.sql
+--   5. shenyu-system.sql → 发版 ops-server
+--   （trust 已开时可用 shenyu-ops-full.sql 代替 2+4）
+--
+-- =============================================================================
+-- DBA 操作（需 GLOBAL 或参数组；普通业务账号通常无法 SET GLOBAL）
+-- =============================================================================
+--
+-- 一次性（重启后仍生效，直至改回或实例重建），需 SUPER 或云厂商参数权限：
+--
+--   SET GLOBAL log_bin_trust_function_creators = 1;
+--
+-- 持久化（自建 MySQL 5.7，my.cnf / mysqld.cnf）：
+--
+--   [mysqld]
+--   log_bin_trust_function_creators = 1
+--
+-- 阿里云 RDS / PolarDB / 腾讯云 CDB 等托管 MySQL：
+--   在「参数组 / 实例参数」中修改 log_bin_trust_function_creators = 1，
+--   保存后按控制台提示 **重启实例**（仅会话 SET GLOBAL 在托管环境常不可用或重启丢失）。
+--
+-- 安全说明（MySQL 官方文档）：
+--   该选项允许无 SUPER 的用户创建可能被复制信任的函数；本 release 函数为审计投影、
+--   已 DETERMINISTIC NO SQL，由 DBA 评估后开启。替代方案为授予 SUPER（通常不推荐）。
+--
+-- =============================================================================
+-- 可选：导入前校验（任意只读账号均可）
+-- =============================================================================
+--
+--   SHOW VARIABLES LIKE 'log_bin_trust_function_creators';
+--   -- 期望：Value = ON 或 1
+--
+--   SHOW VARIABLES LIKE 'log_bin';
+--   -- log_bin = ON 时更需上述 trust 变量
+--
+-- 本文件 intentionally 不包含 SET GLOBAL：无权限时会导致整包误执行失败。
+-- 详见同目录 README.md「Error 1419」与 shenyu-ops.sql 首个 DELIMITER 块前注释。
