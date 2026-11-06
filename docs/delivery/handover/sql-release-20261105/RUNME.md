@@ -4,7 +4,7 @@
 
 **不含** `roi_operation_log` / 库内审计（ADR-085）；**不含** Section 15 钉钉 field_map。无需 `log_bin_trust_function_creators`。
 
-**2026-11-06 更新**：`shenyu-ops-roi-minimal.sql` 已含 **01A**（`oa_ip_group*` 空表）与 **01B**（`oa_account` / `oa_account_cost`）。若已导入旧版 minimal，可另跑 `../sql-release-20261106/shenyu-ops-oa_account_cost-bootstrap.sql`（幂等，与新版重复段可跳过）。
+**2026-11-06 更新**：`shenyu-ops-roi-minimal.sql` 已含 **01A**（`oa_ip_group*` 空表）、**01B**（`oa_account` / `oa_account_cost`）与 **14B**（`roi_attachment` / `roi_wecom_media` 的 `infra_file_id` / `infra_file_url` 与 `storage_name` 长度）。若已导入旧版 minimal，可另跑 `../sql-release-20261106/shenyu-ops-oa_account_cost-bootstrap.sql`（幂等，与新版重复段可跳过）。
 
 | 顺序 | 文件 | 库 |
 |------|------|-----|

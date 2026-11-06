@@ -1,7 +1,7 @@
 -- =============================================================================
 -- 用途：M-Live 投产比（ROI）· shenyu-ops 表结构 / 种子 / 条件 ALTER（无函数·无触发器）
 -- 目标库：shenyu-ops
--- 执行顺序：Section 01 → 14（必做）；Section 15 为 [OPTIONAL]（见 README）
+-- 执行顺序：Section 01 → 14、14B（必做）；Section 15 为 [OPTIONAL]（见 README）
 -- 幂等性：是（CREATE IF NOT EXISTS、information_schema 条件 ALTER、INSERT IGNORE）
 -- 1419：本文件不含 DELIMITER 例程/触发器，无 SUPER 账号可直接导入。
 --       审计函数/触发器及 Section 03 oa_account_cost 列扩展 → shenyu-ops-routines.sql
@@ -236,7 +236,9 @@ CREATE TABLE IF NOT EXISTS `roi_attachment` (
   `file_name` varchar(180) NOT NULL,
   `content_type` varchar(64) NOT NULL,
   `file_size` bigint NOT NULL,
-  `storage_name` char(36) NOT NULL,
+  `storage_name` varchar(2048) NOT NULL COMMENT '附件定位键：infra URL 或历史本地文件名',
+  `infra_file_id` bigint DEFAULT NULL COMMENT 'infra 文件主键（infra.file）',
+  `infra_file_url` varchar(2048) DEFAULT NULL COMMENT 'infra 文件访问 URL',
   `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
   KEY `idx_roi_file` (`tenant_id`,`record_id`)
@@ -578,7 +580,9 @@ CREATE TABLE IF NOT EXISTS roi_wecom_media (
  id VARCHAR(36) NOT NULL, tenant_id BIGINT NOT NULL, corp_id VARCHAR(128) NOT NULL,
  config_id VARCHAR(32) NOT NULL, link_id VARCHAR(32) NOT NULL, author_id VARCHAR(32) NOT NULL,
  created_by VARCHAR(32) NOT NULL, file_name VARCHAR(256) NOT NULL, content_type VARCHAR(100) NOT NULL,
- file_size BIGINT NOT NULL, storage_name VARCHAR(100) NOT NULL, media_type VARCHAR(20) NOT NULL,
+ file_size BIGINT NOT NULL, storage_name VARCHAR(2048) NOT NULL COMMENT '素材定位键：infra URL 或历史 *.bin 相对名',
+ infra_file_id BIGINT NULL COMMENT 'infra 文件主键', infra_file_url VARCHAR(2048) NULL COMMENT 'infra 文件访问 URL',
+ media_type VARCHAR(20) NOT NULL,
  provider_media_id VARCHAR(256) NOT NULL DEFAULT '', provider_expires_at DATETIME(3) NULL,
  provider_status VARCHAR(40) NOT NULL DEFAULT 'local_only',
  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -1006,6 +1010,48 @@ SET @sql = (
   FROM information_schema.STATISTICS
   WHERE TABLE_SCHEMA = 'shenyu-ops' AND TABLE_NAME = 'oa_account' AND INDEX_NAME = 'idx_oa_account_tenant_author');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- =============================================================================
+-- Section 14B: ROI 附件/企微素材 · infra FileApi 列 + storage_name 长度
+-- SSOT: 20261106_roi_infra_file_storage.sql
+-- =============================================================================
+
+-- 2026-11-06: ROI 附件与企微欢迎素材改为走 infra FileApi；storage_name 存 URL 或历史相对名，需加 infra 列并放宽 storage_name 长度。
+-- 幂等：按 information_schema 判断后执行；应用于 shenyu-ops。
+
+
+
+-- roi_attachment：加 infra 引用列；storage_name 由 char(36) 放宽以容纳完整 URL
+SET @exists := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'roi_attachment' AND COLUMN_NAME = 'infra_file_id');
+SET @stmt := IF(@exists = 0,
+  'ALTER TABLE roi_attachment ADD COLUMN infra_file_id BIGINT NULL COMMENT ''infra 文件主键（infra.file）'' AFTER storage_name',
+  'SELECT 1');
+PREPARE p FROM @stmt; EXECUTE p; DEALLOCATE PREPARE p;
+
+SET @exists := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'roi_attachment' AND COLUMN_NAME = 'infra_file_url');
+SET @stmt := IF(@exists = 0,
+  'ALTER TABLE roi_attachment ADD COLUMN infra_file_url VARCHAR(2048) NULL COMMENT ''infra 文件访问 URL'' AFTER infra_file_id',
+  'SELECT 1');
+PREPARE p FROM @stmt; EXECUTE p; DEALLOCATE PREPARE p;
+
+SET @stmt := 'ALTER TABLE roi_attachment MODIFY COLUMN storage_name VARCHAR(2048) NOT NULL COMMENT ''附件定位键：infra URL 或历史本地文件名''';
+PREPARE p FROM @stmt; EXECUTE p; DEALLOCATE PREPARE p;
+
+-- roi_wecom_media
+SET @exists := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'roi_wecom_media' AND COLUMN_NAME = 'infra_file_id');
+SET @stmt := IF(@exists = 0,
+  'ALTER TABLE roi_wecom_media ADD COLUMN infra_file_id BIGINT NULL COMMENT ''infra 文件主键'' AFTER storage_name',
+  'SELECT 1');
+PREPARE p FROM @stmt; EXECUTE p; DEALLOCATE PREPARE p;
+
+SET @exists := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'roi_wecom_media' AND COLUMN_NAME = 'infra_file_url');
+SET @stmt := IF(@exists = 0,
+  'ALTER TABLE roi_wecom_media ADD COLUMN infra_file_url VARCHAR(2048) NULL COMMENT ''infra 文件访问 URL'' AFTER infra_file_id',
+  'SELECT 1');
+PREPARE p FROM @stmt; EXECUTE p; DEALLOCATE PREPARE p;
+
+SET @stmt := 'ALTER TABLE roi_wecom_media MODIFY COLUMN storage_name VARCHAR(2048) NOT NULL COMMENT ''素材定位键：infra URL 或历史 *.bin 相对名''';
+PREPARE p FROM @stmt; EXECUTE p; DEALLOCATE PREPARE p;
 
 -- =============================================================================
 -- [OPTIONAL] Section 15: tenant=1 钉钉审批 field_map + ops_oa_template

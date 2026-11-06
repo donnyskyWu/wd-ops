@@ -471,8 +471,9 @@ OPS_ROI_MINIMAL_HEADER = (
     """-- =============================================================================
 -- 用途：M-Live 投产比 · 运维最小 SQL（表结构 / 种子 / 条件 ALTER）
 -- 目标库：shenyu-ops
--- 范围：Section 01、01A–01B、02–03、05–07、09–14（**不含** Section 15 钉钉；**不含** roi_operation_log / 库内审计）
+-- 范围：Section 01、01A–01B、02–03、05–07、09–14、14B（**不含** Section 15 钉钉；**不含** roi_operation_log / 库内审计）
 -- 01A：oa_ip_group* 空表；01B：oa_account / oa_account_cost 基表（20261106 补丁已并入本文件）
+-- 14B：roi_attachment / roi_wecom_media 增加 infra_file_* 与 storage_name 长度（FileApi SSOT：20261106_roi_infra_file_storage.sql）
 -- 幂等性：是；**无** CREATE FUNCTION / PROCEDURE / TRIGGER / DELIMITER（无需 log_bin_trust_function_creators）
 -- 平台全量（含 Section 03 存储过程等例程）：shenyu-ops-schema.sql + shenyu-ops-routines.sql 或 shenyu-ops-full.sql
 -- 生成：python docs/delivery/handover/sql-release-20261105/_build_sql_release_20261105.py
@@ -489,7 +490,7 @@ OPS_SCHEMA_HEADER = (
     """-- =============================================================================
 -- 用途：M-Live 投产比（ROI）· shenyu-ops 表结构 / 种子 / 条件 ALTER（无函数·无触发器）
 -- 目标库：shenyu-ops
--- 执行顺序：Section 01 → 14（必做）；Section 15 为 [OPTIONAL]（见 README）
+-- 执行顺序：Section 01 → 14、14B（必做）；Section 15 为 [OPTIONAL]（见 README）
 -- 幂等性：是（CREATE IF NOT EXISTS、information_schema 条件 ALTER、INSERT IGNORE）
 -- 1419：本文件不含 DELIMITER 例程/触发器，无 SUPER 账号可直接导入。
 --       审计函数/触发器及 Section 03 oa_account_cost 列扩展 → shenyu-ops-routines.sql
@@ -647,7 +648,7 @@ OPS_HEADER = (
     """-- =============================================================================
 -- 用途：M-Live 投产比（ROI）· shenyu-ops 增量结构 + 可选钉钉字段映射
 -- 目标库：shenyu-ops
--- 执行顺序：Section 01 → 14（必做）；Section 15 为 [OPTIONAL]（见 README）
+-- 执行顺序：Section 01 → 14、14B（必做）；Section 15 为 [OPTIONAL]（见 README）
 -- 幂等性：是（CREATE IF NOT EXISTS、information_schema 条件 ALTER、INSERT IGNORE）
 -- 回滚：生产需备份 shenyu-ops（至少 roi_* / ops_oa_* / oa_account_cost）；无自动回滚。
 --       IP 审计函数回滚见 Section 08 注释（20261026_roi_ip_audit_projection_rollback.sql）。
@@ -732,6 +733,12 @@ def ops_section_specs() -> list[tuple[str, str, str, str]]:
         ("12", "Flyway V205 持有人 + M2 发布账号", "V205__m4_holder_m2_publish_account.sql", read_flyway("V205__m4_holder_m2_publish_account.sql")),
         ("13", "Flyway V206 抖快双状态 + 运营人", "V206__oa_account_short_video_live_operator.sql", read_flyway("V206__oa_account_short_video_live_operator.sql")),
         ("14", "oa_account 作者 + 封禁 JSON", "20261102_oa_account_author_ban.sql", read_updates("20261102_oa_account_author_ban.sql")),
+        (
+            "14B",
+            "ROI 附件/企微素材 · infra FileApi 列 + storage_name 长度",
+            "20261106_roi_infra_file_storage.sql",
+            read_updates_ops_body("20261106_roi_infra_file_storage.sql"),
+        ),
     ]
 
 
@@ -802,7 +809,7 @@ Handover：**一库一文件**，从 SSOT 合并可重复执行的 ROI/OA 结构
 
 仅表结构/种子/条件 ALTER，**不含** `roi_operation_log` / 库内审计触发器（ADR-085）及 Section 15 钉钉可选段。
 
-**2026-11-06**：`shenyu-ops-roi-minimal.sql` 已含 Section **01A**（`oa_ip_group*` 空表）与 **01B**（`oa_account` / `oa_account_cost` 基表）。若环境已导入旧版 minimal，可另跑 `../sql-release-20261106/shenyu-ops-oa_account_cost-bootstrap.sql`（幂等；与 01B+Section 03 重叠可跳过）。
+**2026-11-06**：`shenyu-ops-roi-minimal.sql` 已含 Section **01A**（`oa_ip_group*` 空表）与 **01B**（`oa_account` / `oa_account_cost` 基表），以及 **14B**（`roi_attachment` / `roi_wecom_media` 的 `infra_file_*` 列与 `storage_name` 长度，SSOT `20261106_roi_infra_file_storage.sql`）。若环境已导入旧版 minimal，可另跑 `../sql-release-20261106/shenyu-ops-oa_account_cost-bootstrap.sql`（幂等；与 01B+Section 03 重叠可跳过）。
 
 | 顺序 | 文件 | 库 |
 |---|---|---|
@@ -863,8 +870,8 @@ SSOT 可面向 MySQL 8 编写；`_build_sql_release_20261105.py` 写出前对合
 |---|---|---|
 | `00-mysql57-prerequisites.sql` | — | 1419 背景与校验（非必跑 DDL） |
 | `DBA-1419-一次性设置.md` | — | **给 DBA/运维** 的参数组与 SET GLOBAL 步骤 |
-| **`shenyu-ops-roi-minimal.sql`** | shenyu-ops | **M-Live 运维默认**：Section 01、01A–01B、02–03、05–07、09–14；无例程/触发器 |
-| `shenyu-ops-schema.sql` | shenyu-ops | 平台全量第一步：Section 01–03、05–07、09–14 表/种子（无 DELIMITER） |
+| **`shenyu-ops-roi-minimal.sql`** | shenyu-ops | **M-Live 运维默认**：Section 01、01A–01B、02–03、05–07、09–14、14B；无例程/触发器 |
+| `shenyu-ops-schema.sql` | shenyu-ops | 平台全量第一步：Section 01–03、05–07、09–14、14B 表/种子（无 DELIMITER） |
 | `shenyu-ops-routines.sql` | shenyu-ops | 平台第二步（须 trust）：函数/触发器 + Section 03 存储过程版列扩展 |
 | `shenyu-ops-full.sql` / `shenyu-ops.sql` | shenyu-ops | 完整单文件（schema + routines）；**仅** DBA 已开 trust 时使用 |
 | `shenyu-system.sql` | shenyu-system | 原生只读边界表 + `dict_roi_dimension` |

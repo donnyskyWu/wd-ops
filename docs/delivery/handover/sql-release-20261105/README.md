@@ -6,7 +6,7 @@ Handover：**一库一文件**，从 SSOT 合并可重复执行的 ROI/OA 结构
 
 仅表结构/种子/条件 ALTER，**不含** `roi_operation_log` / 库内审计触发器（ADR-085）及 Section 15 钉钉可选段。
 
-**2026-11-06**：`shenyu-ops-roi-minimal.sql` 已含 Section **01A**（`oa_ip_group*` 空表）与 **01B**（`oa_account` / `oa_account_cost` 基表）。若环境已导入旧版 minimal，可另跑 `../sql-release-20261106/shenyu-ops-oa_account_cost-bootstrap.sql`（幂等；与 01B+Section 03 重叠可跳过）。
+**2026-11-06**：`shenyu-ops-roi-minimal.sql` 已含 Section **01A**（`oa_ip_group*` 空表）与 **01B**（`oa_account` / `oa_account_cost` 基表），以及 **14B**（`roi_attachment` / `roi_wecom_media` 的 `infra_file_*` 列与 `storage_name` 长度，SSOT `20261106_roi_infra_file_storage.sql`）。若环境已导入旧版 minimal，可另跑 `../sql-release-20261106/shenyu-ops-oa_account_cost-bootstrap.sql`（幂等；与 01B+Section 03 重叠可跳过）。
 
 | 顺序 | 文件 | 库 |
 |---|---|---|
@@ -67,8 +67,8 @@ SSOT 可面向 MySQL 8 编写；`_build_sql_release_20261105.py` 写出前对合
 |---|---|---|
 | `00-mysql57-prerequisites.sql` | — | 1419 背景与校验（非必跑 DDL） |
 | `DBA-1419-一次性设置.md` | — | **给 DBA/运维** 的参数组与 SET GLOBAL 步骤 |
-| **`shenyu-ops-roi-minimal.sql`** | shenyu-ops | **M-Live 运维默认**：Section 01、01A–01B、02–03、05–07、09–14；无例程/触发器 |
-| `shenyu-ops-schema.sql` | shenyu-ops | 平台全量第一步：Section 01–03、05–07、09–14 表/种子（无 DELIMITER） |
+| **`shenyu-ops-roi-minimal.sql`** | shenyu-ops | **M-Live 运维默认**：Section 01、01A–01B、02–03、05–07、09–14、14B；无例程/触发器 |
+| `shenyu-ops-schema.sql` | shenyu-ops | 平台全量第一步：Section 01–03、05–07、09–14、14B 表/种子（无 DELIMITER） |
 | `shenyu-ops-routines.sql` | shenyu-ops | 平台第二步（须 trust）：函数/触发器 + Section 03 存储过程版列扩展 |
 | `shenyu-ops-full.sql` / `shenyu-ops.sql` | shenyu-ops | 完整单文件（schema + routines）；**仅** DBA 已开 trust 时使用 |
 | `shenyu-system.sql` | shenyu-system | 原生只读边界表 + `dict_roi_dimension` |
